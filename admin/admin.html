@@ -1,1 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アイテム管理ツール</title>
+    <link rel="stylesheet" href="admin.style.css">
+</head>
+<body>
+    <div id="password-prompt">
+        <h2>管理者パスワード</h2>
+        <input type="password" id="adminPasswordInput" placeholder="パスワード">
+        <button id="loginButton">ログイン</button>
+        <p id="passwordError" class="error-message"></p>
+    </div>
 
+    <div id="admin-content" style="display:none;">
+        <header>
+            <h1>アイテム管理ツール</h1>
+            <button id="logoutButton">ログアウト</button>
+        </header>
+
+        <div class="container">
+            <section id="data-io">
+                <h3>データ読み込み/書き出し</h3>
+                <p>
+                    <label>既存の items.json を読み込む: <input type="file" id="loadItemsFile" accept=".json"></label>
+                </p>
+                <p>
+                    <label>既存の tags.json を読み込む: <input type="file" id="loadTagsFile" accept=".json"></label>
+                </p>
+                <button id="saveDataButton">items.json と tags.json をダウンロード</button>
+                <p class="info">ダウンロード後、手動でプロジェクトのルートに配置し、Gitにコミット＆プッシュしてください。</p>
+            </section>
+
+            <hr>
+
+            <section id="tag-management">
+                <h2>タグ管理</h2>
+                <div class="form-group">
+                    <input type="text" id="newTagId" placeholder="タグID (例: recovery)">
+                    <input type="text" id="newTagName" placeholder="タグ表示名 (例: 回復)">
+                    <button id="addTagButton">タグ追加</button>
+                </div>
+                <div id="tagListContainer">
+                    <!-- タグがここに表示されます -->
+                </div>
+            </section>
+
+            <hr>
+
+            <section id="item-management">
+                <h2>アイテム管理</h2>
+                <form id="itemForm">
+                    <input type="hidden" id="itemIdToEdit">
+                    <div class="form-group">
+                        <label for="itemName">名前:</label>
+                        <input type="text" id="itemName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemImage">画像ファイル名 (images/ 以下):</label>
+                        <input type="text" id="itemImage" placeholder="例: potion.png または subfolder/potion.png">
+                        <p class="info">画像ファイルは手動で <code>images/</code> フォルダに配置してください。</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemEffect">効果:</label>
+                        <textarea id="itemEffect" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemSource">入手手段:</label>
+                        <textarea id="itemSource" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>タグ:</label>
+                        <div id="itemTagsCheckboxes">
+                            <!-- タグのチェックボックスがここに動的に生成されます -->
+                        </div>
+                    </div>
+                    <button type="submit" id="saveItemButton">アイテム保存</button>
+                    <button type="button" id="clearFormButton">フォームクリア</button>
+                </form>
+
+                <h3>アイテム一覧</h3>
+                <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." style="margin-bottom:10px; width: 50%;">
+                <table id="itemsTable">
+                    <thead>
+                        <tr>
+                            <th>画像</th>
+                            <th>名前</th>
+                            <th>タグ</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- アイテムがここに表示されます -->
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+
+    <script src="admin.script.js"></script>
+</body>
+</html>
