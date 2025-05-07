@@ -10,10 +10,10 @@ import {
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", // ご自身のAPIキー等に置き換えてください
+  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", // ★★★ ご自身のAPIキー等に置き換えてください ★★★
   authDomain: "itemsearchtooleditor.firebaseapp.com",
   projectId: "itemsearchtooleditor",
-  storageBucket: "itemsearchtooleditor.appspot.com", // Firebaseコンソールで確認 (末尾が .appspot.com か .firebasestorage.app か)
+  storageBucket: "itemsearchtooleditor.appspot.com", // Firebase Storageは使わないが念のため残してもOK
   messagingSenderId: "243156973544",
   appId: "1:243156973544:web:ffdc31134a35354b6dd65d",
   measurementId: "G-8EHP9MGJ4M" // Optional
@@ -32,10 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemCountDisplay = document.getElementById('itemCount');
     const resetFiltersButton = document.getElementById('resetFiltersButton');
 
-    let allItems = [];
-    let availableTags = [];
-    let selectedTags = [];
+    let allItems = [];        // Firestoreから取得したアイテムデータ { docId, name, image (R2のURL), effect, 入手手段, tags: [tagDocId1,...] }
+    let availableTags = [];   // Firestoreから取得したタグデータ { id: docId, name: tagName }
+    let selectedTags = [];    // 選択されたタグのドキュメントIDの配列
 
+    // Firestoreからデータをロードする関数
     async function loadData() {
         try {
             const itemsCollectionRef = collection(db, 'items');
@@ -64,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // タグフィルターUIを生成する関数
     function renderTags() {
         if (!tagFiltersContainer) return;
         tagFiltersContainer.innerHTML = '';
@@ -77,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // アイテムリストを表示する関数
     function renderItems(itemsToRender) {
         if (!itemList) return;
         itemList.innerHTML = '';
@@ -90,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsToRender.forEach(item => {
             const itemCard = document.createElement('div');
             itemCard.classList.add('item-card');
+            // item.image にはCloudflare R2の画像URLが格納されている想定
             const imagePath = item.image || './images/placeholder_item.png'; // ローカルのプレースホルダー
             let tagsHtml = '';
             if (item.tags && item.tags.length > 0) {
@@ -109,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // テキスト検索とタグフィルターに基づいてアイテムをフィルタリングし再表示する関数
     function filterAndRenderItems() {
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
         let filteredItems = allItems.filter(item => {
@@ -123,6 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderItems(filteredItems);
     }
     
+    // タグ選択をトグルする関数
     function toggleTag(tagButton, tagId) {
         tagButton.classList.toggle('active');
         if (selectedTags.includes(tagId)) {
@@ -133,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filterAndRenderItems();
     }
 
+    // フィルターをリセットする関数
     function resetFilters() {
         if (searchInput) searchInput.value = '';
         selectedTags = [];
@@ -144,8 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
         filterAndRenderItems();
     }
 
+    // イベントリスナーの設定
     if (searchInput) searchInput.addEventListener('input', filterAndRenderItems);
     if (resetFiltersButton) resetFiltersButton.addEventListener('click', resetFilters);
 
+    // 初期データロードを実行
     loadData();
 });
