@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const CORRECT_PASSWORD = "your_very_secret_password123"; // ★★★ 必ず変更してください ★★★
+    const CORRECT_PASSWORD = "password"; // ★★★ 必ず変更してください ★★★
     
     const passwordPrompt = document.getElementById('password-prompt');
     const adminContent = document.getElementById('admin-content');
