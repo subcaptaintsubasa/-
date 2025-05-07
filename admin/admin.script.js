@@ -1,5 +1,5 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"; // 例: 9.6.10 (最新版を確認)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
     getAuth,
     signInWithEmailAndPassword,
@@ -19,14 +19,14 @@ import {
     orderBy,
     serverTimestamp,
     writeBatch,
-    getDoc // 単一ドキュメント取得用にgetDocを追加
+    getDoc
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import {
     getStorage,
     ref,
     uploadBytesResumable,
     getDownloadURL,
-    deleteObject // 画像削除用
+    deleteObject
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js";
 
 // Your web app's Firebase configuration
@@ -48,7 +48,7 @@ const storage = getStorage(app);
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Elements
+    // DOM Elements (変更なし)
     const passwordPrompt = document.getElementById('password-prompt');
     const adminContent = document.getElementById('admin-content');
     const loginButton = document.getElementById('loginButton');
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
             signInWithEmailAndPassword(auth, email, password)
                 .catch(error => {
                     console.error("Login error:", error);
-                    passwordError.textContent = `ログインエラー: ${error.message}`;
+                    passwordError.textContent = `ログインエラー: ${error.code} - ${error.message}`; // 詳細なエラー表示
                 });
         });
     }
@@ -157,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTagsForManagement() {
+        // ... (前回から変更なし) ...
         if (!tagListContainer) return;
         tagListContainer.innerHTML = '';
         tagsCache.forEach(tag => {
@@ -185,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (addTagButton) {
+        // ... (前回から変更なし) ...
         addTagButton.addEventListener('click', async () => {
             const name = newTagNameInput.value.trim();
             if (!name) { alert("タグ名を入力してください。"); return; }
@@ -209,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openEditTagModal(docId, currentName) {
+        // ... (前回から変更なし) ...
         editingTagDocIdInput.value = docId;
         editingTagNameInput.value = currentName;
         editTagModal.style.display = 'flex';
@@ -216,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (saveTagEditButton) {
+        // ... (前回から変更なし) ...
         saveTagEditButton.addEventListener('click', async () => {
             const docId = editingTagDocIdInput.value;
             const newName = editingTagNameInput.value.trim();
@@ -245,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteTag(docId, tagName) {
+        // ... (前回から変更なし) ...
         if (confirm(`タグ「${tagName}」(Doc ID: ${docId})を削除しますか？\nこのタグを使用している全てのアイテムからも自動的に削除されます。`)) {
             try {
                 const tagRef = doc(db, 'tags', docId);
@@ -272,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderItemTagsSelector(selectedItemTagIds = []) {
+        // ... (前回から変更なし) ...
         if (!itemTagsSelectorContainer) return;
         itemTagsSelectorContainer.innerHTML = '';
         tagsCache.forEach(tag => {
@@ -290,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ★★★ 画像アップロード関連の修正箇所 ★★★
     if (itemImageFileInput) {
         itemImageFileInput.addEventListener('change', (event) => {
             selectedImageFile = event.target.files[0];
@@ -301,6 +308,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 reader.readAsDataURL(selectedImageFile);
                 itemImageUrlInput.value = ''; // 新しいファイルが選択されたら既存のURLはクリア
+                uploadProgressContainer.style.display = 'none'; // 進捗表示をリセット
+                uploadProgress.value = 0;
+                uploadProgressText.textContent = '';
             } else {
                 itemImagePreview.src = '#';
                 itemImagePreview.style.display = 'none';
@@ -310,10 +320,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function uploadImageAndGetURL(file) {
-        if (!file) return null;
-        const imageName = `${Date.now()}_${file.name}`;
+        if (!file) {
+            console.log("No file selected for upload.");
+            return null;
+        }
+        const imageName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`; // ファイル名からスペースを除去
         const storageImageRef = ref(storage, `item_images/${imageName}`);
         
+        console.log(`Attempting to upload: ${imageName} to item_images/`);
         uploadProgressContainer.style.display = 'block';
         uploadProgress.value = 0;
         uploadProgressText.textContent = '0%';
@@ -324,29 +338,53 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadTask.on('state_changed',
                 (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log('Upload is ' + progress + '% done');
                     uploadProgress.value = progress;
                     uploadProgressText.textContent = `${Math.round(progress)}%`;
+                    switch (snapshot.state) {
+                        case 'paused':
+                            console.log('Upload is paused');
+                            break;
+                        case 'running':
+                            console.log('Upload is running');
+                            break;
+                    }
                 },
                 (error) => {
                     console.error("Upload failed:", error);
+                    // エラーコードに基づいた詳細なエラーメッセージ
+                    switch (error.code) {
+                        case 'storage/unauthorized':
+                            alert('画像のアップロード権限がありません。Firebase Storageのセキュリティルールを確認してください。');
+                            break;
+                        case 'storage/canceled':
+                            alert('画像のアップロードがキャンセルされました。');
+                            break;
+                        case 'storage/unknown':
+                            alert('不明なエラーにより画像のアップロードに失敗しました。コンソールを確認してください。');
+                            break;
+                        default:
+                            alert(`画像のアップロードに失敗しました: ${error.message}`);
+                    }
                     uploadProgressContainer.style.display = 'none';
-                    reject(error);
+                    reject(error); // Promiseをrejectで終了
                 },
-                async () => {
+                async () => { // Complete callback
                     try {
                         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                         console.log('File available at', downloadURL);
                         uploadProgressContainer.style.display = 'none';
-                        resolve(downloadURL);
+                        resolve(downloadURL); // Promiseをresolveで終了
                     } catch (error) {
                         console.error("Error getting download URL:", error);
                         uploadProgressContainer.style.display = 'none';
-                        reject(error);
+                        reject(error); // Promiseをrejectで終了
                     }
                 }
             );
         });
     }
+    // ★★★ ここまで画像アップロード関連の修正 ★★★
 
     async function loadItemsFromFirestore() {
         try {
@@ -369,39 +407,48 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedTagIds = Array.from(itemTagsSelectorContainer.querySelectorAll('.tag-button.selected'))
                                       .map(btn => btn.dataset.tagId);
             const editingDocId = itemIdToEditInput.value;
-            let imageUrl = itemImageUrlInput.value; // 編集時は既存のURLがセットされている
+            let imageUrl = itemImageUrlInput.value;
 
             if (!name || !effect || !source) { alert("名前、効果、入手手段は必須です。"); return; }
             
             saveItemButton.disabled = true;
+            saveItemButton.textContent = "保存中...";
 
             try {
-                if (selectedImageFile) { // 新しい画像が選択されている場合
-                    // 編集時で、かつ既存の画像がある場合、古い画像をStorageから削除
-                    if (editingDocId && imageUrl) {
+                if (selectedImageFile) {
+                    const existingImageUrlForDeletion = editingDocId ? imageUrl : null; // 編集時のみ既存URLを削除候補に
+
+                    imageUrl = await uploadImageAndGetURL(selectedImageFile); // ここでPromiseが解決されるのを待つ
+
+                    if (!imageUrl) { // アップロードが失敗した場合 (uploadImageAndGetURL内でalert表示済みのはず)
+                        saveItemButton.disabled = false;
+                        saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
+                        return; // ここで処理を中断
+                    }
+                    console.log("New image URL after upload:", imageUrl);
+
+                    // 新しい画像が正常にアップロードされた後、古い画像を削除 (編集時のみ)
+                    if (existingImageUrlForDeletion && existingImageUrlForDeletion !== imageUrl) {
                         try {
-                            const oldImageRef = ref(storage, imageUrl); // URLからrefを取得
+                            const oldImageRef = ref(storage, existingImageUrlForDeletion);
                             await deleteObject(oldImageRef);
-                            console.log("Old image deleted from Storage:", imageUrl);
+                            console.log("Old image deleted from Storage:", existingImageUrlForDeletion);
                         } catch (error) {
-                            if (error.code !== 'storage/object-not-found') { // 見つからないエラーは無視
-                                console.warn("Could not delete old image from Storage:", error);
+                            if (error.code !== 'storage/object-not-found') {
+                                console.warn("Could not delete old image from Storage (it might not exist or an error occurred):", error);
                             }
                         }
                     }
-                    imageUrl = await uploadImageAndGetURL(selectedImageFile);
-                    if (!imageUrl) {
-                        alert("画像のアップロードに失敗しました。");
-                        saveItemButton.disabled = false;
-                        return;
-                    }
+
                 } else if (!editingDocId && !imageUrl) {
-                    // 新規作成で画像が選択されていない場合は、画像なしとする (imageUrlは空のまま)
+                    // 新規作成で画像なしの場合は imageUrl は空のまま
+                    console.log("No new image selected, and no existing image URL for new item.");
                 }
+
 
                 const itemData = {
                     name,
-                    image: imageUrl || '', // 画像URLがなければ空文字
+                    image: imageUrl || '',
                     effect,
                     入手手段: source,
                     tags: selectedTagIds,
@@ -418,21 +465,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("Item added with ID: ", docRef.id);
                 }
                 
-                await loadItemsFromFirestore();
-                renderItemsAdminTable();
-                clearItemForm();
-            } catch (error) {
-                console.error("Error saving item: ", error);
-                alert(`アイテムの保存に失敗しました: ${error.message}`);
+                await loadItemsFromFirestore(); // 保存後にデータを再読み込み
+                renderItemsAdminTable();      // テーブルを再描画
+                clearItemForm();              // フォームをクリア
+            } catch (error) { // uploadImageAndGetURLからのrejectもここでキャッチされる
+                console.error("Error during item save process: ", error);
+                // alertはuploadImageAndGetURL内で行われるか、ここで一般的なエラーとして表示
+                if (!error.message.includes('upload')) { // アップロード以外のエラーなら表示
+                     alert(`アイテムの保存処理中にエラーが発生しました: ${error.message}`);
+                }
             } finally {
                 saveItemButton.disabled = false;
+                saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
             }
         });
     }
 
-    if (clearFormButton) clearFormButton.addEventListener('click', clearItemForm);
+    if (clearFormButton) { // ... (前回から変更なし) ...
+        clearFormButton.addEventListener('click', clearItemForm);
+    }
 
-    function clearItemForm() {
+    function clearItemForm() { // ... (前回から変更なし) ...
         if (itemForm) itemForm.reset();
         itemIdToEditInput.value = '';
         itemImageUrlInput.value = '';
@@ -444,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saveItemButton) saveItemButton.textContent = "アイテム保存";
     }
 
-    function renderItemsAdminTable() {
+    function renderItemsAdminTable() { // ... (前回から変更なし、画像のonerrorパス修正) ...
         if (!itemsTableBody) return;
         itemsTableBody.innerHTML = '';
         const searchTerm = itemSearchAdminInput ? itemSearchAdminInput.value.toLowerCase() : "";
@@ -481,9 +534,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (itemSearchAdminInput) itemSearchAdminInput.addEventListener('input', renderItemsAdminTable);
+    if (itemSearchAdminInput) { // ... (前回から変更なし) ...
+        itemSearchAdminInput.addEventListener('input', renderItemsAdminTable);
+    }
 
-    async function loadItemForEdit(docId) {
+    async function loadItemForEdit(docId) { // ... (前回から変更なし) ...
         try {
             const itemRef = doc(db, "items", docId);
             const docSnap = await getDoc(itemRef);
@@ -519,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function deleteItem(docId, itemName, imageUrl) {
+    async function deleteItem(docId, itemName, imageUrl) { // ... (前回から変更なし) ...
         if (confirm(`アイテム「${itemName}」(Doc ID: ${docId})を削除しますか？\nStorage上の画像も削除されます（存在する場合）。`)) {
             try {
                 const itemRef = doc(db, 'items', docId);
@@ -550,6 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // モーダル関連 (変更なし)
     const closeButtons = document.querySelectorAll('.modal .close-button');
     closeButtons.forEach(btn => {
         btn.onclick = function() {
