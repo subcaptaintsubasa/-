@@ -1,144 +1,165 @@
-body {
-    font-family: sans-serif;
-    margin: 0;
-    background-color: #f4f4f4;
-    color: #333;
-}
+/* ... (既存のスタイルに追加・修正) ... */
 
-.container {
-    width: 90%;
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    border-radius: 8px;
-}
-
-h1 {
-    text-align: center;
-    color: #333;
-    margin-bottom: 20px;
-}
-
-.search-controls {
-    margin-bottom: 20px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-}
-
-#searchInput {
-    width: 100%; 
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
+/* 画像なしプレースホルダー */
+.item-card-image-container { /* 画像とプレースホルダーを囲むコンテナ */
+    width: 120px; /* imgと同じサイズに合わせる */
+    height: 120px;
+    display: flex; /* 中央揃えのため */
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+    align-self: center;
+    background-color: #f0f0f0; /* 背景色 */
     border-radius: 4px;
-    box-sizing: border-box;
+    overflow: hidden; /* 画像がはみ出さないように */
+}
+.item-card-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    margin-bottom: 0; /* コンテナがマージンを持つので不要に */
+    align-self: unset; /* コンテナが担当 */
+    background-color: transparent; /* 背景不要 */
+    border-radius: 0; /* コンテナに合わせる */
+}
+.no-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.9em;
+    color: #888;
+    text-align: center;
+    background-color: #e9ecef;
 }
 
-.tag-filters {
+
+/* タグ階層フィルター */
+.category-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
 }
-
-.tag-filter {
-    padding: 8px 12px;
-    background-color: #e0e0e0;
-    border: 1px solid #ccc;
-    border-radius: 15px;
-    cursor: pointer;
+.category-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.category-filter-group label {
     font-size: 0.9em;
-    transition: background-color 0.2s, color 0.2s;
+    color: #555;
+    font-weight: bold;
+}
+.category-filter-group select {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-width: 150px;
+}
+.category-filter-group select:disabled {
+    background-color: #f8f8f8;
+    cursor: not-allowed;
 }
 
-.tag-filter.active {
+/* タグ検索モード */
+.tag-search-mode {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+.tag-search-mode label {
+    margin-right: 5px;
+}
+.tag-search-mode input[type="radio"] {
+    margin-right: 3px;
+    vertical-align: middle;
+}
+.tag-search-mode label[for="tagSearchAnd"],
+.tag-search-mode label[for="tagSearchOr"] {
+    margin-right: 15px;
+    font-weight: normal;
+}
+
+/* 表示コントロール（ソートと表示モード） */
+.view-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+.sort-control select {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.display-mode .display-mode-button {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    background-color: #f8f9fa;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 5px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.display-mode .display-mode-button:hover {
+    background-color: #e9ecef;
+}
+.display-mode .display-mode-button.active {
     background-color: #007bff;
     color: white;
     border-color: #0056b3;
 }
 
-#resetFiltersButton {
-    padding: 10px 15px;
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 4px;
+/* リスト表示スタイル */
+.item-list.display-mode-list {
+    display: block; /* gridを解除 */
+}
+.list-view {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.list-view li {
+    padding: 10px 5px;
+    border-bottom: 1px solid #eee;
     cursor: pointer;
     transition: background-color 0.2s;
 }
-#resetFiltersButton:hover {
-    background-color: #5a6268;
+.list-view li:hover {
+    background-color: #f9f9f9;
+}
+.list-view li:last-child {
+    border-bottom: none;
 }
 
-
-#itemCount {
-    margin-bottom: 15px;
-    font-weight: bold;
-    color: #555;
+/* テーブル表示スタイル */
+.item-list.display-mode-table {
+    display: block; /* gridを解除 */
 }
-
-.item-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* カード幅調整 */
-    gap: 20px;
-}
-
-.item-card {
-    background-color: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.07);
-    display: flex;
-    flex-direction: column;
-    transition: box-shadow 0.2s ease-in-out;
-}
-.item-card:hover {
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-.item-card img {
-    width: 120px; /* 画像サイズ調整 */
-    height: 120px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-bottom: 12px;
-    align-self: center;
-    background-color: #eee; 
-}
-
-.item-card h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1.25em;
-    color: #0056b3;
-}
-
-.item-card p {
-    margin-bottom: 8px;
+.table-view {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 0.95em;
-    line-height: 1.5;
-    color: #444;
-    flex-grow: 1; 
 }
-.item-card p strong {
-    color: #333;
+.table-view th, .table-view td {
+    border: 1px solid #ddd;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top; /* 内容が多くても揃える */
 }
-
-.item-card .tags {
-    margin-top: 12px;
-    font-size: 0.85em;
-    color: #555;
+.table-view th {
+    background-color: #f2f2f2;
+    font-weight: bold;
 }
-.item-card .tags span {
-    background-color: #f0f0f0;
-    padding: 4px 8px;
-    border-radius: 12px; /* タグの丸みを強く */
-    margin-right: 6px;
-    margin-bottom: 6px; /* 折り返し時のため */
-    display: inline-block;
+.table-view tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* ストライプ */
 }
