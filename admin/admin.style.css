@@ -1,67 +1,533 @@
-/* ... (既存のスタイルはそのまま) ... */
+/* admin/admin.style.css - 管理者向けサイト */
+
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f4f7f6; /* 少し緑がかった背景 */
+    color: #333;
+    line-height: 1.6;
+}
+
+#password-prompt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9); /* 暗く */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    color: white;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#password-prompt h2 {
+    margin-bottom: 15px;
+}
+
+#password-prompt input[type="email"], /* Email input style */
+#password-prompt input[type="password"] {
+    padding: 12px;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 300px;
+    box-sizing: border-box;
+}
+
+#password-prompt button {
+    padding: 12px 20px;
+    font-size: 1.1em;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#password-prompt button:hover {
+    background-color: #0056b3;
+}
+
+.error-message {
+    color: #ff6b6b; /* より明るい赤 */
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+header {
+    background-color: #2c3e50; /* 濃い青系 */
+    color: white;
+    padding: 1em 1.5em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8em;
+}
+header div { /* 右側の要素用 */
+    display: flex;
+    align-items: center;
+}
+header #currentUserEmail {
+    font-size: 0.9em;
+    margin-right: 15px;
+    opacity: 0.9;
+}
+
+#logoutButton {
+    background-color: #e74c3c; /* 赤系 */
+    color: white;
+    padding: 0.6em 1em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+#logoutButton:hover {
+    background-color: #c0392b;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 25px auto;
+    padding: 30px; /* パディング調整 */
+    background-color: #ffffff;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+}
+
+section {
+    margin-bottom: 35px; /* セクション間マージン */
+    padding-bottom: 35px;
+    border-bottom: 1px solid #f1f1f1; /* 区切り線 */
+}
+section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 10px;
+}
+
+h2, h3 {
+    color: #2c3e50; /* ヘッダーに合わせた色 */
+    margin-top: 0;
+    margin-bottom: 25px; /* 見出し下マージン */
+    border-bottom: 1px solid #eee; /* 見出しにも区切り線 */
+    padding-bottom: 10px;
+}
+h2 { font-size: 1.7em; }
+h3 { font-size: 1.4em; margin-bottom: 15px;}
+
+.form-group {
+    margin-bottom: 20px; /* フォームグループ間マージン */
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px; /* ラベル下マージン */
+    font-weight: bold;
+    color: #555;
+}
+
+.form-group input[type="text"],
+.form-group input[type="url"],
+.form-group textarea,
+.form-group select { /* selectもスタイル統一 */
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.form-group input[type="text"]:focus,
+.form-group input[type="url"]:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+}
+
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 90px;
+}
+
+button, .button-like {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 8px;
+    font-size: 1em;
+    transition: background-color 0.2s;
+    vertical-align: middle;
+}
+button:hover, .button-like:hover {
+    background-color: #0056b3;
+}
+button:disabled { /* 保存中などのボタン */
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* タイプ別ボタンカラー */
+button[type="button"], #clearFormButton { background-color: #6c757d; }
+button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62; }
+.delete-item, .delete-category, #deleteCategoryButton, .tag-button .delete-icon { background-color: #dc3545 !important; color: white !important;}
+.delete-item:hover, .delete-category:hover, #deleteCategoryButton:hover, .tag-button .delete-icon:hover { background-color: #c82333 !important;}
+.edit-item, .edit-category, .tag-button .edit-icon { background-color: #28a745 !important; color: white !important;}
+.edit-item:hover, .edit-category:hover, .tag-button .edit-icon:hover { background-color: #218838 !important;}
+
+
+.info {
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-top: 8px;
+    line-height: 1.4;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+.info code {
+    background-color: #e9ecef;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+.info-message { /* ヘッダー下のメッセージ */
+    font-size: 0.95em;
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    padding: 12px 18px;
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 25px; /* 他セクションとの間に十分なマージン */
+}
+
+/* インラインフォーム */
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.inline-form input[type="text"] { flex-grow: 1; }
+.inline-form select { flex-basis: 300px; flex-shrink: 0;} /* select幅固定 */
+.inline-form button { flex-shrink: 0; } /* ボタン幅固定 */
+
+/* タグ/カテゴリボタンコンテナ */
+.tag-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background-color: #fdfdfd;
+}
+.tag-buttons-container .tag-button {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
+    padding: 6px 12px;
+    margin: 0;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-size: 0.9em;
+    display: inline-flex;
+    align-items: center;
+}
+.tag-buttons-container .tag-button:hover {
+    background-color: #dee2e6;
+    border-color: #adb5bd;
+}
+.tag-buttons-container .tag-button.selected {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+.tag-buttons-container .tag-button .action-icon {
+    margin-left: 8px;
+    font-weight: bold;
+    font-size: 1.1em;
+    padding: 2px 4px;
+    border-radius: 50%;
+    display: inline-block;
+    line-height: 1; /* アイコンの縦位置調整 */
+}
+.tag-buttons-container .tag-button .edit-icon { color: #218838; }
+.tag-buttons-container .tag-button .edit-icon:hover { background-color: rgba(40, 167, 69, 0.1); }
+.tag-buttons-container .tag-button .delete-icon { color: #c82333; }
+.tag-buttons-container .tag-button .delete-icon:hover { background-color: rgba(220, 53, 69, 0.1); }
 
 /* ▼▼▼ カテゴリ管理関連のスタイル ▼▼▼ */
 #category-management ul {
     list-style: none;
     padding-left: 0;
+    margin-top: 0; /* h3との間隔はh3のmargin-bottomで調整 */
 }
 #category-management li {
-    padding: 5px 0;
-    border-bottom: 1px dotted #eee;
+    padding: 8px 5px; /* 上下のパディングを少し増やす */
+    border-bottom: 1px dotted #e0e0e0;
+    display: flex; /* 横並びのため */
+    align-items: center; /* 縦中央揃え */
 }
-#category-management li span {
-    display: inline-block; /* クリック範囲のため */
-    padding: 2px 5px;
+#category-management li:last-child {
+    border-bottom: none;
+}
+#category-management li span { /* カテゴリ名表示部分 */
+    display: inline-block;
+    padding: 3px 6px;
     border-radius: 3px;
+    flex-grow: 1; /* 名前の部分が伸びるように */
+    margin-right: 10px; /* ボタンとの間隔 */
 }
 #category-management li span:hover {
     background-color: #f0f0f0;
+    cursor: pointer;
 }
 #category-management .placeholder {
     color: #999;
     font-style: italic;
+    padding: 10px 0;
 }
-#newCategoryParent, #editingCategoryParent {
-    max-width: 300px; /* ドロップダウンの幅調整 */
-    padding: 8px;
+#newCategoryParent, #editingCategoryParent { /* カテゴリ選択ドロップダウン */
+    padding: 10px 12px; /* inputと高さを合わせる */
     border: 1px solid #ccc;
     border-radius: 4px;
     background-color: white;
+    flex-basis: 350px; /* 幅調整 */
+    flex-shrink: 0;
 }
-#deleteCategoryButton { /* 削除ボタンの色 */
+
+/* ▲▲▲ カテゴリ管理関連のスタイル ▲▲▲ */
+
+/* ▼▼▼ アイテムフォームのカテゴリ選択 ▼▼▼ */
+#itemCategorySelector {
+    max-height: 250px; /* 高さを少し増やす */
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    padding: 15px; /* パディング増やす */
+    border-radius: 4px;
+    background-color: #fdfdfd;
+}
+#itemCategorySelector div { /* 各カテゴリ行 */
+    margin-bottom: 5px;
+    padding-left: 5px; /* チェックボックスとの間隔 */
+}
+#itemCategorySelector label {
+    font-weight: normal;
+    display: inline-flex; /* チェックボックスとテキストをきれいに並べる */
+    align-items: center;
+    margin-left: 0; /* 左マージンリセット */
+    cursor: pointer;
+}
+#itemCategorySelector input[type="checkbox"] {
+    margin-right: 8px; /* チェックボックス右のマージン */
+    cursor: pointer;
+    vertical-align: middle;
+}
+#itemCategorySelector .placeholder {
+    color: #999;
+    font-style: italic;
+}
+/* ▲▲▲ アイテムフォームのカテゴリ選択 ▲▲▲ */
+
+
+/* アイテム一覧テーブル */
+#itemsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.95em;
+}
+#itemsTable th, #itemsTable td {
+    border: 1px solid #dee2e6;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+#itemsTable th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    color: #495057;
+}
+#itemsTable img {
+    max-width: 60px;
+    max-height: 60px;
+    object-fit: cover;
+    background-color: #e9ecef;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+    display: block; /* 中央寄せしやすく */
+    margin: auto; /* 中央寄せ */
+}
+#itemsTable td button {
+    margin-right: 5px;
+    padding: 5px 8px;
+    font-size: 0.85em;
+}
+#itemsTable td button:last-child { margin-right: 0; }
+#itemsTable th:nth-child(1), /* 画像列幅 */
+#itemsTable td:nth-child(1) { width: 80px; text-align: center; }
+#itemsTable th:nth-child(3), /* カテゴリ列幅 (以前の効果列の位置) */
+#itemsTable td:nth-child(3) { width: 30%; }
+#itemsTable th:last-child, /* 操作列幅 */
+#itemsTable td:last-child { width: 100px; text-align: center; }
+
+
+/* 画像プレビュー */
+#itemImagePreview {
+    display: block;
+    margin-top: 10px;
+    border: 1px solid #ced4da;
+    padding: 5px;
+    background-color: #f8f9fa;
+    max-width: 150px; /* プレビューサイズ */
+    max-height: 150px;
+}
+/* アップロード進捗 */
+#uploadProgressContainer {
+    margin-top: 10px;
+}
+#uploadProgress {
+    width: 100%;
+    height: 10px;
+}
+#uploadProgressText {
+    font-size: 0.9em;
+    margin-left: 10px;
+}
+
+
+/* モーダルスタイル */
+.modal {
+    position: fixed;
+    z-index: 10001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background-color: #fff;
+    margin: auto;
+    padding: 25px 30px;
+    border: none;
+    width: 90%;
+    max-width: 550px;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: fadeInModal 0.3s ease-out;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+    color: #343a40;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.close-button {
+    color: #6c757d;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+}
+.close-button:hover,
+.close-button:focus {
+    color: #343a40;
+    text-decoration: none;
+    cursor: pointer;
+}
+#deleteCategoryButton { /* モーダル内の削除ボタン */
     background-color: #dc3545;
     margin-left: 10px;
 }
 #deleteCategoryButton:hover {
     background-color: #c82333;
 }
-/* ▲▲▲ カテゴリ管理関連のスタイル ▲▲▲ */
 
-/* ▼▼▼ アイテムフォームのカテゴリ選択 ▼▼▼ */
-#itemCategorySelector {
-    max-height: 200px; /* 高さ制限とスクロール */
-    overflow-y: auto;
-    border: 1px solid #eee;
-    padding: 10px;
-    border-radius: 4px;
-    background-color: #fdfdfd;
-}
-#itemCategorySelector div { /* 各カテゴリ行 */
-    margin-bottom: 3px;
-}
-#itemCategorySelector label {
-    font-weight: normal;
-    display: inline; /* チェックボックスとテキストを横並び */
-    margin-left: 5px;
-}
-#itemCategorySelector input[type="checkbox"] {
-    margin-right: 5px;
-    vertical-align: middle;
-}
-/* ▲▲▲ アイテムフォームのカテゴリ選択 ▲▲▲ */
 
-/* アイテム一覧テーブルの調整 */
-#itemsTable th:nth-child(3), /* 効果の列を削除した場合、以降の列番号を調整 */
-#itemsTable td:nth-child(3) { /* カテゴリ列 */
-    /* 必要であれば幅などを指定 */
+/* ヘルパーアイコン */
+.icon {
+    margin-right: 7px;
+    font-size: 1.1em;
+}
+
+/* レスポンシブ対応 (簡易) */
+@media (max-width: 768px) {
+    .container {
+        margin: 15px;
+        padding: 15px;
+    }
+    header h1 {
+        font-size: 1.5em;
+    }
+    .inline-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .inline-form input[type="text"],
+    .inline-form select {
+        width: 100%;
+        flex-basis: auto; /* 幅リセット */
+    }
+    .inline-form button {
+        width: 100%;
+        margin-top: 10px;
+    }
+    #itemsTable {
+        font-size: 0.9em; /* テーブル文字サイズ縮小 */
+    }
+    #itemsTable th, #itemsTable td {
+        padding: 8px;
+    }
+    #itemsTable th:nth-child(3), /* 列幅調整 */
+    #itemsTable td:nth-child(3) { width: auto; }
+     #itemsTable th:last-child,
+    #itemsTable td:last-child { width: 80px; }
+
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
 }
