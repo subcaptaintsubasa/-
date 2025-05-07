@@ -12,64 +12,31 @@
 
         <div class="search-controls">
             <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段で検索...">
-
-            <!-- ▼▼▼ タグ階層フィルター ▼▼▼ -->
+            
+            <!-- ▼▼▼ カテゴリフィルターUI ▼▼▼ -->
             <div class="category-filters">
-                <div class="category-filter-group">
-                    <label for="categoryLevel1">カテゴリ1:</label>
-                    <select id="categoryLevel1"><option value="">すべて</option></select>
+                <div class="category-level">
+                    <label>カテゴリ選択 (第1階層):</label>
+                    <div id="categoryLevel1Container" class="tag-filters">
+                        <!-- 第1階層カテゴリがここに表示されます -->
+                        <span class="placeholder">カテゴリを読み込み中...</span>
+                    </div>
                 </div>
-                <div class="category-filter-group">
-                    <label for="categoryLevel2">カテゴリ2:</label>
-                    <select id="categoryLevel2" disabled><option value="">すべて</option></select>
+                <div class="category-level" id="categoryLevel2Section" style="display: none;"> <!-- 初期状態では非表示 -->
+                    <label>カテゴリ選択 (第2階層):</label>
+                    <div id="categoryLevel2Container" class="tag-filters">
+                        <!-- 第2階層カテゴリがここに表示されます -->
+                    </div>
                 </div>
-                <div class="category-filter-group">
-                    <label for="categoryLevel3">カテゴリ3:</label>
-                    <select id="categoryLevel3" disabled><option value="">すべて</option></select>
-                </div>
+                <!-- 第3階層が必要な場合はここに追加 -->
             </div>
-            <!-- ▲▲▲ タグ階層フィルター ▲▲▲ -->
-
-            <!-- ▼▼▼ タグ検索モード切り替え ▼▼▼ -->
-            <div class="tag-search-mode">
-                <label>タグ検索:</label>
-                <input type="radio" id="tagSearchAnd" name="tagSearchMode" value="AND" checked>
-                <label for="tagSearchAnd">AND (すべて含む)</label>
-                <input type="radio" id="tagSearchOr" name="tagSearchMode" value="OR">
-                <label for="tagSearchOr">OR (いずれかを含む)</label>
-            </div>
-            <!-- ▲▲▲ タグ検索モード切り替え ▲▲▲ -->
+             <!-- ▲▲▲ カテゴリフィルターUI ▲▲▲ -->
 
             <button id="resetFiltersButton">リセット</button>
         </div>
 
-        <div class="view-controls">
-             <!-- ▼▼▼ 並び替え ▼▼▼ -->
-             <div class="sort-control">
-                <label for="sortOrder">並び替え:</label>
-                <select id="sortOrder">
-                    <option value="name_asc">名前 (昇順)</option>
-                    <option value="name_desc">名前 (降順)</option>
-                    <option value="createdAt_desc">追加日 (新しい順)</option>
-                    <option value="createdAt_asc">追加日 (古い順)</option>
-                    <!-- 管理側で設定した項目を動的に追加 -->
-                </select>
-            </div>
-            <!-- ▲▲▲ 並び替え ▲▲▲ -->
-
-            <!-- ▼▼▼ 表示モード切り替え ▼▼▼ -->
-            <div class="display-mode">
-                <label>表示:</label>
-                <button class="display-mode-button active" data-mode="card">カード</button>
-                <button class="display-mode-button" data-mode="list">リスト</button>
-                <button class="display-mode-button" data-mode="table">テーブル</button>
-            </div>
-            <!-- ▲▲▲ 表示モード切り替え ▲▲▲ -->
-        </div>
-
-
         <div id="itemCount"></div>
-        <div id="itemList" class="item-list display-mode-card"> <!-- 初期モードクラス -->
+        <div id="itemList" class="item-list">
             <!-- アイテムがここに表示されます -->
         </div>
     </div>
