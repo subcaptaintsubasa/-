@@ -1,18 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const CORRECT_PASSWORD = "password"; // ★★★ 必ず変更してください ★★★
+    const CORRECT_PASSWORD = "your_very_secret_password123"; // ★★★ 必ず変更してください ★★★
     
+    // DOM Elements (主要なもの)
     const passwordPrompt = document.getElementById('password-prompt');
     const adminContent = document.getElementById('admin-content');
-    const loginButton = document.getElementById('loginButton'); // IDがHTMLと一致しているか確認
+    const loginButton = document.getElementById('loginButton');
     const adminPasswordInput = document.getElementById('adminPasswordInput');
     const passwordError = document.getElementById('passwordError');
     const logoutButton = document.getElementById('logoutButton');
 
     const loadItemsFile = document.getElementById('loadItemsFile');
     const loadTagsFile = document.getElementById('loadTagsFile');
+    const loadItemsMessage = document.getElementById('loadItemsMessage');
+    const loadTagsMessage = document.getElementById('loadTagsMessage');
     const saveDataButton = document.getElementById('saveDataButton');
 
-    const newTagIdInput = document.getElementById('newTagId');
     const newTagNameInput = document.getElementById('newTagName');
     const addTagButton = document.getElementById('addTagButton');
     const tagListContainer = document.getElementById('tagListContainer');
@@ -20,33 +22,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemForm = document.getElementById('itemForm');
     const itemIdToEditInput = document.getElementById('itemIdToEdit');
     const itemNameInput = document.getElementById('itemName');
-    const itemImageInput = document.getElementById('itemImage');
+    const itemImageFilenameInput = document.getElementById('itemImageFilename');
+    const itemImagePreviewFileInput = document.getElementById('itemImagePreviewFile');
+    const itemImagePreview = document.getElementById('itemImagePreview');
     const itemEffectInput = document.getElementById('itemEffect');
     const itemSourceInput = document.getElementById('itemSource');
-    const itemTagsCheckboxesContainer = document.getElementById('itemTagsCheckboxes');
-    const saveItemButton = document.getElementById('saveItemButton'); // HTMLにこのIDがあるか確認
+    const itemTagsSelectorContainer = document.getElementById('itemTagsSelector');
+    const saveItemButton = document.getElementById('saveItemButton');
     const clearFormButton = document.getElementById('clearFormButton');
     
     const itemsTableBody = document.querySelector('#itemsTable tbody');
     const itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
-    let itemsData = [];
-    let tagsData = [];
+    const editTagModal = document.getElementById('editTagModal');
+    const editingTagOldIdInput = document.getElementById('editingTagOldId');
+    const editingTagNameInput = document.getElementById('editingTagName');
+    const saveTagEditButton = document.getElementById('saveTagEditButton');
+
+
+    let itemsData = []; // {id, name, image, effect, 入手手段, tags: [tagId1, tagId2]}
+    let tagsData = [];  // {id, name}
+
+    // --- ユーティリティ ---
+    function generateTagId(name) {
+        if (!name) return '';
+        return name.trim().toLowerCase()
+            .replace(/\s+/g, '_') // スペースをアンダースコアに
+            .replace(/[^a-z0-9_]/g, ''); // 英数字とアンダースコア以外を除去
+    }
 
     // --- 認証 ---
     function showAdminPanel() {
         passwordPrompt.style.display = 'none';
         adminContent.style.display = 'block';
-        initializeAdminPanel(); // 管理パネルのコンテンツを初期化・表示
+        initializeAdminPanel();
     }
-
     function showLoginPrompt() {
-        passwordPrompt.style.display = 'flex'; // flexで中央寄せを維持
+        passwordPrompt.style.display = 'flex';
         adminContent.style.display = 'none';
-        passwordError.textContent = ''; // エラーメッセージをクリア
-        adminPasswordInput.value = ''; // パスワード入力欄をクリア
+        passwordError.textContent = '';
+        adminPasswordInput.value = '';
     }
-
     function checkLoginState() {
         if (sessionStorage.getItem('isAdminAuthenticated') === 'true') {
             showAdminPanel();
@@ -55,41 +71,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ログインボタンのイベントリスナーは、要素が確実に存在してから設定
     if (loginButton) {
         loginButton.addEventListener('click', () => {
             if (adminPasswordInput.value === CORRECT_PASSWORD) {
                 sessionStorage.setItem('isAdminAuthenticated', 'true');
-                showAdminPanel(); // ログイン成功、管理パネル表示
+                showAdminPanel();
             } else {
                 passwordError.textContent = 'パスワードが違います。';
-                adminPasswordInput.value = ''; // 間違えたら入力欄をクリア
-                adminPasswordInput.focus(); // 再度入力しやすいようにフォーカス
+                adminPasswordInput.value = '';
+                adminPasswordInput.focus();
             }
         });
-    } else {
-        console.error("Login button not found. Check ID 'loginButton' in admin.html.");
     }
-
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
             sessionStorage.removeItem('isAdminAuthenticated');
-            itemsData = []; // ログアウト時にデータをクリア
-            tagsData = [];
-            showLoginPrompt(); // ログアウト後、ログイン画面表示
+            itemsData = []; tagsData = [];
+            showLoginPrompt();
         });
-    } else {
-        console.error("Logout button not found. Check ID 'logoutButton' in admin.html.");
     }
     
     // --- 初期化 ---
     function initializeAdminPanel() {
-        // データの読み込みや表示処理はここで行う
-        // (既存のJSONファイルがあれば読み込む、タグリスト表示、アイテムリスト表示など)
-        // この関数は、認証成功後に一度だけ呼ばれるのが理想
-        renderTagsAdmin();
+        renderTagsForManagement();
+        renderItemTagsSelector();
         renderItemsAdminTable();
-        renderItemTagsCheckboxes();
     }
 
     // --- データI/O ---
@@ -102,18 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         itemsData = JSON.parse(e.target.result);
                         if (!Array.isArray(itemsData)) itemsData = [];
-                        alert(`${itemsData.length}件のアイテムを読み込みました。`);
+                        loadItemsMessage.textContent = `${itemsData.length}件のアイテムを読み込みました。ファイル名: ${file.name}`;
                         renderItemsAdminTable();
                     } catch (err) {
-                        alert("items.json の読み込みまたはパースに失敗: " + err);
-                        itemsData = [];
+                        loadItemsMessage.textContent = `items.json の読み込みエラー: ${err}`; itemsData = [];
                     }
                 };
                 reader.readAsText(file);
             }
         });
     }
-
     if (loadTagsFile) {
         loadTagsFile.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -122,123 +126,172 @@ document.addEventListener('DOMContentLoaded', () => {
                 reader.onload = (e) => {
                     try {
                         const loaded = JSON.parse(e.target.result);
-                        if (loaded && Array.isArray(loaded.available_tags)) {
-                            tagsData = loaded.available_tags;
-                        } else if (Array.isArray(loaded)) {
-                            tagsData = loaded;
-                        } else {
-                            tagsData = [];
-                        }
-                        alert(`${tagsData.length}件のタグを読み込みました。`);
-                        renderTagsAdmin();
-                        renderItemTagsCheckboxes();
+                        tagsData = (loaded && Array.isArray(loaded.available_tags)) ? loaded.available_tags : (Array.isArray(loaded) ? loaded : []);
+                        loadTagsMessage.textContent = `${tagsData.length}件のタグを読み込みました。ファイル名: ${file.name}`;
+                        initializeAdminPanel(); // タグデータが変わったので全体を再描画
                     } catch (err) {
-                        alert("tags.json の読み込みまたはパースに失敗: " + err);
-                        tagsData = [];
+                        loadTagsMessage.textContent = `tags.json の読み込みエラー: ${err}`; tagsData = [];
                     }
                 };
                 reader.readAsText(file);
             }
         });
     }
-
     if (saveDataButton) {
         saveDataButton.addEventListener('click', () => {
-            if (itemsData.length === 0 && tagsData.length === 0) {
-                if (!confirm("データが空ですが、本当に保存しますか？")) return;
-            }
-            const itemsJsonString = JSON.stringify(itemsData, null, 2);
-            downloadJson(itemsJsonString, 'items.json');
-            const tagsJsonForUser = { available_tags: tagsData };
-            const tagsJsonString = JSON.stringify(tagsJsonForUser, null, 2);
-            downloadJson(tagsJsonString, 'tags.json');
-            alert("items.json と tags.json のダウンロードを開始します。");
+            if (itemsData.length === 0 && tagsData.length === 0 && !confirm("データが空ですが、本当に保存しますか？")) return;
+            downloadJson(JSON.stringify(itemsData, null, 2), 'items.json');
+            downloadJson(JSON.stringify({ available_tags: tagsData }, null, 2), 'tags.json');
+            alert("items.json と tags.json のダウンロードを開始します。\nGitHubリポジトリへのアップロードを忘れないでください。");
         });
     }
-
     function downloadJson(jsonString, filename) {
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const a = document.createElement('a'); a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     }
 
     // --- タグ管理 ---
-    function renderTagsAdmin() {
-        if (!tagListContainer) return; // 要素がなければ何もしない
+    function renderTagsForManagement() {
+        if (!tagListContainer) return;
         tagListContainer.innerHTML = '';
-        tagsData.forEach(tag => {
-            const tagDiv = document.createElement('div');
-            tagDiv.classList.add('tag-item');
-            tagDiv.innerHTML = `
-                <span>ID: ${tag.id}, 表示名: ${tag.name}</span>
-                <button data-tag-id="${tag.id}">削除</button>
-            `;
-            tagDiv.querySelector('button').addEventListener('click', () => deleteTag(tag.id));
-            tagListContainer.appendChild(tagDiv);
+        tagsData.sort((a, b) => a.name.localeCompare(b.name)).forEach(tag => {
+            const tagBtn = document.createElement('button');
+            tagBtn.classList.add('tag-button');
+            tagBtn.textContent = tag.name;
+            tagBtn.title = `ID: ${tag.id}`;
+            
+            const editIcon = document.createElement('span');
+            editIcon.classList.add('edit-icon');
+            editIcon.innerHTML = ' ✎'; // Pencil icon
+            editIcon.title = "このタグを編集";
+            editIcon.onclick = (e) => { e.stopPropagation(); openEditTagModal(tag.id, tag.name); };
+            tagBtn.appendChild(editIcon);
+
+            const deleteIcon = document.createElement('span');
+            deleteIcon.classList.add('delete-icon');
+            deleteIcon.innerHTML = ' ×'; // Multiplication sign for delete
+            deleteIcon.title = "このタグを削除";
+            deleteIcon.onclick = (e) => { e.stopPropagation(); deleteTag(tag.id, tag.name); };
+            tagBtn.appendChild(deleteIcon);
+
+            tagListContainer.appendChild(tagBtn);
         });
-        renderItemTagsCheckboxes();
+        renderItemTagsSelector(); // アイテムフォームのタグ選択も更新
     }
 
     if (addTagButton) {
         addTagButton.addEventListener('click', () => {
-            const id = newTagIdInput.value.trim();
             const name = newTagNameInput.value.trim();
-            if (!id || !name) {
-                alert("タグIDと表示名の両方を入力してください。");
-                return;
-            }
-            if (tagsData.some(tag => tag.id === id)) {
-                alert("同じIDのタグが既に存在します。");
-                return;
+            if (!name) { alert("タグ名を入力してください。"); return; }
+            const id = generateTagId(name);
+            if (!id) { alert("有効なタグIDを生成できませんでした。別の名前を試してください。"); return; }
+            if (tagsData.some(tag => tag.id === id || tag.name.toLowerCase() === name.toLowerCase())) {
+                alert("同じ名前またはIDのタグが既に存在します。"); return;
             }
             tagsData.push({ id, name });
-            tagsData.sort((a, b) => a.name.localeCompare(b.name));
-            newTagIdInput.value = '';
             newTagNameInput.value = '';
-            renderTagsAdmin();
+            renderTagsForManagement();
         });
     }
 
-    function deleteTag(tagId) {
-        if (confirm(`タグID「${tagId}」を削除しますか？このタグを使用しているアイテムからも削除されます。`)) {
+    function openEditTagModal(tagId, currentName) {
+        editingTagOldIdInput.value = tagId;
+        editingTagNameInput.value = currentName;
+        editTagModal.style.display = 'flex';
+        editingTagNameInput.focus();
+    }
+
+    if (saveTagEditButton) {
+        saveTagEditButton.addEventListener('click', () => {
+            const oldId = editingTagOldIdInput.value;
+            const newName = editingTagNameInput.value.trim();
+            if (!newName) { alert("タグ名は空にできません。"); return; }
+
+            const newId = generateTagId(newName);
+            if (!newId) { alert("有効な新しいタグIDを生成できませんでした。"); return; }
+
+            // 新しい名前やIDが他の既存タグと衝突しないかチェック (編集対象自身を除く)
+            if (tagsData.some(tag => tag.id !== oldId && (tag.id === newId || tag.name.toLowerCase() === newName.toLowerCase()))) {
+                alert("編集後の名前またはIDが、他の既存タグと重複します。"); return;
+            }
+
+            const tagIndex = tagsData.findIndex(t => t.id === oldId);
+            if (tagIndex > -1) {
+                tagsData[tagIndex].name = newName;
+                const oldGeneratedId = tagsData[tagIndex].id; // IDも更新する
+                tagsData[tagIndex].id = newId; 
+
+                // アイテムデータ内のタグIDも更新
+                itemsData.forEach(item => {
+                    if (item.tags && item.tags.includes(oldGeneratedId)) {
+                        item.tags = item.tags.map(tId => tId === oldGeneratedId ? newId : tId);
+                    }
+                });
+            }
+            editTagModal.style.display = 'none';
+            renderTagsForManagement();
+            renderItemsAdminTable(); // アイテムの表示も更新
+        });
+    }
+
+
+    function deleteTag(tagId, tagName) {
+        if (confirm(`タグ「${tagName}」(ID: ${tagId})を削除しますか？\nこのタグを使用している全てのアイテムからも削除されます。`)) {
             tagsData = tagsData.filter(tag => tag.id !== tagId);
             itemsData.forEach(item => {
-                if (item.tags) {
-                    item.tags = item.tags.filter(t => t !== tagId);
-                }
+                if (item.tags) item.tags = item.tags.filter(t => t !== tagId);
             });
-            renderTagsAdmin();
+            renderTagsForManagement();
             renderItemsAdminTable();
         }
     }
     
-    // --- アイテムフォームのタグチェックボックス ---
-    function renderItemTagsCheckboxes(selectedTagIds = []) {
-        if (!itemTagsCheckboxesContainer) return; // 要素がなければ何もしない
-        itemTagsCheckboxesContainer.innerHTML = '';
+    // --- アイテムフォームのタグ選択 ---
+    function renderItemTagsSelector(selectedItemTags = []) {
+        if (!itemTagsSelectorContainer) return;
+        itemTagsSelectorContainer.innerHTML = '';
         tagsData.forEach(tag => {
-            const label = document.createElement('label');
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = tag.id;
-            checkbox.name = 'itemTag';
-            checkbox.checked = selectedTagIds.includes(tag.id);
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(` ${tag.name} (${tag.id})`));
-            itemTagsCheckboxesContainer.appendChild(label);
+            const tagBtn = document.createElement('button');
+            tagBtn.type = 'button'; // formのsubmitを防ぐ
+            tagBtn.classList.add('tag-button');
+            tagBtn.textContent = tag.name;
+            tagBtn.dataset.tagId = tag.id;
+            if (selectedItemTags.includes(tag.id)) {
+                tagBtn.classList.add('selected');
+            }
+            tagBtn.addEventListener('click', () => {
+                tagBtn.classList.toggle('selected');
+            });
+            itemTagsSelectorContainer.appendChild(tagBtn);
+        });
+    }
+
+    // --- 画像プレビュー ---
+    if (itemImagePreviewFileInput) {
+        itemImagePreviewFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    itemImagePreview.src = e.target.result;
+                    itemImagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+                // プレビュー用に選択されたファイル名を自動でファイル名入力欄に入れる (任意)
+                // itemImageFilenameInput.value = file.name; 
+            } else {
+                itemImagePreview.src = '#';
+                itemImagePreview.style.display = 'none';
+            }
         });
     }
 
     // --- アイテム管理 ---
     function getNextItemId() {
         if (itemsData.length === 0) return 1;
-        const maxId = Math.max(...itemsData.map(item => (typeof item.id === 'number' ? item.id : 0)));
+        const maxId = Math.max(0, ...itemsData.map(item => (typeof item.id === 'number' ? item.id : 0)));
         return maxId + 1;
     }
 
@@ -246,35 +299,30 @@ document.addEventListener('DOMContentLoaded', () => {
         itemForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const name = itemNameInput.value.trim();
-            const image = itemImageInput.value.trim();
+            const imageFilename = itemImageFilenameInput.value.trim();
             const effect = itemEffectInput.value.trim();
             const source = itemSourceInput.value.trim();
-            const selectedTags = Array.from(itemTagsCheckboxesContainer.querySelectorAll('input[name="itemTag"]:checked'))
-                                      .map(cb => cb.value);
+            const selectedTagIds = Array.from(itemTagsSelectorContainer.querySelectorAll('.tag-button.selected'))
+                                      .map(btn => btn.dataset.tagId);
             const editingId = itemIdToEditInput.value ? parseInt(itemIdToEditInput.value, 10) : null;
 
-            if (!name || !effect || !source) {
-                alert("名前、効果、入手手段は必須です。");
-                return;
-            }
+            if (!name || !effect || !source) { alert("名前、効果、入手手段は必須です。"); return; }
+            if (!imageFilename) { alert("画像ファイル名を入力してください。"); return; }
+
 
             const newItemData = {
                 name,
-                image: image ? (image.startsWith('images/') ? image : `images/${image}`) : 'images/placeholder_item.png',
+                image: imageFilename.startsWith('images/') ? imageFilename : `images/${imageFilename}`,
                 effect,
                 入手手段: source,
-                tags: selectedTags
+                tags: selectedTagIds
             };
             
             if (editingId) {
                 newItemData.id = editingId;
                 const index = itemsData.findIndex(item => item.id === editingId);
-                if (index > -1) {
-                    itemsData[index] = newItemData;
-                } else {
-                    newItemData.id = getNextItemId();
-                    itemsData.push(newItemData);
-                }
+                if (index > -1) itemsData[index] = newItemData;
+                else { newItemData.id = getNextItemId(); itemsData.push(newItemData); } // Fallback
             } else {
                 newItemData.id = getNextItemId();
                 itemsData.push(newItemData);
@@ -286,14 +334,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (clearFormButton) {
-        clearFormButton.addEventListener('click', clearItemForm);
-    }
+    if (clearFormButton) clearFormButton.addEventListener('click', clearItemForm);
 
     function clearItemForm() {
         if (itemForm) itemForm.reset();
         if (itemIdToEditInput) itemIdToEditInput.value = '';
-        renderItemTagsCheckboxes();
+        if (itemImagePreview) { itemImagePreview.src = '#'; itemImagePreview.style.display = 'none'; }
+        if (itemImagePreviewFileInput) itemImagePreviewFileInput.value = null; // クリア
+        renderItemTagsSelector(); // タグ選択もクリア
         if (saveItemButton) saveItemButton.textContent = "アイテム保存";
     }
 
@@ -302,25 +350,26 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsTableBody.innerHTML = '';
         const searchTerm = itemSearchAdminInput ? itemSearchAdminInput.value.toLowerCase() : "";
 
-        const filteredItems = itemsData.filter(item => 
-            item.name.toLowerCase().includes(searchTerm)
-        );
+        const filteredItems = itemsData.filter(item => item.name.toLowerCase().includes(searchTerm));
 
         filteredItems.forEach(item => {
             const tr = document.createElement('tr');
             const imagePath = item.image || 'images/placeholder_item.png';
             const itemTagsString = item.tags ? item.tags.map(tagId => {
                 const tagObj = tagsData.find(t => t.id === tagId);
-                return tagObj ? tagObj.name : tagId;
-            }).join(', ') : '';
+                return tagObj ? tagObj.name : `(ID: ${tagId})`;
+            }).join(', ') : 'なし';
+            const effectExcerpt = item.effect ? (item.effect.length > 30 ? item.effect.substring(0, 30) + '...' : item.effect) : '';
+
 
             tr.innerHTML = `
                 <td><img src="../${imagePath}" alt="${item.name}" onerror="this.src='../images/placeholder_item.png';"></td>
                 <td>${item.name} (ID: ${item.id || '未設定'})</td>
+                <td>${effectExcerpt}</td>
                 <td>${itemTagsString}</td>
                 <td>
-                    <button class="edit-item" data-item-id="${item.id}">編集</button>
-                    <button class="delete-item" data-item-id="${item.id}">削除</button>
+                    <button class="edit-item" data-item-id="${item.id}" title="編集">✎</button>
+                    <button class="delete-item" data-item-id="${item.id}" title="削除">×</button>
                 </td>
             `;
             const editBtn = tr.querySelector('.edit-item');
@@ -331,32 +380,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (itemSearchAdminInput) {
-        itemSearchAdminInput.addEventListener('input', renderItemsAdminTable);
-    }
+    if (itemSearchAdminInput) itemSearchAdminInput.addEventListener('input', renderItemsAdminTable);
 
     function loadItemForEdit(itemId) {
         const item = itemsData.find(i => i.id === itemId);
         if (item) {
             if(itemIdToEditInput) itemIdToEditInput.value = item.id;
             if(itemNameInput) itemNameInput.value = item.name;
-            if(itemImageInput) itemImageInput.value = item.image ? item.image.replace(/^images\//, '') : '';
+            if(itemImageFilenameInput) itemImageFilenameInput.value = item.image ? item.image.replace(/^images\//, '') : '';
             if(itemEffectInput) itemEffectInput.value = item.effect;
             if(itemSourceInput) itemSourceInput.value = item.入手手段;
-            renderItemTagsCheckboxes(item.tags || []);
+            renderItemTagsSelector(item.tags || []);
             if(saveItemButton) saveItemButton.textContent = "アイテム更新";
-            if(itemForm) itemForm.scrollIntoView({ behavior: 'smooth' });
+
+            itemImagePreview.src = item.image ? `../${item.image}` : '#'; // プレビュー画像も設定
+            itemImagePreview.style.display = item.image ? 'block' : 'none';
+            if (itemImagePreviewFileInput) itemImagePreviewFileInput.value = null; 
+
+
+            if(itemForm) itemForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
     function deleteItem(itemId) {
-        if (confirm(`アイテムID「${itemId}」を削除しますか？`)) {
+        const itemToDelete = itemsData.find(i => i.id === itemId);
+        if (itemToDelete && confirm(`アイテム「${itemToDelete.name}」(ID: ${itemId})を削除しますか？`)) {
             itemsData = itemsData.filter(item => item.id !== itemId);
             renderItemsAdminTable();
-            clearItemForm();
+            if (itemIdToEditInput.value === String(itemId)) clearItemForm();
+        }
+    }
+    
+    // モーダルの閉じるボタン (もしあれば)
+    const closeButtons = document.querySelectorAll('.modal .close-button');
+    closeButtons.forEach(btn => {
+        btn.onclick = function() {
+            btn.closest('.modal').style.display = "none";
+        }
+    });
+    window.onclick = function(event) { // モーダル外クリックで閉じる
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = "none";
         }
     }
 
-    // 初期状態チェック (ページ読み込み時に実行)
-    checkLoginState();
+    checkLoginState(); // 初期認証チェック
 });
