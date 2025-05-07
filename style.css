@@ -1,124 +1,74 @@
-/* style.css - ユーザー向けサイト */
-
 body {
     font-family: sans-serif;
     margin: 0;
-    background-color: #f8f9fa; /* 少し明るい背景色 */
-    color: #212529; /* メインテキストの色 */
-    line-height: 1.6;
+    background-color: #f4f4f4;
+    color: #333;
 }
 
 .container {
     width: 90%;
     max-width: 1200px;
-    margin: 30px auto; /* 上下のマージン調整 */
-    padding: 30px; /* パディング調整 */
-    background-color: #ffffff; /* コンテナ背景は白 */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 影を少し調整 */
-    border-radius: 10px; /* 角丸を少し大きく */
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border-radius: 8px;
 }
 
 h1 {
     text-align: center;
-    color: #343a40; /* 見出しの色 */
-    margin-bottom: 30px;
-    font-size: 2.2em; /* 見出しサイズ */
+    color: #333;
+    margin-bottom: 20px;
 }
 
 .search-controls {
-    margin-bottom: 25px;
-    padding: 20px;
-    border: 1px solid #e9ecef; /* ボーダー色調整 */
-    border-radius: 8px;
-    background-color: #fdfdfd; /* 検索欄背景 */
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
 }
 
 #searchInput {
-    width: 100%;
-    padding: 12px 15px; /* パディング調整 */
-    margin-bottom: 15px; /* 下のマージン調整 */
-    border: 1px solid #ced4da;
-    border-radius: 6px; /* 角丸調整 */
+    width: 100%; 
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
     box-sizing: border-box;
-    font-size: 1em;
-}
-#searchInput:focus {
-    border-color: #86b7fe;
-    outline: 0;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
-
-/* ▼▼▼ カテゴリフィルター関連のスタイル ▼▼▼ */
-.category-filters {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #e9ecef; /* 区切り線 */
-}
-
-.category-level {
-    margin-bottom: 15px; /* 各階層間のマージン */
-}
-
-.category-level label {
-    display: block;
-    margin-bottom: 8px; /* ラベル下のマージン */
-    font-weight: bold;
-    font-size: 1em; /* ラベル文字サイズ */
-    color: #495057;
-}
-
-.tag-filters { /* カテゴリボタンのコンテナ */
+.tag-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px; /* ボタン間の隙間 */
+    gap: 8px;
+    margin-bottom: 10px;
 }
 
-.tag-filter { /* カテゴリボタン */
-    padding: 8px 15px; /* パディング調整 */
-    background-color: #e9ecef; /* ボタン背景色 */
-    border: 1px solid #ced4da;
-    border-radius: 20px; /* 丸みを強く */
+.tag-filter {
+    padding: 8px 12px;
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+    border-radius: 15px;
     cursor: pointer;
-    font-size: 0.95em;
-    color: #495057;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-}
-
-.tag-filter:hover {
-    background-color: #dee2e6;
-    border-color: #adb5bd;
+    font-size: 0.9em;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .tag-filter.active {
-    background-color: #0d6efd; /* アクティブ時の色 (BootstrapのPrimaryに近い) */
+    background-color: #007bff;
     color: white;
-    border-color: #0a58ca;
+    border-color: #0056b3;
 }
-
-.tag-filters .placeholder { /* カテゴリ読み込み中/エラー表示 */
-    color: #6c757d;
-    font-style: italic;
-    padding: 8px 0;
-}
-.tag-filters .placeholder.error {
-    color: #dc3545; /* エラー色 (BootstrapのDangerに近い) */
-    font-style: normal;
-    font-weight: bold;
-}
-/* ▲▲▲ カテゴリフィルター関連のスタイル ▲▲▲ */
-
 
 #resetFiltersButton {
-    padding: 10px 18px;
-    background-color: #6c757d; /* Secondary色 */
+    padding: 10px 15px;
+    background-color: #6c757d;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
-    font-size: 1em;
-    margin-top: 15px; /* 上に隙間 */
 }
 #resetFiltersButton:hover {
     background-color: #5a6268;
@@ -126,99 +76,69 @@ h1 {
 
 
 #itemCount {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     font-weight: bold;
-    color: #6c757d; /* やや薄めの色 */
-    font-size: 1.1em;
+    color: #555;
 }
 
 .item-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 25px; /* カード間の隙間 */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* カード幅調整 */
+    gap: 20px;
 }
 
 .item-card {
-    background-color: #ffffff;
-    border: 1px solid #e9ecef; /* カードのボーダー */
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 20px; /* カード内パディング */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.07);
     display: flex;
     flex-direction: column;
-    transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out; /* ホバー効果 */
+    transition: box-shadow 0.2s ease-in-out;
 }
 .item-card:hover {
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    transform: translateY(-3px); /* 少し浮き上がる効果 */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* ▼▼▼ No Image 表示用スタイル ▼▼▼ */
-.item-image-container {
-    width: 150px; /* 画像表示領域サイズ調整 */
-    height: 150px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 15px auto; /* 中央寄せ、下のマージン */
-    background-color: #f8f9fa; /* 背景色 */
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid #e9ecef;
-}
-.item-image-container img {
-    width: 100%;
-    height: 100%;
+.item-card img {
+    width: 120px; /* 画像サイズ調整 */
+    height: 120px;
     object-fit: cover;
-    margin: 0;
-    align-self: unset;
-    background-color: transparent;
-    border: none;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    align-self: center;
+    background-color: #eee; 
 }
-.item-image-container .no-image {
-    font-size: 1em;
-    color: #adb5bd; /* 文字色調整 */
-    text-align: center;
-    font-weight: bold;
-    padding: 10px; /* 文字が枠にくっつかないように */
-}
-/* ▲▲▲ No Image 表示用スタイル ▲▲▲ */
-
 
 .item-card h3 {
     margin-top: 0;
-    margin-bottom: 12px;
-    font-size: 1.4em;
-    color: #0d6efd; /* 見出しの色 */
-    text-align: center; /* 中央寄せ */
+    margin-bottom: 10px;
+    font-size: 1.25em;
+    color: #0056b3;
 }
 
 .item-card p {
-    margin-bottom: 10px;
-    font-size: 1em; /* 文字サイズ調整 */
-    line-height: 1.6;
-    color: #495057; /* テキスト色調整 */
-    flex-grow: 1;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+    line-height: 1.5;
+    color: #444;
+    flex-grow: 1; 
 }
 .item-card p strong {
-    color: #212529;
-    margin-right: 5px;
+    color: #333;
 }
 
-.item-card .tags { /* カテゴリ表示に流用 (クラス名変更ならここも修正) */
-    margin-top: 15px;
-    font-size: 0.9em;
-    color: #495057;
-    border-top: 1px solid #f1f1f1; /* 区切り線 */
-    padding-top: 10px;
+.item-card .tags {
+    margin-top: 12px;
+    font-size: 0.85em;
+    color: #555;
 }
 .item-card .tags span {
-    background-color: #e9ecef;
-    color: #495057;
-    padding: 5px 10px;
-    border-radius: 15px;
-    margin-right: 8px;
-    margin-bottom: 8px;
+    background-color: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 12px; /* タグの丸みを強く */
+    margin-right: 6px;
+    margin-bottom: 6px; /* 折り返し時のため */
     display: inline-block;
-    font-size: 0.95em;
 }
