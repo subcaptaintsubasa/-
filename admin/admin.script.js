@@ -1,5 +1,5 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"; // 例: 9.6.10 (最新版を確認)
 import {
     getAuth,
     signInWithEmailAndPassword,
@@ -21,20 +21,14 @@ import {
     writeBatch,
     getDoc
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import {
-    getStorage,
-    ref,
-    uploadBytesResumable,
-    getDownloadURL,
-    deleteObject
-} from "https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js";
+// Firebase Storageのimportは不要
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", // ご自身のAPIキー等に置き換えてください
+  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", // 
   authDomain: "itemsearchtooleditor.firebaseapp.com",
   projectId: "itemsearchtooleditor",
-  storageBucket: "itemsearchtooleditor.appspot.com", // Firebaseコンソールで確認
+  storageBucket: "itemsearchtooleditor.appspot.com", // Firebase Storageは使わないが念のため残してもOK
   messagingSenderId: "243156973544",
   appId: "1:243156973544:web:ffdc31134a35354b6dd65d",
   measurementId: "G-8EHP9MGJ4M" // Optional
@@ -44,7 +38,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
+// const storage = getStorage(app); // Firebase Storageは使わないのでコメントアウトまたは削除
+
+// ★★★ Cloudflare WorkerのエンドポイントURL ★★★
+const IMAGE_UPLOAD_WORKER_URL = 'https://denpa-item-uploader.tsubasa-hsty-f58.workers.dev'; // ★★★ あなたのWorkerのURLに置き換える ★★★
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -65,9 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemForm = document.getElementById('itemForm');
     const itemIdToEditInput = document.getElementById('itemIdToEdit');
     const itemNameInput = document.getElementById('itemName');
-    const itemImageFileInput = document.getElementById('itemImageFile');
+    const itemImageFileInput = document.getElementById('itemImageFile'); // HTML側のIDを確認
     const itemImagePreview = document.getElementById('itemImagePreview');
-    const itemImageUrlInput = document.getElementById('itemImageUrl');
+    const itemImageUrlInput = document.getElementById('itemImageUrl'); // R2のURLを保持
     const uploadProgressContainer = document.getElementById('uploadProgressContainer');
     const uploadProgress = document.getElementById('uploadProgress');
     const uploadProgressText = document.getElementById('uploadProgressText');
@@ -89,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let itemsCache = [];
     let selectedImageFile = null;
 
-    // --- 認証 ---
+    // --- 認証 --- (変更なし)
     onAuthStateChanged(auth, (user) => {
         if (user) {
             passwordPrompt.style.display = 'none';
@@ -116,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             signInWithEmailAndPassword(auth, email, password)
                 .catch(error => {
                     console.error("Login error:", error);
-                    passwordError.textContent = `ログインエラー: ${error.code} - ${error.message}`; // 詳細なエラー表示
+                    passwordError.textContent = `ログインエラー: ${error.code} - ${error.message}`;
                 });
         });
     }
@@ -134,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearItemForm();
     }
 
-    // --- 初期データロード (Firestoreから) ---
+    // --- 初期データロード (Firestoreから) --- (変更なし)
     async function loadInitialData() {
         await loadTagsFromFirestore();
         await loadItemsFromFirestore();
@@ -143,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderItemsAdminTable();
     }
 
-    // --- タグ管理 (Firestore) ---
+    // --- タグ管理 (Firestore) --- (変更なし)
     async function loadTagsFromFirestore() {
         try {
             const q = query(collection(db, 'tags'), orderBy('name'));
@@ -157,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTagsForManagement() {
-        // ... (前回から変更なし) ...
         if (!tagListContainer) return;
         tagListContainer.innerHTML = '';
         tagsCache.forEach(tag => {
@@ -186,7 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (addTagButton) {
-        // ... (前回から変更なし) ...
         addTagButton.addEventListener('click', async () => {
             const name = newTagNameInput.value.trim();
             if (!name) { alert("タグ名を入力してください。"); return; }
@@ -211,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openEditTagModal(docId, currentName) {
-        // ... (前回から変更なし) ...
         editingTagDocIdInput.value = docId;
         editingTagNameInput.value = currentName;
         editTagModal.style.display = 'flex';
@@ -219,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (saveTagEditButton) {
-        // ... (前回から変更なし) ...
         saveTagEditButton.addEventListener('click', async () => {
             const docId = editingTagDocIdInput.value;
             const newName = editingTagNameInput.value.trim();
@@ -249,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteTag(docId, tagName) {
-        // ... (前回から変更なし) ...
         if (confirm(`タグ「${tagName}」(Doc ID: ${docId})を削除しますか？\nこのタグを使用している全てのアイテムからも自動的に削除されます。`)) {
             try {
                 const tagRef = doc(db, 'tags', docId);
@@ -277,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderItemTagsSelector(selectedItemTagIds = []) {
-        // ... (前回から変更なし) ...
         if (!itemTagsSelectorContainer) return;
         itemTagsSelectorContainer.innerHTML = '';
         tagsCache.forEach(tag => {
@@ -296,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ★★★ 画像アップロード関連の修正箇所 ★★★
+    // ★★★ 画像アップロード (Cloudflare Worker連携) ★★★
     if (itemImageFileInput) {
         itemImageFileInput.addEventListener('change', (event) => {
             selectedImageFile = event.target.files[0];
@@ -307,8 +298,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemImagePreview.style.display = 'block';
                 }
                 reader.readAsDataURL(selectedImageFile);
-                itemImageUrlInput.value = ''; // 新しいファイルが選択されたら既存のURLはクリア
-                uploadProgressContainer.style.display = 'none'; // 進捗表示をリセット
+                itemImageUrlInput.value = ''; 
+                uploadProgressContainer.style.display = 'none';
                 uploadProgress.value = 0;
                 uploadProgressText.textContent = '';
             } else {
@@ -319,74 +310,59 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function uploadImageAndGetURL(file) {
+    async function uploadImageToWorkerAndGetURL(file) {
         if (!file) {
             console.log("No file selected for upload.");
             return null;
         }
-        const imageName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`; // ファイル名からスペースを除去
-        const storageImageRef = ref(storage, `item_images/${imageName}`);
         
-        console.log(`Attempting to upload: ${imageName} to item_images/`);
         uploadProgressContainer.style.display = 'block';
-        uploadProgress.value = 0;
-        uploadProgressText.textContent = '0%';
+        uploadProgress.value = 0; 
+        uploadProgressText.textContent = 'アップロード準備中...'; // 初期メッセージ
 
-        const uploadTask = uploadBytesResumable(storageImageRef, file);
+        const formData = new FormData();
+        formData.append('imageFile', file); // Workerスクリプトで期待するキー名
 
-        return new Promise((resolve, reject) => {
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log('Upload is ' + progress + '% done');
-                    uploadProgress.value = progress;
-                    uploadProgressText.textContent = `${Math.round(progress)}%`;
-                    switch (snapshot.state) {
-                        case 'paused':
-                            console.log('Upload is paused');
-                            break;
-                        case 'running':
-                            console.log('Upload is running');
-                            break;
-                    }
-                },
-                (error) => {
-                    console.error("Upload failed:", error);
-                    // エラーコードに基づいた詳細なエラーメッセージ
-                    switch (error.code) {
-                        case 'storage/unauthorized':
-                            alert('画像のアップロード権限がありません。Firebase Storageのセキュリティルールを確認してください。');
-                            break;
-                        case 'storage/canceled':
-                            alert('画像のアップロードがキャンセルされました。');
-                            break;
-                        case 'storage/unknown':
-                            alert('不明なエラーにより画像のアップロードに失敗しました。コンソールを確認してください。');
-                            break;
-                        default:
-                            alert(`画像のアップロードに失敗しました: ${error.message}`);
-                    }
-                    uploadProgressContainer.style.display = 'none';
-                    reject(error); // Promiseをrejectで終了
-                },
-                async () => { // Complete callback
-                    try {
-                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                        console.log('File available at', downloadURL);
-                        uploadProgressContainer.style.display = 'none';
-                        resolve(downloadURL); // Promiseをresolveで終了
-                    } catch (error) {
-                        console.error("Error getting download URL:", error);
-                        uploadProgressContainer.style.display = 'none';
-                        reject(error); // Promiseをrejectで終了
-                    }
-                }
-            );
-        });
+        try {
+            // fetchリクエストの進捗は直接取得できないため、ここでは開始と完了のみ示す
+            uploadProgressText.textContent = 'アップロード中... (0%)'; // 0%表示は仮
+
+            const response = await fetch(IMAGE_UPLOAD_WORKER_URL, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'サーバーからの不明なエラー' }));
+                console.error('Upload failed with status:', response.status, errorData);
+                alert(`画像のアップロードに失敗しました: ${errorData.error || response.statusText}`);
+                uploadProgressContainer.style.display = 'none';
+                return null;
+            }
+
+            const result = await response.json();
+            if (result.success && result.imageUrl) {
+                console.log('File uploaded to R2, URL:', result.imageUrl);
+                uploadProgressText.textContent = 'アップロード完了!';
+                // 少し待ってから進捗表示を隠す (任意)
+                setTimeout(() => { uploadProgressContainer.style.display = 'none'; }, 2000);
+                return result.imageUrl;
+            } else {
+                console.error('Upload response error:', result);
+                alert(`画像のアップロードに成功しましたが、URLの取得に問題がありました: ${result.message || '不明な応答'}`);
+                uploadProgressContainer.style.display = 'none';
+                return null;
+            }
+        } catch (error) {
+            console.error('Error uploading image to worker:', error);
+            uploadProgressContainer.style.display = 'none';
+            alert(`画像のアップロード中に通信エラーが発生しました: ${error.message}`);
+            return null;
+        }
     }
-    // ★★★ ここまで画像アップロード関連の修正 ★★★
+    // ★★★ ここまで画像アップロード関連 ★★★
 
-    async function loadItemsFromFirestore() {
+    async function loadItemsFromFirestore() { // (変更なし)
         try {
             const q = query(collection(db, 'items'), orderBy('name'));
             const snapshot = await getDocs(q);
@@ -407,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedTagIds = Array.from(itemTagsSelectorContainer.querySelectorAll('.tag-button.selected'))
                                       .map(btn => btn.dataset.tagId);
             const editingDocId = itemIdToEditInput.value;
-            let imageUrl = itemImageUrlInput.value;
+            let imageUrl = itemImageUrlInput.value; // 編集時は既存のURLがセットされている
 
             if (!name || !effect || !source) { alert("名前、効果、入手手段は必須です。"); return; }
             
@@ -416,35 +392,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 if (selectedImageFile) {
-                    const existingImageUrlForDeletion = editingDocId ? imageUrl : null; // 編集時のみ既存URLを削除候補に
+                    const existingImageUrlForDeletion = editingDocId ? imageUrl : null;
 
-                    imageUrl = await uploadImageAndGetURL(selectedImageFile); // ここでPromiseが解決されるのを待つ
+                    imageUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
 
-                    if (!imageUrl) { // アップロードが失敗した場合 (uploadImageAndGetURL内でalert表示済みのはず)
+                    if (!imageUrl) {
                         saveItemButton.disabled = false;
                         saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
-                        return; // ここで処理を中断
+                        return; 
                     }
-                    console.log("New image URL after upload:", imageUrl);
+                    console.log("New image URL after upload to R2:", imageUrl);
 
-                    // 新しい画像が正常にアップロードされた後、古い画像を削除 (編集時のみ)
+                    // R2上の古い画像の削除は手動または専用Workerエンドポイントで行う (今回は行わない)
                     if (existingImageUrlForDeletion && existingImageUrlForDeletion !== imageUrl) {
-                        try {
-                            const oldImageRef = ref(storage, existingImageUrlForDeletion);
-                            await deleteObject(oldImageRef);
-                            console.log("Old image deleted from Storage:", existingImageUrlForDeletion);
-                        } catch (error) {
-                            if (error.code !== 'storage/object-not-found') {
-                                console.warn("Could not delete old image from Storage (it might not exist or an error occurred):", error);
-                            }
-                        }
+                        console.warn(`Old image ${existingImageUrlForDeletion} (R2) should be deleted manually or via a dedicated worker endpoint.`);
                     }
-
                 } else if (!editingDocId && !imageUrl) {
-                    // 新規作成で画像なしの場合は imageUrl は空のまま
                     console.log("No new image selected, and no existing image URL for new item.");
                 }
-
 
                 const itemData = {
                     name,
@@ -465,15 +430,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("Item added with ID: ", docRef.id);
                 }
                 
-                await loadItemsFromFirestore(); // 保存後にデータを再読み込み
-                renderItemsAdminTable();      // テーブルを再描画
-                clearItemForm();              // フォームをクリア
-            } catch (error) { // uploadImageAndGetURLからのrejectもここでキャッチされる
+                await loadItemsFromFirestore();
+                renderItemsAdminTable();
+                clearItemForm();
+            } catch (error) {
                 console.error("Error during item save process: ", error);
-                // alertはuploadImageAndGetURL内で行われるか、ここで一般的なエラーとして表示
-                if (!error.message.includes('upload')) { // アップロード以外のエラーなら表示
-                     alert(`アイテムの保存処理中にエラーが発生しました: ${error.message}`);
-                }
+                 alert(`アイテムの保存処理中にエラーが発生しました: ${error.message}`);
             } finally {
                 saveItemButton.disabled = false;
                 saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
@@ -481,11 +443,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (clearFormButton) { // ... (前回から変更なし) ...
+    if (clearFormButton) { // (変更なし)
         clearFormButton.addEventListener('click', clearItemForm);
     }
 
-    function clearItemForm() { // ... (前回から変更なし) ...
+    function clearItemForm() { // (変更なし)
         if (itemForm) itemForm.reset();
         itemIdToEditInput.value = '';
         itemImageUrlInput.value = '';
@@ -497,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saveItemButton) saveItemButton.textContent = "アイテム保存";
     }
 
-    function renderItemsAdminTable() { // ... (前回から変更なし、画像のonerrorパス修正) ...
+    function renderItemsAdminTable() { // (画像のonerrorパス修正)
         if (!itemsTableBody) return;
         itemsTableBody.innerHTML = '';
         const searchTerm = itemSearchAdminInput ? itemSearchAdminInput.value.toLowerCase() : "";
@@ -508,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filteredItems.forEach(item => {
             const tr = document.createElement('tr');
-            const imageDisplayPath = item.image || '../images/placeholder_item.png'; // プレースホルダーはローカルパス
+            const imageDisplayPath = item.image || '../images/placeholder_item.png';
             
             const itemTagsString = item.tags ? item.tags.map(tagId => {
                 const tagObj = tagsCache.find(t => t.id === tagId);
@@ -529,16 +491,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const editBtn = tr.querySelector('.edit-item');
             const deleteBtn = tr.querySelector('.delete-item');
             if(editBtn) editBtn.addEventListener('click', () => loadItemForEdit(item.docId));
-            if(deleteBtn) deleteBtn.addEventListener('click', () => deleteItem(item.docId, item.name, item.image));
+            if(deleteBtn) deleteBtn.addEventListener('click', () => deleteItem(item.docId, item.name, item.image)); // item.imageはR2のURL
             itemsTableBody.appendChild(tr);
         });
     }
 
-    if (itemSearchAdminInput) { // ... (前回から変更なし) ...
+    if (itemSearchAdminInput) { // (変更なし)
         itemSearchAdminInput.addEventListener('input', renderItemsAdminTable);
     }
 
-    async function loadItemForEdit(docId) { // ... (前回から変更なし) ...
+    async function loadItemForEdit(docId) { // (変更なし)
         try {
             const itemRef = doc(db, "items", docId);
             const docSnap = await getDoc(itemRef);
@@ -549,10 +511,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemNameInput.value = itemData.name;
                 itemEffectInput.value = itemData.effect;
                 itemSourceInput.value = itemData.入手手段;
-                itemImageUrlInput.value = itemData.image || '';
+                itemImageUrlInput.value = itemData.image || ''; // R2のURL
                 
                 if (itemData.image) {
-                    itemImagePreview.src = itemData.image;
+                    itemImagePreview.src = itemData.image; // R2のURLでプレビュー
                     itemImagePreview.style.display = 'block';
                 } else {
                     itemImagePreview.src = '#';
@@ -574,32 +536,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function deleteItem(docId, itemName, imageUrl) { // ... (前回から変更なし) ...
-        if (confirm(`アイテム「${itemName}」(Doc ID: ${docId})を削除しますか？\nStorage上の画像も削除されます（存在する場合）。`)) {
+    async function deleteItem(docId, itemName, imageUrl) { // imageUrlはR2のURL
+        if (confirm(`アイテム「${itemName}」(Doc ID: ${docId})を削除しますか？\nCloudflare R2上の関連画像は、手動で削除するか、別途削除用Workerを実装する必要があります。`)) {
             try {
                 const itemRef = doc(db, 'items', docId);
                 await deleteDoc(itemRef);
-                console.log("Item deleted: ", docId);
+                console.log("Item deleted from Firestore: ", docId);
                 
                 if (imageUrl) {
-                    try {
-                        const imageStorageRef = ref(storage, imageUrl);
-                        await deleteObject(imageStorageRef);
-                        console.log("Image deleted from Storage:", imageUrl);
-                    } catch (storageError) {
-                        if (storageError.code === 'storage/object-not-found') {
-                            console.warn("Image not found in Storage, or already deleted:", imageUrl);
-                        } else {
-                            console.warn("Could not delete image from Storage:", storageError);
-                        }
-                    }
+                    console.warn(`Image ${imageUrl} (R2) associated with deleted item ${docId} needs to be manually deleted or via a dedicated worker endpoint for R2 deletion.`);
+                    // R2からの自動削除は、クライアントからは安全に行えないため、ここでは行わない
                 }
 
                 await loadItemsFromFirestore();
                 renderItemsAdminTable();
                 if (itemIdToEditInput.value === docId) clearItemForm();
             } catch (error) {
-                console.error("Error deleting item: ", error);
+                console.error("Error deleting item from Firestore: ", error);
                 alert("アイテムの削除に失敗しました。");
             }
         }
