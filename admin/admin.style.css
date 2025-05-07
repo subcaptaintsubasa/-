@@ -1,56 +1,414 @@
-/* ... 既存のスタイル ... */
+/* admin/admin.style.css */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
+}
 
-.icon { margin-right: 5px; }
-#data-io ol { margin-left: 20px; margin-bottom: 15px; }
-#data-io .io-buttons { margin-bottom: 10px; }
-.button-like {
-    display: inline-block;
-    padding: 10px 15px;
-    background-color: #5cb85c;
+#password-prompt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.85); /* 少し濃くしてコンテンツを隠す */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000; /* 他のモーダルより手前に */
+    color: white;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#password-prompt h2 {
+    margin-bottom: 15px;
+}
+
+#password-prompt input[type="password"] {
+    padding: 12px;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 300px;
+    box-sizing: border-box;
+}
+
+#password-prompt button {
+    padding: 12px 20px;
+    font-size: 1.1em;
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    margin-right: 5px;
-    text-align: center;
+    transition: background-color 0.2s;
 }
-.button-like:hover { background-color: #4cae4c; }
-.info-message { font-size: 0.9em; color: #31708f; background-color: #d9edf7; border: 1px solid #bce8f1; padding: 8px; border-radius: 4px; margin-top:5px;}
+#password-prompt button:hover {
+    background-color: #0056b3;
+}
 
+.error-message {
+    color: #ff4d4d; /* より目立つ赤色に */
+    font-weight: bold;
+    margin-top: 10px;
+}
 
-.inline-form { display: flex; align-items: center; gap: 10px; }
-.inline-form input[type="text"] { flex-grow: 1; }
+header {
+    background-color: #343a40; /* ダークグレー */
+    color: white;
+    padding: 1em 1.5em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-.tag-buttons-container .tag-button {
-    background-color: #f0f0f0;
-    color: #333;
-    border: 1px solid #ccc;
-    padding: 6px 12px;
-    margin: 3px;
-    border-radius: 15px;
+header h1 {
+    margin: 0;
+    font-size: 1.8em;
+}
+
+#logoutButton {
+    background-color: #6c757d;
+    color: white;
+    padding: 0.6em 1em;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
     font-size: 0.9em;
 }
-.tag-buttons-container .tag-button:hover { background-color: #e0e0e0; }
-.tag-buttons-container .tag-button.selected { background-color: #007bff; color: white; border-color: #0056b3; }
-.tag-buttons-container .tag-button .delete-icon { margin-left: 5px; color: #ff4d4d; font-weight: bold; }
-.tag-buttons-container .tag-button .edit-icon { margin-left: 5px; color: #4caf50; font-weight: bold;}
+#logoutButton:hover {
+    background-color: #5a6268;
+}
+
+.container {
+    max-width: 1100px; /* 少し広めに */
+    margin: 25px auto;
+    padding: 25px;
+    background-color: #fff;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.08); /* 少し影を調整 */
+    border-radius: 8px; /* 角丸 */
+}
+
+section {
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #e9ecef; /* 少し薄い区切り線 */
+}
+
+section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 10px; /* 最後は少し余白少なめ */
+}
+
+h2, h3 {
+    color: #343a40; /* ヘッダーに合わせた色 */
+    margin-top: 0;
+    margin-bottom: 20px; /* 見出し下の余白 */
+}
+h2 { font-size: 1.6em; }
+h3 { font-size: 1.3em; }
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+    color: #495057; /* ラベルの色 */
+}
+
+.form-group input[type="text"],
+.form-group input[type="url"],
+.form-group textarea {
+    width: 100%; /* paddingを考慮してcalcなしでもOKにするためbox-sizing追加 */
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box; /* これでwidth:100%が期待通りに */
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.form-group input[type="text"]:focus,
+.form-group input[type="url"]:focus,
+.form-group textarea:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
 
 
-#itemsTable th, #itemsTable td { vertical-align: middle; }
-#itemsTable td button { margin-top: 3px; margin-bottom: 3px; display: inline-block; }
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+button, .button-like { /* button-likeも共通スタイルを適用 */
+    background-color: #007bff;
+    color: white;
+    padding: 10px 18px; /* 少し横に広く */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 8px; /* ボタン間の余白 */
+    font-size: 1em;
+    transition: background-color 0.2s;
+    vertical-align: middle; /* 他の要素と縦位置を合わせる */
+}
+button:hover, .button-like:hover {
+    background-color: #0056b3;
+}
+
+/* タイプ別ボタンカラー */
+button[type="button"], #clearFormButton { background-color: #6c757d; }
+button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62; }
+.delete-item, .tag-button .delete-icon { background-color: #dc3545 !important; color: white !important;} /* !importantで優先度上げる */
+.delete-item:hover, .tag-button .delete-icon:hover { background-color: #c82333 !important;}
+.edit-item, .tag-button .edit-icon { background-color: #28a745 !important; color: white !important;}
+.edit-item:hover, .tag-button .edit-icon:hover { background-color: #218838 !important;}
+
+
+.info {
+    font-size: 0.85em;
+    color: #6c757d; /* やや濃いめのグレー */
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+/* データI/Oセクション */
+#data-io ol {
+    margin-left: 20px; /* 番号付きリストのインデント */
+    margin-bottom: 20px;
+    padding-left: 15px;
+}
+#data-io .io-buttons {
+    margin-bottom: 15px;
+    display: flex; /* ボタンを横並びにする場合 */
+    flex-wrap: wrap; /* 折り返し */
+    gap: 10px; /* ボタン間の隙間 */
+}
+.button-like { /* ファイル選択ボタンの見た目をボタン風に */
+    display: inline-block; /* input type=fileを隠すため */
+    background-color: #17a2b8; /* Infoカラー */
+    text-align: center;
+}
+.button-like:hover { background-color: #138496; }
+#saveDataButton { background-color: #28a745; /* Successカラー */ }
+#saveDataButton:hover { background-color: #218838; }
+
+.info-message {
+    font-size: 0.9em;
+    color: #0c5460; /* より濃い青 */
+    background-color: #d1ecf1; /* 薄い青背景 */
+    border: 1px solid #bee5eb;
+    padding: 10px 15px; /* 少し余白を調整 */
+    border-radius: 4px;
+    margin-top:10px;
+}
+
+/* インラインフォーム (タグ追加など) */
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* 要素間の隙間 */
+    margin-bottom: 15px;
+}
+.inline-form input[type="text"] {
+    flex-grow: 1; /* 入力欄を可能な限り広げる */
+}
+
+
+/* タグボタンコンテナ */
+.tag-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* タグ間の隙間 */
+    margin-top: 8px;
+    padding: 5px;
+    border: 1px solid #eee; /* 任意: 領域を分かりやすく */
+    border-radius: 4px;
+}
+.tag-buttons-container .tag-button {
+    background-color: #e9ecef; /* 薄いグレー */
+    color: #495057; /* やや濃いテキスト */
+    border: 1px solid #ced4da;
+    padding: 6px 12px;
+    margin: 0; /* gapで制御するので個別マージン不要 */
+    border-radius: 20px; /* 丸みを強く */
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-size: 0.9em;
+    display: inline-flex; /* アイコンとテキストを並べる */
+    align-items: center;
+}
+.tag-buttons-container .tag-button:hover {
+    background-color: #dee2e6;
+    border-color: #adb5bd;
+}
+.tag-buttons-container .tag-button.selected { /* アイテムフォームで選択されたタグ */
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+.tag-buttons-container .tag-button .action-icon { /* 編集・削除アイコン共通 */
+    margin-left: 8px;
+    font-weight: bold;
+    font-size: 1.1em; /* アイコンサイズ調整 */
+    padding: 2px 4px; /* クリックしやすく */
+    border-radius: 50%; /* 丸く */
+}
+.tag-buttons-container .tag-button .edit-icon { color: #218838; }
+.tag-buttons-container .tag-button .edit-icon:hover { background-color: rgba(40, 167, 69, 0.1); }
+.tag-buttons-container .tag-button .delete-icon { color: #c82333; }
+.tag-buttons-container .tag-button .delete-icon:hover { background-color: rgba(220, 53, 69, 0.1); }
+
+
+/* アイテム一覧テーブル */
+#itemsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.95em;
+}
+#itemsTable th, #itemsTable td {
+    border: 1px solid #dee2e6;
+    padding: 10px 12px; /* セルの余白を調整 */
+    text-align: left;
+    vertical-align: middle;
+}
+#itemsTable th {
+    background-color: #f8f9fa; /* テーブルヘッダー背景 */
+    font-weight: bold;
+    color: #495057;
+}
+#itemsTable img {
+    max-width: 60px; /* 画像サイズ少し大きく */
+    max-height: 60px;
+    object-fit: cover;
+    background-color: #e9ecef; /* 画像がない場合の背景 */
+    border-radius: 3px;
+    border: 1px solid #ddd; /* 画像に枠線 */
+}
+#itemsTable td button {
+    margin-right: 5px;
+    padding: 5px 8px; /* テーブル内ボタンのサイズ調整 */
+    font-size: 0.85em;
+}
+#itemsTable td button:last-child { margin-right: 0; }
+
+
+/* 画像プレビュー */
+#itemImagePreview {
+    display: block; /* ブロック要素に */
+    margin-top: 10px;
+    border: 1px solid #ced4da;
+    padding: 5px; /* 枠線との間に余白 */
+    background-color: #f8f9fa;
+}
 
 /* モーダルスタイル */
 .modal {
-    position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%;
-    overflow: auto; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+    position: fixed;
+    z-index: 10001; /* パスワードプロンプトよりさらに手前 */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6); /* 背景を少し濃く */
+    display: flex; /* flexを使って中央配置 */
+    align-items: center;
+    justify-content: center;
 }
 .modal-content {
-    background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888;
-    width: 80%; max-width: 500px; border-radius: 5px; position: relative;
+    background-color: #fff; /* 背景白 */
+    margin: auto; /* 中央配置のため */
+    padding: 25px 30px; /* 余白調整 */
+    border: none; /* 枠線は影で表現 */
+    width: 90%;
+    max-width: 550px; /* モーダルの最大幅 */
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    animation: fadeInModal 0.3s ease-out; /* フェードインアニメーション */
 }
+
+@keyframes fadeInModal {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+    color: #343a40;
+    border-bottom: 1px solid #eee; /* 見出し下に区切り線 */
+    padding-bottom: 10px;
+}
+
+
 .close-button {
-    color: #aaa; float: right; font-size: 28px; font-weight: bold; position: absolute; top: 10px; right: 15px;
+    color: #6c757d; /* 少し濃いめのグレー */
+    position: absolute;
+    top: 15px; /* 位置調整 */
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1; /* 行の高さを調整 */
 }
-.close-button:hover, .close-button:focus { color: black; text-decoration: none; cursor: pointer; }
+.close-button:hover,
+.close-button:focus {
+    color: #343a40; /* ホバー時さらに濃く */
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* ヘルパーアイコン */
+.icon {
+    margin-right: 7px; /* アイコンとテキストの間の余白 */
+    font-size: 1.1em; /* アイコンサイズを少し大きく */
+}
+
+/* レスポンシブ対応 (簡易) */
+@media (max-width: 768px) {
+    .container {
+        margin: 15px;
+        padding: 15px;
+    }
+    header h1 {
+        font-size: 1.5em;
+    }
+    .inline-form {
+        flex-direction: column; /* 縦積みに変更 */
+        align-items: stretch; /* 幅を親に合わせる */
+    }
+    .inline-form input[type="text"] {
+        width: 100%; /* 明示的に幅を指定 */
+    }
+    .inline-form button {
+        width: 100%; /* ボタンも幅いっぱいに */
+        margin-top: 5px;
+    }
+    #data-io .io-buttons {
+        flex-direction: column; /* 縦積み */
+    }
+    #data-io .io-buttons .button-like,
+    #data-io .io-buttons button {
+        width: 100%;
+        margin-right: 0; /* 横並び用のマージン解除 */
+    }
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+}
