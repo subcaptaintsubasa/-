@@ -1,29 +1,58 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"; // 例: 9.6.10 (最新版を確認)
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+import {
+    getFirestore,
+    collection,
+    getDocs,
+    addDoc,
+    doc,
+    updateDoc,
+    deleteDoc,
+    query,
+    where,
+    orderBy,
+    serverTimestamp,
+    writeBatch,
+    getDoc // 単一ドキュメント取得用にgetDocを追加
+} from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import {
+    getStorage,
+    ref,
+    uploadBytesResumable,
+    getDownloadURL,
+    deleteObject // 画像削除用
+} from "https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", // ご自身のAPIキー等に置き換えてください
+  authDomain: "itemsearchtooleditor.firebaseapp.com",
+  projectId: "itemsearchtooleditor",
+  storageBucket: "itemsearchtooleditor.appspot.com", // Firebaseコンソールで確認
+  messagingSenderId: "243156973544",
+  appId: "1:243156973544:web:ffdc31134a35354b6dd65d",
+  measurementId: "G-8EHP9MGJ4M" // Optional
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+
 document.addEventListener('DOMContentLoaded', () => {
-    // ▼▼▼ Firebaseプロジェクトの設定情報 (実際の値に置き換えてください) ▼▼▼
-    const firebaseConfig = {
-        apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU",
-        authDomain: "itemsearchtooleditor.firebaseapp.com",
-        projectId: "itemsearchtooleditor",
-        storageBucket: "itemsearchtooleditor.appspot.com",
-        messagingSenderId: "243156973544",
-        appId: "1:243156973544:web:ffdc31134a35354b6dd65d"
-        measurementId: "G-8EHP9MGJ4M"
-    };
-    // ▲▲▲ Firebaseプロジェクトの設定情報 ▲▲▲
-
-    // Firebaseアプリを初期化
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const storage = firebase.storage();
-
     // DOM Elements
     const passwordPrompt = document.getElementById('password-prompt');
     const adminContent = document.getElementById('admin-content');
     const loginButton = document.getElementById('loginButton');
-    const adminEmailInput = document.getElementById('adminEmailInput'); // 追加
+    const adminEmailInput = document.getElementById('adminEmailInput');
     const adminPasswordInput = document.getElementById('adminPasswordInput');
     const passwordError = document.getElementById('passwordError');
     const logoutButton = document.getElementById('logoutButton');
@@ -34,11 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagListContainer = document.getElementById('tagListContainer');
 
     const itemForm = document.getElementById('itemForm');
-    const itemIdToEditInput = document.getElementById('itemIdToEdit'); // FirestoreドキュメントID用
+    const itemIdToEditInput = document.getElementById('itemIdToEdit');
     const itemNameInput = document.getElementById('itemName');
-    const itemImageFileInput = document.getElementById('itemImageFile'); // <input type="file">
+    const itemImageFileInput = document.getElementById('itemImageFile');
     const itemImagePreview = document.getElementById('itemImagePreview');
-    const itemImageUrlInput = document.getElementById('itemImageUrl'); // 隠しinput: StorageのURL
+    const itemImageUrlInput = document.getElementById('itemImageUrl');
     const uploadProgressContainer = document.getElementById('uploadProgressContainer');
     const uploadProgress = document.getElementById('uploadProgress');
     const uploadProgressText = document.getElementById('uploadProgressText');
@@ -52,23 +81,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
     const editTagModal = document.getElementById('editTagModal');
-    const editingTagDocIdInput = document.getElementById('editingTagDocId'); // FirestoreドキュメントID用
+    const editingTagDocIdInput = document.getElementById('editingTagDocId');
     const editingTagNameInput = document.getElementById('editingTagName');
     const saveTagEditButton = document.getElementById('saveTagEditButton');
 
+    let tagsCache = [];
+    let itemsCache = [];
+    let selectedImageFile = null;
+
     // --- 認証 ---
-    auth.onAuthStateChanged(user => {
+    onAuthStateChanged(auth, (user) => {
         if (user) {
             passwordPrompt.style.display = 'none';
             adminContent.style.display = 'block';
             if (currentUserEmailSpan) currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
-            loadInitialData(); // ログイン後にデータをロード
+            loadInitialData();
         } else {
             passwordPrompt.style.display = 'flex';
             adminContent.style.display = 'none';
             if (currentUserEmailSpan) currentUserEmailSpan.textContent = '';
-            // ログイン画面ではデータロードやUI初期化はしない
-            clearAdminUI(); // 管理UIをクリア
+            clearAdminUI();
         }
     });
 
@@ -80,8 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 passwordError.textContent = 'メールアドレスとパスワードを入力してください。';
                 return;
             }
-            passwordError.textContent = ''; // エラーをクリア
-            auth.signInWithEmailAndPassword(email, password)
+            passwordError.textContent = '';
+            signInWithEmailAndPassword(auth, email, password)
                 .catch(error => {
                     console.error("Login error:", error);
                     passwordError.textContent = `ログインエラー: ${error.message}`;
@@ -91,35 +123,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
-            auth.signOut().catch(error => console.error("Logout error:", error));
+            signOut(auth).catch(error => console.error("Logout error:", error));
         });
     }
     
     function clearAdminUI() {
-        // 管理画面のリストなどをクリアする処理
         if (tagListContainer) tagListContainer.innerHTML = '';
         if (itemsTableBody) itemsTableBody.innerHTML = '';
         if (itemTagsSelectorContainer) itemTagsSelectorContainer.innerHTML = '';
         clearItemForm();
     }
 
-
     // --- 初期データロード (Firestoreから) ---
     async function loadInitialData() {
         await loadTagsFromFirestore();
         await loadItemsFromFirestore();
-        // UIの再描画
         renderTagsForManagement();
-        renderItemTagsSelector(); // アイテムフォーム内のタグ選択肢
+        renderItemTagsSelector();
         renderItemsAdminTable();
     }
 
     // --- タグ管理 (Firestore) ---
-    let tagsCache = []; // Firestoreから読み込んだタグのキャッシュ {id: docId, name: tagName}
-
     async function loadTagsFromFirestore() {
         try {
-            const snapshot = await db.collection('tags').orderBy('name').get();
+            const q = query(collection(db, 'tags'), orderBy('name'));
+            const snapshot = await getDocs(q);
             tagsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             console.log("Tags loaded from Firestore:", tagsCache);
         } catch (error) {
@@ -131,11 +159,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderTagsForManagement() {
         if (!tagListContainer) return;
         tagListContainer.innerHTML = '';
-        tagsCache.forEach(tag => { // tagsCache を使用
+        tagsCache.forEach(tag => {
             const tagBtn = document.createElement('button');
             tagBtn.classList.add('tag-button');
             tagBtn.textContent = tag.name;
-            tagBtn.title = `Doc ID: ${tag.id}`; // FirestoreのドキュメントIDを表示
+            tagBtn.title = `Doc ID: ${tag.id}`;
             
             const editIcon = document.createElement('span');
             editIcon.classList.add('edit-icon', 'action-icon');
@@ -153,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tagListContainer.appendChild(tagBtn);
         });
-        renderItemTagsSelector(); // アイテムフォームのタグ選択も更新
+        renderItemTagsSelector();
     }
 
     if (addTagButton) {
@@ -161,18 +189,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = newTagNameInput.value.trim();
             if (!name) { alert("タグ名を入力してください。"); return; }
             
-            // Firestore内で名前の重複チェック (より確実)
-            const existingTagQuery = await db.collection('tags').where('name', '==', name).get();
+            const q = query(collection(db, 'tags'), where('name', '==', name));
+            const existingTagQuery = await getDocs(q);
             if (!existingTagQuery.empty) {
                 alert("同じ名前のタグが既に存在します。"); return;
             }
             
             try {
-                const docRef = await db.collection('tags').add({ name: name });
+                const docRef = await addDoc(collection(db, 'tags'), { name: name });
                 console.log("Tag added with ID: ", docRef.id);
                 newTagNameInput.value = '';
-                await loadTagsFromFirestore(); // Firestoreから再読み込み
-                renderTagsForManagement();     // UI更新
+                await loadTagsFromFirestore();
+                renderTagsForManagement();
             } catch (error) {
                 console.error("Error adding tag: ", error);
                 alert("タグの追加に失敗しました。");
@@ -180,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function openEditTagModal(docId, currentName) { // docIdはFirestoreのドキュメントID
+    function openEditTagModal(docId, currentName) {
         editingTagDocIdInput.value = docId;
         editingTagNameInput.value = currentName;
         editTagModal.style.display = 'flex';
@@ -193,22 +221,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const newName = editingTagNameInput.value.trim();
             if (!newName) { alert("タグ名は空にできません。"); return; }
 
-            // Firestore内で新しい名前の重複チェック (自身を除く)
-            const existingTagQuery = await db.collection('tags').where('name', '==', newName).get();
+            const q = query(collection(db, 'tags'), where('name', '==', newName));
+            const existingTagQuery = await getDocs(q);
             let conflict = false;
-            existingTagQuery.forEach(doc => {
-                if (doc.id !== docId) conflict = true;
+            existingTagQuery.forEach(docSnap => { 
+                if (docSnap.id !== docId) conflict = true;
             });
             if (conflict) {
                 alert("編集後の名前が、他の既存タグと重複します。"); return;
             }
 
             try {
-                await db.collection('tags').doc(docId).update({ name: newName });
+                const tagRef = doc(db, 'tags', docId);
+                await updateDoc(tagRef, { name: newName });
                 editTagModal.style.display = 'none';
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
-                // アイテムリストのタグ表示も更新されるべきだが、それはrenderItemsAdminTableが呼ばれる際に解決
             } catch (error) {
                 console.error("Error updating tag: ", error);
                 alert("タグの更新に失敗しました。");
@@ -217,25 +245,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteTag(docId, tagName) {
-        if (confirm(`タグ「${tagName}」(Doc ID: ${docId})を削除しますか？\nこのタグを使用しているアイテムからも自動的に削除されます (アイテムの更新が必要です)。`)) {
+        if (confirm(`タグ「${tagName}」(Doc ID: ${docId})を削除しますか？\nこのタグを使用している全てのアイテムからも自動的に削除されます。`)) {
             try {
-                // 1. タグを削除
-                await db.collection('tags').doc(docId).delete();
+                const tagRef = doc(db, 'tags', docId);
+                await deleteDoc(tagRef);
                 
-                // 2. このタグを使用しているアイテムを検索し、アイテムのtags配列からこのタグIDを削除 (バッチ書き込み推奨)
-                const itemsToUpdateSnapshot = await db.collection('items').where('tags', 'array-contains', docId).get();
+                const q = query(collection(db, 'items'), where('tags', 'array-contains', docId));
+                const itemsToUpdateSnapshot = await getDocs(q);
                 if (!itemsToUpdateSnapshot.empty) {
-                    const batch = db.batch();
-                    itemsToUpdateSnapshot.forEach(itemDoc => {
-                        const currentTags = itemDoc.data().tags || [];
+                    const batch = writeBatch(db);
+                    itemsToUpdateSnapshot.forEach(itemDocSnap => {
+                        const currentTags = itemDocSnap.data().tags || [];
                         const updatedTags = currentTags.filter(tagId => tagId !== docId);
-                        batch.update(itemDoc.ref, { tags: updatedTags });
+                        batch.update(itemDocSnap.ref, { tags: updatedTags });
                     });
                     await batch.commit();
                     console.log(`${itemsToUpdateSnapshot.size} items updated after tag deletion.`);
                 }
                 
-                await loadInitialData(); // 全データを再読み込みしてUIを更新
+                await loadInitialData();
             } catch (error) {
                 console.error("Error deleting tag and updating items: ", error);
                 alert("タグの削除または関連アイテムの更新に失敗しました。");
@@ -243,16 +271,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // --- アイテムフォームのタグ選択 (tagsCacheから生成) ---
     function renderItemTagsSelector(selectedItemTagIds = []) {
         if (!itemTagsSelectorContainer) return;
         itemTagsSelectorContainer.innerHTML = '';
-        tagsCache.forEach(tag => { // tagsCacheを使用
+        tagsCache.forEach(tag => {
             const tagBtn = document.createElement('button');
             tagBtn.type = 'button';
             tagBtn.classList.add('tag-button');
             tagBtn.textContent = tag.name;
-            tagBtn.dataset.tagId = tag.id; // FirestoreのドキュメントIDを保持
+            tagBtn.dataset.tagId = tag.id;
             if (selectedItemTagIds.includes(tag.id)) {
                 tagBtn.classList.add('selected');
             }
@@ -263,8 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 画像アップロードとプレビュー ---
-    let selectedImageFile = null; // アップロード用に選択されたファイルを保持
     if (itemImageFileInput) {
         itemImageFileInput.addEventListener('change', (event) => {
             selectedImageFile = event.target.files[0];
@@ -286,14 +311,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function uploadImageAndGetURL(file) {
         if (!file) return null;
-        const imageName = `${Date.now()}_${file.name}`; // ユニークなファイル名
-        const storageRef = storage.ref(`item_images/${imageName}`);
+        const imageName = `${Date.now()}_${file.name}`;
+        const storageImageRef = ref(storage, `item_images/${imageName}`);
         
         uploadProgressContainer.style.display = 'block';
         uploadProgress.value = 0;
         uploadProgressText.textContent = '0%';
 
-        const uploadTask = storageRef.put(file);
+        const uploadTask = uploadBytesResumable(storageImageRef, file);
 
         return new Promise((resolve, reject) => {
             uploadTask.on('state_changed',
@@ -308,23 +333,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     reject(error);
                 },
                 async () => {
-                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                    console.log('File available at', downloadURL);
-                    uploadProgressContainer.style.display = 'none';
-                    resolve(downloadURL);
+                    try {
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        console.log('File available at', downloadURL);
+                        uploadProgressContainer.style.display = 'none';
+                        resolve(downloadURL);
+                    } catch (error) {
+                        console.error("Error getting download URL:", error);
+                        uploadProgressContainer.style.display = 'none';
+                        reject(error);
+                    }
                 }
             );
         });
     }
 
-
-    // --- アイテム管理 (Firestore) ---
-    let itemsCache = []; // Firestoreから読み込んだアイテムのキャッシュ
-
     async function loadItemsFromFirestore() {
         try {
-            const snapshot = await db.collection('items').orderBy('name').get();
-            itemsCache = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+            const q = query(collection(db, 'items'), orderBy('name'));
+            const snapshot = await getDocs(q);
+            itemsCache = snapshot.docs.map(docSnap => ({ docId: docSnap.id, ...docSnap.data() }));
             console.log("Items loaded from Firestore:", itemsCache);
         } catch (error) {
             console.error("Error loading items from Firestore:", error);
@@ -340,24 +368,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const source = itemSourceInput.value.trim();
             const selectedTagIds = Array.from(itemTagsSelectorContainer.querySelectorAll('.tag-button.selected'))
                                       .map(btn => btn.dataset.tagId);
-            const editingDocId = itemIdToEditInput.value; // FirestoreのドキュメントID
-            let imageUrl = itemImageUrlInput.value; // 既存の画像URLまたはこれからアップロードするURL
+            const editingDocId = itemIdToEditInput.value;
+            let imageUrl = itemImageUrlInput.value; // 編集時は既存のURLがセットされている
 
             if (!name || !effect || !source) { alert("名前、効果、入手手段は必須です。"); return; }
             
-            saveItemButton.disabled = true; // 連打防止
+            saveItemButton.disabled = true;
 
             try {
-                if (selectedImageFile) { // 新しい画像ファイルが選択されている場合
+                if (selectedImageFile) { // 新しい画像が選択されている場合
+                    // 編集時で、かつ既存の画像がある場合、古い画像をStorageから削除
+                    if (editingDocId && imageUrl) {
+                        try {
+                            const oldImageRef = ref(storage, imageUrl); // URLからrefを取得
+                            await deleteObject(oldImageRef);
+                            console.log("Old image deleted from Storage:", imageUrl);
+                        } catch (error) {
+                            if (error.code !== 'storage/object-not-found') { // 見つからないエラーは無視
+                                console.warn("Could not delete old image from Storage:", error);
+                            }
+                        }
+                    }
                     imageUrl = await uploadImageAndGetURL(selectedImageFile);
-                    if (!imageUrl) { // アップロード失敗
+                    if (!imageUrl) {
                         alert("画像のアップロードに失敗しました。");
                         saveItemButton.disabled = false;
                         return;
                     }
-                } else if (!editingDocId && !imageUrl) { // 新規作成で画像未選択/URLなし
-                    // 画像なしで保存するか、ここでエラーにするか。今回は画像なしで保存を許容
-                    // imageUrl = 'images/placeholder_item.png'; // デフォルト画像など
+                } else if (!editingDocId && !imageUrl) {
+                    // 新規作成で画像が選択されていない場合は、画像なしとする (imageUrlは空のまま)
                 }
 
                 const itemData = {
@@ -366,20 +405,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     effect,
                     入手手段: source,
                     tags: selectedTagIds,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    updatedAt: serverTimestamp()
                 };
                 
-                if (editingDocId) { // 更新
-                    await db.collection('items').doc(editingDocId).update(itemData);
+                if (editingDocId) {
+                    const itemRef = doc(db, 'items', editingDocId);
+                    await updateDoc(itemRef, itemData);
                     console.log("Item updated with ID: ", editingDocId);
-                } else { // 新規作成
-                    itemData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    const docRef = await db.collection('items').add(itemData);
+                } else {
+                    itemData.createdAt = serverTimestamp();
+                    const docRef = await addDoc(collection(db, 'items'), itemData);
                     console.log("Item added with ID: ", docRef.id);
                 }
                 
-                await loadItemsFromFirestore(); // Firestoreから再読み込み
-                renderItemsAdminTable();    // UI更新
+                await loadItemsFromFirestore();
+                renderItemsAdminTable();
                 clearItemForm();
             } catch (error) {
                 console.error("Error saving item: ", error);
@@ -415,19 +455,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filteredItems.forEach(item => {
             const tr = document.createElement('tr');
-            // ユーザー向けサイトではGitHub Pagesのパス、管理画面ではStorageのURLを想定
-            // ここではFirestoreに保存されたURL (item.image) を直接使う
-            const imageDisplayPath = item.image || '../images/placeholder_item.png'; // '../' は不要かも
+            const imageDisplayPath = item.image || '../images/placeholder_item.png'; // プレースホルダーはローカルパス
             
             const itemTagsString = item.tags ? item.tags.map(tagId => {
-                const tagObj = tagsCache.find(t => t.id === tagId); // FirestoreのdocIdでマッチ
+                const tagObj = tagsCache.find(t => t.id === tagId);
                 return tagObj ? tagObj.name : `(ID: ${tagId})`;
             }).join(', ') : 'なし';
             const effectExcerpt = item.effect ? (item.effect.length > 30 ? item.effect.substring(0, 30) + '...' : item.effect) : '';
 
             tr.innerHTML = `
-                <td><img src="${imageDisplayPath}" alt="${item.name}" onerror="this.onerror=null; this.src='../images/placeholder_item.png';"></td>
-                <td>${item.name}</td>
+                <td><img src="${imageDisplayPath}" alt="${item.name || ''}" onerror="this.onerror=null; this.src='../images/placeholder_item.png';"></td>
+                <td>${item.name || ''}</td>
                 <td>${effectExcerpt}</td>
                 <td>${itemTagsString}</td>
                 <td>
@@ -447,14 +485,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadItemForEdit(docId) {
         try {
-            const doc = await db.collection('items').doc(docId).get();
-            if (doc.exists) {
-                const itemData = doc.data();
-                itemIdToEditInput.value = docId; // FirestoreのドキュメントID
+            const itemRef = doc(db, "items", docId);
+            const docSnap = await getDoc(itemRef);
+
+            if (docSnap.exists()) {
+                const itemData = docSnap.data();
+                itemIdToEditInput.value = docSnap.id;
                 itemNameInput.value = itemData.name;
                 itemEffectInput.value = itemData.effect;
                 itemSourceInput.value = itemData.入手手段;
-                itemImageUrlInput.value = itemData.image || ''; // 既存の画像URL
+                itemImageUrlInput.value = itemData.image || '';
                 
                 if (itemData.image) {
                     itemImagePreview.src = itemData.image;
@@ -463,38 +503,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemImagePreview.src = '#';
                     itemImagePreview.style.display = 'none';
                 }
-                if (itemImageFileInput) itemImageFileInput.value = null; // ファイル選択はクリア
+                if (itemImageFileInput) itemImageFileInput.value = null;
                 selectedImageFile = null;
 
                 renderItemTagsSelector(itemData.tags || []);
                 if (saveItemButton) saveItemButton.textContent = "アイテム更新";
                 if (itemForm) itemForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
-                console.error("No such document to edit!");
+                console.error("編集するドキュメントが見つかりません:", docId);
+                alert("編集対象のアイテムが見つかりませんでした。");
             }
         } catch (error) {
-            console.error("Error fetching item for edit:", error);
+            console.error("編集用アイテムの読み込みエラー:", error);
             alert("編集データの読み込みに失敗しました。");
         }
     }
 
     async function deleteItem(docId, itemName, imageUrl) {
-        if (confirm(`アイテム「${itemName}」(Doc ID: ${docId})を削除しますか？\nFirebase Storage上の関連画像は自動では削除されません。`)) {
+        if (confirm(`アイテム「${itemName}」(Doc ID: ${docId})を削除しますか？\nStorage上の画像も削除されます（存在する場合）。`)) {
             try {
-                await db.collection('items').doc(docId).delete();
+                const itemRef = doc(db, 'items', docId);
+                await deleteDoc(itemRef);
                 console.log("Item deleted: ", docId);
                 
-                // オプション: Storageから画像も削除する場合（より高度）
-                // if (imageUrl) {
-                //     try {
-                //         const imageRef = storage.refFromURL(imageUrl);
-                //         await imageRef.delete();
-                //         console.log("Image deleted from Storage:", imageUrl);
-                //     } catch (storageError) {
-                //         // 画像が存在しない、権限がないなどの場合。エラーでも処理は続行。
-                //         console.warn("Could not delete image from Storage:", storageError);
-                //     }
-                // }
+                if (imageUrl) {
+                    try {
+                        const imageStorageRef = ref(storage, imageUrl);
+                        await deleteObject(imageStorageRef);
+                        console.log("Image deleted from Storage:", imageUrl);
+                    } catch (storageError) {
+                        if (storageError.code === 'storage/object-not-found') {
+                            console.warn("Image not found in Storage, or already deleted:", imageUrl);
+                        } else {
+                            console.warn("Could not delete image from Storage:", storageError);
+                        }
+                    }
+                }
 
                 await loadItemsFromFirestore();
                 renderItemsAdminTable();
@@ -506,7 +550,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // モーダル関連
     const closeButtons = document.querySelectorAll('.modal .close-button');
     closeButtons.forEach(btn => {
         btn.onclick = function() {
@@ -518,8 +561,4 @@ document.addEventListener('DOMContentLoaded', () => {
             event.target.style.display = "none";
         }
     }
-
-    // 初期認証状態チェック
-    // onAuthStateChangedが最初の状態をハンドルするので、ここでは不要な場合もあるが、念のため。
-    // ただし、onAuthStateChanged内でUI初期化を行うので、ここでは呼び出さない。
 });
