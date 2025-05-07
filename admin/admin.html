@@ -17,35 +17,18 @@
     <div id="admin-content" style="display:none;">
         <header>
             <h1>アイテム管理ツール</h1>
-            <button id="logoutButton">ログアウト</button>
+            <div>
+                <button id="exportAllDataButton" title="現在の全データをJSONファイルとしてダウンロードします"><span class="icon"></span> 最終データをエクスポート</button>
+                <button id="logoutButton">ログアウト</button>
+            </div>
         </header>
 
         <div class="container">
-            <section id="data-io">
-                <h3><span class="icon"></span> データ読み込み/書き出し</h3>
-                <p>このツールでの変更を保存し、公開サイトに反映させるには、以下の手順が必要です。</p>
-                <ol>
-                    <li>アイテムやタグの編集後、下の「最新データをダウンロード」ボタンを押して <code>items.json</code> と <code>tags.json</code> をPCに保存します。</li>
-                    <li>ダウンロードした2つのJSONファイルを、あなたのGitHubリポジトリのルートフォルダ（<code>index.html</code> と同じ場所）に上書きします。</li>
-                    <li>変更をGitでコミットし、GitHubにプッシュします。</li>
-                </ol>
-                <p>作業を再開する際は、以前ダウンロードしたJSONファイルをここで読み込めます。</p>
-                <div class="io-buttons">
-                    <label class="button-like">
-                        既存 items.json を読み込む
-                        <input type="file" id="loadItemsFile" accept=".json" style="display:none;">
-                    </label>
-                    <label class="button-like">
-                        既存 tags.json を読み込む
-                        <input type="file" id="loadTagsFile" accept=".json" style="display:none;">
-                    </label>
-                    <button id="saveDataButton"><span class="icon"></span> 最新データをダウンロード</button>
-                </div>
-                <p id="loadItemsMessage" class="info-message"></p>
-                <p id="loadTagsMessage" class="info-message"></p>
-            </section>
-
-            <hr>
+            <p class="info-message" style="text-align: center; margin-bottom: 20px;">
+                <span class="icon">⚠</span> アイテムやタグの変更は自動的にブラウザに保存されます。
+                公開サイトに反映するには、最後に「最終データをエクスポート」ボタンでJSONファイルをダウンロードし、<br>
+                GitHubリポジトリの <code>items.json</code> と <code>tags.json</code> を手動で更新・プッシュしてください。
+            </p>
 
             <section id="tag-management">
                 <h2><span class="icon"></span> タグ管理</h2>
@@ -70,13 +53,13 @@
                     </div>
                     <div class="form-group">
                         <label for="itemImageInput">画像ファイル名 (<code>images/</code> 内):</label>
-                        <input type="text" id="itemImageFilename" placeholder="例: potion.png または subfolder/my_item.jpg">
+                        <input type="text" id="itemImageFilename" placeholder="例: potion.png または subfolder/my_item.jpg" required>
                         <label class="button-like" style="margin-top: 5px; display: inline-block;">
-                            画像プレビュー用ファイル選択
-                            <input type="file" id="itemImagePreviewFile" accept="image/*" style="display:none;">
+                            画像を選択してファイル名を取得＆プレビュー
+                            <input type="file" id="itemImageFilePicker" accept="image/*" style="display:none;">
                         </label>
                         <img id="itemImagePreview" src="#" alt="画像プレビュー" style="max-width: 100px; max-height: 100px; display: none; margin-top: 10px; border: 1px solid #ccc;">
-                        <p class="info">実際の画像ファイルは、手動でプロジェクトの <code>images/</code> フォルダに配置し、上の入力欄にそのファイル名を指定してください。プレビューは確認用です。</p>
+                        <p class="info">実際の画像ファイルは、手動でプロジェクトの <code>images/</code> フォルダに配置してください。ここでのファイル選択は、ファイル名の取得とプレビューが目的です。</p>
                     </div>
                     <div class="form-group">
                         <label for="itemEffect">効果:</label>
