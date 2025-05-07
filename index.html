@@ -12,26 +12,9 @@
 
         <div class="search-controls">
             <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段で検索...">
-            
-            <!-- ▼▼▼ カテゴリフィルターUI ▼▼▼ -->
-            <div class="category-filters">
-                <div class="category-level">
-                    <label>カテゴリ選択 (第1階層):</label>
-                    <div id="categoryLevel1Container" class="tag-filters">
-                        <!-- 第1階層カテゴリがここに表示されます -->
-                        <span class="placeholder">カテゴリを読み込み中...</span>
-                    </div>
-                </div>
-                <div class="category-level" id="categoryLevel2Section" style="display: none;"> <!-- 初期状態では非表示 -->
-                    <label>カテゴリ選択 (第2階層):</label>
-                    <div id="categoryLevel2Container" class="tag-filters">
-                        <!-- 第2階層カテゴリがここに表示されます -->
-                    </div>
-                </div>
-                <!-- 第3階層が必要な場合はここに追加 -->
+            <div id="tagFiltersContainer" class="tag-filters">
+                <!-- タグフィルターがここに動的に追加されます -->
             </div>
-             <!-- ▲▲▲ カテゴリフィルターUI ▲▲▲ -->
-
             <button id="resetFiltersButton">リセット</button>
         </div>
 
