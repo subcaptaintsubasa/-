@@ -1,1 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ゲームアイテム検索ツール</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>ゲームアイテム検索</h1>
 
+        <div class="search-controls">
+            <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段で検索...">
+            <div id="tagFiltersContainer" class="tag-filters">
+                <!-- タグフィルターがここに動的に追加されます -->
+            </div>
+            <button id="resetFiltersButton">リセット</button>
+        </div>
+
+        <div id="itemCount"></div>
+        <div id="itemList" class="item-list">
+            <!-- アイテムがここに表示されます -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
