@@ -1,21 +1,30 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"; // 例: 9.6.10 (最新版を確認)
+import {
+    getFirestore,
+    collection,
+    getDocs,
+    query,
+    orderBy
+} from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", // ご自身のAPIキー等に置き換えてください
+  authDomain: "itemsearchtooleditor.firebaseapp.com",
+  projectId: "itemsearchtooleditor",
+  storageBucket: "itemsearchtooleditor.appspot.com", // Firebaseコンソールで確認 (末尾が .appspot.com か .firebasestorage.app か)
+  messagingSenderId: "243156973544",
+  appId: "1:243156973544:web:ffdc31134a35354b6dd65d",
+  measurementId: "G-8EHP9MGJ4M" // Optional
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
 document.addEventListener('DOMContentLoaded', () => {
-    // ▼▼▼ Firebaseプロジェクトの設定情報 (admin.script.js と同じものに置き換えてください) ▼▼▼
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
-    };
-    // ▲▲▲ Firebaseプロジェクトの設定情報 ▲▲▲
-
-    // Firebaseアプリを初期化 (既に初期化済みでなければ)
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.firestore();
-
     // DOM要素の取得
     const searchInput = document.getElementById('searchInput');
     const tagFiltersContainer = document.getElementById('tagFiltersContainer');
@@ -23,26 +32,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemCountDisplay = document.getElementById('itemCount');
     const resetFiltersButton = document.getElementById('resetFiltersButton');
 
-    let allItems = [];        // Firestoreから取得したアイテムデータ { docId, name, image, effect, 入手手段, tags: [tagDocId1,...] }
-    let availableTags = [];   // Firestoreから取得したタグデータ { id: docId, name: tagName }
-    let selectedTags = [];    // 選択されたタグのドキュメントIDの配列
+    let allItems = [];
+    let availableTags = [];
+    let selectedTags = [];
 
-    // Firestoreからデータをロードする関数
     async function loadData() {
         try {
-            // アイテムデータをFirestoreから取得 (名前順でソート)
-            const itemsSnapshot = await db.collection('items').orderBy('name').get();
+            const itemsCollectionRef = collection(db, 'items');
+            const itemsQuery = query(itemsCollectionRef, orderBy('name'));
+            const itemsSnapshot = await getDocs(itemsQuery);
             allItems = itemsSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
 
-            // タグデータをFirestoreから取得 (名前順でソート)
-            const tagsSnapshot = await db.collection('tags').orderBy('name').get();
-            availableTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name })); // idはFirestoreのdoc.id, nameはdoc.data().name
+            const tagsCollectionRef = collection(db, 'tags');
+            const tagsQuery = query(tagsCollectionRef, orderBy('name'));
+            const tagsSnapshot = await getDocs(tagsQuery);
+            availableTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
 
             console.log("User site: Items loaded from Firestore", allItems);
             console.log("User site: Tags loaded from Firestore", availableTags);
 
-            renderTags();          // タグフィルターUIを生成
-            renderItems(allItems); // 全アイテムを初期表示
+            renderTags();
+            renderItems(allItems);
         } catch (error) {
             console.error("Error loading data from Firestore for user site: ", error);
             if (itemList) {
@@ -54,54 +64,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // タグフィルターUIを生成する関数
     function renderTags() {
         if (!tagFiltersContainer) return;
-        tagFiltersContainer.innerHTML = ''; // 既存のタグをクリア
-
-        availableTags.forEach(tag => { // availableTagsは {id: docId, name: tagName}
+        tagFiltersContainer.innerHTML = '';
+        availableTags.forEach(tag => {
             const tagButton = document.createElement('div');
             tagButton.classList.add('tag-filter');
-            tagButton.textContent = tag.name;        // 表示名
-            tagButton.dataset.tagId = tag.id;        // FirestoreのドキュメントIDをdata属性に保持
-
+            tagButton.textContent = tag.name;
+            tagButton.dataset.tagId = tag.id;
             tagButton.addEventListener('click', () => toggleTag(tagButton, tag.id));
             tagFiltersContainer.appendChild(tagButton);
         });
     }
 
-    // アイテムリストを表示する関数
     function renderItems(itemsToRender) {
         if (!itemList) return;
-        itemList.innerHTML = ''; // 既存のアイテムをクリア
-
+        itemList.innerHTML = '';
         if (itemCountDisplay) {
             itemCountDisplay.textContent = `${itemsToRender.length} 件のアイテムが見つかりました。`;
         }
-
         if (itemsToRender.length === 0) {
             itemList.innerHTML = '<p>該当するアイテムは見つかりませんでした。</p>';
             return;
         }
-
         itemsToRender.forEach(item => {
             const itemCard = document.createElement('div');
             itemCard.classList.add('item-card');
-
-            // item.image は Firebase Storage の公開URL、またはプレースホルダーのパス
-            const imagePath = item.image || 'images/placeholder_item.png';
-            
+            const imagePath = item.image || './images/placeholder_item.png'; // ローカルのプレースホルダー
             let tagsHtml = '';
             if (item.tags && item.tags.length > 0) {
-                // item.tags にはタグのドキュメントIDの配列が入っている
                 tagsHtml = `<div class="tags">タグ: ${item.tags.map(tagId => {
-                    const tagObj = availableTags.find(t => t.id === tagId); // FirestoreのdocIdでマッチ
+                    const tagObj = availableTags.find(t => t.id === tagId);
                     return `<span>${tagObj ? tagObj.name : '不明なタグ'}</span>`;
                 }).join(' ')}</div>`;
             }
-
             itemCard.innerHTML = `
-                <img src="${imagePath}" alt="${item.name || 'アイテム画像'}" onerror="this.onerror=null; this.src='images/placeholder_item.png';">
+                <img src="${imagePath}" alt="${item.name || 'アイテム画像'}" onerror="this.onerror=null; this.src='./images/placeholder_item.png';">
                 <h3>${item.name || '名称未設定'}</h3>
                 <p><strong>効果:</strong> ${item.effect || '未設定'}</p>
                 <p><strong>入手手段:</strong> ${item.入手手段 || '未設定'}</p>
@@ -111,29 +109,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // テキスト検索とタグフィルターに基づいてアイテムをフィルタリングし再表示する関数
     function filterAndRenderItems() {
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
-        
         let filteredItems = allItems.filter(item => {
-            // テキスト検索 (名前, 効果, 入手手段)
             const matchesSearchTerm = searchTerm === '' ||
                 (item.name && item.name.toLowerCase().includes(searchTerm)) ||
                 (item.effect && item.effect.toLowerCase().includes(searchTerm)) ||
                 (item.入手手段 && item.入手手段.toLowerCase().includes(searchTerm));
-
-            // タグ検索 (AND検索)
-            // item.tags には選択されたタグのID(FirestoreのdocId)がすべて含まれているか
             const matchesTags = selectedTags.length === 0 ||
                 (item.tags && selectedTags.every(selTagId => item.tags.includes(selTagId)));
-            
             return matchesSearchTerm && matchesTags;
         });
-        
         renderItems(filteredItems);
     }
     
-    // タグ選択をトグルする関数
     function toggleTag(tagButton, tagId) {
         tagButton.classList.toggle('active');
         if (selectedTags.includes(tagId)) {
@@ -141,10 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             selectedTags.push(tagId);
         }
-        filterAndRenderItems(); // フィルターを適用して再表示
+        filterAndRenderItems();
     }
 
-    // フィルターをリセットする関数
     function resetFilters() {
         if (searchInput) searchInput.value = '';
         selectedTags = [];
@@ -153,17 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 button.classList.remove('active');
             });
         }
-        filterAndRenderItems(); // フィルターを適用して再表示
+        filterAndRenderItems();
     }
 
-    // イベントリスナーの設定
-    if (searchInput) {
-        searchInput.addEventListener('input', filterAndRenderItems);
-    }
-    if (resetFiltersButton) {
-        resetFiltersButton.addEventListener('click', resetFilters);
-    }
+    if (searchInput) searchInput.addEventListener('input', filterAndRenderItems);
+    if (resetFiltersButton) resetFiltersButton.addEventListener('click', resetFilters);
 
-    // 初期データロードを実行
     loadData();
 });
