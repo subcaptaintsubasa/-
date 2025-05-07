@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ゲームアイテム検索ツール</title>
-    <link rel="stylesheet" href="style.css"> <!-- あなたのCSSファイル -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -24,16 +24,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (v8.x.x の場合) -->
-    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <!-- Add Firestore SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- Storage SDKはユーザーサイトでは直接画像URLを参照するため通常不要だが、
-         もし将来的にStorageのAPIをクライアントで使う可能性があるならコメントアウトを外す -->
-    <!-- <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> -->
-
-    <!-- あなたのカスタムスクリプト (Firebase SDKの後に読み込む) -->
-    <script src="script.js"></script>
+    <!-- type="module" を指定して Firebase SDK v9 を利用 -->
+    <script type="module" src="script.js"></script>
 </body>
 </html>
