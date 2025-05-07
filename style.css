@@ -1,165 +1,66 @@
-/* ... (既存のスタイルに追加・修正) ... */
+/* ... (既存のスタイルはそのまま) ... */
 
-/* 画像なしプレースホルダー */
-.item-card-image-container { /* 画像とプレースホルダーを囲むコンテナ */
-    width: 120px; /* imgと同じサイズに合わせる */
+/* ▼▼▼ カテゴリフィルター関連のスタイル ▼▼▼ */
+.category-filters {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #eee; /* 区切り線 */
+}
+
+.category-level {
+    margin-bottom: 10px;
+}
+
+.category-level label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.tag-filters .placeholder { /* カテゴリ読み込み中/エラー表示 */
+    color: #999;
+    font-style: italic;
+}
+.tag-filters .placeholder.error {
+    color: red;
+    font-style: normal;
+    font-weight: bold;
+}
+/* ▲▲▲ カテゴリフィルター関連のスタイル ▲▲▲ */
+
+
+/* ▼▼▼ No Image 表示用スタイル ▼▼▼ */
+.item-image-container {
+    width: 120px; /* imgタグのサイズと合わせる */
     height: 120px;
-    display: flex; /* 中央揃えのため */
-    justify-content: center;
+    display: flex;
     align-items: center;
+    justify-content: center;
     margin-bottom: 12px;
     align-self: center;
     background-color: #f0f0f0; /* 背景色 */
     border-radius: 4px;
-    overflow: hidden; /* 画像がはみ出さないように */
+    overflow: hidden; /* 画像がはみ出ないように */
 }
-.item-card-image-container img {
+.item-image-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    margin-bottom: 0; /* コンテナがマージンを持つので不要に */
-    align-self: unset; /* コンテナが担当 */
-    background-color: transparent; /* 背景不要 */
-    border-radius: 0; /* コンテナに合わせる */
+    margin-bottom: 0; /* コンテナで制御するので不要に */
+    align-self: unset;
+    background-color: transparent; /* コンテナに任せる */
+    border: none; /* コンテナに任せる */
 }
-.no-image-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.item-image-container .no-image {
     font-size: 0.9em;
-    color: #888;
+    color: #aaa;
     text-align: center;
-    background-color: #e9ecef;
-}
-
-
-/* タグ階層フィルター */
-.category-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
-}
-.category-filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-.category-filter-group label {
-    font-size: 0.9em;
-    color: #555;
     font-weight: bold;
 }
-.category-filter-group select {
-    padding: 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    min-width: 150px;
-}
-.category-filter-group select:disabled {
-    background-color: #f8f8f8;
-    cursor: not-allowed;
-}
+/* ▲▲▲ No Image 表示用スタイル ▲▲▲ */
 
-/* タグ検索モード */
-.tag-search-mode {
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
-}
-.tag-search-mode label {
-    margin-right: 5px;
-}
-.tag-search-mode input[type="radio"] {
-    margin-right: 3px;
-    vertical-align: middle;
-}
-.tag-search-mode label[for="tagSearchAnd"],
-.tag-search-mode label[for="tagSearchOr"] {
-    margin-right: 15px;
-    font-weight: normal;
-}
-
-/* 表示コントロール（ソートと表示モード） */
-.view-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
-}
-.sort-control select {
-    padding: 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-.display-mode .display-mode-button {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    background-color: #f8f9fa;
-    color: #333;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-left: 5px;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-.display-mode .display-mode-button:hover {
-    background-color: #e9ecef;
-}
-.display-mode .display-mode-button.active {
-    background-color: #007bff;
-    color: white;
-    border-color: #0056b3;
-}
-
-/* リスト表示スタイル */
-.item-list.display-mode-list {
-    display: block; /* gridを解除 */
-}
-.list-view {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.list-view li {
-    padding: 10px 5px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.list-view li:hover {
-    background-color: #f9f9f9;
-}
-.list-view li:last-child {
-    border-bottom: none;
-}
-
-/* テーブル表示スタイル */
-.item-list.display-mode-table {
-    display: block; /* gridを解除 */
-}
-.table-view {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95em;
-}
-.table-view th, .table-view td {
-    border: 1px solid #ddd;
-    padding: 8px 10px;
-    text-align: left;
-    vertical-align: top; /* 内容が多くても揃える */
-}
-.table-view th {
-    background-color: #f2f2f2;
-    font-weight: bold;
-}
-.table-view tbody tr:nth-child(even) {
-    background-color: #f9f9f9; /* ストライプ */
-}
+/* アイテムカード内のタグ表示クラス名を tags から categories に変更する場合（任意）*/
+/* .item-card .categories { ... } */
+/* .item-card .categories span { ... } */
