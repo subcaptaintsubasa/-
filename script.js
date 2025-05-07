@@ -1,20 +1,20 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"; // 例: 9.6.10 (最新版を確認)
 import {
     getFirestore,
     collection,
     getDocs,
     query,
     orderBy,
-    where // フィルター用に where を追加
+    where // where句を使う可能性があるのでインポートしておく
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration - ★★★ オリジナルの内容を維持 ★★★
 const firebaseConfig = {
-  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", // ご自身のAPIキー等に置き換えてください
+  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU",
   authDomain: "itemsearchtooleditor.firebaseapp.com",
-  projectId: "itemsearchtooleditor",
-  storageBucket: "itemsearchtooleditor.appspot.com",
+  projectId: "itemsearchtooleditor", // ← 必須！
+  storageBucket: "itemsearchtooleditor.appspot.com", // ← 設定は必要
   messagingSenderId: "243156973544",
   appId: "1:243156973544:web:ffdc31134a35354b6dd65d",
   measurementId: "G-8EHP9MGJ4M" // Optional
@@ -39,73 +39,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemList = document.getElementById('itemList');
     const itemCountDisplay = document.getElementById('itemCount');
 
-    let allItems = [];
-    let allTags = []; // 全てのタグ情報 {id, name, level, parentTagId} を保持
+    let allItems = [];        // Firestoreから読み込んだ全アイテムデータ
+    let allTags = [];         // Firestoreから読み込んだ全タグデータ {id, name, level, parentTagId}
     let selectedLevel1TagId = null;
     let selectedLevel2TagId = null;
-    let selectedLevel3TagId = null; // 実際にフィルタリングに使うのはこれ
+    let selectedLevel3TagId = null;
     let currentTagSearchMode = 'AND'; // 'AND' or 'OR'
     let currentDisplayMode = 'card'; // 'card', 'list', 'table'
-    let currentSortOrder = 'name_asc'; // 例: 'name_asc', 'createdAt_desc'
+    let currentSortOrder = 'name_asc'; // デフォルトのソート順
 
-    // データロード
+    // Firestoreからデータロード
     async function loadData() {
         try {
-            // アイテムデータ (並び替えを考慮し、クライアントサイドソート用に一旦全件取得)
-            // TODO: アイテム数が多い場合は、Firestoreクエリでのソート・フィルタリングを検討
+            // アイテムデータ (クライアントサイドでソートするため、一旦全件取得)
             const itemsSnapshot = await getDocs(collection(db, 'items'));
             allItems = itemsSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
 
-            // 全タグデータ (階層構造を処理するため)
+            // 全タグデータ (階層構造と名前参照のため)
             const tagsSnapshot = await getDocs(query(collection(db, 'tags'), orderBy('level'), orderBy('name')));
             allTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             console.log("User site: Items loaded", allItems);
             console.log("User site: All Tags loaded", allTags);
 
-            populateCategoryFilters();
+            populateCategoryFilters(); // カテゴリフィルターの初期化
             applyFiltersAndRender(); // 初期表示
 
         } catch (error) {
-            console.error("Error loading data from Firestore for user site: ", error);
+            console.error("Error loading data from Firestore:", error);
             if (itemList) itemList.innerHTML = `<p style="color: red;">データの読み込みに失敗しました。</p>`;
             if (itemCountDisplay) itemCountDisplay.textContent = 'エラー';
         }
     }
 
-    // カテゴリフィルターのドロップダウンを生成
+    // カテゴリフィルターのドロップダウン生成
     function populateCategoryFilters() {
-        // Level 1
         const level1Tags = allTags.filter(tag => tag.level === 1);
         populateSelect(categoryLevel1Select, level1Tags, "カテゴリ1を選択");
-
-        // Level 2とLevel 3の連動 (イベントリスナー内で処理)
-        categoryLevel1Select.addEventListener('change', handleCategoryChange);
-        categoryLevel2Select.addEventListener('change', handleCategoryChange);
-        categoryLevel3Select.addEventListener('change', handleFilterChange); // Level 3 選択でフィルター実行
+        // Level 2, 3 は初期状態では空＆無効
+        populateSelect(categoryLevel2Select, [], "カテゴリ2を選択", true);
+        populateSelect(categoryLevel3Select, [], "カテゴリ3を選択", true);
     }
 
+    // カテゴリ選択変更時のハンドラ
     function handleCategoryChange(event) {
         const level = parseInt(event.target.id.replace('categoryLevel', ''), 10);
-        const selectedParentId = event.target.value;
+        const selectedParentId = event.target.value || null; // 空文字はnull扱い
 
-        // 選択状態を更新
         if (level === 1) {
-            selectedLevel1TagId = selectedParentId || null;
-            selectedLevel2TagId = null;
-            selectedLevel3TagId = null; // 下位もリセット
-            populateSelect(categoryLevel2Select, filterTagsByParent(selectedLevel1TagId, 2), "カテゴリ2を選択", true);
-            populateSelect(categoryLevel3Select, [], "カテゴリ3を選択", true); // Level 3もクリア
+            selectedLevel1TagId = selectedParentId;
+            selectedLevel2TagId = null; // 下位をリセット
+            selectedLevel3TagId = null;
+            populateSelect(categoryLevel2Select, filterTagsByParent(selectedLevel1TagId, 2), "カテゴリ2を選択", !selectedLevel1TagId);
+            populateSelect(categoryLevel3Select, [], "カテゴリ3を選択", true);
         } else if (level === 2) {
-            selectedLevel2TagId = selectedParentId || null;
+            selectedLevel2TagId = selectedParentId;
             selectedLevel3TagId = null; // Level 3 をリセット
-            populateSelect(categoryLevel3Select, filterTagsByParent(selectedLevel2TagId, 3), "カテゴリ3を選択", true);
+            populateSelect(categoryLevel3Select, filterTagsByParent(selectedLevel2TagId, 3), "カテゴリ3を選択", !selectedLevel2TagId);
         }
-        // Level 1 or 2 の変更ではまだフィルタリングしない (Level 3の選択を待つか、別途ボタンを設ける)
-         applyFiltersAndRender(); // ★変更: Level1,2変更でも即時反映
+        // Level 1 or 2 の変更でもフィルターを即時適用
+        applyFiltersAndRender();
     }
 
+     // Level 3 選択変更時のハンドラ
+     function handleLevel3Change() {
+        selectedLevel3TagId = categoryLevel3Select.value || null;
+        applyFiltersAndRender();
+     }
+
+    // Select要素にオプションを追加するヘルパー関数
     function populateSelect(selectElement, tags, defaultOptionText, disable = false) {
+        if (!selectElement) return;
         selectElement.innerHTML = `<option value="">${defaultOptionText}</option>`;
         tags.forEach(tag => {
             const option = document.createElement('option');
@@ -113,24 +117,23 @@ document.addEventListener('DOMContentLoaded', () => {
             option.textContent = tag.name;
             selectElement.appendChild(option);
         });
-        selectElement.disabled = disable || tags.length === 0;
-        if(selectElement.disabled) { // disabledなら選択をクリア
-             selectElement.value = "";
-        }
+        selectElement.disabled = disable;
+        if (disable) selectElement.value = ""; // 無効化時は選択をクリア
     }
 
+    // 親IDとレベルに基づいてタグをフィルタリングする関数
     function filterTagsByParent(parentId, targetLevel) {
         if (!parentId) return [];
         return allTags.filter(tag => tag.level === targetLevel && tag.parentTagId === parentId);
     }
 
-    // アイテムリストを表示する関数 (表示モード対応)
+    // アイテムリストを表示するメイン関数 (表示モード対応)
     function renderItems(itemsToRender) {
         if (!itemList) return;
-        itemList.innerHTML = ''; // クリア
+        itemList.innerHTML = ''; // 表示をクリア
 
-        // 現在の表示モードに応じてクラスを切り替え (CSSで制御)
-        itemList.className = 'item-list'; // Reset classes
+        // 表示モードに応じてクラスを切り替え (CSSで実際のレイアウトを制御)
+        itemList.className = 'item-list'; // 基本クラスリセット
         itemList.classList.add(`display-mode-${currentDisplayMode}`);
 
         if (itemCountDisplay) {
@@ -141,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 表示モードに応じてHTML構造を生成
+        // 表示モードに応じてレンダリング関数を呼び出し
         if (currentDisplayMode === 'card') {
             renderCardView(itemsToRender);
         } else if (currentDisplayMode === 'list') {
@@ -156,15 +159,16 @@ document.addEventListener('DOMContentLoaded', () => {
         items.forEach(item => {
             const itemCard = document.createElement('div');
             itemCard.classList.add('item-card');
+            // 画像表示 or No Image表示
             const imageHtml = item.image
                 ? `<img src="${item.image}" alt="${item.name || 'アイテム画像'}" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
                    <div class="no-image-placeholder" style="display: none;">No Image</div>`
-                : `<div class="no-image-placeholder">No Image</div>`; // 画像なしの場合
+                : `<div class="no-image-placeholder">No Image</div>`;
 
             let tagsHtml = '';
             if (item.tags && item.tags.length > 0) {
                 tagsHtml = `<div class="tags">タグ: ${item.tags.map(tagId => {
-                    const tagObj = allTags.find(t => t.id === tagId); // allTagsから検索
+                    const tagObj = allTags.find(t => t.id === tagId);
                     return `<span>${tagObj ? tagObj.name : '不明'}</span>`;
                 }).join(' ')}</div>`;
             }
@@ -179,14 +183,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // リスト表示のレンダリング (簡易版 - クリック詳細未実装)
+    // リスト表示のレンダリング (簡易版)
     function renderListView(items) {
         const ul = document.createElement('ul');
         ul.classList.add('list-view');
         items.forEach(item => {
             const li = document.createElement('li');
             li.textContent = item.name || '名称未設定';
-            // TODO: クリックで詳細表示のイベントリスナーを追加
+            li.title = `効果: ${item.effect || '---'}\n入手手段: ${item.入手手段 || '---'}`; // 簡易ツールチップ
             li.addEventListener('click', () => alert(`詳細表示 (未実装):\n名前: ${item.name}\n効果: ${item.effect}\n入手手段: ${item.入手手段}`));
             ul.appendChild(li);
         });
@@ -221,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
         itemList.appendChild(table);
     }
 
-
     // フィルターとソートを適用して再描画するメイン関数
     function applyFiltersAndRender() {
         let filteredItems = [...allItems]; // 元の配列をコピー
@@ -236,61 +239,62 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
 
-        // 2. タグフィルター (Level 3 のみ)
-        selectedLevel3TagId = categoryLevel3Select ? categoryLevel3Select.value : null; // Level3の選択値を取得
+        // 2. タグフィルター (階層考慮 & AND/OR)
+        selectedLevel3TagId = categoryLevel3Select ? categoryLevel3Select.value : null; // Level3の値が優先
+        let targetTagIds = []; // フィルター対象となるレベル3タグIDのリスト
+
         if (selectedLevel3TagId) {
-            filteredItems = filteredItems.filter(item => item.tags && item.tags.includes(selectedLevel3TagId));
-        } else if (selectedLevel2TagId) { // Level 3未選択だがLevel 2が選択されている場合
-             const level3IdsUnderLevel2 = allTags.filter(t => t.level === 3 && t.parentTagId === selectedLevel2TagId).map(t => t.id);
-             filteredItems = filteredItems.filter(item => item.tags && item.tags.some(tId => level3IdsUnderLevel2.includes(tId)));
-        } else if (selectedLevel1TagId) { // Level 2, 3未選択だがLevel 1が選択されている場合
-            const level2IdsUnderLevel1 = allTags.filter(t => t.level === 2 && t.parentTagId === selectedLevel1TagId).map(t => t.id);
-            const level3IdsUnderLevel1 = allTags.filter(t => t.level === 3 && level2IdsUnderLevel1.includes(t.parentTagId)).map(t => t.id);
-             filteredItems = filteredItems.filter(item => item.tags && item.tags.some(tId => level3IdsUnderLevel1.includes(tId)));
+            targetTagIds = [selectedLevel3TagId]; // Level 3が選択されていれば、それが対象
+        } else if (selectedLevel2TagId) { // Level 2が選択されていれば、その下のLevel 3全てが対象
+             targetTagIds = allTags.filter(t => t.level === 3 && t.parentTagId === selectedLevel2TagId).map(t => t.id);
+        } else if (selectedLevel1TagId) { // Level 1が選択されていれば、その下のLevel 3全てが対象
+            const level2Ids = allTags.filter(t => t.level === 2 && t.parentTagId === selectedLevel1TagId).map(t => t.id);
+            targetTagIds = allTags.filter(t => t.level === 3 && level2Ids.includes(t.parentTagId)).map(t => t.id);
         }
-        // ★★★ AND/OR検索のロジック修正 - 上記階層フィルターを優先し、従来のselectedTagsは一旦使わない方向で調整 ★★★
-        // もし複数タグ選択をUIで許容するなら、この部分でAND/ORを実装
-        // const currentTagSearchMode = tagSearchAndRadio && tagSearchAndRadio.checked ? 'AND' : 'OR';
-        // if (selectedTags.length > 0) { // selectedTagsに選択されたタグIDを入れる処理が必要
-        //     if (currentTagSearchMode === 'AND') {
-        //         filteredItems = filteredItems.filter(item => item.tags && selectedTags.every(selTagId => item.tags.includes(selTagId)));
-        //     } else { // OR
-        //         filteredItems = filteredItems.filter(item => item.tags && selectedTags.some(selTagId => item.tags.includes(selTagId)));
-        //     }
-        // }
+        // targetTagIds には、選択された階層フィルターに基づいて絞り込むべきLevel 3のタグIDが入る
+
+        if (targetTagIds.length > 0) {
+            currentTagSearchMode = tagSearchAndRadio && tagSearchAndRadio.checked ? 'AND' : 'OR';
+            if (currentTagSearchMode === 'AND') {
+                // AND検索: フィルター対象のすべてのタグIDをアイテムが含んでいるか
+                filteredItems = filteredItems.filter(item => item.tags && targetTagIds.every(tagId => item.tags.includes(tagId)));
+            } else { // OR
+                // OR検索: フィルター対象のタグIDのいずれかをアイテムが含んでいるか
+                filteredItems = filteredItems.filter(item => item.tags && targetTagIds.some(tagId => item.tags.includes(tagId)));
+            }
+        }
+        // targetTagIdsが空（カテゴリフィルター未選択）の場合は、タグでの絞り込みは行わない
 
         // 3. ソート
-        // TODO: ソート機能の実装 (currentSortOrderに基づいてfilteredItemsをソート)
         sortItems(filteredItems, currentSortOrder);
-
 
         // 4. レンダリング
         renderItems(filteredItems);
     }
 
-    // ソート関数 (簡易版)
+    // ソート関数
     function sortItems(items, sortOrder) {
-         const [field, direction] = sortOrder.split('_'); //例: "name_asc" -> ["name", "asc"]
+         const [field, direction] = sortOrder.split('_');
 
          items.sort((a, b) => {
              let valA = a[field];
              let valB = b[field];
 
-             // FirestoreのTimestampオブジェクトを比較可能にする (もしcreatedAtを使う場合)
              if (field === 'createdAt' || field === 'updatedAt') {
                  valA = a[field]?.toDate ? a[field].toDate().getTime() : 0;
                  valB = b[field]?.toDate ? b[field].toDate().getTime() : 0;
-             }
-              // nameがない場合などはデフォルト値を設定
-             if (field === 'name') {
-                 valA = valA || '';
+             } else if (field === 'name') {
+                 valA = valA || ''; // 名前がない場合は空文字として比較
                  valB = valB || '';
+             } else {
+                 // 他のフィールド（数値など）の比較が必要な場合はここに追加
+                 valA = valA || 0; // デフォルトは数値比較を想定
+                 valB = valB || 0;
              }
-
 
              let comparison = 0;
              if (typeof valA === 'string' && typeof valB === 'string') {
-                 comparison = valA.localeCompare(valB, 'ja'); // 日本語対応
+                 comparison = valA.localeCompare(valB, 'ja');
              } else {
                  if (valA < valB) comparison = -1;
                  if (valA > valB) comparison = 1;
@@ -300,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
          });
     }
 
-
     // フィルター条件変更時の共通ハンドラ
     function handleFilterChange() {
         applyFiltersAndRender();
@@ -308,51 +311,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // イベントリスナーの設定
     if (searchInput) searchInput.addEventListener('input', handleFilterChange);
+    // カテゴリフィルター
+    if (categoryLevel1Select) categoryLevel1Select.addEventListener('change', handleCategoryChange);
+    if (categoryLevel2Select) categoryLevel2Select.addEventListener('change', handleCategoryChange);
+    if (categoryLevel3Select) categoryLevel3Select.addEventListener('change', handleLevel3Change); // Level 3 専用ハンドラ
+    // AND/OR切り替え
     if (tagSearchAndRadio) tagSearchAndRadio.addEventListener('change', handleFilterChange);
     if (tagSearchOrRadio) tagSearchOrRadio.addEventListener('change', handleFilterChange);
+    // ソート順
     if (sortOrderSelect) sortOrderSelect.addEventListener('change', (e) => {
         currentSortOrder = e.target.value;
         handleFilterChange();
     });
-
-    // 表示モード切り替え
+    // 表示モード
     displayModeButtons.forEach(button => {
         button.addEventListener('click', () => {
             currentDisplayMode = button.dataset.mode;
-            // アクティブなボタンのスタイル変更
             displayModeButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
-            // アイテムリストのクラスを更新して再描画（スタイルはCSSで制御）
-            if (itemList) {
-                 itemList.className = 'item-list'; // Reset
-                 itemList.classList.add(`display-mode-${currentDisplayMode}`);
-                 // 再描画が必要な場合は filterAndRenderItems を呼ぶか、
-                 // renderItems だけを呼ぶ (フィルターやソートは変えずに表示だけ変える)
-                 applyFiltersAndRender(); // 今回はフィルター/ソート状態を維持して再描画
-            }
+            applyFiltersAndRender(); // フィルター/ソート状態を維持して再描画
         });
     });
-
     // リセットボタン
     if (resetFiltersButton) {
         resetFiltersButton.addEventListener('click', () => {
             if (searchInput) searchInput.value = '';
-            categoryLevel1Select.value = "";
+            if (categoryLevel1Select) categoryLevel1Select.value = "";
             populateSelect(categoryLevel2Select, [], "カテゴリ2を選択", true);
             populateSelect(categoryLevel3Select, [], "カテゴリ3を選択", true);
             selectedLevel1TagId = null;
             selectedLevel2TagId = null;
             selectedLevel3TagId = null;
-            if (tagSearchAndRadio) tagSearchAndRadio.checked = true; // デフォルトAND
+            if (tagSearchAndRadio) tagSearchAndRadio.checked = true;
             currentTagSearchMode = 'AND';
-            sortOrderSelect.value = 'name_asc'; // デフォルトソート
+            if (sortOrderSelect) sortOrderSelect.value = 'name_asc';
             currentSortOrder = 'name_asc';
 
-             // 表示モードボタンのデフォルト（カード）をアクティブに
+            // 表示モードをカードにリセット
             displayModeButtons.forEach(btn => btn.classList.remove('active'));
-            document.querySelector('.display-mode-button[data-mode="card"]').classList.add('active');
+            const cardButton = document.querySelector('.display-mode-button[data-mode="card"]');
+            if (cardButton) cardButton.classList.add('active');
             currentDisplayMode = 'card';
-
 
             applyFiltersAndRender();
         });
