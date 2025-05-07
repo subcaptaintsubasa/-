@@ -1,41 +1,61 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja">: `.env` ファイル）に分離し、Gitの管理対象外にすることを検討するか、あるいはGitHubリポジトリを
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>アイテム管理ツール (Firebase版)</title>
+    <title>アイテム管理ツール (FirebasePrivateにするなどの対策が望ましいです。
+今回はご提示いただいたものをそのまま使用しますが、実際の運用ではこの点を版 v9)</title>
     <link rel="stylesheet" href="admin.style.css">
 </head>
 <body>
     <div id="password-prompt">
         <h2>管理者パスワード</h2>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
-        <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
-        <button id="loginButton">ログイン</button>
+        <input type="考慮してください。
+---
+
+**A. 管理者向けツール**
+
+**A-1. `admin/admin.htmlpassword" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
+        <button id` (Firebase SDK v9 対応)**
+
+変更点は主に `<script>` タグの `type="module"` 指定="loginButton">ログイン</button>
         <p id="passwordError" class="error-message"></p>
     </div>
 
     <div id="admin-content" style="display:none;">
-        <header>
-            <h1>アイテム管理ツール (Firebase版)</h1>
+        <headerと、Firebase SDKの読み込み方法です。ただし、CDNからv9のモジュールを直接インポートする方法>
+            <h1>アイテム管理ツール (Firebase版 v9)</h1>
             <div>
-                <span id="currentUserEmail" style="margin-right: 15px;"></span>
+                <span id="currentUserは推奨されておらず、通常はビルドツール（Webpack, Parcelなど）を使います。
+ここでは、CDNEmail" style="margin-right: 15px;"></span>
                 <button id="logoutButton">ログアウト</button>
             </div>
         </header>
 
         <div class="container">
-            <p class="info-message" style="text-align: center; margin-bottom: 20px;">
-                <span class="icon"></span> アイテムやタグの変更は、保存ボタンを押すとFirebaseに直接保存されます。<br>
-                ユーザー向けサイトは、Firebaseから常に最新データを読み込みます (手動でのファイル更新は不要です)。
+            <p class="でv8互換のグローバル形式で提供されているSDKを引き続き使うか、もしビルド環境を導入info-message" style="text-align: center; margin-bottom: 20px;">
+                <span class="icon"></span> アイテムやタグの変更は、保存ボタンを押すとFirebaseにするならその前提での変更となります。
+
+**今回は、既存のHTML構造を維持しつつ、v9の直接保存されます。<br>
+                ユーザー向けサイトは、Firebaseから常に最新データを読み込みます (手動でのモジュールを `<script type="module">` 内で直接利用する形で進めます。これは小規模なプロジェクトではファイル更新は不要です)。
             </p>
 
             <section id="tag-management">
-                <h2><span class="icon"></span> タグ管理</h2>
+                <h2>機能しますが、本番環境ではビルドツールによる最適化が推奨されます。**
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+<span class="icon"></span> タグ管理</h2>
                 <div class="form-group inline-form">
-                    <input type="text" id="newTagName" placeholder="新しいタグ名 (例: 回復)">
+                    <input type="text" id="newTagName" placeholder="新しいタグ    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+名 (例: 回復)">
                     <button id="addTagButton">タグ追加</button>
-                </div>
+                    <title>アイテム管理ツール (Firebase v9版)</title>
+    <link rel="stylesheet" href</div>
                 <div id="tagListContainer" class="tag-buttons-container">
                     <!-- タグがここにボタンとして表示されます -->
                 </div>
@@ -43,50 +63,101 @@
 
             <hr>
 
-            <section id="item-management">
-                <h2><span class="icon"></span> アイテム管理</h2>
+            <section id="="admin.style.css">
+</head>
+<body>
+    <div id="password-prompt">
+item-management">
+                <h2><span class="icon"></span> アイテム管理        <h2>管理者パスワード</h2>
+        <input type="email" id="adminEmailInput" placeholder="メールアドレス</h2>
                 <form id="itemForm">
-                    <input type="hidden" id="itemIdToEdit"> <!-- FirestoreのドキュメントIDを保持 -->
+                    <input type="hidden" id="itemIdToEdit">" autocomplete="email">
+        <input type="password" id="adminPasswordInput" placeholder="パスワード" <!-- FirestoreのドキュメントIDを保持 -->
                     <div class="form-group">
-                        <label for="itemName">名前:</label>
+                        <label autocomplete="current-password">
+        <button id="loginButton">ログイン</button>
+        <p id for="itemName">名前:</label>
                         <input type="text" id="itemName" required>
-                    </div>
+                    ="passwordError" class="error-message"></p>
+    </div>
+
+    <div id="admin-content</div>
                     <div class="form-group">
-                        <label for="itemImageFile">画像:</label>
+                        <label for="itemImageFile">画像:</label" style="display:none;">
+        <header>
+            <h1>アイテム管理ツール (Firebase v9版)>
                         <input type="file" id="itemImageFile" accept="image/*">
-                        <img id="itemImagePreview" src="#" alt="画像プレビュー" style="max-width: 100px; max-height: 100px; display: none; margin-top: 10px; border: 1px solid #ccc;">
-                        <input type="hidden" id="itemImageUrl"> <!-- StorageのURLを保持 -->
-                        <p class="info">新しい画像をアップロードすると、既存の画像は上書きされません（新しいURLが生成されます）。古い画像は手動でStorageから削除する必要がある場合があります。</p>
-                        <div id="uploadProgressContainer" style="display:none;">
-                            <progress id="uploadProgress" value="0" max="100"></progress>
+                        <img</h1>
+            <div>
+                <span id="currentUserEmail" style="margin-right: 15px;"> id="itemImagePreview" src="#" alt="画像プレビュー" style="max-width: 100px; max-height: 100px; display: none; margin-top: 10px</span>
+                <button id="logoutButton">ログアウト</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <p class="info-message" style="text-align: center; border: 1px solid #ccc;">
+                        <input type="hidden" id="itemImageUrl"> <!-- Storage; margin-bottom: 20px;">
+                <span class="icon"></span> アイテムのURLを保持 -->
+                        <p class="info">新しい画像をアップロードすると、既存の画像は上書きされやタグの変更は、保存ボタンを押すとFirebaseに直接保存されます。<br>
+                ユーザー向けサイトはません（新しいURLが生成されます）。古い画像は手動でStorageから削除する必要がある場合があります。</p>
+                        <、Firebaseから常に最新データを読み込みます (手動でのファイル更新は不要です)。
+            </p>
+
+            <section id="tag-management">
+                <h2><span class="icon">🏽iv id="uploadProgressContainer" style="display:none;">
+                            <progress id="uploadProgress" value="7;</span> タグ管理</h2>
+                <div class="form-group inline-form">
+                    <input0" max="100"></progress>
                             <span id="uploadProgressText"></span>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="itemEffect">効果:</label>
+                        <label for="itemEffect">効果:</ type="text" id="newTagName" placeholder="新しいタグ名 (例: 回復)">
+                    <button id="addlabel>
                         <textarea id="itemEffect" rows="3" required></textarea>
                     </div>
-                    <div class="form-group">
+                    TagButton">タグ追加</button>
+                </div>
+                <div id="tagListContainer" class="tag-buttons-container">
+                    <!-- タグがここにボタンとして表示されます -->
+                </div>
+            </section<div class="form-group">
                         <label for="itemSource">入手手段:</label>
                         <textarea id="itemSource" rows="3" required></textarea>
                     </div>
-                    <div class="form-group">
+                    <div class=">
+
+            <hr>
+
+            <section id="item-management">
+                <h2><span class="icon"></span> アイテム管理</h2>
+                <form id="itemForm">
+                    form-group">
                         <label>このアイテムのタグ:</label>
                         <div id="itemTagsSelector" class="tag-buttons-container">
                             <!-- 利用可能なタグがボタンとして表示されます -->
                         </div>
-                    </div>
+<input type="hidden" id="itemIdToEdit"> <!-- FirestoreのドキュメントIDを保持 -->
+                    <div class                    </div>
                     <button type="submit" id="saveItemButton">アイテム保存</button>
-                    <button type="button" id="clearFormButton">フォームクリア</button>
+                    <="form-group">
+                        <label for="itemName">名前:</label>
+                        <input type="textbutton type="button" id="clearFormButton">フォームクリア</button>
                 </form>
 
-                <h3><span class="icon"></span> アイテム一覧</h3>
-                <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." style="margin-bottom:10px; width: 50%;">
+                <h3>" id="itemName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemImageFile">画像:</label>
+                        <input type="file" id="itemImageFile"<span class="icon"></span> アイテム一覧</h3>
+                <input type="text accept="image/*">
+                        <img id="itemImagePreview" src="#" alt="画像プレビュー" style" id="itemSearchAdmin" placeholder="アイテム名で検索..." style="margin-bottom:10px; width: 50%;">
                 <table id="itemsTable">
                     <thead>
                         <tr>
                             <th>画像</th>
-                            <th>名前</th>
+="max-width: 100px; max-height: 100px; display: none; margin-top: 10px; border: 1px solid #ccc;">
+                        <input type                            <th>名前</th>
                             <th>効果 (抜粋)</th>
                             <th>タグ</th>
                             <th>操作</th>
@@ -96,28 +167,41 @@
                         <!-- アイテムがここに表示されます -->
                     </tbody>
                 </table>
-            </section>
+="hidden" id="itemImageUrl"> <!-- StorageのURLを保持 -->
+                        <p class="info">新しい            </section>
         </div>
     </div>
-    <div id="editTagModal" class="modal" style="display:none;">
+    <div id="editTagModal" class="modal"画像をアップロードすると、既存の画像は上書きされません（新しいURLが生成されます）。古い画像は手動 style="display:none;">
         <div class="modal-content">
-            <span class="close-button" onclick="document.getElementById('editTagModal').style.display='none'">×</span>
-            <h3>タグ編集</h3>
-            <input type="hidden" id="editingTagDocId"> <!-- FirestoreのドキュメントID -->
+            <span class="close-でStorageから削除する必要がある場合があります。</p>
+                        <div id="uploadProgressContainer" style="display:nonebutton" onclick="document.getElementById('editTagModal').style.display='none'">×</span>
+            ;">
+                            <progress id="uploadProgress" value="0" max="100"></progress>
+                            <span id="uploadProgressText"></span>
+                        </div>
+                    </div>
+                    <div class="form-group<h3>タグ編集</h3>
+            <input type="hidden" id="editingTagDocId"> <!-- Firestoreのドキュ">
+                        <label for="itemEffect">効果:</label>
+                        <textarea id="itemEffect" rowsメントID -->
             <div class="form-group">
-                <label for="editingTagName">タグ表示名:</label>
+                <label for="editingTagName">タグ表示="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label名:</label>
                 <input type="text" id="editingTagName">
             </div>
-            <button id="saveTagEditButton">変更を保存</button>
+            <button for="itemSource">入手手段:</label>
+                        <textarea id="itemSource" rows="3" required id="saveTagEditButton">変更を保存</button>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-    <!-- Your admin script -->
-    <script src="admin.script.js"></script>
+    <!-- type="module" を></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>このアイテムの指定して Firebase SDK v9 を利用 -->
+    <script type="module" src="admin.script.js"></script>タグ:</label>
+                        <div id="itemTagsSelector" class="tag-buttons-container">
+                            <!-- 利用
 </body>
 </html>
