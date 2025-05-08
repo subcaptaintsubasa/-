@@ -1,86 +1,234 @@
 /* admin/admin.style.css */
 body {
-    font-family: sans-serif; margin: 0; background-color: #f4f4f4;
-    color: #333; line-height: 1.6;
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
 }
-#password-prompt { /* ... (変更なし) ... */ }
-#password-prompt h2 { /* ... (変更なし) ... */ }
+
+#password-prompt {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+    justify-content: center; align-items: center; z-index: 10000;
+    color: white; padding: 20px; box-sizing: border-box;
+}
+#password-prompt h2 { margin-bottom: 15px; }
 #password-prompt input[type="password"],
-#password-prompt input[type="email"] { /* ... (変更なし) ... */ }
-#password-prompt button { /* ... (変更なし) ... */ }
-#password-prompt button:hover { /* ... (変更なし) ... */ }
-.error-message { /* ... (変更なし) ... */ }
-header { /* ... (変更なし) ... */ }
-header h1 { /* ... (変更なし) ... */ }
-#logoutButton { /* ... (変更なし) ... */ }
-#logoutButton:hover { /* ... (変更なし) ... */ }
-.container { /* ... (変更なし) ... */ }
-section { /* ... (変更なし) ... */ }
-section:last-child { /* ... (変更なし) ... */ }
-h2, h3 { /* ... (変更なし) ... */ }
-h2 { /* ... (変更なし) ... */ }
-h3 { /* ... (変更なし) ... */ }
-.form-group { /* ... (変更なし) ... */ }
-.form-group label { /* ... (変更なし) ... */ }
+#password-prompt input[type="email"] {
+    padding: 12px; margin-bottom: 15px; font-size: 1.1em;
+    border: 1px solid #ccc; border-radius: 4px; width: 100%;
+    max-width: 300px; box-sizing: border-box;
+}
+#password-prompt button {
+    padding: 12px 20px; font-size: 1.1em; background-color: #007bff;
+    color: white; border: none; border-radius: 4px; cursor: pointer;
+    transition: background-color 0.2s;
+}
+#password-prompt button:hover { background-color: #0056b3; }
+.error-message { color: #ff4d4d; font-weight: bold; margin-top: 10px; }
+
+header {
+    background-color: #343a40; color: white; padding: 1em 1.5em;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+header h1 { margin: 0; font-size: 1.8em; }
+#logoutButton {
+    background-color: #6c757d; color: white; padding: 0.6em 1em;
+    border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;
+}
+#logoutButton:hover { background-color: #5a6268; }
+
+.container {
+    max-width: 1100px; margin: 25px auto; padding: 25px;
+    background-color: #fff; box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+    border-radius: 8px;
+}
+
+section {
+    margin-bottom: 30px; padding-bottom: 30px;
+    border-bottom: 1px solid #e9ecef;
+}
+section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 10px; }
+
+h2, h3 { color: #343a40; margin-top: 0; margin-bottom: 20px; }
+h2 { font-size: 1.6em; }
+h3 { font-size: 1.3em; }
+
+.form-group { margin-bottom: 18px; }
+.form-group label {
+    display: block; margin-bottom: 6px; font-weight: bold; color: #495057;
+}
 .form-group input[type="text"],
 .form-group input[type="url"],
 .form-group input[type="file"],
 .form-group textarea,
-.form-group select { /* ... (変更なし) ... */ }
+.form-group select {
+    width: 100%; padding: 10px 12px; border: 1px solid #ced4da;
+    border-radius: 4px; font-size: 1em; box-sizing: border-box;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
 .form-group input[type="text"]:focus,
 .form-group input[type="url"]:focus,
 .form-group input[type="file"]:focus,
 .form-group textarea:focus,
-.form-group select:focus { /* ... (変更なし) ... */ }
-.form-group textarea { /* ... (変更なし) ... */ }
-.form-control-short { /* ... (変更なし) ... */ }
-button, .button-like { /* ... (変更なし) ... */ }
-button:hover, .button-like:hover { /* ... (変更なし) ... */ }
-button[type="button"], #clearFormButton { /* ... (変更なし) ... */ }
-button[type="button"]:hover, #clearFormButton:hover { /* ... (変更なし) ... */ }
-.action-button { /* ... (変更なし) ... */ }
-.action-button.edit, .edit-item, .edit-category, .edit-tag { /* ... (変更なし) ... */ }
-.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover { /* ... (変更なし) ... */ }
-.action-button.delete, .delete-item, .delete-category, .delete-tag { /* ... (変更なし) ... */ }
-.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover { /* ... (変更なし) ... */ }
-.info { /* ... (変更なし) ... */ }
-.info-message { /* ... (変更なし) ... */ }
-.inline-form { /* ... (変更なし) ... */ }
-.inline-form input[type="text"] { /* ... (変更なし) ... */ }
-.inline-form select { /* ... (変更なし) ... */ }
-.list-container { /* ... (変更なし) ... */ }
-.list-item { /* ... (変更なし) ... */ }
-.list-item:last-child { /* ... (変更なし) ... */ }
-.list-item span { /* ... (変更なし) ... */ }
-.tag-buttons-container { /* ... (変更なし) ... */ }
-.tag-buttons-container .tag-button { /* ... (変更なし) ... */ }
-.tag-buttons-container .tag-button:hover { /* ... (変更なし) ... */ }
-.tag-buttons-container .tag-button.selected { /* ... (変更なし) ... */ }
-#itemsTable { /* ... (変更なし) ... */ }
-#itemsTable th, #itemsTable td { /* ... (変更なし) ... */ }
-#itemsTable th { /* ... (変更なし) ... */ }
-#itemsTable img { /* ... (変更なし) ... */ }
-#itemsTable td button { /* ... (変更なし) ... */ }
-#itemsTable td button:last-child { /* ... (変更なし) ... */ }
-#itemImagePreview { /* ... (変更なし) ... */ }
-#uploadProgressContainer { /* ... (変更なし) ... */ }
-#uploadProgress { /* ... (変更なし) ... */ }
-#uploadProgressText { /* ... (変更なし) ... */ }
-.modal { /* ... (変更なし) ... */ }
-.modal-content { /* ... (変更なし) ... */ }
-@keyframes fadeInModal { /* ... (変更なし) ... */ }
-.modal-content h3 { /* ... (変更なし) ... */ }
-.close-button { /* ... (変更なし) ... */ }
-.close-button:hover,
-.close-button:focus { /* ... (変更なし) ... */ }
-.icon { /* ... (変更なし) ... */ }
-@media (max-width: 768px) { /* ... (変更なし) ... */ }
+.form-group select:focus {
+    border-color: #80bdff; outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+.form-group textarea { resize: vertical; min-height: 80px; }
 
-/* admin.style.css の既存のスタイルは変更ありません。
-   もし管理画面のカテゴリリストで階層表示をCSSで強調したい場合は、
-   .list-item の子要素に対してインデントなどを追加するスタイルをここに記述します。
-   例:
-   .list-item.child-category { padding-left: 20px; }
-   ただし、JavaScript側でクラスを付与する対応が必要です。
-   今回はJavaScriptでの表示文字列で親子関係を示す形にしています。
-*/
+.form-control-short {
+    flex-grow: 0.5; 
+    min-width: 150px;
+}
+
+button, .button-like {
+    background-color: #007bff; color: white; padding: 10px 18px;
+    border: none; border-radius: 4px; cursor: pointer;
+    margin-right: 8px; font-size: 1em; transition: background-color 0.2s;
+    vertical-align: middle;
+}
+button:hover, .button-like:hover { background-color: #0056b3; }
+
+button[type="button"], #clearFormButton { background-color: #6c757d; }
+button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62; }
+
+.action-button {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    margin-left: 5px;
+    color: white !important;
+    border: none;
+    border-radius: 4px; /* Ensure consistent border-radius */
+}
+.action-button.edit, .edit-item, .edit-category, .edit-tag { 
+    background-color: #28a745 !important;
+}
+.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover {
+    background-color: #218838 !important;
+}
+.action-button.delete, .delete-item, .delete-category, .delete-tag {
+    background-color: #dc3545 !important;
+}
+.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover {
+    background-color: #c82333 !important;
+}
+
+.info { font-size: 0.85em; color: #6c757d; margin-top: 6px; line-height: 1.4; }
+
+.info-message {
+    font-size: 0.9em; color: #0c5460; background-color: #d1ecf1;
+    border: 1px solid #bee5eb; padding: 10px 15px;
+    border-radius: 4px; margin-top:10px;
+}
+
+.inline-form { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+.inline-form input[type="text"] { flex-grow: 1; }
+.inline-form select { width: auto; flex-grow: 0.5; }
+
+
+.list-container {
+    margin-top: 15px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 10px;
+    max-height: 300px; 
+    overflow-y: auto;
+}
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.list-item:last-child { border-bottom: none; }
+.list-item span { flex-grow: 1; margin-right: 10px; word-break: break-word; }
+
+
+.tag-buttons-container {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+    padding: 5px; border: 1px solid #eee; border-radius: 4px;
+}
+.tag-buttons-container .tag-button {
+    background-color: #e9ecef; color: #495057; border: 1px solid #ced4da;
+    padding: 6px 12px; margin: 0; border-radius: 20px; cursor: pointer;
+    transition: all 0.2s ease-in-out; font-size: 0.9em;
+    display: inline-flex; align-items: center;
+}
+.tag-buttons-container .tag-button:hover {
+    background-color: #dee2e6; border-color: #adb5bd;
+}
+.tag-buttons-container .tag-button.selected {
+    background-color: #007bff; color: white; border-color: #0056b3;
+}
+
+
+#itemsTable {
+    width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95em;
+}
+#itemsTable th, #itemsTable td {
+    border: 1px solid #dee2e6; padding: 10px 12px;
+    text-align: left; vertical-align: middle;
+}
+#itemsTable th { background-color: #f8f9fa; font-weight: bold; color: #495057; }
+#itemsTable img {
+    max-width: 60px; max-height: 60px; object-fit: cover;
+    background-color: #e9ecef; border-radius: 3px; border: 1px solid #ddd;
+}
+#itemsTable td button { margin-right: 5px; }
+#itemsTable td button:last-child { margin-right: 0; }
+
+
+#itemImagePreview {
+    display: block; margin-top: 10px; border: 1px solid #ced4da;
+    padding: 5px; background-color: #f8f9fa;
+}
+#uploadProgressContainer { margin-top: 10px; }
+#uploadProgress { width: 100%; height: 20px; margin-bottom: 5px; }
+#uploadProgressText { font-size: 0.9em; color: #495057; }
+
+.modal {
+    position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%;
+    overflow: auto; background-color: rgba(0,0,0,0.6); display: flex;
+    align-items: center; justify-content: center;
+}
+.modal-content {
+    background-color: #fff; margin: auto; padding: 25px 30px;
+    border: none; width: 90%; max-width: 550px; border-radius: 8px;
+    position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    animation: fadeInModal 0.3s ease-out;
+}
+@keyframes fadeInModal {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.modal-content h3 {
+    margin-top: 0; margin-bottom: 20px; font-size: 1.5em; color: #343a40;
+    border-bottom: 1px solid #eee; padding-bottom: 10px;
+}
+.close-button {
+    color: #6c757d; position: absolute; top: 15px; right: 20px;
+    font-size: 28px; font-weight: bold; line-height: 1;
+}
+.close-button:hover,
+.close-button:focus {
+    color: #343a40; text-decoration: none; cursor: pointer;
+}
+
+.icon { margin-right: 7px; font-size: 1.1em; }
+
+@media (max-width: 768px) {
+    .container { margin: 15px; padding: 15px; }
+    header h1 { font-size: 1.5em; }
+    .inline-form { flex-direction: column; align-items: stretch; }
+    .inline-form input[type="text"], .inline-form select { width: 100%; }
+    .inline-form button { width: 100%; margin-top: 5px; }
+    .modal-content { width: 95%; padding: 20px; }
+    #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
+    #itemsTable img { max-width: 40px; max-height: 40px; }
+    #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
+    #itemSearchAdmin { width: 100% !important; }
+}
