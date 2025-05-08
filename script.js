@@ -1,17 +1,12 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"; // 例: 9.6.10 (最新版を確認)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
-    getFirestore,
-    collection,
-    getDocs,
-    query,
-    orderBy,
-    where // where句を使用
+    getFirestore, collection, getDocs, query, orderBy, where
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", // ★★★ ご自身のAPIキー等に置き換えてください ★★★
+  apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", 
   authDomain: "itemsearchtooleditor.firebaseapp.com",
   projectId: "itemsearchtooleditor",
   storageBucket: "itemsearchtooleditor.appspot.com",
@@ -20,146 +15,159 @@ const firebaseConfig = {
   measurementId: "G-8EHP9MGJ4M"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM要素の取得
     const searchInput = document.getElementById('searchInput');
-    const parentCategoryFilterSelect = document.getElementById('parentCategoryFilterSelect');
-    const childCategoryFilterSelect = document.getElementById('childCategoryFilterSelect');
-    const tagFiltersContainer = document.getElementById('tagFiltersContainer');
-    const tagFilterPlaceholder = document.getElementById('tagFilterPlaceholder');
+    const parentCategoryFiltersContainer = document.getElementById('parentCategoryFiltersContainer');
+    const childCategoriesAndTagsContainer = document.getElementById('childCategoriesAndTagsContainer');
     const itemList = document.getElementById('itemList');
     const itemCountDisplay = document.getElementById('itemCount');
     const resetFiltersButton = document.getElementById('resetFiltersButton');
 
     let allItems = [];
-    let allCategories = []; // 全カテゴリ (親子含む) { id, name, parentId }
-    let availableTags = []; // { id, name, categoryId (子カテゴリIDを指す) }
+    let allCategories = []; // { id, name, parentId }
+    let allTags = [];       // { id, name, categoryIds: [childCatId1, childCatId2,...] }
     
-    let selectedParentCategoryId = "";
-    let selectedChildCategoryId = "";
-    let selectedTags = [];
+    let selectedParentCategoryIds = [];
+    let selectedTagIds = [];
 
     async function loadData() {
         try {
-            // カテゴリのロード (parentIdを持つものも含む)
-            const categoriesCollectionRef = collection(db, 'categories');
-            const categoriesQuery = query(categoriesCollectionRef, orderBy('name'));
-            const categoriesSnapshot = await getDocs(categoriesQuery);
+            const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('name')));
             allCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             console.log("User site: All Categories loaded:", allCategories);
 
-            // タグのロード
-            const tagsCollectionRef = collection(db, 'tags');
-            const tagsQuery = query(tagsCollectionRef, orderBy('name'));
-            const tagsSnapshot = await getDocs(tagsQuery);
-            availableTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("User site: Tags loaded:", availableTags);
+            const tagsSnapshot = await getDocs(query(collection(db, 'tags'), orderBy('name')));
+            allTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            console.log("User site: All Tags loaded:", allTags);
             
-            // アイテムのロード
-            const itemsCollectionRef = collection(db, 'items');
-            const itemsQuery = query(itemsCollectionRef, orderBy('name'));
-            const itemsSnapshot = await getDocs(itemsQuery);
+            const itemsSnapshot = await getDocs(query(collection(db, 'items'), orderBy('name')));
             allItems = itemsSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
             console.log("User site: Items loaded:", allItems);
 
-            renderParentCategories();
-            renderChildCategories(); // 初期は空のはず
-            renderTagsForSelectedChildCategory(); // 初期は空のはず
+            renderParentCategoryFilters();
+            renderChildCategoriesAndTags(); // Initially empty or placeholder
             renderItems(allItems);
 
         } catch (error) {
-            console.error("Error loading data from Firestore for user site: ", error);
+            console.error("Error loading data:", error);
             if (itemList) itemList.innerHTML = `<p style="color: red;">データの読み込みに失敗しました。</p>`;
             if (itemCountDisplay) itemCountDisplay.textContent = 'エラー';
         }
     }
 
-    function renderParentCategories() {
-        if (!parentCategoryFilterSelect) return;
-        parentCategoryFilterSelect.innerHTML = '<option value="">すべて</option>';
-        const parentCategories = allCategories.filter(cat => !cat.parentId || cat.parentId === ""); // parentIdがない、または空のものが親
+    function renderParentCategoryFilters() {
+        if (!parentCategoryFiltersContainer) return;
+        parentCategoryFiltersContainer.innerHTML = '';
+        const parentCategories = allCategories.filter(cat => !cat.parentId || cat.parentId === "");
+        
+        if (parentCategories.length === 0) {
+            parentCategoryFiltersContainer.innerHTML = '<p>利用可能な親カテゴリはありません。</p>';
+            return;
+        }
+
         parentCategories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.id;
-            option.textContent = category.name;
-            parentCategoryFilterSelect.appendChild(option);
+            const button = document.createElement('div');
+            button.classList.add('category-filter-button');
+            button.textContent = category.name;
+            button.dataset.categoryId = category.id;
+            if (selectedParentCategoryIds.includes(category.id)) {
+                button.classList.add('active');
+            }
+            button.addEventListener('click', () => toggleParentCategory(button, category.id));
+            parentCategoryFiltersContainer.appendChild(button);
         });
     }
 
-    function renderChildCategories() {
-        if (!childCategoryFilterSelect) return;
-        childCategoryFilterSelect.innerHTML = '<option value="">すべて</option>';
-        childCategoryFilterSelect.disabled = true; // デフォルトは無効
-
-        if (selectedParentCategoryId) {
-            const childCategories = allCategories.filter(cat => cat.parentId === selectedParentCategoryId);
-            if (childCategories.length > 0) {
-                childCategories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.id;
-                    option.textContent = category.name;
-                    childCategoryFilterSelect.appendChild(option);
-                });
-                childCategoryFilterSelect.disabled = false; // 子カテゴリがあれば有効化
-            }
-        }
-        // 既存の選択を復元（もしあれば）
-        childCategoryFilterSelect.value = selectedChildCategoryId;
-    }
-
-    function renderTagsForSelectedChildCategory() {
-        if (!tagFiltersContainer || !tagFilterPlaceholder) return;
-        tagFiltersContainer.innerHTML = ''; // タグフィルターをクリア
-        
-        let tagsToDisplay = [];
-        if (selectedChildCategoryId) { // 子カテゴリが選択されている場合
-            tagsToDisplay = availableTags.filter(tag => tag.categoryId === selectedChildCategoryId);
-        } else if (selectedParentCategoryId) { // 親カテゴリのみ選択され、子カテゴリが「すべて」の場合
-             // この場合、その親カテゴリに属する全ての子カテゴリのタグを表示するか、あるいはタグ選択をさせないか
-             // 今回は子カテゴリ選択を促すため、タグは表示しない
-            tagFilterPlaceholder.textContent = '子カテゴリを選択してください。';
-            tagFiltersContainer.appendChild(tagFilterPlaceholder);
-            tagFilterPlaceholder.style.display = 'block';
-            return;
-        } else { // 親も子も「すべて」の場合、または親未選択
-            tagFilterPlaceholder.textContent = '子カテゴリを選択してください。'; // もしくは「親カテゴリから選択してください」
-            tagFiltersContainer.appendChild(tagFilterPlaceholder);
-            tagFilterPlaceholder.style.display = 'block';
-            return;
-        }
-        
-        if (tagsToDisplay.length > 0) {
-            tagFilterPlaceholder.style.display = 'none';
-            tagsToDisplay.forEach(tag => {
-                const tagButton = document.createElement('div');
-                tagButton.classList.add('tag-filter');
-                tagButton.textContent = tag.name;
-                tagButton.dataset.tagId = tag.id;
-                if (selectedTags.includes(tag.id)) {
-                    tagButton.classList.add('active');
-                }
-                tagButton.addEventListener('click', () => toggleTag(tagButton, tag.id));
-                tagFiltersContainer.appendChild(tagButton);
-            });
-        } else if (selectedChildCategoryId) {
-            tagFilterPlaceholder.textContent = 'この子カテゴリにはタグがありません。';
-            tagFilterPlaceholder.style.display = 'block';
-            tagFiltersContainer.appendChild(tagFilterPlaceholder);
+    function toggleParentCategory(button, categoryId) {
+        button.classList.toggle('active');
+        if (selectedParentCategoryIds.includes(categoryId)) {
+            selectedParentCategoryIds = selectedParentCategoryIds.filter(id => id !== categoryId);
         } else {
-            // 上の分岐で処理済みのため、ここに来る場合は tagFilterPlaceholder.textContent の調整が必要なら行う
-            // 現状は、selectedParentCategoryId があっても selectedChildCategoryId がないとタグを表示しない仕様
-            if (tagFilterPlaceholder) tagFilterPlaceholder.textContent = '子カテゴリを選択してください。';
-            tagFilterPlaceholder.style.display = 'block';
-            tagFiltersContainer.appendChild(tagFilterPlaceholder);
+            selectedParentCategoryIds.push(categoryId);
         }
+        // 親カテゴリ選択が変わったら、表示する子カテゴリとタグ、選択済みタグもリセット
+        selectedTagIds = []; 
+        renderChildCategoriesAndTags();
+        filterAndRenderItems();
     }
 
+    function renderChildCategoriesAndTags() {
+        if (!childCategoriesAndTagsContainer) return;
+        childCategoriesAndTagsContainer.innerHTML = '';
+
+        if (selectedParentCategoryIds.length === 0) {
+            childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p>';
+            return;
+        }
+
+        let hasContentToShow = false;
+
+        selectedParentCategoryIds.forEach(parentId => {
+            const parentCat = allCategories.find(c => c.id === parentId);
+            if (!parentCat) return;
+
+            const childCategories = allCategories.filter(cat => cat.parentId === parentId);
+
+            if (childCategories.length > 0) {
+                hasContentToShow = true;
+                // Optional: Display parent category name as a header for this section
+                // const parentHeader = document.createElement('h3');
+                // parentHeader.textContent = parentCat.name;
+                // parentHeader.classList.add('parent-category-tag-header');
+                // childCategoriesAndTagsContainer.appendChild(parentHeader);
+
+                childCategories.forEach(childCat => {
+                    const childCatSection = document.createElement('div');
+                    childCatSection.classList.add('child-category-section');
+                    
+                    const childCatHeader = document.createElement('h4');
+                    childCatHeader.textContent = childCat.name;
+                    childCatSection.appendChild(childCatHeader);
+
+                    const tagsForThisChild = allTags.filter(tag => tag.categoryIds && tag.categoryIds.includes(childCat.id));
+                    
+                    if (tagsForThisChild.length > 0) {
+                        const tagsContainer = document.createElement('div');
+                        tagsContainer.classList.add('tag-filters-inline'); // new class for styling
+                        tagsForThisChild.forEach(tag => {
+                            const tagButton = document.createElement('div');
+                            tagButton.classList.add('tag-filter'); // existing class
+                            tagButton.textContent = tag.name;
+                            tagButton.dataset.tagId = tag.id;
+                            if (selectedTagIds.includes(tag.id)) {
+                                tagButton.classList.add('active');
+                            }
+                            tagButton.addEventListener('click', () => toggleTag(tagButton, tag.id));
+                            tagsContainer.appendChild(tagButton);
+                        });
+                        childCatSection.appendChild(tagsContainer);
+                    } else {
+                        childCatSection.innerHTML += '<p class="no-tags-message">この子カテゴリに属するタグはありません。</p>';
+                    }
+                    childCategoriesAndTagsContainer.appendChild(childCatSection);
+                });
+            }
+        });
+        if (!hasContentToShow && selectedParentCategoryIds.length > 0) {
+             childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">選択された親カテゴリには子カテゴリまたはタグがありません。</p>';
+        }
+    }
+    
+    function toggleTag(tagButton, tagId) {
+        tagButton.classList.toggle('active');
+        if (selectedTagIds.includes(tagId)) {
+            selectedTagIds = selectedTagIds.filter(id => id !== tagId);
+        } else {
+            selectedTagIds.push(tagId);
+        }
+        filterAndRenderItems();
+    }
+    
     function renderItems(itemsToRender) {
+        // ... (この関数は変更なし、前回のコードをそのまま使用)
         if (!itemList) return;
         itemList.innerHTML = '';
         if (itemCountDisplay) {
@@ -182,9 +190,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
             }
             let tagsHtml = '';
-            if (item.tags && item.tags.length > 0) {
+            if (item.tags && item.tags.length > 0) { // item.tags はアイテムが持つタグIDの配列
                 tagsHtml = `<div class="tags">タグ: ${item.tags.map(tagId => {
-                    const tagObj = availableTags.find(t => t.id === tagId);
+                    const tagObj = allTags.find(t => t.id === tagId); // allTags から検索
                     return `<span>${tagObj ? tagObj.name : '不明なタグ'}</span>`;
                 }).join(' ')}</div>`;
             }
@@ -208,91 +216,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 (item.effect && item.effect.toLowerCase().includes(searchTerm)) ||
                 (item.入手手段 && item.入手手段.toLowerCase().includes(searchTerm));
 
-            let matchesCategoryAndTags = true; // デフォルトは絞り込みなし
-            if (selectedTags.length > 0) { // タグが選択されていれば、それでフィルタリング
-                matchesCategoryAndTags = item.tags && selectedTags.every(selTagId => item.tags.includes(selTagId));
-            } else if (selectedChildCategoryId) { // タグ未選択だが、子カテゴリが選択されている場合
-                // この子カテゴリに属するタグを持つアイテムを対象とする
-                matchesCategoryAndTags = item.tags && item.tags.some(tagId => {
-                    const tagObj = availableTags.find(t => t.id === tagId);
-                    return tagObj && tagObj.categoryId === selectedChildCategoryId;
-                });
-            } else if (selectedParentCategoryId) { // 親カテゴリのみ選択されている場合
-                 // この親カテゴリに属するいずれかの（子）カテゴリのタグを持つアイテムを対象とする
-                const childCategoryIdsOfSelectedParent = allCategories
-                    .filter(cat => cat.parentId === selectedParentCategoryId)
+            if (!matchesSearchTerm) return false;
+
+            // カテゴリとタグのフィルタリング
+            let matchesCategories = true;
+            if (selectedParentCategoryIds.length > 0) {
+                // 選択された親カテゴリのいずれかに属する子カテゴリのタグを持つか
+                const relevantChildCategoryIds = allCategories
+                    .filter(cat => selectedParentCategoryIds.includes(cat.parentId) || selectedParentCategoryIds.includes(cat.id)) // 親自身も子カテゴリと見なす場合 or 親の子
                     .map(cat => cat.id);
                 
-                if (childCategoryIdsOfSelectedParent.length > 0) {
-                    matchesCategoryAndTags = item.tags && item.tags.some(tagId => {
-                        const tagObj = availableTags.find(t => t.id === tagId);
-                        // タグが、選択された親カテゴリ配下の子カテゴリに属しているか
-                        return tagObj && childCategoryIdsOfSelectedParent.includes(tagObj.categoryId);
+                // アイテムが持つタグIDを取得
+                const itemTagIds = item.tags || [];
+                if (itemTagIds.length === 0 && relevantChildCategoryIds.length > 0) { // アイテムにタグがないが、カテゴリ指定がある
+                    matchesCategories = false;
+                } else if (relevantChildCategoryIds.length > 0) { // 関連する子カテゴリがある場合
+                    matchesCategories = itemTagIds.some(itemTagId => {
+                        const tagObj = allTags.find(t => t.id === itemTagId);
+                        // タグが、選択された親カテゴリ群のいずれかの子カテゴリに属しているか
+                        return tagObj && tagObj.categoryIds && tagObj.categoryIds.some(catId => relevantChildCategoryIds.includes(catId));
                     });
-                } else {
-                    // 親カテゴリに子カテゴリがない場合は、その親カテゴリ指定では何もマッチしない
-                    matchesCategoryAndTags = false; 
                 }
+                // relevantChildCategoryIdsが空なら、親カテゴリ指定が無意味なので絞り込まない (true)
             }
-            // それ以外（カテゴリもタグも未選択）の場合は、カテゴリ/タグによる絞り込みはなし (trueのまま)
+            
+            if (!matchesCategories) return false;
 
-            return matchesSearchTerm && matchesCategoryAndTags;
+            let matchesTags = true;
+            if (selectedTagIds.length > 0) {
+                matchesTags = selectedTagIds.every(selTagId => item.tags && item.tags.includes(selTagId));
+            }
+            
+            return matchesTags; // searchTerm は既にチェック済み
         });
         renderItems(filteredItems);
-    }
-    
-    function toggleTag(tagButton, tagId) {
-        tagButton.classList.toggle('active');
-        if (selectedTags.includes(tagId)) {
-            selectedTags = selectedTags.filter(t => t !== tagId);
-        } else {
-            selectedTags.push(tagId);
-        }
-        filterAndRenderItems();
     }
 
     function resetFilters() {
         if (searchInput) searchInput.value = '';
-        selectedParentCategoryId = "";
-        selectedChildCategoryId = "";
-        selectedTags = [];
+        selectedParentCategoryIds = [];
+        selectedTagIds = [];
         
-        if (parentCategoryFilterSelect) parentCategoryFilterSelect.value = "";
-        if (childCategoryFilterSelect) {
-            childCategoryFilterSelect.value = "";
-            // 子カテゴリの選択肢もクリアして、disabled状態に戻す
-            childCategoryFilterSelect.innerHTML = '<option value="">すべて</option>'; 
-            childCategoryFilterSelect.disabled = true;
-        }
-        renderTagsForSelectedChildCategory(); // タグ表示をリセット（プレースホルダーに戻るはず）
+        renderParentCategoryFilters(); // ボタンのアクティブ状態をリセット
+        renderChildCategoriesAndTags(); // 子カテゴリとタグの表示をリセット
         filterAndRenderItems();
     }
 
-    // イベントリスナー
     if (searchInput) searchInput.addEventListener('input', filterAndRenderItems);
     if (resetFiltersButton) resetFiltersButton.addEventListener('click', resetFilters);
-
-    if (parentCategoryFilterSelect) {
-        parentCategoryFilterSelect.addEventListener('change', (event) => {
-            selectedParentCategoryId = event.target.value;
-            selectedChildCategoryId = ""; // 親が変わったら子はリセット
-            selectedTags = []; // 親が変わったらタグもリセット（UI上もクリアされるように）
-            
-            renderChildCategories(); // 子カテゴリの選択肢を更新
-            renderTagsForSelectedChildCategory(); // タグの選択肢も更新（通常はプレースホルダーに戻る）
-            filterAndRenderItems(); // アイテムリストをフィルタリング
-        });
-    }
-
-    if (childCategoryFilterSelect) {
-        childCategoryFilterSelect.addEventListener('change', (event) => {
-            selectedChildCategoryId = event.target.value;
-            selectedTags = []; // 子が変わったらタグもリセット（UI上もクリアされるように）
-            
-            renderTagsForSelectedChildCategory(); // タグの選択肢を更新
-            filterAndRenderItems(); // アイテムリストをフィルタリング
-        });
-    }
 
     loadData();
 });
