@@ -1,10 +1,8 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
     getFirestore, collection, getDocs, query, orderBy, where
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", 
   authDomain: "itemsearchtooleditor.firebaseapp.com",
@@ -27,8 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetFiltersButton = document.getElementById('resetFiltersButton');
 
     let allItems = [];
-    let allCategories = []; // { id, name, parentId }
-    let allTags = [];       // { id, name, categoryIds: [childCatId1, childCatId2,...] }
+    let allCategories = []; 
+    let allTags = [];       
     
     let selectedParentCategoryIds = [];
     let selectedTagIds = [];
@@ -36,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadData() {
         try {
             const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('name')));
+            // tagSearchMode も取得する
             allCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             console.log("User site: All Categories loaded:", allCategories);
 
@@ -48,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("User site: Items loaded:", allItems);
 
             renderParentCategoryFilters();
-            renderChildCategoriesAndTags(); // Initially empty or placeholder
+            renderChildCategoriesAndTags(); 
             renderItems(allItems);
 
         } catch (error) {
@@ -93,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filterAndRenderItems();
     }
 
+    // ★検索モード表示を追加
     function renderChildCategoriesAndTags() {
         if (!childCategoriesAndTagsContainer) return;
         childCategoriesAndTagsContainer.innerHTML = '';
@@ -108,27 +108,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const parentCat = allCategories.find(c => c.id === parentId);
             if (!parentCat) return;
 
-            // 親カテゴリ自身も表示エリアの区切りとして名前を出す (任意)
-            // const parentNameHeader = document.createElement('h3');
-            // parentNameHeader.classList.add('displayed-parent-category-name');
-            // parentNameHeader.textContent = parentCat.name;
-            // childCategoriesAndTagsContainer.appendChild(parentNameHeader);
-
-
             const childCategories = allCategories.filter(cat => cat.parentId === parentId);
-
-            // 親カテゴリに直接紐づくタグも表示する場合 (今回は子カテゴリ経由のみ)
-            // const tagsDirectlyUnderParent = allTags.filter(tag => tag.categoryIds && tag.categoryIds.includes(parentId) && !childCategories.some(cc => tag.categoryIds.includes(cc.id)));
-
 
             if (childCategories.length > 0) {
                 hasContentToShow = true;
+
                 childCategories.forEach(childCat => {
                     const childCatSection = document.createElement('div');
                     childCatSection.classList.add('child-category-section');
                     
                     const childCatHeader = document.createElement('h4');
-                    childCatHeader.textContent = childCat.name;
+                    // ★検索モード表示を追加
+                    const searchModeText = childCat.tagSearchMode === 'OR' ? '(OR検索)' 
+                                          : childCat.tagSearchMode === 'AND' ? '(AND検索)' 
+                                          : ''; // デフォルトまたは未設定の場合は何も表示しないか、'(AND検索)'としても良い
+                    childCatHeader.innerHTML = `${childCat.name} <span class="search-mode">${searchModeText}</span>`;
                     childCatSection.appendChild(childCatHeader);
 
                     const tagsForThisChild = allTags.filter(tag => tag.categoryIds && tag.categoryIds.includes(childCat.id));
@@ -210,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ★フィルタリングロジックを更新
     function filterAndRenderItems() {
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
         
@@ -221,42 +216,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!matchesSearchTerm) return false;
 
-            // カテゴリとタグのフィルタリング
-            let matchesCategories = true; // No parent category selected means no category filter
+            // カテゴリフィルタリング (複数の親カテゴリはAND条件)
+            let matchesCategories = true; 
             if (selectedParentCategoryIds.length > 0) {
-                // 選択された親カテゴリ「すべて」にAND条件で合致するアイテム
-                // つまり、選択された各親カテゴリについて、その配下の子カテゴリのタグをアイテムが持っている必要がある
                 matchesCategories = selectedParentCategoryIds.every(parentId => {
                     const childCategoryIdsOfThisParent = allCategories
                         .filter(cat => cat.parentId === parentId)
                         .map(cat => cat.id);
-                    
-                    // 親カテゴリ自身がタグを持つケースは現状考慮しない (子カテゴリがタグを管理する方針)
-                    // もし親カテゴリも直接タグを持てるなら、childCategoryIdsOfThisParentにparentIdも追加する
-
-                    if (childCategoryIdsOfThisParent.length === 0) {
-                        // この親カテゴリには子カテゴリがない。
-                        // この親カテゴリ指定が無意味になるか、この親が直接タグを持つかで挙動が変わる。
-                        // 現状は「子カテゴリがタグを持つ」なので、この親ではマッチするタグがないことになる。
-                        // AND条件なので、一つでも子カテゴリがない（＝マッチするタグがない）親があれば、全体としてfalse。
-                        // ただし、アイテムがタグを全く持たない場合との兼ね合いも考慮。
-                        // アイテムもタグを持たず、この親も子を持たないなら、この親カテゴリの条件は「満たせない」
-                        return (item.tags || []).length === 0 ? false : false; // 親に子がなくアイテムにタグがない場合、またはアイテムにタグがある場合もfalse
-                    }
-
+                    if (childCategoryIdsOfThisParent.length === 0) return false; 
                     return (item.tags || []).some(itemTagId => {
                         const tagObj = allTags.find(t => t.id === itemTagId);
-                        return tagObj && tagObj.categoryIds && tagObj.categoryIds.some(catId => childCategoryIdsOfThisParent.includes(catId));
+                        return tagObj?.categoryIds?.some(catId => childCategoryIdsOfThisParent.includes(catId));
                     });
                 });
             }
-            
             if (!matchesCategories) return false;
 
+            // タグフィルタリング (OR/ANDを考慮)
             let matchesTags = true;
             if (selectedTagIds.length > 0) {
-                // 選択されたタグを「すべて」持つアイテム
-                matchesTags = selectedTagIds.every(selTagId => item.tags && item.tags.includes(selTagId));
+                // 選択されたタグが属するカテゴリIDのセットを取得
+                const categoryIdsOfSelectedTags = new Set();
+                selectedTagIds.forEach(tagId => {
+                    const tagObj = allTags.find(t => t.id === tagId);
+                    (tagObj?.categoryIds || []).forEach(catId => categoryIdsOfSelectedTags.add(catId));
+                });
+
+                // 選択されたタグが単一の子カテゴリに属するか、かつそのカテゴリが存在しORモードか
+                let isSingleChildCategoryOrMode = false;
+                if (categoryIdsOfSelectedTags.size === 1) {
+                    const singleCategoryId = [...categoryIdsOfSelectedTags][0];
+                    const category = allCategories.find(c => c.id === singleCategoryId);
+                    // 親カテゴリでない(parentIdがある) && tagSearchModeが'OR'
+                    if (category && category.parentId && category.tagSearchMode === 'OR') {
+                        isSingleChildCategoryOrMode = true;
+                    }
+                }
+
+                // フィルタリング実行
+                if (isSingleChildCategoryOrMode) {
+                    // OR検索: 選択されたタグのいずれか一つでも持っていればOK
+                    matchesTags = selectedTagIds.some(selTagId => item.tags && item.tags.includes(selTagId));
+                    console.log(`Item ${item.name || item.docId}: OR search result: ${matchesTags}`);
+                } else {
+                    // AND検索 (デフォルト): 選択されたタグをすべて持っていればOK
+                    matchesTags = selectedTagIds.every(selTagId => item.tags && item.tags.includes(selTagId));
+                    console.log(`Item ${item.name || item.docId}: AND search result: ${matchesTags}`);
+                }
             }
             
             return matchesTags; 
