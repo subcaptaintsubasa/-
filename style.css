@@ -68,18 +68,6 @@ h1 {
     color: #aaa;
 }
 
-/* 各カテゴリグループの左上に名称を表示するイメージ (ラベルで代用) */
-.parent-category-group::before,
-.child-category-group::before {
-    /* content: attr(data-group-name); */ /* HTML側にdata属性が必要 */
-    /* display: block; */
-    /* font-size: 0.8em; */
-    /* color: #777; */
-    /* margin-bottom: 3px; */
-    /* 今回はラベル要素で代替しているため、この疑似要素は不要 */
-}
-
-
 .tag-filters {
     display: flex;
     flex-wrap: wrap;
@@ -90,6 +78,12 @@ h1 {
     border-bottom: 1px solid #e0e0e0; /* 区切り線 */
     margin-bottom: 15px; /* リセットボタンとの間隔 */
 }
+
+#tagFilterPlaceholder { /* Placeholder text for tags */
+    color: #777;
+    font-style: italic;
+}
+
 
 .tag-filter {
     padding: 8px 12px;
