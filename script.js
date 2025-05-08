@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadData() {
         try {
             const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('name')));
-            // tagSearchMode も取得する
             allCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             console.log("User site: All Categories loaded:", allCategories);
 
@@ -92,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
         filterAndRenderItems();
     }
 
-    // ★検索モード表示を追加
     function renderChildCategoriesAndTags() {
         if (!childCategoriesAndTagsContainer) return;
         childCategoriesAndTagsContainer.innerHTML = '';
@@ -118,10 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     childCatSection.classList.add('child-category-section');
                     
                     const childCatHeader = document.createElement('h4');
-                    // ★検索モード表示を追加
                     const searchModeText = childCat.tagSearchMode === 'OR' ? '(OR検索)' 
-                                          : childCat.tagSearchMode === 'AND' ? '(AND検索)' 
-                                          : ''; // デフォルトまたは未設定の場合は何も表示しないか、'(AND検索)'としても良い
+                                          : '(AND検索)'; // デフォルトはAND扱い
                     childCatHeader.innerHTML = `${childCat.name} <span class="search-mode">${searchModeText}</span>`;
                     childCatSection.appendChild(childCatHeader);
 
@@ -204,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ★フィルタリングロジックを更新
     function filterAndRenderItems() {
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
         
@@ -242,19 +237,62 @@ document.addEventListener('DOMContentLoaded', () => {
                     (tagObj?.categoryIds || []).forEach(catId => categoryIdsOfSelectedTags.add(catId));
                 });
 
-                // 選択されたタグが単一の子カテゴリに属するか、かつそのカテゴリが存在しORモードか
-                let isSingleChildCategoryOrMode = false;
-                if (categoryIdsOfSelectedTags.size === 1) {
-                    const singleCategoryId = [...categoryIdsOfSelectedTags][0];
-                    const category = allCategories.find(c => c.id === singleCategoryId);
-                    // 親カテゴリでない(parentIdがある) && tagSearchModeが'OR'
-                    if (category && category.parentId && category.tagSearchMode === 'OR') {
-                        isSingleChildCategoryOrMode = true;
+                // 選択されたタグが単一の子カテゴリにのみ属するかどうかチェック
+                let singleChildCategoryId = null;
+                let belongsToMultipleChildCategories = false;
+                
+                if (categoryIdsOfSelectedTags.size > 0) {
+                    // 選択されたタグ群が共通して属する子カテゴリIDを探す
+                    let commonChildCategoryIds = [];
+                    // 最初のタグが属する子カテゴリIDを取得
+                     const firstTagId = selectedTagIds[0];
+                     const firstTagObj = allTags.find(t => t.id === firstTagId);
+                     const firstTagChildCategoryIds = (firstTagObj?.categoryIds || []).filter(catId => {
+                         const cat = allCategories.find(c => c.id === catId);
+                         return cat && cat.parentId; // 子カテゴリであること
+                     });
+
+                     if (firstTagChildCategoryIds.length > 0) {
+                         commonChildCategoryIds = firstTagChildCategoryIds;
+                         // 2つ目以降のタグと比較し、共通のカテゴリを絞り込む
+                         for (let i = 1; i < selectedTagIds.length; i++) {
+                             const currentTagId = selectedTagIds[i];
+                             const currentTagObj = allTags.find(t => t.id === currentTagId);
+                             const currentTagChildCategoryIds = new Set(
+                                 (currentTagObj?.categoryIds || []).filter(catId => {
+                                     const cat = allCategories.find(c => c.id === catId);
+                                     return cat && cat.parentId;
+                                 })
+                             );
+                             commonChildCategoryIds = commonChildCategoryIds.filter(catId => currentTagChildCategoryIds.has(catId));
+                             if (commonChildCategoryIds.length === 0) break; // 共通がなくなったら終了
+                         }
+                     }
+
+                    if (commonChildCategoryIds.length === 1) {
+                        singleChildCategoryId = commonChildCategoryIds[0];
+                    } else if (commonChildCategoryIds.length > 1) {
+                         belongsToMultipleChildCategories = true; // 複数の子カテゴリに共通して属する場合
                     }
+                    // 共通の子カテゴリがない場合も AND 検索
                 }
 
+
+                let searchMode = 'AND'; // デフォルトはAND
+                if (singleChildCategoryId) {
+                    const category = allCategories.find(c => c.id === singleChildCategoryId);
+                    if (category && category.tagSearchMode === 'OR') {
+                        searchMode = 'OR';
+                    }
+                }
+                // 複数の子カテゴリにまたがる場合は強制的にAND
+                 if (belongsToMultipleChildCategories) {
+                     searchMode = 'AND';
+                 }
+
+
                 // フィルタリング実行
-                if (isSingleChildCategoryOrMode) {
+                if (searchMode === 'OR') {
                     // OR検索: 選択されたタグのいずれか一つでも持っていればOK
                     matchesTags = selectedTagIds.some(selTagId => item.tags && item.tags.includes(selTagId));
                     console.log(`Item ${item.name || item.docId}: OR search result: ${matchesTags}`);
