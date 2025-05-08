@@ -13,28 +13,17 @@
         <div class="search-controls">
             <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段で検索...">
             
-            <div class="category-filter-area">
-                <div class="filter-group parent-category-group">
-                    <label for="parentCategoryFilterSelect">親カテゴリ:</label>
-                    <select id="parentCategoryFilterSelect">
-                        <option value="">すべて</option>
-                        <!-- 親カテゴリがここに動的に追加されます -->
-                    </select>
-                </div>
-
-                <div class="filter-group child-category-group">
-                    <label for="childCategoryFilterSelect">子カテゴリ:</label>
-                    <select id="childCategoryFilterSelect" disabled>
-                        <option value="">すべて</option>
-                        <!-- 選択された親カテゴリの子カテゴリがここに動的に追加されます -->
-                    </select>
+            <div class="parent-category-filters">
+                <h2>親カテゴリ選択:</h2>
+                <div id="parentCategoryFiltersContainer" class="category-button-group">
+                    <!-- 親カテゴリボタンがここに動的に追加されます -->
                 </div>
             </div>
 
-            <div id="tagFiltersContainer" class="tag-filters">
-                <!-- 選択された子カテゴリのタグフィルターがここに動的に追加されます -->
-                <p id="tagFilterPlaceholder" style="color: #777;">子カテゴリを選択してください。</p>
+            <div id="childCategoriesAndTagsContainer">
+                <!-- 選択された親カテゴリ配下の子カテゴリとタグがここに表示されます -->
             </div>
+            
             <button id="resetFiltersButton">リセット</button>
         </div>
 
@@ -44,7 +33,6 @@
         </div>
     </div>
 
-    <!-- type="module" を指定して Firebase SDK v9 を利用 -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
