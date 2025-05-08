@@ -75,9 +75,9 @@ h3 { font-size: 1.3em; }
 }
 .form-group textarea { resize: vertical; min-height: 80px; }
 
-.form-control-short { 
-    /* flex-grow: 0.5; */ /* ボタンUIに変更したので不要に */
-    /* min-width: 150px; */
+.form-control-short { /* 検索モード選択用など、幅を短くしたい場合に */
+    max-width: 300px; /* 例: 最大幅を指定 */
+    width: auto; /* 固有の幅に戻す */
 }
 
 /* カテゴリ追加/編集の親カテゴリ選択ボタン用スタイル */
@@ -85,7 +85,7 @@ h3 { font-size: 1.3em; }
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 5px; /* ラベルとの間隔 */
+    margin-top: 5px; 
 }
 .category-select-button {
     padding: 6px 12px;
@@ -146,11 +146,11 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-radius: 4px; margin-top:10px;
 }
 
-.inline-form { /* カテゴリ追加では使わなくなった */
-    display: flex; align-items: center; gap: 10px; margin-bottom: 15px; 
+.inline-form { /* 以前はカテゴリ追加で使っていたが、現在は不使用 */
+    /* display: flex; align-items: center; gap: 10px; margin-bottom: 15px; */
 }
-.inline-form input[type="text"] { flex-grow: 1; }
-.inline-form select { width: auto; flex-grow: 0.5; }
+.inline-form input[type="text"] { /* flex-grow: 1; */ }
+.inline-form select { /* width: auto; flex-grow: 0.5; */ }
 
 
 .list-container {
@@ -297,14 +297,15 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
     header h1 { font-size: 1.5em; }
-    /* .inline-form は使われなくなったが念のため残す */
-    .inline-form { flex-direction: column; align-items: stretch; } 
-    .inline-form input[type="text"], .inline-form select { width: 100%; }
-    .inline-form button { width: 100%; margin-top: 5px; }
+    .inline-form { /* 現在不使用 */
+       /* flex-direction: column; align-items: stretch; */
+       /* input[type="text"], select { width: 100%; } */
+       /* button { width: 100%; margin-top: 5px; } */
+    }
     .modal-content { width: 95%; padding: 20px; }
     #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
     #itemSearchAdmin { width: 100% !important; }
-    .category-button-group.admin { justify-content: center; } 
+    .category-button-group.admin { justify-content: flex-start; } /* スマホでは左寄せに戻すか中央寄せか */
 }
