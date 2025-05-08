@@ -88,7 +88,6 @@ h3 { font-size: 1.3em; }
     margin-right: 0;
 }
 
-
 /* カテゴリ追加/編集の親カテゴリ選択ボタン用スタイル */
 .category-button-group.admin { 
     display: flex;
@@ -112,6 +111,21 @@ h3 { font-size: 1.3em; }
     background-color: #007bff;
     color: white;
     border-color: #0056b3;
+}
+
+/* ★ラジオボタングループのスタイル */
+.radio-group {
+    display: flex;
+    gap: 15px; /* ラジオボタン間のスペース */
+    align-items: center;
+}
+.radio-group input[type="radio"] {
+    width: auto; /* デフォルト幅に戻す */
+    margin-right: 5px;
+}
+.radio-group label {
+    margin-bottom: 0; /* form-group のスタイルを上書き */
+    font-weight: normal; /* 通常の太さ */
 }
 
 
@@ -262,26 +276,37 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .effect-input-row {
     display: flex;
-    flex-wrap: wrap; /* スマホ用に折り返しを許可 */
+    flex-wrap: wrap; 
     gap: 8px;
     align-items: center;
     margin-bottom: 15px;
 }
 .effect-input-row select,
 .effect-input-row input {
-    flex: 1 1 120px; /* 基本幅120pxで伸縮 */
+    flex: 1 1 120px; 
 }
 .effect-input-row button {
     flex-shrink: 0; 
-    margin-left: auto; /* 右端に寄せる */
+    margin-left: auto; 
 }
+/* ★追加: 効果単位表示用 */
+.unit-display {
+    display: inline-block;
+    min-width: 40px; /* 幅確保 */
+    text-align: left;
+    font-style: italic;
+    color: #6c757d;
+    margin-left: -4px; /* inputとの隙間調整 */
+    margin-right: 8px;
+}
+
 
 /* アイテムフォームの効果リスト表示エリア */
 .effects-list-container {
     margin-top: 10px;
     border-top: 1px dashed #ccc;
     padding-top: 10px;
-    max-height: 150px; /* 高さ制限とスクロール */
+    max-height: 150px; 
     overflow-y: auto;
 }
 .effect-list-item {
@@ -326,7 +351,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 
 .modal {
     position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%;
-    overflow: auto; background-color: rgba(0,0,0,0.6); display: flex;
+    overflow: auto; background-color: rgba(0,0,0,0.6); display: none; /* ★デフォルト非表示 */
     align-items: center; justify-content: center;
 }
 .modal-content {
@@ -334,6 +359,9 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border: none; width: 90%; max-width: 550px; border-radius: 8px;
     position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     animation: fadeInModal 0.3s ease-out;
+    display: flex; /* ★追加 */
+    flex-direction: column; /* ★追加 */
+    max-height: 90vh; /* ★追加 */
 }
 @keyframes fadeInModal {
     from { opacity: 0; transform: translateY(-20px); }
@@ -342,14 +370,16 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 .modal-content h3 {
     margin-top: 0; margin-bottom: 20px; font-size: 1.5em; color: #343a40;
     border-bottom: 1px solid #eee; padding-bottom: 10px;
+    flex-shrink: 0; /* ★追加 */
 }
 .close-button {
     color: #6c757d; position: absolute; top: 15px; right: 20px;
     font-size: 28px; font-weight: bold; line-height: 1;
+    cursor: pointer; z-index: 10; /* ★追加 */
 }
 .close-button:hover,
 .close-button:focus {
-    color: #343a40; text-decoration: none; cursor: pointer;
+    color: #343a40; text-decoration: none; 
 }
 
 .icon { margin-right: 7px; font-size: 1.1em; }
@@ -357,23 +387,24 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
     header h1 { font-size: 1.5em; }
-    .inline-form { /* 現在不使用 */
-       /* flex-direction: column; align-items: stretch; */
-       /* input[type="text"], select { width: 100%; } */
-       /* button { width: 100%; margin-top: 5px; } */
+    .inline-form { /* 影響範囲を確認して調整 */
+       flex-direction: column; align-items: stretch; 
+       input[type="text"], select { width: 100%; } 
+       button { width: 100%; margin-top: 5px; } 
     }
-    .modal-content { width: 95%; padding: 20px; }
+    .modal-content { width: 95%; padding: 20px; max-height: 90vh;}
     #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
     #itemSearchAdmin { width: 100% !important; }
     .category-button-group.admin { justify-content: flex-start; } 
-    .effect-input-row { flex-direction: column; gap: 10px; align-items: stretch; } /* スマホでは縦積み */
+    .effect-input-row { flex-direction: column; gap: 10px; align-items: stretch; } 
     .effect-input-row select, .effect-input-row input, .effect-input-row button {
         width: 100%;
         margin-right: 0;
-        max-width: none; /* .form-control-short の max-width を上書き */
-        flex-basis: auto; /* flex:1 の設定をリセット */
+        max-width: none; 
+        flex-basis: auto; 
     }
-     .effect-input-row button { margin-left: 0; } /* 右寄せ解除 */
+     .effect-input-row button { margin-left: 0; margin-top: 5px; } 
+     .unit-display { display: block; text-align: left; margin-left: 0; margin-bottom: 5px; } /* スマホでは単位表示を調整 */
 }
