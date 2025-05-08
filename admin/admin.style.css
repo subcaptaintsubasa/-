@@ -75,9 +75,9 @@ h3 { font-size: 1.3em; }
 }
 .form-group textarea { resize: vertical; min-height: 80px; }
 
-.form-control-short { /* 検索モード選択用など、幅を短くしたい場合に */
-    max-width: 300px; /* 例: 最大幅を指定 */
-    width: auto; /* 固有の幅に戻す */
+.form-control-short { 
+    max-width: 300px; 
+    width: auto; 
 }
 
 /* カテゴリ追加/編集の親カテゴリ選択ボタン用スタイル */
@@ -297,15 +297,11 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
     header h1 { font-size: 1.5em; }
-    .inline-form { /* 現在不使用 */
-       /* flex-direction: column; align-items: stretch; */
-       /* input[type="text"], select { width: 100%; } */
-       /* button { width: 100%; margin-top: 5px; } */
-    }
+    /* .inline-form は使われなくなった */
     .modal-content { width: 95%; padding: 20px; }
     #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
     #itemSearchAdmin { width: 100% !important; }
-    .category-button-group.admin { justify-content: flex-start; } /* スマホでは左寄せに戻すか中央寄せか */
+    .category-button-group.admin { justify-content: flex-start; } 
 }
