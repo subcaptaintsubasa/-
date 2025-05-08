@@ -56,9 +56,8 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     margin-top: 15px;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    /* border-bottom: 1px solid #e0e0e0; */ /* リセットボタンとの間に区切り線が重複しないように一旦コメントアウト */
 }
-.displayed-parent-category-name { /* 親カテゴリ名を表示する場合のスタイル（任意） */
+.displayed-parent-category-name { 
     font-size: 1.2em;
     color: #333;
     margin-top: 10px;
@@ -80,7 +79,19 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     margin-bottom: 8px;
     padding-bottom: 5px;
     border-bottom: 1px dashed #e0e0e0;
+    display: flex; /* 横並びのため */
+    justify-content: space-between; /* 要素間にスペース */
+    align-items: center; /* 縦中央揃え */
 }
+/* ★検索モード表示用スタイル */
+.child-category-section h4 .search-mode {
+    font-size: 0.8em;
+    font-weight: normal;
+    color: #6c757d; /* グレー */
+    margin-left: 8px; /* カテゴリ名との間隔 */
+    white-space: nowrap; /* 折り返さない */
+}
+
 .tag-filters-inline { 
     display: flex;
     flex-wrap: wrap;
@@ -111,7 +122,7 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     padding: 10px 15px; background-color: #6c757d; color: white;
     border: none; border-radius: 4px; cursor: pointer;
     transition: background-color 0.2s;
-    margin-top: 10px; /* 上の要素との間隔を確保 */
+    margin-top: 10px; 
 }
 #resetFiltersButton:hover { background-color: #5a6268; }
 #itemCount { margin-bottom: 15px; font-weight: bold; color: #555; }
@@ -191,10 +202,20 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
 
 @media (max-width: 768px) {
     .category-button-group {
-        justify-content: center; /* スマホではボタンを中央寄せにしても良い */
+        justify-content: center; 
     }
     .child-category-section {
         padding: 8px;
+    }
+    /* 子カテゴリ名と検索モードが横並びになるように調整 */
+    .child-category-section h4 {
+        flex-wrap: wrap; /* 必要なら折り返す */
+    }
+     .child-category-section h4 .search-mode {
+        margin-left: 0; /* 左マージンをリセット */
+        margin-top: 3px; /* 上に少し隙間 */
+        width: 100%; /* 折り返し時に幅いっぱいにする場合 */
+        text-align: right; /* 右寄せ */
     }
     .tag-filters-inline {
         gap: 6px;
