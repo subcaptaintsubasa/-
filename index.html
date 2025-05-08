@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>装備効果計算＆構成共有ツール</title>
+    <!-- ★タイトル変更 -->
+    <title>ゲームアイテム検索 ＆ 装備シミュレーター</title> 
     <link rel="stylesheet" href="style.css">
     <!-- html2canvas ライブラリの読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
     <div class="container">
-        <h1>装備効果計算＆構成共有ツール</h1>
+        <!-- ★タイトル変更 -->
+        <h1>ゲームアイテム検索 ＆ 装備シミュレーター</h1>
 
-        <!-- メインコンテンツエリア -->
+        <!-- ★シミュレーター起動ボタンを検索ツールの前に移動 -->
         <div class="main-controls">
-            <button id="openSimulatorButton">シミュレーターを開く</button>
+            <button id="openSimulatorButton">装備シミュレーターを開く</button>
         </div>
 
         <hr class="section-divider">
 
-        <!-- アイテム検索ツールセクション (既存) -->
+        <!-- アイテム検索ツールセクション -->
         <section class="search-tool-section">
             <h2>アイテム検索</h2>
             <div class="search-controls">
@@ -31,24 +33,21 @@
                 <div id="childCategoriesAndTagsContainer"></div>
                 <button id="resetFiltersButton">フィルターリセット</button>
             </div>
-             <!-- 検索モード時のメッセージ表示エリア -->
              <div id="searchToolMessage" class="search-tool-message" style="display: none;"></div>
             <div id="itemCount"></div>
-            <div id="itemList" class="item-list"></div> <!-- アイテムカードにクリックイベント追加 -->
+            <div id="itemList" class="item-list"></div> 
         </section>
 
-         <!-- ★選択決定ボタン（固定表示） -->
          <button id="confirmSelectionButton" class="confirm-selection-button" style="display: none;">このアイテムに決定</button>
 
     </div>
 
-     <!-- ★装備構成シミュレーターモーダル -->
+     <!-- 装備構成シミュレーターモーダル -->
      <div id="simulatorModal" class="modal simulator-modal" style="display: none;">
          <div class="modal-content simulator-modal-content">
              <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
              <h2>装備構成シミュレーター</h2>
              <div class="equipment-slots">
-                 <!-- 各部位の選択エリア -->
                  <div class="slot" id="slot-服" data-slot-name="服">
                      <label>服:</label>
                      <div class="selected-item-display">
@@ -117,8 +116,7 @@
                  <button id="resetSimulatorButton">構成をリセット</button>
              </div>
              
-              <!-- 画像出力用のエリア（html2canvas用） -->
-             <div id="imageExportArea" class="image-export-container">
+              <div id="imageExportArea" class="image-export-container">
                  <h2>装備構成</h2>
                  <div id="exportSlots" class="export-slots-grid"></div>
                  <h3>発動効果 合計:</h3>
@@ -127,6 +125,14 @@
          </div>
      </div>
 
+     <div id="itemSelectionModal" class="modal item-select-modal" style="display: none;">
+         <div class="modal-content item-select-modal-content">
+             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+             <h3 id="itemSelectModalTitle">アイテム選択</h3>
+             <input type="text" id="itemSelectModalSearch" placeholder="アイテム名で検索...">
+             <div id="itemSelectModalList" class="item-select-list"></div>
+         </div>
+     </div>
 
     <script type="module" src="script.js"></script>
 </body>
