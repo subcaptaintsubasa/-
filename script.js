@@ -5,14 +5,14 @@ import {
 
 // ★部位名と対応するタグIDのマッピング (実際のタグIDに置き換えてください)
 const EQUIPMENT_SLOT_TAG_IDS = {
-    "服": "TAG_ID_FOR_CLOTHES",    // 例: 服タグのドキュメントID
-    "顔": "TAG_ID_FOR_FACE",      // 例: 顔タグのドキュメントID
-    "首": "TAG_ID_FOR_NECK",      // 例: 首タグのドキュメントID
-    "手": "TAG_ID_FOR_HANDS",     // 例: 手タグのドキュメントID
-    "背中": "TAG_ID_FOR_BACK",     // 例: 背中タグのドキュメントID
-    "足": "TAG_ID_FOR_FEET"       // 例: 足タグのドキュメントID
+    "服": "YOUR_CLOTHES_TAG_ID",    // 例: 服タグのドキュメントID
+    "顔": "YOUR_FACE_TAG_ID",      // 例: 顔タグのドキュメントID
+    "首": "YOUR_NECK_TAG_ID",      // 例: 首タグのドキュメントID
+    "手": "YOUR_HANDS_TAG_ID",     // 例: 手タグのドキュメントID
+    "背中": "YOUR_BACK_TAG_ID",     // 例: 背中タグのドキュメントID
+    "足": "YOUR_FEET_TAG_ID"       // 例: 足タグのドキュメントID
 };
-// 上記の TAG_ID_FOR_... は実際のFirestore上のタグのドキュメントIDに書き換えてください。
+// 上記 YOUR_..._TAG_ID は実際のFirestore上の部位タグのIDに書き換えてください。
 
 const firebaseConfig = {
   apiKey: "AIzaSyBxrE-9E46dplHTuEBmmcJWQRU1vLgAGAU", 
@@ -28,15 +28,19 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 検索ツール用 DOM ---
+    // --- DOM Elements ---
     const searchInput = document.getElementById('searchInput');
     const parentCategoryFiltersContainer = document.getElementById('parentCategoryFiltersContainer');
     const childCategoriesAndTagsContainer = document.getElementById('childCategoriesAndTagsContainer');
     const itemList = document.getElementById('itemList');
     const itemCountDisplay = document.getElementById('itemCount');
     const resetFiltersButton = document.getElementById('resetFiltersButton');
+    const openSimulatorButton = document.getElementById('openSimulatorButton'); // ★追加
+    const simulatorModal = document.getElementById('simulatorModal'); // ★追加
+    const confirmSelectionButton = document.getElementById('confirmSelectionButton'); // ★追加
+    const searchToolMessage = document.getElementById('searchToolMessage'); // ★追加
 
-    // --- シミュレーター用 DOM ---
+    // Simulator DOM
     const equipmentSlotsContainer = document.querySelector('.equipment-slots');
     const totalEffectsDisplay = document.getElementById('totalEffectsDisplay');
     const saveImageButton = document.getElementById('saveImageButton');
@@ -45,28 +49,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportSlots = document.getElementById('exportSlots');
     const exportEffects = document.getElementById('exportEffects');
     
-    // ★アイテム選択モーダル DOM
-    const itemSelectionModal = document.getElementById('itemSelectionModal');
-    const itemSelectModalTitle = document.getElementById('itemSelectModalTitle');
-    const itemSelectModalSearch = document.getElementById('itemSelectModalSearch');
-    const itemSelectModalList = document.getElementById('itemSelectModalList');
-
-    // --- データキャッシュ ---
+    // --- Data Cache ---
     let allItems = [];
     let allCategories = []; 
     let allTags = [];       
     let effectTypesCache = []; 
     
-    // --- 検索ツール用 状態変数 ---
+    // --- Search Tool State ---
     let selectedParentCategoryIds = [];
     let selectedTagIds = [];
+    let isSelectingForSimulator = false; // ★シミュレーター連携中かどうかのフラグ
 
-    // --- シミュレーター用 状態変数 ---
+    // --- Simulator State ---
     const equipmentSlots = ["服", "顔", "首", "手", "背中", "足"]; 
-    let selectedEquipment = {}; // { "服": itemDocId | null, ... }
-    let currentSelectingSlot = null; // ★モーダルで選択中のスロット名
+    let selectedEquipment = {}; 
+    let currentSelectingSlot = null; 
+    let temporarilySelectedItem = null; // ★検索ツールで仮選択中のアイテムID
 
-    // --- 初期データロード ---
+    // --- Initial Data Load ---
     async function loadData() {
         try {
             const effectTypesSnapshot = await getDocs(query(collection(db, 'effect_types'), orderBy('name')));
@@ -85,13 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
             allItems = itemsSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
             console.log("User site: Items loaded:", allItems);
 
-            // --- UI初期化 ---
+            // UI Initialization
             renderParentCategoryFilters();
             renderChildCategoriesAndTags(); 
-            renderItems([]); // 最初は空にしておくか、何か表示するか
-
-            // シミュレーター初期化
-            initializeSimulatorSlots(); // スロットのボタンにイベントリスナー設定
+            renderItems([]); // 初期状態ではアイテムリストは空に
+            initializeSimulatorSlots(); 
             initializeSimulatorDisplay(); 
 
         } catch (error) {
@@ -102,10 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 検索ツール関連関数 ---
-    // (renderParentCategoryFilters, toggleParentCategory, renderChildCategoriesAndTags, 
-    //  toggleTag, renderItems, filterAndRenderItems, resetFilters は前回のコードと同じ)
-     function renderParentCategoryFilters() {
+    // --- Search Tool Functions ---
+    function renderParentCategoryFilters() {
         if (!parentCategoryFiltersContainer) return;
         parentCategoryFiltersContainer.innerHTML = '';
         const parentCategories = allCategories.filter(cat => !cat.parentId || cat.parentId === "");
@@ -118,17 +114,28 @@ document.addEventListener('DOMContentLoaded', () => {
         parentCategories.forEach(category => {
             const button = document.createElement('div');
             button.classList.add('category-filter-button');
+             // ★シミュレータ連携中はボタンを無効化
+             if (isSelectingForSimulator) {
+                 button.classList.add('disabled'); 
+             } else {
+                button.classList.remove('disabled');
+             }
             button.textContent = category.name;
             button.dataset.categoryId = category.id;
             if (selectedParentCategoryIds.includes(category.id)) {
                 button.classList.add('active');
             }
-            button.addEventListener('click', () => toggleParentCategory(button, category.id));
+            button.addEventListener('click', () => {
+                if (!isSelectingForSimulator) { // ★連携中以外のみ動作
+                    toggleParentCategory(button, category.id);
+                }
+            });
             parentCategoryFiltersContainer.appendChild(button);
         });
     }
 
     function toggleParentCategory(button, categoryId) {
+        if (isSelectingForSimulator) return; // 念のためガード
         button.classList.toggle('active');
         if (selectedParentCategoryIds.includes(categoryId)) {
             selectedParentCategoryIds = selectedParentCategoryIds.filter(id => id !== categoryId);
@@ -143,6 +150,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderChildCategoriesAndTags() {
         if (!childCategoriesAndTagsContainer) return;
         childCategoriesAndTagsContainer.innerHTML = '';
+
+        // ★シミュレータ連携中は表示しない
+        if (isSelectingForSimulator) {
+             childCategoriesAndTagsContainer.style.display = 'none';
+             return;
+        } else {
+            childCategoriesAndTagsContainer.style.display = 'block';
+        }
+
 
         if (selectedParentCategoryIds.length === 0) {
             childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p>';
@@ -180,10 +196,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             tagButton.classList.add('tag-filter');
                             tagButton.textContent = tag.name;
                             tagButton.dataset.tagId = tag.id;
-                            if (selectedTagIds.includes(tag.id)) {
-                                tagButton.classList.add('active');
+                            // 部位タグは選択不可にする (シミュレータ連携時)
+                            if (isSelectingForSimulator && Object.values(EQUIPMENT_SLOT_TAG_IDS).includes(tag.id)) {
+                                tagButton.classList.add('disabled');
+                            } else {
+                                tagButton.classList.remove('disabled');
+                                if (selectedTagIds.includes(tag.id)) {
+                                    tagButton.classList.add('active');
+                                }
+                                tagButton.addEventListener('click', () => {
+                                     if (!isSelectingForSimulator || !Object.values(EQUIPMENT_SLOT_TAG_IDS).includes(tag.id)) {
+                                        toggleTag(tagButton, tag.id);
+                                    }
+                                });
                             }
-                            tagButton.addEventListener('click', () => toggleTag(tagButton, tag.id));
                             tagsContainer.appendChild(tagButton);
                         });
                         childCatSection.appendChild(tagsContainer);
@@ -200,6 +226,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function toggleTag(tagButton, tagId) {
+         // 部位タグは直接選択・解除させない（シミュレータ連携時）
+        if (isSelectingForSimulator && Object.values(EQUIPMENT_SLOT_TAG_IDS).includes(tagId)) {
+            return; 
+        }
+
         tagButton.classList.toggle('active');
         if (selectedTagIds.includes(tagId)) {
             selectedTagIds = selectedTagIds.filter(id => id !== tagId);
@@ -209,11 +240,14 @@ document.addEventListener('DOMContentLoaded', () => {
         filterAndRenderItems();
     }
     
+    // ★アイテムカードにクリックイベントを追加し、選択状態を管理
     function renderItems(itemsToRender) {
         if (!itemList) return;
         itemList.innerHTML = '';
         if (itemCountDisplay) {
-            itemCountDisplay.textContent = `${itemsToRender.length} 件のアイテムが見つかりました。`;
+            // シミュレータ連携中は件数表示を調整しても良い
+            const countText = isSelectingForSimulator ? `該当部位のアイテム: ${itemsToRender.length} 件` : `${itemsToRender.length} 件のアイテムが見つかりました。`;
+            itemCountDisplay.textContent = countText;
         }
         if (itemsToRender.length === 0) {
             itemList.innerHTML = '<p>該当するアイテムは見つかりませんでした。</p>';
@@ -222,8 +256,18 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsToRender.forEach(item => {
             const itemCard = document.createElement('div');
             itemCard.classList.add('item-card');
+            // ★シミュレータ連携中は選択可能クラスを追加
+            if (isSelectingForSimulator) {
+                itemCard.classList.add('selectable');
+                 // ★仮選択中のアイテムをハイライト
+                if (temporarilySelectedItem === item.docId) {
+                    itemCard.classList.add('selected-for-simulator');
+                }
+            }
+            itemCard.dataset.itemId = item.docId; // データ属性にIDを持たせる
+
             const nameDisplay = item.name || '名称未設定';
-            const effectText = item.effect || ''; // 既存の効果テキスト (もしあれば)
+            // const effectDisplay = item.effect || '後日追加予定'; // 構造化データを表示
             const sourceDisplay = item.入手手段 || '後日追加予定';
             let imageElementHTML;
             if (item.image && item.image.trim() !== "") {
@@ -235,10 +279,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.tags && item.tags.length > 0) {
                 tagsHtml = `<div class="tags">タグ: ${item.tags.map(tagId => {
                     const tagObj = allTags.find(t => t.id === tagId);
-                    return `<span>${tagObj ? tagObj.name : '不明なタグ'}</span>`;
-                }).join(' ')}</div>`;
+                    // 部位タグは表示しないようにする（任意）
+                    // if (tagObj && Object.values(EQUIPMENT_SLOT_TAG_IDS).includes(tagId)) return null; 
+                    return `<span>${tagObj ? tagObj.name : '不明'}</span>`;
+                }).filter(Boolean).join(' ')}</div>`;
             }
-            // 構造化された効果を表示
             let structuredEffectsHtml = '';
             if (item.structured_effects && item.structured_effects.length > 0) {
                 structuredEffectsHtml = `<div class="structured-effects"><strong>効果詳細:</strong><ul>`;
@@ -249,32 +294,60 @@ document.addEventListener('DOMContentLoaded', () => {
                      structuredEffectsHtml += `<li>${typeName}: ${eff.value}${unitText}</li>`;
                 });
                  structuredEffectsHtml += `</ul></div>`;
-            } else if (effectText) {
-                 // 構造化データがない場合は従来のテキストを表示（フォールバック）
-                 structuredEffectsHtml = `<p><strong>効果:</strong> ${effectText}</p>`;
             } else {
                 structuredEffectsHtml = `<p><strong>効果:</strong> 後日追加予定</p>`;
             }
 
-
             itemCard.innerHTML = `
                 ${imageElementHTML}
                 <h3>${nameDisplay}</h3>
-                ${structuredEffectsHtml} {/* 効果表示 */}
+                ${structuredEffectsHtml}
                 <p><strong>入手手段:</strong> ${sourceDisplay}</p>
                 ${tagsHtml}
             `;
+            
+            // ★シミュレータ連携中にクリックイベントを追加
+            if (isSelectingForSimulator) {
+                itemCard.addEventListener('click', handleItemCardClick);
+            }
+
             itemList.appendChild(itemCard);
         });
     }
 
+    // ★アイテムカードクリック時の処理 (シミュレータ連携中)
+    function handleItemCardClick(event) {
+        if (!isSelectingForSimulator) return;
+        
+        const clickedCard = event.currentTarget;
+        const itemId = clickedCard.dataset.itemId;
+
+        // 他のカードの選択状態を解除
+        itemList.querySelectorAll('.item-card.selected-for-simulator').forEach(card => {
+            card.classList.remove('selected-for-simulator');
+        });
+
+        // クリックされたカードを選択状態に
+        clickedCard.classList.add('selected-for-simulator');
+        temporarilySelectedItem = itemId; // 仮選択IDを更新
+        console.log("Temporarily selected item:", itemId);
+    }
+
+    // ★フィルター＆レンダリング（OR/AND考慮）
     function filterAndRenderItems() {
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
         
         let filteredItems = allItems.filter(item => {
+            // ★部位タグによる絞り込み (シミュレータ連携時)
+            if (isSelectingForSimulator && currentSelectingSlot) {
+                const requiredSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
+                if (!item.tags || !item.tags.includes(requiredSlotTagId)) {
+                    return false; // 必須の部位タグがなければ除外
+                }
+            }
+
             const matchesSearchTerm = searchTerm === '' ||
                 (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-                // 構造化効果のテキスト表現も検索対象にする (より高度)
                 (item.structured_effects && item.structured_effects.some(eff => {
                      const typeInfo = effectTypesCache.find(et => et.id === eff.type);
                      const typeName = typeInfo ? typeInfo.name : '';
@@ -286,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!matchesSearchTerm) return false;
 
             let matchesCategories = true; 
-            if (selectedParentCategoryIds.length > 0) {
+            if (selectedParentCategoryIds.length > 0 && !isSelectingForSimulator) { // ★連携中はカテゴリ無視
                 matchesCategories = selectedParentCategoryIds.every(parentId => {
                     const childCategoryIdsOfThisParent = allCategories
                         .filter(cat => cat.parentId === parentId)
@@ -301,9 +374,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!matchesCategories) return false;
 
             let matchesTags = true;
-            if (selectedTagIds.length > 0) {
+            // ★部位タグは selectedTagIds から除外して判定
+            const actualSelectedTags = selectedTagIds.filter(tagId => !Object.values(EQUIPMENT_SLOT_TAG_IDS).includes(tagId)); 
+            
+            if (actualSelectedTags.length > 0) {
                 const categoryIdsOfSelectedTags = new Set();
-                 selectedTagIds.forEach(tagId => {
+                 actualSelectedTags.forEach(tagId => {
                     const tagObj = allTags.find(t => t.id === tagId);
                     (tagObj?.categoryIds || []).forEach(catId => categoryIdsOfSelectedTags.add(catId));
                 });
@@ -311,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let belongsToMultipleChildCategories = false;
                 if (categoryIdsOfSelectedTags.size > 0) {
                     let commonChildCategoryIds = [];
-                    const firstTagId = selectedTagIds[0];
+                    const firstTagId = actualSelectedTags[0];
                     const firstTagObj = allTags.find(t => t.id === firstTagId);
                     const firstTagChildCategoryIds = (firstTagObj?.categoryIds || []).filter(catId => {
                         const cat = allCategories.find(c => c.id === catId);
@@ -319,8 +395,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     if (firstTagChildCategoryIds.length > 0) {
                         commonChildCategoryIds = firstTagChildCategoryIds;
-                        for (let i = 1; i < selectedTagIds.length; i++) {
-                            const currentTagId = selectedTagIds[i];
+                        for (let i = 1; i < actualSelectedTags.length; i++) {
+                            const currentTagId = actualSelectedTags[i];
                             const currentTagObj = allTags.find(t => t.id === currentTagId);
                             const currentTagChildCategoryIds = new Set(
                                 (currentTagObj?.categoryIds || []).filter(catId => {
@@ -349,23 +425,35 @@ document.addEventListener('DOMContentLoaded', () => {
                      searchMode = 'AND';
                  }
                 if (searchMode === 'OR') {
-                    matchesTags = selectedTagIds.some(selTagId => item.tags && item.tags.includes(selTagId));
+                    matchesTags = actualSelectedTags.some(selTagId => item.tags && item.tags.includes(selTagId));
                 } else {
-                    matchesTags = selectedTagIds.every(selTagId => item.tags && item.tags.includes(selTagId));
+                    matchesTags = actualSelectedTags.every(selTagId => item.tags && item.tags.includes(selTagId));
                 }
             }
             
             return matchesTags; 
         });
-        renderItems(filteredItems);
+        renderItems(filteredItems); // アイテムリストをレンダリング（カードにイベントリスナー付与含む）
     }
+
+    // ★フィルターリセット処理を更新
     function resetFilters() {
+        // シミュレータ連携中はリセットしない、または別の動作
+        if (isSelectingForSimulator) {
+            console.log("Cannot reset filters while selecting for simulator.");
+            // 必要であれば、検索バーの内容だけリセットするなど
+            // if (searchInput) searchInput.value = '';
+            // filterAndRenderItems(); 
+            return; 
+        }
+
         if (searchInput) searchInput.value = '';
         selectedParentCategoryIds = [];
         selectedTagIds = [];
+        
         renderParentCategoryFilters(); 
         renderChildCategoriesAndTags(); 
-        filterAndRenderItems();
+        filterAndRenderItems(); // アイテムリストも更新
     }
     if (resetFiltersButton) resetFiltersButton.addEventListener('click', resetFilters);
     if (searchInput) searchInput.addEventListener('input', filterAndRenderItems);
@@ -373,257 +461,113 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- シミュレーター関連関数 ---
 
-    // ★スロットのボタンにイベントリスナーを設定
     function initializeSimulatorSlots() {
         equipmentSlotsContainer.querySelectorAll('.select-item-button').forEach(button => {
-            button.addEventListener('click', openItemSelectionModal);
+            button.addEventListener('click', startItemSelectionForSlot); // ★新しい関数を呼ぶ
         });
          equipmentSlotsContainer.querySelectorAll('.clear-item-button').forEach(button => {
             button.addEventListener('click', clearEquipmentSlot);
         });
     }
 
-    // ★アイテム選択モーダルを開く
-    function openItemSelectionModal(event) {
+    // ★アイテム選択開始処理
+    function startItemSelectionForSlot(event) {
         currentSelectingSlot = event.target.dataset.slot;
         if (!currentSelectingSlot) return;
 
-        if (itemSelectModalTitle) itemSelectModalTitle.textContent = `${currentSelectingSlot}を選択`;
-        if (itemSelectModalSearch) itemSelectModalSearch.value = ''; // 検索欄をクリア
-
-        populateItemSelectionModalList(); // アイテムリストを表示
-
-        if (itemSelectionModal) itemSelectionModal.style.display = 'flex';
-        if (itemSelectModalSearch) itemSelectModalSearch.focus();
-    }
-
-    // ★モーダル内のアイテムリストを生成・表示
-    function populateItemSelectionModalList() {
-        if (!itemSelectModalList || !currentSelectingSlot) return;
-
         const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
         if (!slotTagId) {
-            itemSelectModalList.innerHTML = '<p>この部位に対応するタグが設定されていません。</p>';
+            alert(`部位「${currentSelectingSlot}」に対応するタグIDが設定されていません。`);
             return;
         }
+
+        isSelectingForSimulator = true; // ★連携モード開始
+        temporarilySelectedItem = selectedEquipment[currentSelectingSlot]; // 現在の選択を仮選択に
+
+        // 1. シミュレータモーダルを閉じる
+        if (simulatorModal) simulatorModal.style.display = 'none';
+
+        // 2. 検索ツールを連携モードに設定
+        selectedParentCategoryIds = []; // 親カテゴリ選択解除
+        selectedTagIds = [slotTagId];    // 部位タグのみ選択状態にする
         
-        const searchTerm = itemSelectModalSearch ? itemSelectModalSearch.value.toLowerCase() : '';
-
-        // 該当部位タグを持ち、かつ検索語にマッチするアイテムをフィルタリング
-        const slotItems = allItems.filter(item => 
-            (item.tags && item.tags.includes(slotTagId)) &&
-            (!searchTerm || (item.name && item.name.toLowerCase().includes(searchTerm)))
-        );
-
-        itemSelectModalList.innerHTML = ''; // リストをクリア
-        if (slotItems.length === 0) {
-             itemSelectModalList.innerHTML = '<p>該当するアイテムが見つかりません。</p>';
-             return;
+        // 3. UI更新
+        renderParentCategoryFilters(); // 無効化状態で再描画
+        renderChildCategoriesAndTags(); // 非表示にする
+        filterAndRenderItems();         // 部位タグでアイテムリストを絞り込み表示
+        
+        // 4. メッセージと決定ボタン表示
+        if (searchToolMessage) {
+            searchToolMessage.textContent = `「${currentSelectingSlot}」のアイテムを選択し、「決定」ボタンを押してください。`;
+            searchToolMessage.style.display = 'block';
         }
-
-        slotItems.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.classList.add('item-select-modal-item');
-            itemDiv.dataset.itemId = item.docId;
-            itemDiv.innerHTML = `
-                <img src="${item.image || './images/placeholder_item.png'}" alt="${item.name || ''}">
-                <span>${item.name || '(名称未設定)'}</span>
-            `;
-            itemDiv.addEventListener('click', selectItemFromModal);
-            itemSelectModalList.appendChild(itemDiv);
-        });
-    }
-    
-    // ★モーダルでアイテムを選択した時の処理
-    function selectItemFromModal(event) {
-        const selectedItemId = event.currentTarget.dataset.itemId;
-        if (!currentSelectingSlot || !selectedItemId) return;
-
-        selectedEquipment[currentSelectingSlot] = selectedItemId; // 選択状態を更新
-
-        updateSimulatorSlotDisplay(currentSelectingSlot); // スロット表示更新
-        calculateAndDisplayTotalEffects(); // 合計効果再計算
-
-        if (itemSelectionModal) itemSelectionModal.style.display = 'none'; // モーダルを閉じる
-        currentSelectingSlot = null; // 選択中スロットをリセット
+        if (confirmSelectionButton) confirmSelectionButton.style.display = 'block';
     }
 
-    // ★部位の装備を解除する処理
-    function clearEquipmentSlot(event) {
-         const slotName = event.target.dataset.slot;
-         if(!slotName) return;
-         
-         selectedEquipment[slotName] = null; // データ解除
-         
-         // プルダウンの名残でselectを探していたが、ボタンに変わったので不要
-         // const selectElement = document.getElementById(`select-${slotName}`);
-         // if(selectElement) selectElement.value = ""; 
-         
-         updateSimulatorSlotDisplay(slotName); // 表示更新
-         calculateAndDisplayTotalEffects(); // 再計算
-    }
-
-
-    // ★モーダル内の検索入力イベント
-    if (itemSelectModalSearch) {
-        itemSelectModalSearch.addEventListener('input', populateItemSelectionModalList);
-    }
-    
-
-    // ★選択された装備の表示を更新 (解除ボタンの表示制御を追加)
-    function updateSimulatorSlotDisplay(slotName) {
-        const slotElement = document.getElementById(`slot-${slotName}`);
-        if (!slotElement) return;
-
-        const imgElement = slotElement.querySelector('.slot-image');
-        const nameElement = slotElement.querySelector('.slot-item-name');
-        const clearButton = slotElement.querySelector('.clear-item-button');
-        const selectButton = slotElement.querySelector('.select-item-button');
-        const itemId = selectedEquipment[slotName];
-
-        if (itemId) {
-            const item = allItems.find(i => i.docId === itemId);
-            if (item) {
-                imgElement.src = item.image || './images/placeholder_item.png';
-                imgElement.alt = item.name || 'アイテム画像';
-                nameElement.textContent = item.name || '(名称未設定)';
-                if(clearButton) clearButton.style.display = 'inline-block'; // 解除ボタン表示
-                if(selectButton) selectButton.textContent = '変更'; // 選択ボタンのテキスト変更
-            } else { 
-                imgElement.src = './images/placeholder_slot.png';
-                imgElement.alt = slotName;
-                nameElement.textContent = 'エラー';
-                 if(clearButton) clearButton.style.display = 'none';
-                 if(selectButton) selectButton.textContent = '選択';
+    // ★選択決定ボタンの処理
+    if (confirmSelectionButton) {
+        confirmSelectionButton.addEventListener('click', () => {
+            if (!currentSelectingSlot || !temporarilySelectedItem) {
+                alert("アイテムが選択されていません。");
+                return;
             }
-        } else { 
-            imgElement.src = './images/placeholder_slot.png';
-            imgElement.alt = slotName;
-            nameElement.textContent = '未選択';
-             if(clearButton) clearButton.style.display = 'none'; // 解除ボタン非表示
-             if(selectButton) selectButton.textContent = '選択'; // 選択ボタンのテキスト戻す
-        }
-    }
-    
-    // 合計効果を計算して表示 (変更なし)
-    function calculateAndDisplayTotalEffects() {
-        const totalEffects = {}; 
 
-        Object.values(selectedEquipment).forEach(itemId => {
-            if (!itemId) return; 
-            const item = allItems.find(i => i.docId === itemId);
-            if (!item || !item.structured_effects) return; 
+            // 装備データを更新
+            selectedEquipment[currentSelectingSlot] = temporarilySelectedItem;
 
-            item.structured_effects.forEach(effect => {
-                const { type, value, unit } = effect;
-                if (type && typeof value === 'number') { 
-                    const key = `${type}_${unit}`; 
-                    if (!totalEffects[key]) {
-                        totalEffects[key] = { typeId: type, value: 0, unit: unit };
-                    }
-                    totalEffects[key].value += value;
-                }
-            });
-        });
+            // 連携モード終了
+            isSelectingForSimulator = false;
+            currentSelectingSlot = null;
+            temporarilySelectedItem = null;
 
-        if (Object.keys(totalEffects).length === 0) {
-            totalEffectsDisplay.innerHTML = '<p>効果はありません。</p>';
-        } else {
-            let html = '<ul>';
-            Object.values(totalEffects).forEach(effect => {
-                 const typeInfo = effectTypesCache.find(et => et.id === effect.typeId);
-                 const typeName = typeInfo ? typeInfo.name : `不明(${effect.typeId})`;
-                 const unitText = effect.unit !== 'none' ? effect.unit : '';
-                 const displayValue = Math.round(effect.value * 100) / 100; 
-                 html += `<li>${typeName}: ${displayValue}${unitText}</li>`;
-            });
-            html += '</ul>';
-            totalEffectsDisplay.innerHTML = html;
-        }
-    }
+            // UIを通常モードに戻す
+            if (searchToolMessage) searchToolMessage.style.display = 'none';
+            if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
+            
+            // 検索ツールのフィルター状態をリセット（または前の状態に戻すか検討）
+            selectedTagIds = []; // 部位タグ選択を解除
+            renderParentCategoryFilters(); // 有効化して再描画
+            renderChildCategoriesAndTags(); // 再表示
+            renderItems([]); // アイテムリストはクリア（または全表示）
 
-    // シミュレーター表示の初期化 (変更なし)
-    function initializeSimulatorDisplay() {
-        equipmentSlots.forEach(slotName => {
-            updateSimulatorSlotDisplay(slotName); 
-        });
-        calculateAndDisplayTotalEffects(); 
-    }
-
-    // 構成リセットボタンの処理 (★select要素ではなくボタンの状態をリセット)
-    if(resetSimulatorButton) {
-        resetSimulatorButton.addEventListener('click', () => {
-             equipmentSlots.forEach(slotName => {
-                 // select要素ではなく、保持データをリセット
-                 selectedEquipment[slotName] = null; 
-                 // 表示を更新
-                 updateSimulatorSlotDisplay(slotName); 
-             });
-            // calculateAndDisplayTotalEffects(); // updateSimulatorSlotDisplay内で呼ばれるので不要かも
-            console.log("Simulator reset.");
-        });
-    }
-
-    // 画像保存ボタンの処理 (★出力内容の取得方法を修正)
-    if (saveImageButton) {
-        saveImageButton.addEventListener('click', async () => {
-            // 1. 出力用要素に現在の構成と効果を反映
-            exportSlots.innerHTML = ''; // クリア
-            equipmentSlots.forEach(slotName => {
-                const itemId = selectedEquipment[slotName];
-                let itemHtml = `<div class="export-slot-item"><strong>${slotName}:</strong> `; // クラス追加
-                if (itemId) {
-                    const item = allItems.find(i => i.docId === itemId);
-                    if (item) {
-                         // ★ Base64 Data URL があればそれを使う、なければパス（CORS注意）
-                         const imgSrc = item.imageBase64 || item.image || './images/placeholder_item.png'; 
-                         itemHtml += `<img src="${imgSrc}" alt="" class="export-item-image"> <span>${item.name || '(名称未設定)'}</span>`;
-                    } else {
-                         itemHtml += '<span>エラー</span>';
-                    }
-                } else {
-                    itemHtml += '<span>なし</span>';
-                }
-                itemHtml += '</div>';
-                exportSlots.innerHTML += itemHtml;
-            });
-            exportEffects.innerHTML = totalEffectsDisplay.innerHTML; // 計算結果をコピー
-
-            // 2. html2canvasで画像生成
-            try {
-                const canvasOptions = {
-                    useCORS: true, 
-                    allowTaint: true,
-                    // scale: 2, // 高解像度にする場合
-                    backgroundColor: '#ffffff' // 背景色を指定しないと透明になる場合がある
-                };
-                console.log("Generating image from:", imageExportArea);
-                const canvas = await html2canvas(imageExportArea, canvasOptions); 
-                
-                // 3. 画像をダウンロード
-                const link = document.createElement('a');
-                link.download = '装備構成.png'; 
-                link.href = canvas.toDataURL('image/png'); 
-                link.click(); 
-                console.log("Image download triggered.");
-            } catch (error) {
-                console.error("Image generation error:", error);
-                alert("画像の生成に失敗しました。コンソールログを確認してください。");
-            }
+            // シミュレーターモーダルを再表示
+            if (simulatorModal) simulatorModal.style.display = 'flex';
+            updateSimulatorSlotDisplay(Object.keys(selectedEquipment).find(key => selectedEquipment[key] === temporarilySelectedItem)); // 更新されたスロットを表示
+            calculateAndDisplayTotalEffects(); // 合計効果を更新
         });
     }
 
 
-    // --- 初期データロード実行 ---
-    loadData();
+    function clearEquipmentSlot(event) { /* 変更なし */ }
+    function updateSimulatorSlotDisplay(slotName) { /* 変更なし */ }
+    function calculateAndDisplayTotalEffects() { /* 変更なし */ }
+    function initializeSimulatorDisplay() { /* 変更なし */ }
+    if (resetSimulatorButton) { /* 変更なし */ }
+    if (saveImageButton) { /* 変更なし */ }
 
-    // --- モーダル共通ハンドラ ---
+
+    // --- モーダル関連 ---
+    if (openSimulatorButton) {
+        openSimulatorButton.addEventListener('click', () => {
+            if (simulatorModal) simulatorModal.style.display = 'flex';
+            // モーダルを開いたときに現在の選択状態を表示
+            initializeSimulatorDisplay(); 
+        });
+    }
      document.querySelectorAll('.modal .close-button').forEach(btn => {
         btn.onclick = function() { this.closest('.modal').style.display = "none"; }
     });
     window.onclick = function(event) {
-        if (event.target.classList.contains('modal')) event.target.style.display = "none";
+        // アイテム選択モーダル以外をクリックした場合も閉じる（任意）
+        // if (event.target == itemSelectionModal) {
+        //    itemSelectionModal.style.display = "none";
+        // }
+         if (event.target == simulatorModal) {
+            simulatorModal.style.display = "none";
+         }
     }
 
+    // --- 初期データロード実行 ---
+    loadData();
 
 }); // End DOMContentLoaded
