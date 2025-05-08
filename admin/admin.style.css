@@ -1,12 +1,8 @@
 /* admin/admin.style.css */
 body {
-    font-family: sans-serif;
-    margin: 0;
-    background-color: #f4f4f4;
-    color: #333;
-    line-height: 1.6;
+    font-family: sans-serif; margin: 0; background-color: #f4f4f4;
+    color: #333; line-height: 1.6;
 }
-
 #password-prompt {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background-color: rgba(0,0,0,0.85); display: flex; flex-direction: column;
@@ -101,7 +97,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     margin-left: 5px;
     color: white !important;
     border: none;
-    border-radius: 4px; /* Ensure consistent border-radius */
+    border-radius: 4px; 
 }
 .action-button.edit, .edit-item, .edit-category, .edit-tag { 
     background-color: #28a745 !important;
@@ -146,23 +142,41 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .list-item:last-child { border-bottom: none; }
 .list-item span { flex-grow: 1; margin-right: 10px; word-break: break-word; }
+.list-item div .action-button { 
+    margin-left: 5px; 
+}
+.list-item div .action-button:first-child {
+    margin-left: 0;
+}
 
-
-.tag-buttons-container {
-    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
-    padding: 5px; border: 1px solid #eee; border-radius: 4px;
+.checkbox-group-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 150px; 
+    overflow-y: auto;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #fdfdfd;
 }
-.tag-buttons-container .tag-button {
-    background-color: #e9ecef; color: #495057; border: 1px solid #ced4da;
-    padding: 6px 12px; margin: 0; border-radius: 20px; cursor: pointer;
-    transition: all 0.2s ease-in-out; font-size: 0.9em;
-    display: inline-flex; align-items: center;
+.checkbox-item {
+    display: flex;
+    align-items: center;
 }
-.tag-buttons-container .tag-button:hover {
-    background-color: #dee2e6; border-color: #adb5bd;
+.checkbox-item input[type="checkbox"] {
+    margin-right: 8px;
+    width: auto; 
+    padding: initial; 
+    border: initial;  
+    box-shadow: none; 
 }
-.tag-buttons-container .tag-button.selected {
-    background-color: #007bff; color: white; border-color: #0056b3;
+.checkbox-item input[type="checkbox"]:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); 
+}
+.checkbox-item label {
+    font-weight: normal;
+    margin-bottom: 0; 
 }
 
 
@@ -184,7 +198,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 
 #itemImagePreview {
     display: block; margin-top: 10px; border: 1px solid #ced4da;
-    padding: 5px; background-color: #f8f9fa;
+    padding: 5px; background-color: #f8f9fa; max-width: 100px; max-height: 100px;
 }
 #uploadProgressContainer { margin-top: 10px; }
 #uploadProgress { width: 100%; height: 20px; margin-bottom: 5px; }
