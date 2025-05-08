@@ -7,16 +7,14 @@ body {
 }
 h1 { text-align: center; color: #333; margin-bottom: 30px; } 
 
-/* メインコントロールエリアの位置調整 */
+/* メインコントロールエリア */
 .main-controls {
-    /* text-align: center; */ 
+    text-align: center; 
     margin-bottom: 20px;
-    display: flex; 
-    justify-content: flex-end; 
 }
 #openSimulatorButton {
-    padding: 10px 20px; 
-    font-size: 1em; 
+    padding: 12px 25px;
+    font-size: 1.1em;
     background-color: #17a2b8; 
     color: white;
     border: none;
@@ -32,13 +30,14 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     border: 0;
     height: 1px;
     background-color: #e0e0e0;
-    margin: 30px 0; 
+    margin: 40px 0; 
 }
 
 /* --- モーダル共通スタイル --- */
 .modal {
     position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%;
-    overflow: auto; background-color: rgba(0,0,0,0.6); display: none; 
+    overflow: auto; background-color: rgba(0,0,0,0.6); 
+    display: none; /* ★デフォルトは非表示 */
     align-items: center; justify-content: center;
 }
 .modal-content {
@@ -205,6 +204,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
      background-color: #c82333;
 }
 
+/* 画像出力用エリアのスタイル（通常は非表示） */
 .image-export-container {
     position: absolute; 
     left: -9999px; 
@@ -272,16 +272,8 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 }
 .search-controls.selecting-mode {
     opacity: 0.7; 
+    /* pointer-events: none; */ /* 個別要素で制御 */
 }
-#searchInput {
-    width: 100%; 
-    padding: 10px; 
-    margin-bottom: 15px; 
-    border: 1px solid #ccc;
-    border-radius: 4px; 
-    box-sizing: border-box; 
-}
-
 .search-tool-message {
     background-color: #d1ecf1;
     color: #0c5460;
@@ -462,7 +454,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 .item-card .structured-effects li { margin-bottom: 3px; }
 
 /* アイテム選択モーダル */
-.modal.item-select-modal {}
+.modal.item-select-modal { /* 既存のモーダルスタイルを継承 */ }
 .item-select-modal .modal-content {
      max-width: 80%; 
      max-height: 80vh; 
@@ -524,8 +516,6 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 
 
 @media (max-width: 768px) {
-    .main-controls { justify-content: center; margin-bottom: 30px;} 
-
     .equipment-slots {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
         gap: 15px;
@@ -536,7 +526,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     
     .category-button-group { justify-content: center; }
     .child-category-section { padding: 8px; }
-    .child-category-section h4 .search-mode { }
+    .child-category-section h4 .search-mode { /* 折り返し時調整 */ }
     .tag-filters-inline { gap: 6px; }
     .tag-filter { padding: 5px 8px; font-size: 0.8em; }
     
