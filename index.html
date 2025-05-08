@@ -3,35 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ゲームアイテム検索ツール</title>
+    <title>装備効果計算＆構成共有ツール</title>
     <link rel="stylesheet" href="style.css">
+    <!-- html2canvas ライブラリの読み込み (CDNの例) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
     <div class="container">
-        <h1>ゲームアイテム検索</h1>
+        <h1>装備効果計算＆構成共有ツール</h1>
 
-        <div class="search-controls">
-            <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段で検索...">
-            
-            <div class="parent-category-filters">
-                <h2>親カテゴリ選択:</h2>
-                <div id="parentCategoryFiltersContainer" class="category-button-group">
-                    <!-- 親カテゴリボタンがここに動的に追加されます -->
+        <!-- 装備構成シミュレーターセクション -->
+        <section class="simulator-section">
+            <h2>装備構成シミュレーター</h2>
+            <div class="equipment-slots">
+                <!-- 各部位の選択エリア (select -> button + display) -->
+                <div class="slot" id="slot-服" data-slot-name="服">
+                    <label>服:</label>
+                    <div class="selected-item-display">
+                        <img src="./images/placeholder_slot.png" alt="服" class="slot-image">
+                        <span class="slot-item-name">未選択</span>
+                        <button class="select-item-button" data-slot="服">選択</button>
+                        <button class="clear-item-button" data-slot="服" style="display: none;">解除</button>
+                    </div>
+                </div>
+                <div class="slot" id="slot-顔" data-slot-name="顔">
+                    <label>顔:</label>
+                    <div class="selected-item-display">
+                        <img src="./images/placeholder_slot.png" alt="顔" class="slot-image">
+                        <span class="slot-item-name">未選択</span>
+                        <button class="select-item-button" data-slot="顔">選択</button>
+                         <button class="clear-item-button" data-slot="顔" style="display: none;">解除</button>
+                    </div>
+                </div>
+                 <div class="slot" id="slot-首" data-slot-name="首">
+                    <label>首:</label>
+                    <div class="selected-item-display">
+                        <img src="./images/placeholder_slot.png" alt="首" class="slot-image">
+                        <span class="slot-item-name">未選択</span>
+                        <button class="select-item-button" data-slot="首">選択</button>
+                         <button class="clear-item-button" data-slot="首" style="display: none;">解除</button>
+                    </div>
+                </div>
+                <div class="slot" id="slot-手" data-slot-name="手">
+                    <label>手:</label>
+                    <div class="selected-item-display">
+                        <img src="./images/placeholder_slot.png" alt="手" class="slot-image">
+                        <span class="slot-item-name">未選択</span>
+                        <button class="select-item-button" data-slot="手">選択</button>
+                         <button class="clear-item-button" data-slot="手" style="display: none;">解除</button>
+                    </div>
+                </div>
+                <div class="slot" id="slot-背中" data-slot-name="背中">
+                    <label>背中:</label>
+                    <div class="selected-item-display">
+                        <img src="./images/placeholder_slot.png" alt="背中" class="slot-image">
+                        <span class="slot-item-name">未選択</span>
+                        <button class="select-item-button" data-slot="背中">選択</button>
+                         <button class="clear-item-button" data-slot="背中" style="display: none;">解除</button>
+                    </div>
+                </div>
+                <div class="slot" id="slot-足" data-slot-name="足">
+                    <label>足:</label>
+                    <div class="selected-item-display">
+                        <img src="./images/placeholder_slot.png" alt="足" class="slot-image">
+                        <span class="slot-item-name">未選択</span>
+                        <button class="select-item-button" data-slot="足">選択</button>
+                         <button class="clear-item-button" data-slot="足" style="display: none;">解除</button>
+                    </div>
                 </div>
             </div>
 
-            <div id="childCategoriesAndTagsContainer">
-                <!-- 選択された親カテゴリ配下の子カテゴリとタグがここに表示されます -->
+            <div class="calculation-result-area">
+                <h3>発動効果 合計:</h3>
+                <div id="totalEffectsDisplay" class="effects-display">
+                    <p>アイテムを選択してください。</p>
+                </div>
+            </div>
+
+            <div class="simulator-actions">
+                <button id="saveImageButton">構成を画像として保存</button>
+                <button id="resetSimulatorButton">構成をリセット</button>
             </div>
             
-            <button id="resetFiltersButton">リセット</button>
-        </div>
+             <!-- 画像出力用のエリア（html2canvas用） -->
+            <div id="imageExportArea" class="image-export-container">
+                <h2>装備構成</h2>
+                <div id="exportSlots" class="export-slots-grid"></div>
+                <h3>発動効果 合計:</h3>
+                <div id="exportEffects"></div>
+            </div>
 
-        <div id="itemCount"></div>
-        <div id="itemList" class="item-list">
-            <!-- アイテムがここに表示されます -->
-        </div>
+        </section>
+
+        <hr class="section-divider">
+
+        <!-- アイテム検索ツールセクション -->
+        <section class="search-tool-section">
+            <h2>アイテム検索</h2>
+            <div class="search-controls">
+                <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段で検索...">
+                <div class="parent-category-filters">
+                    <h2>親カテゴリ選択:</h2>
+                    <div id="parentCategoryFiltersContainer" class="category-button-group"></div>
+                </div>
+                <div id="childCategoriesAndTagsContainer"></div>
+                <button id="resetFiltersButton">フィルターリセット</button>
+            </div>
+            <div id="itemCount"></div>
+            <div id="itemList" class="item-list"></div>
+        </section>
+
     </div>
+
+     <!-- ★アイテム選択モーダル -->
+     <div id="itemSelectionModal" class="modal item-select-modal" style="display: none;">
+         <div class="modal-content item-select-modal-content">
+             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+             <h3 id="itemSelectModalTitle">アイテム選択</h3>
+             <input type="text" id="itemSelectModalSearch" placeholder="アイテム名で検索...">
+             <div id="itemSelectModalList" class="item-select-list">
+                 <!-- 該当部位のアイテムリストが表示される -->
+             </div>
+         </div>
+     </div>
+
 
     <script type="module" src="script.js"></script>
 </body>
