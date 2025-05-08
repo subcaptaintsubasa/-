@@ -12,8 +12,18 @@
 
         <div class="search-controls">
             <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段で検索...">
+            
+            <div class="filter-group">
+                <label for="categoryFilterSelect">カテゴリ:</label>
+                <select id="categoryFilterSelect">
+                    <option value="">すべてのカテゴリ</option>
+                    <!-- カテゴリがここに動的に追加されます -->
+                </select>
+            </div>
+
             <div id="tagFiltersContainer" class="tag-filters">
-                <!-- タグフィルターがここに動的に追加されます -->
+                <!-- 選択されたカテゴリのタグフィルターがここに動的に追加されます -->
+                <p id="tagFilterPlaceholder" style="color: #777;">カテゴリを選択してください。</p>
             </div>
             <button id="resetFiltersButton">リセット</button>
         </div>
