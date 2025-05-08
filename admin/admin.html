@@ -47,14 +47,14 @@
 
             <section id="tag-management">
                 <h2><span class="icon"></span> タグ管理</h2>
-                <div class="form-group"> <!-- タグ追加はフォームを少し変更 -->
+                <div class="form-group"> 
                     <label for="newTagName">新しいタグ名:</label>
                     <input type="text" id="newTagName" placeholder="タグの名前">
                 </div>
                 <div class="form-group">
-                    <label>このタグが所属する子カテゴリ (複数選択可):</label>
+                    <label>このタグが所属するカテゴリ (複数選択可):</label>
                     <div id="newTagCategoriesCheckboxes" class="checkbox-group-container">
-                        <!-- 子カテゴリのチェックボックスがここに動的に追加されます -->
+                        <!-- カテゴリのチェックボックスがここに動的に追加されます -->
                     </div>
                 </div>
                 <button id="addTagButton">タグ追加</button>
@@ -147,9 +147,9 @@
                 <input type="text" id="editingTagName">
             </div>
             <div class="form-group">
-                <label>このタグが所属する子カテゴリ (複数選択可):</label>
+                <label>このタグが所属するカテゴリ (複数選択可):</label>
                 <div id="editingTagCategoriesCheckboxes" class="checkbox-group-container">
-                    <!-- 子カテゴリのチェックボックス -->
+                    <!-- カテゴリのチェックボックス -->
                 </div>
             </div>
             <button id="saveTagEditButton">変更を保存</button>
