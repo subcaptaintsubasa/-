@@ -39,6 +39,8 @@
                      <label>親カテゴリ設定:</label>
                      <div id="newCategoryParentButtons" class="category-button-group admin">
                          <!-- 親カテゴリ選択ボタンがここに動的に追加されます -->
+                         <!-- 例: <div class="category-select-button active" data-parent-id="">最上位カテゴリとして追加</div> -->
+                         <!--     <div class="category-select-button" data-parent-id="xxx">既存親カテゴリ名</div> -->
                      </div>
                      <input type="hidden" id="selectedNewParentCategoryId" value=""> <!-- 選択された親IDを保持 -->
                  </div>
@@ -137,13 +139,20 @@
                  <div id="editingCategoryParentButtons" class="category-button-group admin">
                      <!-- 親カテゴリ選択ボタン (編集用) -->
                  </div>
-                 <input type="hidden" id="selectedEditingParentCategoryId"> <!-- 編集中の親ID保持 -->
+                 <input type="hidden" id="selectedEditingParentCategoryId"> 
             </div>
              <div class="form-group">
                  <label>所属タグ (このカテゴリに紐付けるタグを選択):</label>
                  <div id="editingCategoryTagsSelector" class="tag-button-container admin">
                      <!-- 全タグがボタン形式で表示されます -->
                  </div>
+             </div>
+             <div class="form-group" id="tagSearchModeGroup" style="display: none;"> <!-- 子カテゴリの場合のみ表示 -->
+                 <label>同カテゴリ内タグ検索モード:</label>
+                 <select id="editingTagSearchMode">
+                     <option value="AND">AND検索 (選択したタグすべてを持つ)</option>
+                     <option value="OR">OR検索 (選択したタグいずれかを持つ)</option>
+                 </select>
              </div>
             <button id="saveCategoryEditButton">変更を保存</button>
         </div>
