@@ -32,24 +32,51 @@ h1 {
 #searchInput {
     width: 100%; 
     padding: 10px;
-    margin-bottom: 15px; /* 下の要素との間隔 */
+    margin-bottom: 15px;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
 }
 
-.filter-group {
+/* カテゴリフィルターエリアのスタイリング */
+.category-filter-area {
+    display: flex; /* 横並び */
+    gap: 20px; /* 各フィルターグループ間の隙間 */
     margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0; /* 区切り線 */
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column; /* ラベルとセレクトを縦に */
 }
 .filter-group label {
-    margin-right: 8px;
+    margin-bottom: 5px; /* ラベルとセレクトの間の隙間 */
     font-weight: bold;
+    font-size: 0.9em;
+    color: #555;
 }
-#categoryFilterSelect {
+.filter-group select {
     padding: 8px 10px;
     border-radius: 4px;
     border: 1px solid #ccc;
-    min-width: 200px; /* ある程度の幅を確保 */
+    min-width: 180px; /* ある程度の幅を確保 */
+}
+.filter-group select:disabled {
+    background-color: #f8f8f8;
+    color: #aaa;
+}
+
+/* 各カテゴリグループの左上に名称を表示するイメージ (ラベルで代用) */
+.parent-category-group::before,
+.child-category-group::before {
+    /* content: attr(data-group-name); */ /* HTML側にdata属性が必要 */
+    /* display: block; */
+    /* font-size: 0.8em; */
+    /* color: #777; */
+    /* margin-bottom: 3px; */
+    /* 今回はラベル要素で代替しているため、この疑似要素は不要 */
 }
 
 
@@ -58,8 +85,10 @@ h1 {
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 10px;
-    min-height: 38px; /* タグがないときも高さをある程度保つ */
+    min-height: 38px;
     padding: 5px 0;
+    border-bottom: 1px solid #e0e0e0; /* 区切り線 */
+    margin-bottom: 15px; /* リセットボタンとの間隔 */
 }
 
 .tag-filter {
@@ -100,7 +129,7 @@ h1 {
 
 .item-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* カード幅調整 */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
 }
 
@@ -119,7 +148,7 @@ h1 {
 }
 
 .item-card img {
-    width: 120px; /* 画像サイズ調整 */
+    width: 120px;
     height: 120px;
     object-fit: cover;
     border-radius: 4px;
@@ -128,21 +157,20 @@ h1 {
     background-color: #eee; 
 }
 
-/* NoImageテキスト表示用スタイル */
 .item-image-text-placeholder {
     width: 120px;
     height: 120px;
     border-radius: 4px;
     margin-bottom: 12px;
     align-self: center;
-    background-color: #f0f0f0; /* 少し明るい背景 */
+    background-color: #f0f0f0;
     display: flex;
     justify-content: center;
     align-items: center;
     color: #888;
     font-size: 1.1em;
     font-weight: bold;
-    border: 1px dashed #ccc; /* 枠線でプレースホルダっぽく */
+    border: 1px dashed #ccc;
     box-sizing: border-box;
 }
 
@@ -152,7 +180,7 @@ h1 {
     margin-bottom: 10px;
     font-size: 1.25em;
     color: #0056b3;
-    word-break: break-word; /* 名前が長い場合に折り返す */
+    word-break: break-word;
 }
 
 .item-card p {
@@ -161,7 +189,7 @@ h1 {
     line-height: 1.5;
     color: #444;
     flex-grow: 1; 
-    word-break: break-word; /* 効果などが長い場合に折り返す */
+    word-break: break-word;
 }
 .item-card p strong {
     color: #333;
@@ -175,8 +203,19 @@ h1 {
 .item-card .tags span {
     background-color: #f0f0f0;
     padding: 4px 8px;
-    border-radius: 12px; /* タグの丸みを強く */
+    border-radius: 12px;
     margin-right: 6px;
-    margin-bottom: 6px; /* 折り返し時のため */
+    margin-bottom: 6px;
     display: inline-block;
+}
+
+/* レスポンシブ対応調整 */
+@media (max-width: 768px) {
+    .category-filter-area {
+        flex-direction: column; /* スマホでは縦積み */
+        gap: 15px;
+    }
+    .filter-group select {
+        min-width: 100%; /* スマホでは幅いっぱい */
+    }
 }
