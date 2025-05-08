@@ -8,407 +8,229 @@ body {
 }
 
 #password-prompt {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.85); /* 少し濃くしてコンテンツを隠す */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000; /* 他のモーダルより手前に */
-    color: white;
-    padding: 20px;
-    box-sizing: border-box;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+    justify-content: center; align-items: center; z-index: 10000;
+    color: white; padding: 20px; box-sizing: border-box;
 }
-
-#password-prompt h2 {
-    margin-bottom: 15px;
+#password-prompt h2 { margin-bottom: 15px; }
+#password-prompt input[type="password"],
+#password-prompt input[type="email"] {
+    padding: 12px; margin-bottom: 15px; font-size: 1.1em;
+    border: 1px solid #ccc; border-radius: 4px; width: 100%;
+    max-width: 300px; box-sizing: border-box;
 }
-
-#password-prompt input[type="password"] {
-    padding: 12px;
-    margin-bottom: 15px;
-    font-size: 1.1em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    width: 100%;
-    max-width: 300px;
-    box-sizing: border-box;
-}
-
 #password-prompt button {
-    padding: 12px 20px;
-    font-size: 1.1em;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+    padding: 12px 20px; font-size: 1.1em; background-color: #007bff;
+    color: white; border: none; border-radius: 4px; cursor: pointer;
     transition: background-color 0.2s;
 }
-#password-prompt button:hover {
-    background-color: #0056b3;
-}
-
-.error-message {
-    color: #ff4d4d; /* より目立つ赤色に */
-    font-weight: bold;
-    margin-top: 10px;
-}
+#password-prompt button:hover { background-color: #0056b3; }
+.error-message { color: #ff4d4d; font-weight: bold; margin-top: 10px; }
 
 header {
-    background-color: #343a40; /* ダークグレー */
-    color: white;
-    padding: 1em 1.5em;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background-color: #343a40; color: white; padding: 1em 1.5em;
+    display: flex; justify-content: space-between; align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-
-header h1 {
-    margin: 0;
-    font-size: 1.8em;
-}
-
+header h1 { margin: 0; font-size: 1.8em; }
 #logoutButton {
-    background-color: #6c757d;
-    color: white;
-    padding: 0.6em 1em;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
+    background-color: #6c757d; color: white; padding: 0.6em 1em;
+    border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;
 }
-#logoutButton:hover {
-    background-color: #5a6268;
-}
+#logoutButton:hover { background-color: #5a6268; }
 
 .container {
-    max-width: 1100px; /* 少し広めに */
-    margin: 25px auto;
-    padding: 25px;
-    background-color: #fff;
-    box-shadow: 0 2px 15px rgba(0,0,0,0.08); /* 少し影を調整 */
-    border-radius: 8px; /* 角丸 */
+    max-width: 1100px; margin: 25px auto; padding: 25px;
+    background-color: #fff; box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+    border-radius: 8px;
 }
 
 section {
-    margin-bottom: 30px;
-    padding-bottom: 30px;
-    border-bottom: 1px solid #e9ecef; /* 少し薄い区切り線 */
+    margin-bottom: 30px; padding-bottom: 30px;
+    border-bottom: 1px solid #e9ecef;
 }
+section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 10px; }
 
-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 10px; /* 最後は少し余白少なめ */
-}
-
-h2, h3 {
-    color: #343a40; /* ヘッダーに合わせた色 */
-    margin-top: 0;
-    margin-bottom: 20px; /* 見出し下の余白 */
-}
+h2, h3 { color: #343a40; margin-top: 0; margin-bottom: 20px; }
 h2 { font-size: 1.6em; }
 h3 { font-size: 1.3em; }
 
-.form-group {
-    margin-bottom: 18px;
-}
-
+.form-group { margin-bottom: 18px; }
 .form-group label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: bold;
-    color: #495057; /* ラベルの色 */
+    display: block; margin-bottom: 6px; font-weight: bold; color: #495057;
 }
-
 .form-group input[type="text"],
 .form-group input[type="url"],
-.form-group textarea {
-    width: 100%; /* paddingを考慮してcalcなしでもOKにするためbox-sizing追加 */
-    padding: 10px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 1em;
-    box-sizing: border-box; /* これでwidth:100%が期待通りに */
+.form-group input[type="file"],
+.form-group textarea,
+.form-group select { /* selectも共通スタイル */
+    width: 100%; padding: 10px 12px; border: 1px solid #ced4da;
+    border-radius: 4px; font-size: 1em; box-sizing: border-box;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .form-group input[type="text"]:focus,
 .form-group input[type="url"]:focus,
-.form-group textarea:focus {
-    border-color: #80bdff;
-    outline: 0;
+.form-group input[type="file"]:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #80bdff; outline: 0;
     box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
+.form-group textarea { resize: vertical; min-height: 80px; }
 
-
-.form-group textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-button, .button-like { /* button-likeも共通スタイルを適用 */
-    background-color: #007bff;
-    color: white;
-    padding: 10px 18px; /* 少し横に広く */
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-right: 8px; /* ボタン間の余白 */
-    font-size: 1em;
-    transition: background-color 0.2s;
-    vertical-align: middle; /* 他の要素と縦位置を合わせる */
-}
-button:hover, .button-like:hover {
-    background-color: #0056b3;
-}
-
-/* タイプ別ボタンカラー */
-button[type="button"], #clearFormButton { background-color: #6c757d; }
-button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62; }
-.delete-item, .tag-button .delete-icon { background-color: #dc3545 !important; color: white !important;} /* !importantで優先度上げる */
-.delete-item:hover, .tag-button .delete-icon:hover { background-color: #c82333 !important;}
-.edit-item, .tag-button .edit-icon { background-color: #28a745 !important; color: white !important;}
-.edit-item:hover, .tag-button .edit-icon:hover { background-color: #218838 !important;}
-
-
-.info {
-    font-size: 0.85em;
-    color: #6c757d; /* やや濃いめのグレー */
-    margin-top: 6px;
-    line-height: 1.4;
-}
-
-/* データI/Oセクション */
-#data-io ol {
-    margin-left: 20px; /* 番号付きリストのインデント */
-    margin-bottom: 20px;
-    padding-left: 15px;
-}
-#data-io .io-buttons {
-    margin-bottom: 15px;
-    display: flex; /* ボタンを横並びにする場合 */
-    flex-wrap: wrap; /* 折り返し */
-    gap: 10px; /* ボタン間の隙間 */
-}
-.button-like { /* ファイル選択ボタンの見た目をボタン風に */
-    display: inline-block; /* input type=fileを隠すため */
-    background-color: #17a2b8; /* Infoカラー */
-    text-align: center;
-}
-.button-like:hover { background-color: #138496; }
-#saveDataButton { background-color: #28a745; /* Successカラー */ }
-#saveDataButton:hover { background-color: #218838; }
-
-.info-message {
-    font-size: 0.9em;
-    color: #0c5460; /* より濃い青 */
-    background-color: #d1ecf1; /* 薄い青背景 */
-    border: 1px solid #bee5eb;
-    padding: 10px 15px; /* 少し余白を調整 */
-    border-radius: 4px;
-    margin-top:10px;
-}
-
-/* インラインフォーム (タグ追加など) */
-.inline-form {
-    display: flex;
-    align-items: center;
-    gap: 10px; /* 要素間の隙間 */
-    margin-bottom: 15px;
-}
-.inline-form input[type="text"] {
-    flex-grow: 1; /* 入力欄を可能な限り広げる */
+/* インラインフォーム内の短いセレクトボックス */
+.form-control-short {
+    flex-grow: 0.5; /* 他の要素とのバランスで調整 */
+    min-width: 150px;
 }
 
 
-/* タグボタンコンテナ */
-.tag-buttons-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px; /* タグ間の隙間 */
-    margin-top: 8px;
-    padding: 5px;
-    border: 1px solid #eee; /* 任意: 領域を分かりやすく */
-    border-radius: 4px;
-}
-.tag-buttons-container .tag-button {
-    background-color: #e9ecef; /* 薄いグレー */
-    color: #495057; /* やや濃いテキスト */
-    border: 1px solid #ced4da;
-    padding: 6px 12px;
-    margin: 0; /* gapで制御するので個別マージン不要 */
-    border-radius: 20px; /* 丸みを強く */
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    font-size: 0.9em;
-    display: inline-flex; /* アイコンとテキストを並べる */
-    align-items: center;
-}
-.tag-buttons-container .tag-button:hover {
-    background-color: #dee2e6;
-    border-color: #adb5bd;
-}
-.tag-buttons-container .tag-button.selected { /* アイテムフォームで選択されたタグ */
-    background-color: #007bff;
-    color: white;
-    border-color: #0056b3;
-}
-.tag-buttons-container .tag-button .action-icon { /* 編集・削除アイコン共通 */
-    margin-left: 8px;
-    font-weight: bold;
-    font-size: 1.1em; /* アイコンサイズ調整 */
-    padding: 2px 4px; /* クリックしやすく */
-    border-radius: 50%; /* 丸く */
-}
-.tag-buttons-container .tag-button .edit-icon { color: #218838; }
-.tag-buttons-container .tag-button .edit-icon:hover { background-color: rgba(40, 167, 69, 0.1); }
-.tag-buttons-container .tag-button .delete-icon { color: #c82333; }
-.tag-buttons-container .tag-button .delete-icon:hover { background-color: rgba(220, 53, 69, 0.1); }
-
-
-/* アイテム一覧テーブル */
-#itemsTable {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    font-size: 0.95em;
-}
-#itemsTable th, #itemsTable td {
-    border: 1px solid #dee2e6;
-    padding: 10px 12px; /* セルの余白を調整 */
-    text-align: left;
+button, .button-like {
+    background-color: #007bff; color: white; padding: 10px 18px;
+    border: none; border-radius: 4px; cursor: pointer;
+    margin-right: 8px; font-size: 1em; transition: background-color 0.2s;
     vertical-align: middle;
 }
-#itemsTable th {
-    background-color: #f8f9fa; /* テーブルヘッダー背景 */
-    font-weight: bold;
-    color: #495057;
+button:hover, .button-like:hover { background-color: #0056b3; }
+
+button[type="button"], #clearFormButton { background-color: #6c757d; }
+button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62; }
+
+/* 編集・削除ボタン汎用スタイル */
+.action-button {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    margin-left: 5px;
+    color: white !important;
+    border: none;
 }
+.action-button.edit, .edit-item, .edit-category, .edit-tag { /* 既存のクラス名も考慮 */
+    background-color: #28a745 !important;
+}
+.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover {
+    background-color: #218838 !important;
+}
+.action-button.delete, .delete-item, .delete-category, .delete-tag {
+    background-color: #dc3545 !important;
+}
+.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover {
+    background-color: #c82333 !important;
+}
+
+.info { font-size: 0.85em; color: #6c757d; margin-top: 6px; line-height: 1.4; }
+
+.info-message {
+    font-size: 0.9em; color: #0c5460; background-color: #d1ecf1;
+    border: 1px solid #bee5eb; padding: 10px 15px;
+    border-radius: 4px; margin-top:10px;
+}
+
+.inline-form { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+.inline-form input[type="text"] { flex-grow: 1; }
+.inline-form select { width: auto; flex-grow: 0.5; } /* selectの幅を調整 */
+
+
+/* リスト表示用コンテナ (カテゴリ、タグ共通) */
+.list-container {
+    margin-top: 15px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 10px;
+    max-height: 300px; /* スクロール可能にする場合 */
+    overflow-y: auto;
+}
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.list-item:last-child { border-bottom: none; }
+.list-item span { flex-grow: 1; }
+
+
+.tag-buttons-container {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+    padding: 5px; border: 1px solid #eee; border-radius: 4px;
+}
+.tag-buttons-container .tag-button {
+    background-color: #e9ecef; color: #495057; border: 1px solid #ced4da;
+    padding: 6px 12px; margin: 0; border-radius: 20px; cursor: pointer;
+    transition: all 0.2s ease-in-out; font-size: 0.9em;
+    display: inline-flex; align-items: center;
+}
+.tag-buttons-container .tag-button:hover {
+    background-color: #dee2e6; border-color: #adb5bd;
+}
+.tag-buttons-container .tag-button.selected {
+    background-color: #007bff; color: white; border-color: #0056b3;
+}
+
+
+#itemsTable {
+    width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95em;
+}
+#itemsTable th, #itemsTable td {
+    border: 1px solid #dee2e6; padding: 10px 12px;
+    text-align: left; vertical-align: middle;
+}
+#itemsTable th { background-color: #f8f9fa; font-weight: bold; color: #495057; }
 #itemsTable img {
-    max-width: 60px; /* 画像サイズ少し大きく */
-    max-height: 60px;
-    object-fit: cover;
-    background-color: #e9ecef; /* 画像がない場合の背景 */
-    border-radius: 3px;
-    border: 1px solid #ddd; /* 画像に枠線 */
+    max-width: 60px; max-height: 60px; object-fit: cover;
+    background-color: #e9ecef; border-radius: 3px; border: 1px solid #ddd;
 }
-#itemsTable td button {
-    margin-right: 5px;
-    padding: 5px 8px; /* テーブル内ボタンのサイズ調整 */
-    font-size: 0.85em;
-}
+#itemsTable td button { margin-right: 5px; /* action-buttonスタイルが適用される */ }
 #itemsTable td button:last-child { margin-right: 0; }
 
 
-/* 画像プレビュー */
 #itemImagePreview {
-    display: block; /* ブロック要素に */
-    margin-top: 10px;
-    border: 1px solid #ced4da;
-    padding: 5px; /* 枠線との間に余白 */
-    background-color: #f8f9fa;
+    display: block; margin-top: 10px; border: 1px solid #ced4da;
+    padding: 5px; background-color: #f8f9fa;
 }
+#uploadProgressContainer { margin-top: 10px; }
+#uploadProgress { width: 100%; height: 20px; margin-bottom: 5px; }
+#uploadProgressText { font-size: 0.9em; color: #495057; }
 
-/* モーダルスタイル */
 .modal {
-    position: fixed;
-    z-index: 10001; /* パスワードプロンプトよりさらに手前 */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.6); /* 背景を少し濃く */
-    display: flex; /* flexを使って中央配置 */
-    align-items: center;
-    justify-content: center;
+    position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%;
+    overflow: auto; background-color: rgba(0,0,0,0.6); display: flex;
+    align-items: center; justify-content: center;
 }
 .modal-content {
-    background-color: #fff; /* 背景白 */
-    margin: auto; /* 中央配置のため */
-    padding: 25px 30px; /* 余白調整 */
-    border: none; /* 枠線は影で表現 */
-    width: 90%;
-    max-width: 550px; /* モーダルの最大幅 */
-    border-radius: 8px;
-    position: relative;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    animation: fadeInModal 0.3s ease-out; /* フェードインアニメーション */
+    background-color: #fff; margin: auto; padding: 25px 30px;
+    border: none; width: 90%; max-width: 550px; border-radius: 8px;
+    position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    animation: fadeInModal 0.3s ease-out;
 }
-
 @keyframes fadeInModal {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 .modal-content h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 1.5em;
-    color: #343a40;
-    border-bottom: 1px solid #eee; /* 見出し下に区切り線 */
-    padding-bottom: 10px;
+    margin-top: 0; margin-bottom: 20px; font-size: 1.5em; color: #343a40;
+    border-bottom: 1px solid #eee; padding-bottom: 10px;
 }
-
-
 .close-button {
-    color: #6c757d; /* 少し濃いめのグレー */
-    position: absolute;
-    top: 15px; /* 位置調整 */
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    line-height: 1; /* 行の高さを調整 */
+    color: #6c757d; position: absolute; top: 15px; right: 20px;
+    font-size: 28px; font-weight: bold; line-height: 1;
 }
-.close-button:hover,
-.close-button:focus {
-    color: #343a40; /* ホバー時さらに濃く */
-    text-decoration: none;
-    cursor: pointer;
+.close-button:hover, .close-button:focus {
+    color: #343a40; text-decoration: none; cursor: pointer;
 }
 
-/* ヘルパーアイコン */
-.icon {
-    margin-right: 7px; /* アイコンとテキストの間の余白 */
-    font-size: 1.1em; /* アイコンサイズを少し大きく */
-}
+.icon { margin-right: 7px; font-size: 1.1em; }
 
-/* レスポンシブ対応 (簡易) */
 @media (max-width: 768px) {
-    .container {
-        margin: 15px;
-        padding: 15px;
-    }
-    header h1 {
-        font-size: 1.5em;
-    }
-    .inline-form {
-        flex-direction: column; /* 縦積みに変更 */
-        align-items: stretch; /* 幅を親に合わせる */
-    }
-    .inline-form input[type="text"] {
-        width: 100%; /* 明示的に幅を指定 */
-    }
-    .inline-form button {
-        width: 100%; /* ボタンも幅いっぱいに */
-        margin-top: 5px;
-    }
-    #data-io .io-buttons {
-        flex-direction: column; /* 縦積み */
-    }
-    #data-io .io-buttons .button-like,
-    #data-io .io-buttons button {
-        width: 100%;
-        margin-right: 0; /* 横並び用のマージン解除 */
-    }
-    .modal-content {
-        width: 95%;
-        padding: 20px;
-    }
+    .container { margin: 15px; padding: 15px; }
+    header h1 { font-size: 1.5em; }
+    .inline-form { flex-direction: column; align-items: stretch; }
+    .inline-form input[type="text"], .inline-form select { width: 100%; }
+    .inline-form button { width: 100%; margin-top: 5px; }
+    .modal-content { width: 95%; padding: 20px; }
+    #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
+    #itemsTable img { max-width: 40px; max-height: 40px; }
+    #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
+    #itemSearchAdmin { width: 100% !important; }
 }
