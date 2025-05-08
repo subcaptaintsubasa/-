@@ -7,6 +7,25 @@ body {
 }
 h1 { text-align: center; color: #333; margin-bottom: 30px; } 
 
+/* ★メインコントロールエリア */
+.main-controls {
+    text-align: center; /* ボタンを中央寄せ */
+    margin-bottom: 20px;
+}
+#openSimulatorButton {
+    padding: 12px 25px;
+    font-size: 1.1em;
+    background-color: #17a2b8; /* Info color */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#openSimulatorButton:hover {
+    background-color: #138496;
+}
+
 .section-divider {
     border: 0;
     height: 1px;
@@ -14,18 +33,17 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     margin: 40px 0; 
 }
 
-/* --- 装備構成シミュレーター --- */
-.simulator-section {
-    margin-bottom: 30px;
+/* --- 装備構成シミュレーター (モーダル内) --- */
+.simulator-modal .modal-content {
+    max-width: 900px; /* モーダル幅調整 */
 }
-.simulator-section h2 {
+.simulator-section h2 { /* モーダル内のH2 */
      font-size: 1.4em;
      color: #333;
      margin-bottom: 20px;
      border-bottom: 2px solid #007bff;
      padding-bottom: 5px;
 }
-
 .equipment-slots {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
@@ -37,32 +55,24 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     padding: 15px;
     border: 1px solid #eee;
     border-radius: 5px;
-    display: flex; /* ラベルと表示エリアを分けるため */
+    display: flex; 
     flex-direction: column;
 }
 .slot label {
-    /* display: block; */ /* flex-direction:columnで不要に */
     margin-bottom: 8px;
     font-weight: bold;
     color: #555;
 }
-/* ★ .item-select は削除されたのでスタイル不要 */
-/*
-.slot .item-select {
-    width: 100%; padding: 8px 10px; margin-bottom: 10px;
-    border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
-}
-*/
 .selected-item-display {
     display: flex;
     align-items: center;
     min-height: 40px; 
     background-color: #fff;
-    padding: 8px; /* 少し余白を増やす */
+    padding: 8px; 
     border: 1px dashed #ddd;
     border-radius: 4px;
-    flex-grow: 1; /* 高さを揃えるため */
-    position: relative; /* ボタン配置のため */
+    flex-grow: 1; 
+    position: relative; 
 }
 .selected-item-display .slot-image {
     width: 35px;
@@ -71,19 +81,17 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     margin-right: 10px;
     background-color: #f0f0f0;
     border-radius: 3px;
-    flex-shrink: 0; /* 画像が縮まないように */
+    flex-shrink: 0; 
 }
 .selected-item-display .slot-item-name {
     font-size: 0.95em;
     color: #333;
-    flex-grow: 1; /* 名前表示エリアを広げる */
-    margin-right: 5px; /* ボタンとの間隔 */
-    /* 長い名前の折り返し */
+    flex-grow: 1; 
+    margin-right: 5px; 
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap; 
 }
-/* ★アイテム選択/解除ボタンのスタイル */
 .select-item-button, .clear-item-button {
     padding: 4px 8px;
     font-size: 0.8em;
@@ -99,14 +107,13 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     background-color: #ddd;
 }
 .clear-item-button {
-    background-color: #f8d7da; /* 赤系の背景 */
+    background-color: #f8d7da; 
     border-color: #f5c6cb;
-    color: #721c24; /* 暗い赤 */
+    color: #721c24; 
 }
 .clear-item-button:hover {
      background-color: #f5c6cb;
 }
-
 
 .calculation-result-area {
     margin-top: 20px;
@@ -136,6 +143,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     margin-top: 20px;
     display: flex;
     gap: 10px;
+    justify-content: flex-end; /* ボタンを右寄せ */
 }
 #saveImageButton, #resetSimulatorButton {
      padding: 10px 20px;
@@ -159,15 +167,15 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
      background-color: #c82333;
 }
 
-/* ★画像出力用エリアのスタイル（通常は非表示） */
+/* 画像出力用エリアのスタイル（通常は非表示） */
 .image-export-container {
     position: absolute; 
-    left: -9999px; /* 画面外に */
-    width: 600px; /* 出力画像の幅 */
+    left: -9999px; 
+    width: 600px; 
     background: white; 
     padding: 20px; 
     border: 1px solid black; 
-    font-family: sans-serif; /* フォント指定 */
+    font-family: sans-serif; 
     color: #333;
     line-height: 1.5;
 }
@@ -179,7 +187,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 }
 .export-slots-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2列表示 */
+    grid-template-columns: repeat(2, 1fr); 
     gap: 10px;
     margin-bottom: 15px;
 }
@@ -189,7 +197,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     font-size: 0.9em;
 }
 .export-slot-item strong {
-    min-width: 40px; /* ラベル幅を揃える */
+    min-width: 40px; 
 }
 .export-item-image {
     width: 25px;
@@ -201,7 +209,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     background-color: #eee;
     border: 1px solid #ddd;
 }
-#exportEffects ul { /* 効果リストのスタイル */
+#exportEffects ul { 
      list-style: disc;
      padding-left: 20px;
      margin: 0;
@@ -210,7 +218,6 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 #exportEffects li {
      margin-bottom: 4px;
 }
-
 
 
 /* --- アイテム検索ツール --- */
@@ -229,6 +236,23 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc;
     border-radius: 4px; box-sizing: border-box;
 }
+/* ★検索ツール連携中のスタイル */
+.search-controls.selecting-mode .parent-category-filters,
+.search-controls.selecting-mode #childCategoriesAndTagsContainer {
+    opacity: 0.5; /* 半透明に */
+    pointer-events: none; /* クリック無効化 */
+}
+.search-tool-message {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border: 1px solid #bee5eb;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9em;
+}
+
 .parent-category-filters {
     margin-bottom: 20px;
     padding-bottom: 15px;
@@ -252,9 +276,13 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     border-radius: 20px;
     cursor: pointer;
     font-size: 0.95em;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
 }
-.category-filter-button:hover {
+.category-filter-button.disabled { /* ★無効化スタイル */
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.category-filter-button:hover:not(.disabled) { /* ★無効化時はホバー効果なし */
     background-color: #dee2e6;
     border-color: #adb5bd;
 }
@@ -267,6 +295,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     margin-top: 15px;
     margin-bottom: 20px;
     padding-bottom: 15px;
+    transition: opacity 0.2s; /* ★フェード効果 */
 }
 .child-category-section {
     margin-bottom: 15px;
@@ -307,7 +336,14 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     border-radius: 15px;
     cursor: pointer;
     font-size: 0.85em;
-    transition: background-color 0.2s, color 0.2s;
+    transition: background-color 0.2s, color 0.2s, opacity 0.2s;
+}
+.tag-filter.disabled { /* ★無効化スタイル */
+     opacity: 0.5;
+     cursor: not-allowed;
+}
+.tag-filter:hover:not(.disabled) { /* ★無効化時はホバー効果なし */
+     background-color: #e0e0e0;
 }
 .tag-filter.active {
     background-color: #28a745; 
@@ -334,8 +370,23 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 .item-card {
     background-color: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
     padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.07);
-    display: flex; flex-direction: column; transition: box-shadow 0.2s ease-in-out;
+    display: flex; flex-direction: column; transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
+/* ★シミュレータ連携中の選択可能スタイル */
+.item-card.selectable {
+    cursor: pointer;
+    border-color: #80bdff; /* 選択可能であることを示す枠線 */
+}
+.item-card.selectable:hover {
+     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2); /* ホバー効果 */
+}
+/* ★シミュレータ連携中の選択中スタイル */
+.item-card.selected-for-simulator {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5); /* 選択中ハイライト */
+    background-color: #e7f3ff;
+}
+
 .item-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 .item-card img {
     width: 120px; height: 120px; object-fit: cover; border-radius: 4px;
@@ -371,57 +422,65 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 }
 .item-card .structured-effects li { margin-bottom: 3px; }
 
-/* --- アイテム選択モーダル --- */
+/* ★アイテム選択モーダル */
+.modal.item-select-modal { /* 既存のモーダルスタイルを継承しつつ */ }
 .item-select-modal .modal-content {
-     max-width: 700px; /* モーダルの幅を少し広げる */
+     max-width: 80%; /* 幅を広げる */
+     max-height: 80vh; /* 高さを制限 */
+     display: flex; /* 中身のレイアウトのため */
+     flex-direction: column;
 }
-.item-select-modal-content h3 {
-     margin-bottom: 15px;
-}
+.item-select-modal-content h3 { margin-bottom: 15px; }
 #itemSelectModalSearch {
-     width: 100%;
-     padding: 10px;
-     margin-bottom: 15px;
-     border: 1px solid #ccc;
-     border-radius: 4px;
-     box-sizing: border-box;
+     width: 100%; padding: 10px; margin-bottom: 15px;
+     border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
 }
 .item-select-list {
-     max-height: 400px; /* 高さを制限してスクロール */
+     flex-grow: 1; /* 残りの高さを埋める */
      overflow-y: auto;
      display: grid;
-     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* アイテムをグリッド表示 */
-     gap: 10px;
+     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* 列数を調整 */
+     gap: 15px; /* 少し広めに */
+     padding-right: 10px; /* スクロールバー用 */
 }
 .item-select-modal-item {
-     display: flex;
-     flex-direction: column; /* 画像と名前を縦に */
-     align-items: center;
-     padding: 10px;
-     border: 1px solid #eee;
-     border-radius: 5px;
-     cursor: pointer;
-     transition: background-color 0.2s, box-shadow 0.2s;
-     text-align: center;
+     display: flex; flex-direction: column; align-items: center;
+     padding: 10px; border: 1px solid #eee; border-radius: 5px;
+     cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s;
+     text-align: center; background-color: #fff;
 }
 .item-select-modal-item:hover {
-     background-color: #f0f8ff; /* AliceBlue */
+     background-color: #f0f8ff; 
      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 .item-select-modal-item img {
-     width: 60px; /* モーダル内の画像サイズ */
-     height: 60px;
-     object-fit: cover;
-     margin-bottom: 8px;
-     border-radius: 4px;
-     background-color: #eee;
+     width: 60px; height: 60px; object-fit: cover; margin-bottom: 8px;
+     border-radius: 4px; background-color: #eee;
 }
 .item-select-modal-item span {
-     font-size: 0.9em;
-     color: #333;
-     word-break: break-word; /* 長い名前を折り返す */
+     font-size: 0.9em; color: #333; word-break: break-word;
 }
 
+/* ★選択決定ボタン */
+.confirm-selection-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 25px;
+    font-size: 1.1em;
+    background-color: #28a745; /* 緑色 */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 1000; /* 他の要素より手前に */
+    transition: opacity 0.3s, transform 0.3s;
+}
+.confirm-selection-button:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+}
 
 
 @media (max-width: 768px) {
@@ -430,8 +489,8 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
         gap: 15px;
     }
     .slot { padding: 10px; }
-    .simulator-actions { flex-direction: column; }
-    #saveImageButton, #resetSimulatorButton { width: 100%; margin-right: 0;} /* margin-right解除 */
+    .simulator-actions { flex-direction: column; align-items: stretch; } /* ボタンを縦積み、幅いっぱいに */
+    #saveImageButton, #resetSimulatorButton { width: 100%; margin-right: 0;} 
     
     .category-button-group { justify-content: center; }
     .child-category-section { padding: 8px; }
@@ -439,8 +498,14 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     .tag-filters-inline { gap: 6px; }
     .tag-filter { padding: 5px 8px; font-size: 0.8em; }
     
-    /* アイテム選択モーダル */
-    .item-select-modal .modal-content { max-width: 90%; }
-    .item-select-list { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); } /* スマホでは列数を増やす */
+    .item-select-modal .modal-content { max-width: 95%; }
+    .item-select-list { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); } 
     .item-select-modal-item img { width: 50px; height: 50px; }
+
+     .confirm-selection-button { /* スマホでは少し小さく */
+        padding: 10px 20px;
+        font-size: 1em;
+        right: 10px;
+        bottom: 10px;
+    }
 }
