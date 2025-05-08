@@ -57,7 +57,7 @@ h3 { font-size: 1.3em; }
     display: block; margin-bottom: 6px; font-weight: bold; color: #495057;
 }
 .form-group input[type="text"],
-.form-group input[type="number"], /* ★numberタイプも */
+.form-group input[type="number"], 
 .form-group input[type="url"],
 .form-group input[type="file"],
 .form-group textarea,
@@ -67,7 +67,7 @@ h3 { font-size: 1.3em; }
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .form-group input[type="text"]:focus,
-.form-group input[type="number"]:focus, /* ★numberタイプも */
+.form-group input[type="number"]:focus, 
 .form-group input[type="url"]:focus,
 .form-group input[type="file"]:focus,
 .form-group textarea:focus,
@@ -80,7 +80,7 @@ h3 { font-size: 1.3em; }
 .form-control-short { 
     max-width: 300px; 
     width: auto; 
-    display: inline-block; /* 横並びのため */
+    display: inline-block; 
     vertical-align: middle;
     margin-right: 8px;
 }
@@ -134,19 +134,18 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border: none;
     border-radius: 4px; 
 }
-.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type { /* 効果種類編集ボタンも */
+.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type { 
     background-color: #28a745 !important;
 }
 .action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover {
     background-color: #218838 !important;
 }
-.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list { /* 効果種類削除、リストからの効果削除も */
+.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list { 
     background-color: #dc3545 !important;
 }
 .action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-from-list:hover {
     background-color: #c82333 !important;
 }
-/* リストからの削除ボタンは小さめに */
 .delete-effect-from-list {
     padding: 2px 6px;
     font-size: 0.8em;
@@ -166,7 +165,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     display: flex; align-items: center; gap: 10px; margin-bottom: 15px; 
 }
 .inline-form input[type="text"] { flex-grow: 1; }
-.inline-form select { /* width: auto; flex-grow: 0.5; */ /* 使わなくなった */ }
+.inline-form select { /* width: auto; flex-grow: 0.5; */ }
 
 
 .list-container {
@@ -254,7 +253,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-color: #1e7e34;
 }
 
-/* ★アイテムフォームの効果入力エリア */
+/* アイテムフォームの効果入力エリア */
 .effect-input-area {
     border: 1px solid #e0e0e0;
     padding: 15px;
@@ -263,23 +262,27 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .effect-input-row {
     display: flex;
+    flex-wrap: wrap; /* スマホ用に折り返しを許可 */
     gap: 8px;
     align-items: center;
     margin-bottom: 15px;
 }
 .effect-input-row select,
 .effect-input-row input {
-    flex: 1; /* ある程度均等に幅をとる */
+    flex: 1 1 120px; /* 基本幅120pxで伸縮 */
 }
 .effect-input-row button {
-    flex-shrink: 0; /* ボタンは縮まない */
+    flex-shrink: 0; 
+    margin-left: auto; /* 右端に寄せる */
 }
 
-/* ★アイテムフォームの効果リスト表示エリア */
+/* アイテムフォームの効果リスト表示エリア */
 .effects-list-container {
     margin-top: 10px;
     border-top: 1px dashed #ccc;
     padding-top: 10px;
+    max-height: 150px; /* 高さ制限とスクロール */
+    overflow-y: auto;
 }
 .effect-list-item {
     display: flex;
@@ -354,16 +357,23 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
     header h1 { font-size: 1.5em; }
+    .inline-form { /* 現在不使用 */
+       /* flex-direction: column; align-items: stretch; */
+       /* input[type="text"], select { width: 100%; } */
+       /* button { width: 100%; margin-top: 5px; } */
+    }
     .modal-content { width: 95%; padding: 20px; }
     #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
     #itemSearchAdmin { width: 100% !important; }
     .category-button-group.admin { justify-content: flex-start; } 
-    .effect-input-row { flex-direction: column; gap: 10px; }
+    .effect-input-row { flex-direction: column; gap: 10px; align-items: stretch; } /* スマホでは縦積み */
     .effect-input-row select, .effect-input-row input, .effect-input-row button {
         width: 100%;
         margin-right: 0;
         max-width: none; /* .form-control-short の max-width を上書き */
+        flex-basis: auto; /* flex:1 の設定をリセット */
     }
+     .effect-input-row button { margin-left: 0; } /* 右寄せ解除 */
 }
