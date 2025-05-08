@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editingCategoryParentButtons = document.getElementById('editingCategoryParentButtons'); 
     const selectedEditingParentCategoryIdInput = document.getElementById('selectedEditingParentCategoryId'); 
     const editingCategoryTagsSelector = document.getElementById('editingCategoryTagsSelector'); 
-    const tagSearchModeGroup = document.getElementById('tagSearchModeGroup'); // ★追加
-    const editingTagSearchModeSelect = document.getElementById('editingTagSearchMode'); // ★追加
+    const tagSearchModeGroup = document.getElementById('tagSearchModeGroup'); 
+    const editingTagSearchModeSelect = document.getElementById('editingTagSearchMode'); 
     const saveCategoryEditButton = document.getElementById('saveCategoryEditButton');
 
     // Tag Management
@@ -129,8 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editingCategoryParentButtons) editingCategoryParentButtons.innerHTML = '';
         if (selectedEditingParentCategoryIdInput) selectedEditingParentCategoryIdInput.value = '';
         if (editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = ''; 
-        if (tagSearchModeGroup) tagSearchModeGroup.style.display = 'none'; // 検索モードも隠す
-        if (editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND'; // デフォルトに戻す
+        if (tagSearchModeGroup) tagSearchModeGroup.style.display = 'none'; 
+        if (editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND'; 
         
         if (tagListContainer) tagListContainer.innerHTML = '';
         if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = ''; 
@@ -205,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 buttonContainer.appendChild(button);
             });
         
+        // hidden input の値も初期化時に確実に設定
         hiddenInput.value = selectedParentId;
     }
 
@@ -216,12 +217,14 @@ document.addEventListener('DOMContentLoaded', () => {
         hiddenInput.value = parentId;
         console.log("[Category Parent Select] Selected Parent ID:", parentId);
 
-        // ★カテゴリ編集モーダルでのみ、親カテゴリ選択時に検索モード表示/非表示を切り替え
+        // カテゴリ編集モーダルでのみ、親カテゴリ選択時に検索モード表示/非表示を切り替え
         if (container === editingCategoryParentButtons) {
-            if (parentId === "") { // 最上位カテゴリ選択時 (つまり編集対象が親になる場合)
+            if (parentId === "") { 
                 if (tagSearchModeGroup) tagSearchModeGroup.style.display = 'none';
-            } else { // 既存の親カテゴリ選択時 (つまり編集対象が子になる場合)
+            } else { 
                  if (tagSearchModeGroup) tagSearchModeGroup.style.display = 'block';
+                 // 新しく子カテゴリにする場合、デフォルトは'AND'にする
+                 if (editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND';
             }
         }
     }
@@ -236,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayInfo = "(親)"; 
             } else {
                 const parentCategory = allCategoriesCache.find(p => p.id === category.parentId);
-                const parentName = parentCategory ? parentCategory.name : '不明'; // 不明を追加
+                const parentName = parentCategory ? parentCategory.name : '不明'; 
                 displayInfo = `(子, 親: ${parentName})`; 
             }
             
@@ -255,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', (e) => {
                 const catId = e.currentTarget.dataset.categoryId;
                 const catToEdit = allCategoriesCache.find(c => c.id === catId);
-                if (catToEdit) openEditCategoryModal(catToEdit); // オブジェクトごと渡す
+                if (catToEdit) openEditCategoryModal(catToEdit); 
             });
         });
         categoryListContainer.querySelectorAll('.delete-category').forEach(btn => {
@@ -276,22 +279,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!existingQuery.empty) { alert("同じ名前のカテゴリが既に存在します。"); return; }
             
             try {
-                // ★追加: 子カテゴリの場合、デフォルトでAND検索モードを設定
                 const categoryData = { 
                     name: name,
                     parentId: parentId || "", 
                     createdAt: serverTimestamp()
                 };
-                if (parentId) { // 子カテゴリの場合のみ追加
-                    categoryData.tagSearchMode = 'AND'; // デフォルト値
+                if (parentId) { 
+                    categoryData.tagSearchMode = 'AND'; // 子カテゴリはデフォルトAND
                 }
 
                 await addDoc(collection(db, 'categories'), categoryData);
                 console.log("[Category Add] Category added successfully.");
                 newCategoryNameInput.value = '';
-                populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput); 
                 
-                await loadInitialData(); // 全データ再読み込み＆再描画
+                // ★データを再取得してUIを再描画
+                await loadCategoriesFromFirestore(); // カテゴリデータを再取得
+                populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput); // 新規追加欄のボタン更新
+                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); // タグ追加欄のチェックボックス更新
+                renderCategoriesForManagement(); // カテゴリリスト更新
+                
+                // モーダルが開いていれば、そこも更新
+                if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
+                     const currentlyEditingCatId = editingCategoryDocIdInput.value;
+                     const currentlyEditingCat = allCategoriesCache.find(c => c.id === currentlyEditingCatId);
+                     if(currentlyEditingCat) {
+                        populateParentCategoryButtons(editingCategoryParentButtons, selectedEditingParentCategoryIdInput, { currentCategoryIdToExclude: currentlyEditingCatId, selectedParentId: currentlyEditingCat.parentId || "" });
+                     }
+                }
+                 if (editTagModal.style.display === 'flex' && editingTagDocIdInput.value) {
+                    const tagToRePopulate = allTagsCache.find(t => t.id === editingTagDocIdInput.value);
+                    populateCategoryCheckboxesForTagAssignment(editingTagCategoriesCheckboxes, tagToRePopulate ? (tagToRePopulate.categoryIds || []) : []);
+                }
+
 
             } catch (error) {
                 console.error("[Category Add] Error:", error);
@@ -300,12 +319,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ★引数をカテゴリオブジェクトに変更
     function openEditCategoryModal(category) { 
         const docId = category.id;
         const currentName = category.name;
         const currentParentId = category.parentId || "";
-        const currentTagSearchMode = category.tagSearchMode || 'AND'; // デフォルトはAND
+        const currentTagSearchMode = category.tagSearchMode || 'AND'; 
 
         console.log(`[Category Edit] Opening modal for ID: ${docId}, Name: ${currentName}, ParentID: ${currentParentId}, Mode: ${currentTagSearchMode}`);
         editingCategoryDocIdInput.value = docId;
@@ -314,11 +332,10 @@ document.addEventListener('DOMContentLoaded', () => {
         populateParentCategoryButtons(editingCategoryParentButtons, selectedEditingParentCategoryIdInput, { currentCategoryIdToExclude: docId, selectedParentId: currentParentId });
         populateTagsForCategoryEdit(editingCategoryTagsSelector, docId);
 
-        // ★検索モードの表示/非表示と値設定
-        if (currentParentId) { // 子カテゴリの場合
+        if (currentParentId) { 
             if(tagSearchModeGroup) tagSearchModeGroup.style.display = 'block';
             if(editingTagSearchModeSelect) editingTagSearchModeSelect.value = currentTagSearchMode;
-        } else { // 親カテゴリの場合
+        } else { 
              if(tagSearchModeGroup) tagSearchModeGroup.style.display = 'none';
         }
 
@@ -333,6 +350,13 @@ document.addEventListener('DOMContentLoaded', () => {
             containerElement.innerHTML = '<p>タグがありません。</p>';
             return;
         }
+        // ★子カテゴリの場合のみタグ選択を表示（親カテゴリは子を管理するだけ）
+        const category = allCategoriesCache.find(c => c.id === categoryId);
+        if (!category || !category.parentId) { // 親カテゴリの場合
+             containerElement.innerHTML = '<p>親カテゴリには直接タグを紐付けません。</p>';
+             return;
+        }
+        // 子カテゴリの場合、タグ選択を表示
         allTagsCache.forEach(tag => {
             const button = document.createElement('div');
             button.classList.add('tag-filter', 'admin-tag-select'); 
@@ -353,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const docId = editingCategoryDocIdInput.value; 
             const newName = editingCategoryNameInput.value.trim();
             const newParentId = selectedEditingParentCategoryIdInput.value; 
-            const newTagSearchMode = editingTagSearchModeSelect.value; // ★追加
+            const newTagSearchMode = editingTagSearchModeSelect.value; 
             const selectedTagIds = Array.from(editingCategoryTagsSelector.querySelectorAll('.tag-filter.active'))
                                          .map(btn => btn.dataset.tagId);
             
@@ -384,38 +408,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const batch = writeBatch(db);
-
-                // 1. カテゴリ自体の更新データ準備
                 const categoryUpdateData = { 
                     name: newName,
                     parentId: newParentId || ""
                 };
-                // ★追加: 親カテゴリでなくなった場合、または親カテゴリの場合は検索モードを削除or設定しない
-                if (newParentId) {
+                if (newParentId) { // 子カテゴリの場合のみ検索モードを設定
                      categoryUpdateData.tagSearchMode = newTagSearchMode;
                 } else {
-                    // 親カテゴリになる場合、tagSearchMode フィールド自体を削除するか、nullなどを設定
-                    // Firestoreでフィールドを削除するには、update時にそのキーを含めないか、
-                    // deleteField() を使う必要があるが、ここでは含めないことで対応（もしフィールドが残っても問題ない場合）
-                    // 確実に消したい場合は getDoc してデータを確認し、キーが存在すれば deleteField() を使う
-                    // categoryUpdateData.tagSearchMode = deleteField(); // より確実な削除方法 (要 import { deleteField } from "firebase/firestore";)
-                    // 今回は update に含めないことで対応
+                    // 親カテゴリになった場合、検索モードフィールドを削除（ update に含めない）
+                    // 確実に削除したい場合は deleteField() を使う
                 }
                 batch.update(doc(db, 'categories', docId), categoryUpdateData);
 
-                // 2. タグの categoryIds を更新
-                const tagsBefore = allTagsCache.filter(tag => tag.categoryIds && tag.categoryIds.includes(docId)).map(t => t.id);
-                const tagsToAdd = selectedTagIds.filter(id => !tagsBefore.includes(id));
-                const tagsToRemove = tagsBefore.filter(id => !selectedTagIds.includes(id));
+                // タグ更新ロジック（カテゴリが子の場合のみ実行）
+                if (newParentId) {
+                     const tagsBefore = allTagsCache.filter(tag => tag.categoryIds && tag.categoryIds.includes(docId)).map(t => t.id);
+                     const tagsToAdd = selectedTagIds.filter(id => !tagsBefore.includes(id));
+                     const tagsToRemove = tagsBefore.filter(id => !selectedTagIds.includes(id));
 
-                tagsToAdd.forEach(tagId => {
-                    batch.update(doc(db, 'tags', tagId), { categoryIds: arrayUnion(docId) });
-                    console.log(`[Category Edit] Adding category ${docId} to tag ${tagId}`);
-                });
-                tagsToRemove.forEach(tagId => {
-                     batch.update(doc(db, 'tags', tagId), { categoryIds: arrayRemove(docId) });
-                    console.log(`[Category Edit] Removing category ${docId} from tag ${tagId}`);
-                });
+                     tagsToAdd.forEach(tagId => {
+                         batch.update(doc(db, 'tags', tagId), { categoryIds: arrayUnion(docId) });
+                     });
+                     tagsToRemove.forEach(tagId => {
+                          batch.update(doc(db, 'tags', tagId), { categoryIds: arrayRemove(docId) });
+                     });
+                } else {
+                    // 親カテゴリになる場合は、以前このカテゴリに属していたタグからこのカテゴリIDを削除
+                    const tagsToRemoveLink = allTagsCache.filter(tag => tag.categoryIds && tag.categoryIds.includes(docId)).map(t => t.id);
+                     tagsToRemoveLink.forEach(tagId => {
+                          batch.update(doc(db, 'tags', tagId), { categoryIds: arrayRemove(docId) });
+                          console.log(`[Category Edit] Removing category ${docId} from tag ${tagId} as it becomes a parent.`);
+                     });
+                }
 
                 await batch.commit();
                 console.log("[Category Edit] Category and associated tags updated successfully.");
@@ -487,12 +511,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // ★「子カテゴリ」だけでなく、全てのカテゴリを選択肢とする
         allCategoriesCache.forEach(category => {
             const checkboxId = `tag-cat-${category.id}-${containerElement.id.replace(/\W/g, '')}`;
             const checkboxWrapper = document.createElement('div');
             checkboxWrapper.classList.add('checkbox-item');
-            // カテゴリの階層情報をラベルに追加（任意）
             let labelText = category.name;
             if (category.parentId) {
                 const parentCat = allCategoriesCache.find(p => p.id === category.parentId);
