@@ -32,17 +32,34 @@ h1 {
 #searchInput {
     width: 100%; 
     padding: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 15px; /* 下の要素との間隔 */
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
 }
+
+.filter-group {
+    margin-bottom: 15px;
+}
+.filter-group label {
+    margin-right: 8px;
+    font-weight: bold;
+}
+#categoryFilterSelect {
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    min-width: 200px; /* ある程度の幅を確保 */
+}
+
 
 .tag-filters {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 10px;
+    min-height: 38px; /* タグがないときも高さをある程度保つ */
+    padding: 5px 0;
 }
 
 .tag-filter {
@@ -111,11 +128,31 @@ h1 {
     background-color: #eee; 
 }
 
+/* NoImageテキスト表示用スタイル */
+.item-image-text-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    align-self: center;
+    background-color: #f0f0f0; /* 少し明るい背景 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #888;
+    font-size: 1.1em;
+    font-weight: bold;
+    border: 1px dashed #ccc; /* 枠線でプレースホルダっぽく */
+    box-sizing: border-box;
+}
+
+
 .item-card h3 {
     margin-top: 0;
     margin-bottom: 10px;
     font-size: 1.25em;
     color: #0056b3;
+    word-break: break-word; /* 名前が長い場合に折り返す */
 }
 
 .item-card p {
@@ -124,6 +161,7 @@ h1 {
     line-height: 1.5;
     color: #444;
     flex-grow: 1; 
+    word-break: break-word; /* 効果などが長い場合に折り返す */
 }
 .item-card p strong {
     color: #333;
