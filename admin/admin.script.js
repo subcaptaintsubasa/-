@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadProgressContainer = document.getElementById('uploadProgressContainer');
     const uploadProgress = document.getElementById('uploadProgress');
     const uploadProgressText = document.getElementById('uploadProgressText');
+    // const itemEffectInput = document.getElementById('itemEffect'); // 削除済み
     const itemSourceInput = document.getElementById('itemSource');
     const itemTagsSelectorCheckboxes = document.getElementById('itemTagsSelectorCheckboxes'); 
     const saveItemButton = document.getElementById('saveItemButton');
@@ -156,16 +157,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (itemsTableBody) itemsTableBody.innerHTML = '';
         if (itemTagsSelectorCheckboxes) itemTagsSelectorCheckboxes.innerHTML = ''; 
-        clearItemForm(); // アイテムフォーム関連のクリアも含む
+        clearItemForm();
     }
 
     async function loadInitialData() {
         console.log("[Initial Load] Starting...");
+        // データのロード順を保証
         await loadEffectTypesFromFirestore(); 
         await loadCategoriesFromFirestore();
         await loadTagsFromFirestore();
-        await loadItemsFromFirestore(); // ★アイテムデータ読み込みを追加
+        await loadItemsFromFirestore();
         
+        // UIの生成・更新 (キャッシュが揃ってから実行)
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput); 
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
         populateTagCheckboxesForItemForm();
@@ -174,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCategoriesForManagement();
         renderTagsForManagement();
         renderEffectTypesForManagement(); 
-        renderItemsAdminTable(); // ★アイテムテーブル描画を追加
+        renderItemsAdminTable();
         console.log("[Initial Load] Completed.");
     }
 
@@ -207,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             effectTypeListContainer.appendChild(div);
         });
+        // Add event listeners
         effectTypeListContainer.querySelectorAll('.edit-effect-type').forEach(btn => {
             btn.addEventListener('click', (e) => openEditEffectTypeModal(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
         });
@@ -225,9 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await addDoc(collection(db, 'effect_types'), { name: name });
                 newEffectTypeNameInput.value = '';
-                await loadEffectTypesFromFirestore(); // データを再読込
-                renderEffectTypesForManagement();   // リストを再描画
-                populateEffectTypeSelect();         // アイテムフォームの選択肢も更新
+                await loadEffectTypesFromFirestore(); // 再取得
+                renderEffectTypesForManagement();   // リスト更新
+                populateEffectTypeSelect();         // プルダウン更新
             } catch (error) {
                 console.error("[Effect Types] Error adding:", error);
                 alert("効果種類の追加に失敗しました。");
@@ -239,7 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
         editingEffectTypeDocIdInput.value = id;
         editingEffectTypeNameInput.value = name;
         if (editEffectTypeModal) editEffectTypeModal.style.display = 'flex';
-        if (editingEffectTypeNameInput) editingEffectTypeNameInput.focus(); // フォーカスも設定
     }
 
      if (saveEffectTypeEditButton) {
@@ -253,11 +256,11 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await updateDoc(doc(db, 'effect_types', id), { name: newName });
                 if (editEffectTypeModal) editEffectTypeModal.style.display = 'none';
-                await loadEffectTypesFromFirestore();
-                renderEffectTypesForManagement();
-                populateEffectTypeSelect();
-                await loadItemsFromFirestore(); // アイテムテーブルの効果名表示更新のため
-                renderItemsAdminTable(); 
+                await loadEffectTypesFromFirestore(); // 再取得
+                renderEffectTypesForManagement();   // リスト更新
+                populateEffectTypeSelect();         // プルダウン更新
+                await loadItemsFromFirestore();     // アイテムリストの効果名表示更新のため
+                renderItemsAdminTable();            
             } catch (error) {
                  console.error("[Effect Types] Error updating:", error);
                  alert("効果種類の更新に失敗しました。");
@@ -269,11 +272,11 @@ document.addEventListener('DOMContentLoaded', () => {
          if (confirm(`効果種類「${name}」を削除しますか？\n注意: この効果種類を使用しているアイテムの効果設定は残りますが、種類名が表示されなくなります。`)) {
              try {
                  await deleteDoc(doc(db, 'effect_types', id));
-                 await loadEffectTypesFromFirestore();
-                 renderEffectTypesForManagement();
-                 populateEffectTypeSelect();
-                 await loadItemsFromFirestore(); 
-                 renderItemsAdminTable();
+                 await loadEffectTypesFromFirestore(); // 再取得
+                 renderEffectTypesForManagement();   // リスト更新
+                 populateEffectTypeSelect();         // プルダウン更新
+                 await loadItemsFromFirestore();     // アイテムリストの効果名表示更新のため
+                 renderItemsAdminTable();            
              } catch (error) {
                   console.error("[Effect Types] Error deleting:", error);
                   alert("効果種類の削除に失敗しました。");
@@ -343,8 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (container === editingCategoryParentButtons) {
              const isParent = (parentId === "");
              if (tagSearchModeGroup) tagSearchModeGroup.style.display = isParent ? 'none' : 'block';
-             if (editingCategoryTagsSelector) editingCategoryTagsSelector.closest('.form-group').style.display = isParent ? 'none' : 'block';
-             if (!isParent && editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND';
+             if (editingCategoryTagsSelector) editingCategoryTagsSelector.closest('.form-group').style.display = isParent ? 'none' : 'block'; 
+             if (!isParent && editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND'; 
         }
     }
     
@@ -361,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parentCategory = allCategoriesCache.find(p => p.id === category.parentId);
                 const parentName = parentCategory ? parentCategory.name : '不明'; 
                 displayInfo = `(子, 親: ${parentName})`; 
-                searchModeInfo = category.tagSearchMode === 'OR' ? ' (OR検索)' : ' (AND検索)'; // デフォルトAND表示
+                searchModeInfo = category.tagSearchMode === 'OR' ? ' (OR検索)' : ' (AND検索)';
             }
             
             const div = document.createElement('div');
@@ -413,8 +416,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("[Category Add] Category added successfully.");
                 newCategoryNameInput.value = '';
                 
-                // ★全データ再読み込み & UI全体再描画で対応（より確実）
-                await loadInitialData(); 
+                await loadCategoriesFromFirestore(); 
+                // ★親カテゴリボタン群を再生成して即時反映
+                populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput); 
+                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); 
+                renderCategoriesForManagement(); 
+                
+                // ★編集モーダルが開いている場合も親ボタンを更新
+                if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
+                     const currentlyEditingCatId = editingCategoryDocIdInput.value;
+                     const currentlyEditingCat = allCategoriesCache.find(c => c.id === currentlyEditingCatId);
+                     if(currentlyEditingCat) {
+                        populateParentCategoryButtons(editingCategoryParentButtons, selectedEditingParentCategoryIdInput, { currentCategoryIdToExclude: currentlyEditingCatId, selectedParentId: currentlyEditingCat.parentId || "" });
+                     }
+                }
+                 if (editTagModal.style.display === 'flex' && editingTagDocIdInput.value) {
+                    const tagToRePopulate = allTagsCache.find(t => t.id === editingTagDocIdInput.value);
+                    populateCategoryCheckboxesForTagAssignment(editingTagCategoriesCheckboxes, tagToRePopulate ? (tagToRePopulate.categoryIds || []) : []);
+                }
 
             } catch (error) {
                 console.error("[Category Add] Error:", error);
@@ -443,9 +462,8 @@ document.addEventListener('DOMContentLoaded', () => {
             populateTagsForCategoryEdit(editingCategoryTagsSelector, docId);
             if(editingTagSearchModeSelect) editingTagSearchModeSelect.value = currentTagSearchMode;
         } else {
-             if(editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = '<p>親カテゴリには直接タグを紐付けません。</p>';
+             if(editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = ''; 
         }
-
 
         editCategoryModal.style.display = 'flex';
         editingCategoryNameInput.focus();
@@ -516,14 +534,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 
                 const tagsBefore = allTagsCache.filter(tag => tag.categoryIds && tag.categoryIds.includes(docId)).map(t => t.id);
+                
+                // isParentCategory フラグで処理を分岐
+                const isBecomingParent = !newParentId; 
+                const isChild = !!newParentId; 
 
-                if (newParentId) { 
+                if (isChild) { 
                      categoryUpdateData.tagSearchMode = newTagSearchMode; 
                      const tagsToAdd = selectedTagIds.filter(id => !tagsBefore.includes(id));
                      const tagsToRemove = tagsBefore.filter(id => !selectedTagIds.includes(id));
                      tagsToAdd.forEach(tagId => batch.update(doc(db, 'tags', tagId), { categoryIds: arrayUnion(docId) }));
                      tagsToRemove.forEach(tagId => batch.update(doc(db, 'tags', tagId), { categoryIds: arrayRemove(docId) }));
-                } else { 
+                } else { // isBecomingParent === true
                     categoryUpdateData.tagSearchMode = deleteField(); 
                      tagsBefore.forEach(tagId => batch.update(doc(db, 'tags', tagId), { categoryIds: arrayRemove(docId) }));
                 }
@@ -628,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const belongingCategories = (tag.categoryIds || [])
                 .map(catId => {
                     const cat = allCategoriesCache.find(c => c.id === catId);
-                    if (!cat || !cat.parentId) return null; // 親カテゴリは表示しない
+                    if (!cat || !cat.parentId) return null; 
                     let name = cat.name;
                     const parentCat = allCategoriesCache.find(p => p.id === cat.parentId);
                     name += parentCat ? ` (親:${parentCat.name})` : ` (親:不明)`;
@@ -648,15 +670,23 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             tagListContainer.appendChild(div);
         });
+        // ★修正: イベントリスナーが正しく設定されるように修正
         tagListContainer.querySelectorAll('.edit-tag').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const tagId = e.currentTarget.dataset.tagId;
                 const tagToEdit = allTagsCache.find(t => t.id === tagId);
-                if (tagToEdit) openEditTagModal(tagId, tagToEdit.name, tagToEdit.categoryIds || []);
+                if (tagToEdit) {
+                    openEditTagModal(tagId, tagToEdit.name, tagToEdit.categoryIds || []);
+                } else {
+                    console.error("Could not find tag data for ID:", tagId);
+                    alert("タグ情報の取得に失敗しました。");
+                }
             });
         });
         tagListContainer.querySelectorAll('.delete-tag').forEach(btn => {
-            btn.addEventListener('click', (e) => deleteTag(e.currentTarget.dataset.tagId, e.currentTarget.dataset.tagName));
+            btn.addEventListener('click', (e) => {
+                 deleteTag(e.currentTarget.dataset.tagId, e.currentTarget.dataset.tagName);
+            });
         });
     }
 
@@ -789,67 +819,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    function populateEffectTypeSelect() {
-        if (!effectTypeSelect) return;
-        const currentVal = effectTypeSelect.value;
-        effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
-        effectTypesCache.forEach(et => {
-            effectTypeSelect.add(new Option(et.name, et.id));
-        });
-        if (currentVal && effectTypeSelect.querySelector(`option[value="${currentVal}"]`)) {
-            effectTypeSelect.value = currentVal;
-        }
-    }
-    
-    function renderCurrentItemEffectsList() {
-        if (!currentEffectsList) return;
-        currentEffectsList.innerHTML = '';
-        if (currentItemEffects.length === 0) {
-            currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
-            return;
-        }
-        currentItemEffects.forEach((effect, index) => {
-            const effectType = effectTypesCache.find(et => et.id === effect.type);
-            const typeName = effectType ? effectType.name : '不明な効果';
-            const unitText = effect.unit !== 'none' ? effect.unit : ''; 
-
-            const div = document.createElement('div');
-            div.classList.add('effect-list-item');
-            div.innerHTML = `
-                <span>${typeName}: ${effect.value}${unitText}</span>
-                <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="削除">×</button>
-            `;
-            currentEffectsList.appendChild(div);
-        });
-        currentEffectsList.querySelectorAll('.delete-effect-from-list').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
-                currentItemEffects.splice(indexToRemove, 1); 
-                renderCurrentItemEffectsList(); 
-            });
-        });
-    }
-
-    if (addEffectToListButton) {
-        addEffectToListButton.addEventListener('click', () => {
-            const typeId = effectTypeSelect.value;
-            const valueStr = effectValueInput.value;
-            const unit = effectUnitSelect.value;
-
-            if (!typeId) { alert("効果種類を選択してください。"); return; }
-            if (valueStr === '' || isNaN(parseFloat(valueStr))) { 
-                alert("効果の値を数値で入力してください。"); return;
-            }
-            const value = parseFloat(valueStr);
-
-            currentItemEffects.push({ type: typeId, value: value, unit: unit });
-            renderCurrentItemEffectsList();
-            effectTypeSelect.value = '';
-            effectValueInput.value = '';
-            effectUnitSelect.value = 'point'; 
-        });
-    }
-
     async function loadItemsFromFirestore() {
         console.log("[Items] Loading items from Firestore...");
         try {
@@ -885,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const itemData = {
                     name: name || "", 
                     image: imageUrl || "", 
-                    structured_effects: currentItemEffects, 
+                    structured_effects: currentItemEffects, // 効果リストを保存
                     入手手段: source || "", 
                     tags: selectedItemTagIds, 
                     updatedAt: serverTimestamp()
@@ -923,16 +892,19 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedImageFile = null;
         uploadProgressContainer.style.display = 'none';
         populateTagCheckboxesForItemForm(); 
+        
         currentItemEffects = []; // 効果リストもクリア
-        renderCurrentItemEffectsList();
+        renderCurrentItemEffectsList(); // 表示もクリア
         if(effectTypeSelect) effectTypeSelect.value = '';
         if(effectValueInput) effectValueInput.value = '';
         if(effectUnitSelect) effectUnitSelect.value = 'point';
+
         if (saveItemButton) saveItemButton.textContent = "アイテム保存";
     }
 
+    // ★アイテムテーブルの効果表示を修正
     function renderItemsAdminTable() {
-        if (!itemsTableBody) return;
+        if (!itemsTableBody || !effectTypesCache) return; // ★effectTypesCache のロード完了を待つ
         itemsTableBody.innerHTML = '';
         const searchTerm = itemSearchAdminInput ? itemSearchAdminInput.value.toLowerCase() : "";
         const filteredItems = itemsCache.filter(item => 
@@ -950,11 +922,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let effectsDisplay = '(未設定)';
             if (item.structured_effects && item.structured_effects.length > 0) {
                  effectsDisplay = item.structured_effects.map(eff => {
-                     const type = effectTypesCache.find(et => et.id === eff.type)?.name || '不明';
+                     const typeInfo = effectTypesCache.find(et => et.id === eff.type); // ★キャッシュから検索
+                     const typeName = typeInfo ? typeInfo.name : `不明(${eff.type})`; // ★見つからない場合はID表示
                      const unit = eff.unit !== 'none' ? eff.unit : '';
-                     return `${type}: ${eff.value}${unit}`;
-                 }).join(', ');
-                 if (effectsDisplay.length > 30) effectsDisplay = effectsDisplay.substring(0, 30) + '...';
+                     return `${typeName}: ${eff.value}${unit}`;
+                 }).join('; '); // 区切り文字をセミコロンに
+                 if (effectsDisplay.length > 40) effectsDisplay = effectsDisplay.substring(0, 40) + '...'; // 少し長めに
             }
 
             const nameDisplay = item.name || '(名称未設定)';
@@ -973,6 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (itemSearchAdminInput) itemSearchAdminInput.addEventListener('input', renderItemsAdminTable);
 
+    // ★アイテム編集読み込み時に currentItemEffects を正しく設定
     async function loadItemForEdit(docId) {
         try {
             const itemSnap = await getDoc(doc(db, "items", docId));
@@ -991,7 +965,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 populateTagCheckboxesForItemForm(itemData.tags || []); 
                 
-                currentItemEffects = itemData.structured_effects || [];
+                // ★修正: 効果リストを currentItemEffects に代入し、リストを表示
+                currentItemEffects = itemData.structured_effects || []; 
                 renderCurrentItemEffectsList();
 
                 if (saveItemButton) saveItemButton.textContent = "アイテム更新";
@@ -1073,6 +1048,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // ★アイテムフォームの効果種類選択肢生成関数
+    function populateEffectTypeSelect() {
+        if (!effectTypeSelect) return;
+        const currentVal = effectTypeSelect.value;
+        effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
+        effectTypesCache.forEach(et => {
+            effectTypeSelect.add(new Option(et.name, et.id));
+        });
+        if (currentVal && effectTypeSelect.querySelector(`option[value="${currentVal}"]`)) {
+            effectTypeSelect.value = currentVal;
+        }
+    }
+    
+    // ★アイテムフォームの効果リスト表示・操作関数
+    function renderCurrentItemEffectsList() {
+        if (!currentEffectsList) return;
+        currentEffectsList.innerHTML = '';
+        if (currentItemEffects.length === 0) {
+            currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
+            return;
+        }
+        currentItemEffects.forEach((effect, index) => {
+            const effectType = effectTypesCache.find(et => et.id === effect.type);
+            const typeName = effectType ? effectType.name : '不明な効果';
+            const unitText = effect.unit !== 'none' ? effect.unit : ''; 
+
+            const div = document.createElement('div');
+            div.classList.add('effect-list-item');
+            div.innerHTML = `
+                <span>${typeName}: ${effect.value}${unitText}</span>
+                <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="削除">×</button>
+            `;
+            currentEffectsList.appendChild(div);
+        });
+        currentEffectsList.querySelectorAll('.delete-effect-from-list').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
+                currentItemEffects.splice(indexToRemove, 1); 
+                renderCurrentItemEffectsList(); 
+            });
+        });
+    }
+    
+    // ★「効果を追加」ボタンの処理
+    if (addEffectToListButton) {
+        addEffectToListButton.addEventListener('click', () => {
+            const typeId = effectTypeSelect.value;
+            const valueStr = effectValueInput.value;
+            const unit = effectUnitSelect.value;
+
+            if (!typeId) { alert("効果種類を選択してください。"); return; }
+            if (valueStr === '' || isNaN(parseFloat(valueStr))) { 
+                alert("効果の値を数値で入力してください。"); return;
+            }
+            const value = parseFloat(valueStr);
+
+            currentItemEffects.push({ type: typeId, value: value, unit: unit });
+            renderCurrentItemEffectsList();
+            effectTypeSelect.value = '';
+            effectValueInput.value = '';
+            effectUnitSelect.value = 'point'; 
+        });
+    }
+
     // --- Modal common handlers --- 
     document.querySelectorAll('.modal .close-button').forEach(btn => {
         btn.onclick = function() { btn.closest('.modal').style.display = "none"; }
