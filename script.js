@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             selectedParentCategoryIds.push(categoryId);
         }
-        // 親カテゴリ選択が変わったら、表示する子カテゴリとタグ、選択済みタグもリセット
         selectedTagIds = []; 
         renderChildCategoriesAndTags();
         filterAndRenderItems();
@@ -109,16 +108,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const parentCat = allCategories.find(c => c.id === parentId);
             if (!parentCat) return;
 
+            // 親カテゴリ自身も表示エリアの区切りとして名前を出す (任意)
+            // const parentNameHeader = document.createElement('h3');
+            // parentNameHeader.classList.add('displayed-parent-category-name');
+            // parentNameHeader.textContent = parentCat.name;
+            // childCategoriesAndTagsContainer.appendChild(parentNameHeader);
+
+
             const childCategories = allCategories.filter(cat => cat.parentId === parentId);
+
+            // 親カテゴリに直接紐づくタグも表示する場合 (今回は子カテゴリ経由のみ)
+            // const tagsDirectlyUnderParent = allTags.filter(tag => tag.categoryIds && tag.categoryIds.includes(parentId) && !childCategories.some(cc => tag.categoryIds.includes(cc.id)));
+
 
             if (childCategories.length > 0) {
                 hasContentToShow = true;
-                // Optional: Display parent category name as a header for this section
-                // const parentHeader = document.createElement('h3');
-                // parentHeader.textContent = parentCat.name;
-                // parentHeader.classList.add('parent-category-tag-header');
-                // childCategoriesAndTagsContainer.appendChild(parentHeader);
-
                 childCategories.forEach(childCat => {
                     const childCatSection = document.createElement('div');
                     childCatSection.classList.add('child-category-section');
@@ -131,10 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     if (tagsForThisChild.length > 0) {
                         const tagsContainer = document.createElement('div');
-                        tagsContainer.classList.add('tag-filters-inline'); // new class for styling
+                        tagsContainer.classList.add('tag-filters-inline');
                         tagsForThisChild.forEach(tag => {
                             const tagButton = document.createElement('div');
-                            tagButton.classList.add('tag-filter'); // existing class
+                            tagButton.classList.add('tag-filter');
                             tagButton.textContent = tag.name;
                             tagButton.dataset.tagId = tag.id;
                             if (selectedTagIds.includes(tag.id)) {
@@ -152,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         if (!hasContentToShow && selectedParentCategoryIds.length > 0) {
-             childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">選択された親カテゴリには子カテゴリまたはタグがありません。</p>';
+             childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">選択された親カテゴリには子カテゴリまたは表示可能なタグがありません。</p>';
         }
     }
     
@@ -167,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderItems(itemsToRender) {
-        // ... (この関数は変更なし、前回のコードをそのまま使用)
         if (!itemList) return;
         itemList.innerHTML = '';
         if (itemCountDisplay) {
@@ -190,9 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
             }
             let tagsHtml = '';
-            if (item.tags && item.tags.length > 0) { // item.tags はアイテムが持つタグIDの配列
+            if (item.tags && item.tags.length > 0) {
                 tagsHtml = `<div class="tags">タグ: ${item.tags.map(tagId => {
-                    const tagObj = allTags.find(t => t.id === tagId); // allTags から検索
+                    const tagObj = allTags.find(t => t.id === tagId);
                     return `<span>${tagObj ? tagObj.name : '不明なタグ'}</span>`;
                 }).join(' ')}</div>`;
             }
@@ -219,35 +222,44 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!matchesSearchTerm) return false;
 
             // カテゴリとタグのフィルタリング
-            let matchesCategories = true;
+            let matchesCategories = true; // No parent category selected means no category filter
             if (selectedParentCategoryIds.length > 0) {
-                // 選択された親カテゴリのいずれかに属する子カテゴリのタグを持つか
-                const relevantChildCategoryIds = allCategories
-                    .filter(cat => selectedParentCategoryIds.includes(cat.parentId) || selectedParentCategoryIds.includes(cat.id)) // 親自身も子カテゴリと見なす場合 or 親の子
-                    .map(cat => cat.id);
-                
-                // アイテムが持つタグIDを取得
-                const itemTagIds = item.tags || [];
-                if (itemTagIds.length === 0 && relevantChildCategoryIds.length > 0) { // アイテムにタグがないが、カテゴリ指定がある
-                    matchesCategories = false;
-                } else if (relevantChildCategoryIds.length > 0) { // 関連する子カテゴリがある場合
-                    matchesCategories = itemTagIds.some(itemTagId => {
+                // 選択された親カテゴリ「すべて」にAND条件で合致するアイテム
+                // つまり、選択された各親カテゴリについて、その配下の子カテゴリのタグをアイテムが持っている必要がある
+                matchesCategories = selectedParentCategoryIds.every(parentId => {
+                    const childCategoryIdsOfThisParent = allCategories
+                        .filter(cat => cat.parentId === parentId)
+                        .map(cat => cat.id);
+                    
+                    // 親カテゴリ自身がタグを持つケースは現状考慮しない (子カテゴリがタグを管理する方針)
+                    // もし親カテゴリも直接タグを持てるなら、childCategoryIdsOfThisParentにparentIdも追加する
+
+                    if (childCategoryIdsOfThisParent.length === 0) {
+                        // この親カテゴリには子カテゴリがない。
+                        // この親カテゴリ指定が無意味になるか、この親が直接タグを持つかで挙動が変わる。
+                        // 現状は「子カテゴリがタグを持つ」なので、この親ではマッチするタグがないことになる。
+                        // AND条件なので、一つでも子カテゴリがない（＝マッチするタグがない）親があれば、全体としてfalse。
+                        // ただし、アイテムがタグを全く持たない場合との兼ね合いも考慮。
+                        // アイテムもタグを持たず、この親も子を持たないなら、この親カテゴリの条件は「満たせない」
+                        return (item.tags || []).length === 0 ? false : false; // 親に子がなくアイテムにタグがない場合、またはアイテムにタグがある場合もfalse
+                    }
+
+                    return (item.tags || []).some(itemTagId => {
                         const tagObj = allTags.find(t => t.id === itemTagId);
-                        // タグが、選択された親カテゴリ群のいずれかの子カテゴリに属しているか
-                        return tagObj && tagObj.categoryIds && tagObj.categoryIds.some(catId => relevantChildCategoryIds.includes(catId));
+                        return tagObj && tagObj.categoryIds && tagObj.categoryIds.some(catId => childCategoryIdsOfThisParent.includes(catId));
                     });
-                }
-                // relevantChildCategoryIdsが空なら、親カテゴリ指定が無意味なので絞り込まない (true)
+                });
             }
             
             if (!matchesCategories) return false;
 
             let matchesTags = true;
             if (selectedTagIds.length > 0) {
+                // 選択されたタグを「すべて」持つアイテム
                 matchesTags = selectedTagIds.every(selTagId => item.tags && item.tags.includes(selTagId));
             }
             
-            return matchesTags; // searchTerm は既にチェック済み
+            return matchesTags; 
         });
         renderItems(filteredItems);
     }
@@ -257,8 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedParentCategoryIds = [];
         selectedTagIds = [];
         
-        renderParentCategoryFilters(); // ボタンのアクティブ状態をリセット
-        renderChildCategoriesAndTags(); // 子カテゴリとタグの表示をリセット
+        renderParentCategoryFilters(); 
+        renderChildCategoriesAndTags(); 
         filterAndRenderItems();
     }
 
