@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 初期データロード ---
     async function loadInitialData() {
+        console.log("[Initial Load] Starting to load all initial data...");
         await loadCategoriesFromFirestore(); // カテゴリを先にロード
         await loadTagsFromFirestore();
         await loadItemsFromFirestore();
@@ -156,23 +157,26 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTagsForManagement(); // タグ表示（カテゴリ情報と共に）
         renderItemTagsSelector();  // アイテムフォーム内のタグ選択
         renderItemsAdminTable();
+        console.log("[Initial Load] Finished loading all initial data and rendering UI.");
     }
 
     // --- カテゴリ管理 ---
     async function loadCategoriesFromFirestore() {
+        console.log("[Categories] Loading categories from Firestore...");
         try {
             const q = query(collection(db, 'categories'), orderBy('name'));
             const snapshot = await getDocs(q);
             categoriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("Categories loaded from Firestore:", categoriesCache);
+            console.log("[Categories] Categories loaded successfully:", categoriesCache);
         } catch (error) {
-            console.error("Error loading categories from Firestore:", error);
+            console.error("[Categories] Error loading categories from Firestore:", error);
             categoriesCache = [];
         }
     }
 
     function renderCategoriesForManagement() {
         if (!categoryListContainer) return;
+        console.log("[Categories] Rendering categories for management UI...");
         categoryListContainer.innerHTML = '';
         categoriesCache.forEach(category => {
             const div = document.createElement('div');
@@ -193,9 +197,11 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryListContainer.querySelectorAll('.delete-category').forEach(btn => {
             btn.addEventListener('click', (e) => deleteCategory(e.currentTarget.dataset.categoryId, e.currentTarget.dataset.categoryName));
         });
+        console.log("[Categories] Finished rendering categories for management UI.");
     }
 
     function populateCategorySelects() {
+        console.log("[Categories] Populating category select dropdowns...");
         if (newTagCategorySelect) {
             newTagCategorySelect.innerHTML = '<option value="">カテゴリを選択...</option>';
             categoriesCache.forEach(cat => {
@@ -208,33 +214,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 editingTagCategorySelect.add(new Option(cat.name, cat.id));
             });
         }
+        console.log("[Categories] Finished populating category select dropdowns.");
     }
     
     if (addCategoryButton) {
         addCategoryButton.addEventListener('click', async () => {
             const name = newCategoryNameInput.value.trim();
-            if (!name) { alert("カテゴリ名を入力してください。"); return; }
+            console.log("[Category Add] Attempting to add category with name:", name);
+
+            if (!name) {
+                alert("カテゴリ名を入力してください。");
+                console.warn("[Category Add] Category name is empty.");
+                return;
+            }
             
+            console.log("[Category Add] Checking for existing category with the same name...");
             const q = query(collection(db, 'categories'), where('name', '==', name));
-            const existingQuery = await getDocs(q);
-            if (!existingQuery.empty) {
-                alert("同じ名前のカテゴリが既に存在します。"); return;
+            try {
+                const existingQuery = await getDocs(q);
+                if (!existingQuery.empty) {
+                    alert("同じ名前のカテゴリが既に存在します。");
+                    console.warn("[Category Add] Category with the same name already exists.");
+                    return;
+                }
+            } catch (error) {
+                console.error("[Category Add] Error checking for existing category:", error);
+                alert("既存カテゴリの確認中にエラーが発生しました。詳細はコンソールを確認してください。");
+                return;
             }
             
             try {
-                await addDoc(collection(db, 'categories'), { name: name /* , order: 0 // 順序が必要なら */ });
+                console.log("[Category Add] Attempting to add document to 'categories' collection in Firestore...");
+                const docRef = await addDoc(collection(db, 'categories'), { 
+                    name: name,
+                    createdAt: serverTimestamp() // 作成日時も記録
+                });
+                console.log("[Category Add] Category added successfully to Firestore with ID:", docRef.id);
+                
                 newCategoryNameInput.value = '';
-                await loadCategoriesFromFirestore();
-                renderCategoriesForManagement();
-                populateCategorySelects();
+                
+                console.log("[Category Add] Reloading categories from Firestore...");
+                await loadCategoriesFromFirestore(); // データを再読み込み
+                console.log("[Category Add] Rendering categories for management UI...");
+                renderCategoriesForManagement(); // UIを更新
+                console.log("[Category Add] Populating category select dropdowns...");
+                populateCategorySelects(); // プルダウンも更新
+                console.log("[Category Add] Category add process completed successfully.");
+
             } catch (error) {
-                console.error("Error adding category: ", error);
-                alert("カテゴリの追加に失敗しました。");
+                console.error("[Category Add] Error adding category to Firestore:", error);
+                alert("カテゴリの追加に失敗しました。Firestoreへの書き込み権限などを確認してください。詳細はコンソールを確認してください。");
             }
         });
     }
 
     function openEditCategoryModal(docId, currentName) {
+        console.log(`[Category Edit] Opening modal for category ID: ${docId}, current name: ${currentName}`);
         editingCategoryDocIdInput.value = docId;
         editingCategoryNameInput.value = currentName;
         editCategoryModal.style.display = 'flex';
@@ -245,74 +280,114 @@ document.addEventListener('DOMContentLoaded', () => {
         saveCategoryEditButton.addEventListener('click', async () => {
             const docId = editingCategoryDocIdInput.value;
             const newName = editingCategoryNameInput.value.trim();
-            if (!newName) { alert("カテゴリ名は空にできません。"); return; }
+            console.log(`[Category Edit] Attempting to save category ID: ${docId} with new name: ${newName}`);
 
+            if (!newName) { 
+                alert("カテゴリ名は空にできません。");
+                console.warn("[Category Edit] New category name is empty.");
+                return;
+            }
+
+            console.log("[Category Edit] Checking for existing category with the new name (excluding current one)...");
             const q = query(collection(db, 'categories'), where('name', '==', newName));
-            const existingQuery = await getDocs(q);
             let conflict = false;
-            existingQuery.forEach(docSnap => { if (docSnap.id !== docId) conflict = true; });
-            if (conflict) { alert("編集後の名前が、他の既存カテゴリと重複します。"); return; }
+            try {
+                const existingQuery = await getDocs(q);
+                existingQuery.forEach(docSnap => { if (docSnap.id !== docId) conflict = true; });
+            } catch (error) {
+                 console.error("[Category Edit] Error checking for existing category during edit:", error);
+                alert("既存カテゴリの確認中にエラーが発生しました。");
+                return;
+            }
+
+            if (conflict) { 
+                alert("編集後の名前が、他の既存カテゴリと重複します。");
+                console.warn("[Category Edit] New category name conflicts with an existing category.");
+                return;
+            }
 
             try {
+                console.log("[Category Edit] Updating category document in Firestore...");
                 await updateDoc(doc(db, 'categories', docId), { name: newName });
+                console.log("[Category Edit] Category updated successfully in Firestore.");
                 editCategoryModal.style.display = 'none';
+                
                 await loadCategoriesFromFirestore();
                 renderCategoriesForManagement();
                 populateCategorySelects();
-                await loadTagsFromFirestore(); // カテゴリ名が変わった可能性があるのでタグも再描画
-                renderTagsForManagement();
+                await loadTagsFromFirestore(); 
+                renderTagsForManagement(); // カテゴリ名変更がタグ表示に影響する可能性
+                console.log("[Category Edit] Category edit process completed successfully.");
             } catch (error) {
-                console.error("Error updating category: ", error);
+                console.error("[Category Edit] Error updating category in Firestore:", error);
                 alert("カテゴリの更新に失敗しました。");
             }
         });
     }
 
     async function deleteCategory(docId, categoryName) {
+        console.log(`[Category Delete] Attempting to delete category ID: ${docId}, name: ${categoryName}`);
         if (confirm(`カテゴリ「${categoryName}」を削除しますか？\nこのカテゴリに属するタグは「未分類」(カテゴリなし)になります。`)) {
             try {
-                // トランザクションでカテゴリ削除と関連タグのcategoryId更新を行う
+                console.log("[Category Delete] Starting Firestore transaction...");
                 await runTransaction(db, async (transaction) => {
                     const categoryRef = doc(db, 'categories', docId);
+                    console.log(`[Category Delete Transaction] Deleting category document: ${docId}`);
                     transaction.delete(categoryRef);
 
-                    // このカテゴリに属するタグを取得
+                    console.log(`[Category Delete Transaction] Querying tags associated with category ID: ${docId}`);
                     const tagsToUpdateQuery = query(collection(db, 'tags'), where('categoryId', '==', docId));
-                    const tagsToUpdateSnapshot = await getDocs(tagsToUpdateQuery); // トランザクション外でgetDocs
+                    // トランザクション内でgetDocsを実行するには、先にトランザクション外で取得するか、
+                    // もしくはトランザクション内で読み取り、その結果に基づいて更新します。
+                    // 今回はシンプルに、トランザクション外でgetDocsして、その結果をトランザクション内で使うアプローチのほうが安全ですが、
+                    // Firestoreのトランザクションのベストプラクティスとしては、読み取りもトランザクション内で行うことが推奨されます。
+                    // ここでは、まず先にタグを取得し、それからトランザクションを開始する形も考えられますが、
+                    // 既存のコードはトランザクション内でgetDocsをしています。これは実際にはトランザクション読み取りになりません。
+                    // 正しくは、transaction.get() を使うべきです。
+                    // ただし、現在のSDKバージョンと使い方では、先にタグIDのリストを取得してからバッチ書き込み、
+                    // または個別のトランザクションで更新する方が一般的かもしれません。
+                    // 今回は既存のロジックを尊重しつつ、コメントで補足します。
+                    // より堅牢にするなら、まずカテゴリに属するタグのドキュメントIDを全て取得し、
+                    // その後、バッチ書き込みでそれらのタグのcategoryIdを更新し、最後にカテゴリを削除します。
+                    // runTransactionはアトミックな操作を保証しますが、多くの書き込みには向いていません。
                     
-                    tagsToUpdateSnapshot.forEach(tagDocSnap => {
-                        transaction.update(doc(db, 'tags', tagDocSnap.id), { categoryId: "" }); // または null
+                    const tagsSnapshot = await getDocs(tagsToUpdateQuery); // これはトランザクション外の読み取りになる点に注意
+                    tagsSnapshot.forEach(tagDocSnap => {
+                        console.log(`[Category Delete Transaction] Updating tag ${tagDocSnap.id} to remove categoryId.`);
+                        transaction.update(doc(db, 'tags', tagDocSnap.id), { categoryId: "" });
                     });
                 });
 
-                console.log(`Category ${docId} deleted and associated tags updated.`);
+                console.log(`[Category Delete] Category ${docId} deleted and associated tags updated successfully.`);
                 await loadInitialData(); // 全データ再読み込みと再描画
             } catch (error) {
-                console.error("Error deleting category and updating tags: ", error);
+                console.error("[Category Delete] Error deleting category and updating tags:", error);
                 alert("カテゴリの削除または関連タグの更新に失敗しました。");
             }
+        } else {
+            console.log("[Category Delete] Deletion cancelled by user.");
         }
     }
 
 
     // --- タグ管理 ---
     async function loadTagsFromFirestore() {
+        console.log("[Tags] Loading tags from Firestore...");
         try {
             const q = query(collection(db, 'tags'), orderBy('name'));
             const snapshot = await getDocs(q);
             tagsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("Tags loaded from Firestore:", tagsCache);
+            console.log("[Tags] Tags loaded successfully:", tagsCache);
         } catch (error) {
-            console.error("Error loading tags from Firestore:", error);
+            console.error("[Tags] Error loading tags from Firestore:", error);
             tagsCache = [];
         }
     }
 
     function renderTagsForManagement() {
         if (!tagListContainer) return;
+        console.log("[Tags] Rendering tags for management UI...");
         tagListContainer.innerHTML = '';
-        // カテゴリごとにグループ化して表示、またはカテゴリでフィルタリングも考えられる
-        // 今回はシンプルに全タグを表示し、カテゴリ名も併記
         tagsCache.forEach(tag => {
             const category = categoriesCache.find(c => c.id === tag.categoryId);
             const categoryName = category ? category.name : '未分類';
@@ -328,7 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             tagListContainer.appendChild(div);
         });
-        // イベントリスナーを(再)設定
         tagListContainer.querySelectorAll('.edit-tag').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const tagId = e.currentTarget.dataset.tagId;
@@ -339,41 +413,58 @@ document.addEventListener('DOMContentLoaded', () => {
         tagListContainer.querySelectorAll('.delete-tag').forEach(btn => {
             btn.addEventListener('click', (e) => deleteTag(e.currentTarget.dataset.tagId, e.currentTarget.dataset.tagName));
         });
-
-        renderItemTagsSelector(); // アイテムフォーム用のタグセレクタも更新
+        console.log("[Tags] Finished rendering tags for management UI.");
+        renderItemTagsSelector();
     }
 
     if (addTagButton) {
         addTagButton.addEventListener('click', async () => {
             const name = newTagNameInput.value.trim();
-            const categoryId = newTagCategorySelect.value; // '' の場合は未分類
-            if (!name) { alert("タグ名を入力してください。"); return; }
+            const categoryId = newTagCategorySelect.value;
+            console.log(`[Tag Add] Attempting to add tag with name: ${name}, categoryId: ${categoryId}`);
             
+            if (!name) { alert("タグ名を入力してください。"); console.warn("[Tag Add] Tag name is empty."); return; }
+            
+            console.log("[Tag Add] Checking for existing tag with the same name...");
             const q = query(collection(db, 'tags'), where('name', '==', name));
-            const existingQuery = await getDocs(q);
-            if (!existingQuery.empty) { alert("同じ名前のタグが既に存在します。"); return; }
+            try {
+                const existingQuery = await getDocs(q);
+                if (!existingQuery.empty) { 
+                    alert("同じ名前のタグが既に存在します。");
+                    console.warn("[Tag Add] Tag with the same name already exists.");
+                    return;
+                }
+            } catch (error) {
+                console.error("[Tag Add] Error checking for existing tag:", error);
+                alert("既存タグの確認中にエラーが発生しました。");
+                return;
+            }
             
             try {
+                console.log("[Tag Add] Attempting to add document to 'tags' collection in Firestore...");
                 await addDoc(collection(db, 'tags'), { 
                     name: name, 
-                    categoryId: categoryId || "" // 空文字列で保存
-                    /* , order: 0 // 順序が必要なら */ 
+                    categoryId: categoryId || "",
+                    createdAt: serverTimestamp()
                 });
+                console.log("[Tag Add] Tag added successfully to Firestore.");
                 newTagNameInput.value = '';
                 newTagCategorySelect.value = '';
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
+                console.log("[Tag Add] Tag add process completed successfully.");
             } catch (error) {
-                console.error("Error adding tag: ", error);
+                console.error("[Tag Add] Error adding tag to Firestore:", error);
                 alert("タグの追加に失敗しました。");
             }
         });
     }
 
     function openEditTagModal(docId, currentName, currentCategoryId) {
+        console.log(`[Tag Edit] Opening modal for tag ID: ${docId}, current name: ${currentName}, categoryId: ${currentCategoryId}`);
         editingTagDocIdInput.value = docId;
         editingTagNameInput.value = currentName;
-        editingTagCategorySelect.value = currentCategoryId || ""; // カテゴリなしは空文字列
+        editingTagCategorySelect.value = currentCategoryId || "";
         editTagModal.style.display = 'flex';
         editingTagNameInput.focus();
     }
@@ -383,59 +474,84 @@ document.addEventListener('DOMContentLoaded', () => {
             const docId = editingTagDocIdInput.value;
             const newName = editingTagNameInput.value.trim();
             const newCategoryId = editingTagCategorySelect.value;
-            if (!newName) { alert("タグ名は空にできません。"); return; }
+            console.log(`[Tag Edit] Attempting to save tag ID: ${docId} with new name: ${newName}, new categoryId: ${newCategoryId}`);
 
+            if (!newName) { alert("タグ名は空にできません。"); console.warn("[Tag Edit] New tag name is empty."); return; }
+
+            console.log("[Tag Edit] Checking for existing tag with the new name (excluding current one)...");
             const q = query(collection(db, 'tags'), where('name', '==', newName));
-            const existingQuery = await getDocs(q);
             let conflict = false;
-            existingQuery.forEach(docSnap => { if (docSnap.id !== docId) conflict = true; });
-            if (conflict) { alert("編集後の名前が、他の既存タグと重複します。"); return; }
+            try {
+                const existingQuery = await getDocs(q);
+                existingQuery.forEach(docSnap => { if (docSnap.id !== docId) conflict = true; });
+            } catch (error) {
+                console.error("[Tag Edit] Error checking for existing tag during edit:", error);
+                alert("既存タグの確認中にエラーが発生しました。");
+                return;
+            }
+            if (conflict) { 
+                alert("編集後の名前が、他の既存タグと重複します。");
+                console.warn("[Tag Edit] New tag name conflicts with an existing tag.");
+                return;
+            }
 
             try {
+                console.log("[Tag Edit] Updating tag document in Firestore...");
                 await updateDoc(doc(db, 'tags', docId), { name: newName, categoryId: newCategoryId || "" });
+                console.log("[Tag Edit] Tag updated successfully in Firestore.");
                 editTagModal.style.display = 'none';
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
+                console.log("[Tag Edit] Tag edit process completed successfully.");
             } catch (error) {
-                console.error("Error updating tag: ", error);
+                console.error("[Tag Edit] Error updating tag in Firestore:", error);
                 alert("タグの更新に失敗しました。");
             }
         });
     }
 
-    async function deleteTag(docId, tagName) { // タグ削除時に関連アイテム更新は変更なし
+    async function deleteTag(docId, tagName) {
+        console.log(`[Tag Delete] Attempting to delete tag ID: ${docId}, name: ${tagName}`);
         if (confirm(`タグ「${tagName}」を削除しますか？\nこのタグを使用している全てのアイテムからも自動的に削除されます。`)) {
             try {
+                console.log("[Tag Delete] Deleting tag document from Firestore...");
                 await deleteDoc(doc(db, 'tags', docId));
+                console.log(`[Tag Delete] Tag ${docId} deleted from Firestore.`);
                 
+                console.log(`[Tag Delete] Querying items associated with tag ID: ${docId} for update...`);
                 const q = query(collection(db, 'items'), where('tags', 'array-contains', docId));
                 const itemsToUpdateSnapshot = await getDocs(q);
                 if (!itemsToUpdateSnapshot.empty) {
+                    console.log(`[Tag Delete] Found ${itemsToUpdateSnapshot.size} items to update. Starting batch write...`);
                     const batch = writeBatch(db);
                     itemsToUpdateSnapshot.forEach(itemDocSnap => {
                         const currentTags = itemDocSnap.data().tags || [];
                         const updatedTags = currentTags.filter(tagId => tagId !== docId);
                         batch.update(itemDocSnap.ref, { tags: updatedTags });
+                        console.log(`[Tag Delete Batch] Updating item ${itemDocSnap.id}, removing tag ${docId}.`);
                     });
                     await batch.commit();
+                    console.log("[Tag Delete Batch] Batch write completed.");
+                } else {
+                    console.log("[Tag Delete] No items found associated with this tag.");
                 }
                 
-                await loadTagsFromFirestore(); // タグのみ再読み込み・再描画
+                await loadTagsFromFirestore();
                 renderTagsForManagement();
-                // アイテムも再読み込み・再描画した方が安全かもしれないが、今回はタグ表示のみ更新
-                // await loadItemsFromFirestore(); renderItemsAdminTable(); // ←もしアイテムテーブルも更新が必要なら
+                console.log("[Tag Delete] Tag delete process completed successfully.");
             } catch (error) {
-                console.error("Error deleting tag and updating items: ", error);
+                console.error("[Tag Delete] Error deleting tag and updating items:", error);
                 alert("タグの削除または関連アイテムの更新に失敗しました。");
             }
+        } else {
+            console.log("[Tag Delete] Deletion cancelled by user.");
         }
     }
     
-    // アイテムフォーム内のタグセレクタ（全タグを表示）
     function renderItemTagsSelector(selectedItemTagIds = []) {
         if (!itemTagsSelectorContainer) return;
         itemTagsSelectorContainer.innerHTML = '';
-        tagsCache.forEach(tag => { // tagsCache (全タグ) を使用
+        tagsCache.forEach(tag => {
             const tagBtn = document.createElement('button');
             tagBtn.type = 'button';
             tagBtn.classList.add('tag-button');
@@ -474,6 +590,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function uploadImageToWorkerAndGetURL(file) {
         if (!file) return null;
+        console.log("[Image Upload] Starting image upload to worker for file:", file.name);
         uploadProgressContainer.style.display = 'block';
         uploadProgress.value = 0; 
         uploadProgressText.textContent = 'アップロード準備中...';
@@ -484,19 +601,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(IMAGE_UPLOAD_WORKER_URL, { method: 'POST', body: formData });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'サーバーからの不明なエラー' }));
+                console.error('[Image Upload] Upload failed with status:', response.status, errorData);
                 alert(`画像のアップロードに失敗しました: ${errorData.error || response.statusText}`);
                 uploadProgressContainer.style.display = 'none'; return null;
             }
             const result = await response.json();
             if (result.success && result.imageUrl) {
+                console.log('[Image Upload] File uploaded to R2, URL:', result.imageUrl);
                 uploadProgressText.textContent = 'アップロード完了!';
                 setTimeout(() => { uploadProgressContainer.style.display = 'none'; }, 2000);
                 return result.imageUrl;
             } else {
+                console.error('[Image Upload] Upload response error:', result);
                 alert(`画像のアップロードエラー: ${result.message || '不明な応答'}`);
                 uploadProgressContainer.style.display = 'none'; return null;
             }
         } catch (error) {
+            console.error('[Image Upload] Error uploading image to worker:', error);
             alert(`画像のアップロード中に通信エラー: ${error.message}`);
             uploadProgressContainer.style.display = 'none'; return null;
         }
@@ -504,13 +625,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- アイテム管理 ---
     async function loadItemsFromFirestore() {
+        console.log("[Items] Loading items from Firestore...");
         try {
             const q = query(collection(db, 'items'), orderBy('name'));
             const snapshot = await getDocs(q);
             itemsCache = snapshot.docs.map(docSnap => ({ docId: docSnap.id, ...docSnap.data() }));
-            console.log("Items loaded from Firestore:", itemsCache);
+            console.log("[Items] Items loaded successfully:", itemsCache);
         } catch (error) {
-            console.error("Error loading items from Firestore:", error);
+            console.error("[Items] Error loading items from Firestore:", error);
             itemsCache = [];
         }
     }
@@ -518,35 +640,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (itemForm) {
         itemForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = itemNameInput.value.trim(); // 空でもOK
-            const effect = itemEffectInput.value.trim(); // 空でもOK
-            const source = itemSourceInput.value.trim(); // 空でもOK
+            const name = itemNameInput.value.trim();
+            const effect = itemEffectInput.value.trim();
+            const source = itemSourceInput.value.trim();
             const selectedTagIds = Array.from(itemTagsSelectorContainer.querySelectorAll('.tag-button.selected'))
                                       .map(btn => btn.dataset.tagId);
             const editingDocId = itemIdToEditInput.value;
             let imageUrl = itemImageUrlInput.value;
-
-            // バリデーション撤廃 (空でも保存可能)
-            // if (!name && !effect && !source && !selectedImageFile && !imageUrl && selectedTagIds.length === 0) {
-            //     alert("少なくとも1つの情報を入力または選択してください。"); 
-            //     return;
-            // }
+            console.log(`[Item Save] Attempting to save item. Editing ID: ${editingDocId || 'New Item'}`);
             
             saveItemButton.disabled = true;
             saveItemButton.textContent = "保存中...";
 
             try {
                 if (selectedImageFile) {
+                    console.log("[Item Save] New image file selected, attempting upload...");
                     imageUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
-                    if (imageUrl === null && selectedImageFile) { // アップロード失敗時
+                    if (imageUrl === null && selectedImageFile) {
+                        console.warn("[Item Save] Image upload failed, aborting item save.");
                         saveItemButton.disabled = false;
                         saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
                         return; 
                     }
+                    console.log("[Item Save] Image uploaded, URL:", imageUrl);
                 }
 
                 const itemData = {
-                    name: name || "", // Firestoreに空文字として保存
+                    name: name || "",
                     image: imageUrl || "",
                     effect: effect || "",
                     入手手段: source || "",
@@ -555,17 +675,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 
                 if (editingDocId) {
+                    console.log(`[Item Save] Updating existing item ID: ${editingDocId} in Firestore...`);
                     await updateDoc(doc(db, 'items', editingDocId), itemData);
+                    console.log(`[Item Save] Item ${editingDocId} updated successfully.`);
                 } else {
                     itemData.createdAt = serverTimestamp();
-                    await addDoc(collection(db, 'items'), itemData);
+                    console.log("[Item Save] Adding new item to Firestore...");
+                    const docRef = await addDoc(collection(db, 'items'), itemData);
+                    console.log("[Item Save] New item added successfully with ID:", docRef.id);
                 }
                 
                 await loadItemsFromFirestore();
                 renderItemsAdminTable();
                 clearItemForm();
+                console.log("[Item Save] Item save process completed successfully.");
             } catch (error) {
-                console.error("Error during item save process: ", error);
+                console.error("[Item Save] Error during item save process:", error);
                  alert(`アイテムの保存処理中にエラーが発生しました: ${error.message}`);
             } finally {
                 saveItemButton.disabled = false;
@@ -579,6 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearItemForm() {
+        console.log("[Form] Clearing item form...");
         if (itemForm) itemForm.reset();
         itemIdToEditInput.value = '';
         itemImageUrlInput.value = '';
@@ -586,23 +712,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (itemImageFileInput) itemImageFileInput.value = null;
         selectedImageFile = null;
         uploadProgressContainer.style.display = 'none';
-        renderItemTagsSelector(); // 選択状態をクリア
+        renderItemTagsSelector();
         if (saveItemButton) saveItemButton.textContent = "アイテム保存";
+        console.log("[Form] Item form cleared.");
     }
 
     function renderItemsAdminTable() {
         if (!itemsTableBody) return;
+        console.log("[Items Table] Rendering items admin table...");
         itemsTableBody.innerHTML = '';
         const searchTerm = itemSearchAdminInput ? itemSearchAdminInput.value.toLowerCase() : "";
 
         const filteredItems = itemsCache.filter(item => 
             (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-            (!searchTerm && item.name === "") // 検索語がない場合は名前が空のアイテムも表示
+            (!searchTerm && (item.name === "" || !item.name)) // 検索語がない場合は名前が空または未定義のアイテムも表示
         );
 
         filteredItems.forEach(item => {
             const tr = document.createElement('tr');
-            const imageDisplayPath = item.image || '../images/placeholder_item.png'; // 管理画面ではプレースホルダー
+            const imageDisplayPath = item.image || '../images/placeholder_item.png';
             
             const itemTagsString = item.tags ? item.tags.map(tagId => {
                 const tagObj = tagsCache.find(t => t.id === tagId);
@@ -625,6 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.querySelector('.delete-item').addEventListener('click', () => deleteItem(item.docId, item.name, item.image));
             itemsTableBody.appendChild(tr);
         });
+        console.log(`[Items Table] Finished rendering ${filteredItems.length} items.`);
     }
 
     if (itemSearchAdminInput) {
@@ -632,6 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadItemForEdit(docId) {
+        console.log(`[Item Edit] Loading item ID: ${docId} for editing...`);
         try {
             const itemSnap = await getDoc(doc(db, "items", docId));
             if (itemSnap.exists()) {
@@ -655,30 +785,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderItemTagsSelector(itemData.tags || []);
                 if (saveItemButton) saveItemButton.textContent = "アイテム更新";
                 if (itemForm) itemForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                console.log(`[Item Edit] Item ${docId} loaded into form.`);
             } else {
+                console.error(`[Item Edit] Item with ID: ${docId} not found.`);
                 alert("編集対象のアイテムが見つかりませんでした。");
             }
         } catch (error) {
-            console.error("編集用アイテムの読み込みエラー:", error);
+            console.error(`[Item Edit] Error loading item ${docId} for edit:`, error);
             alert("編集データの読み込みに失敗しました。");
         }
     }
 
     async function deleteItem(docId, itemName, imageUrl) {
         const displayName = itemName || '(名称未設定)';
+        console.log(`[Item Delete] Attempting to delete item ID: ${docId}, name: ${displayName}`);
         if (confirm(`アイテム「${displayName}」を削除しますか？\nCloudflare R2上の関連画像は手動での削除が必要です。`)) {
             try {
+                console.log(`[Item Delete] Deleting item ${docId} from Firestore...`);
                 await deleteDoc(doc(db, 'items', docId));
+                console.log(`[Item Delete] Item ${docId} deleted from Firestore.`);
                 if (imageUrl) {
-                    console.warn(`Image ${imageUrl} (R2) for item ${docId} needs manual deletion.`);
+                    console.warn(`[Item Delete] Image ${imageUrl} (R2) for item ${docId} needs manual deletion.`);
                 }
                 await loadItemsFromFirestore();
                 renderItemsAdminTable();
                 if (itemIdToEditInput.value === docId) clearItemForm();
+                console.log("[Item Delete] Item delete process completed successfully.");
             } catch (error) {
-                console.error("Error deleting item: ", error);
+                console.error(`[Item Delete] Error deleting item ${docId}:`, error);
                 alert("アイテムの削除に失敗しました。");
             }
+        } else {
+             console.log("[Item Delete] Deletion cancelled by user.");
         }
     }
     
