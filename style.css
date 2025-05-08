@@ -72,24 +72,25 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     border-radius: 5px;
     background-color: #fdfdfd;
 }
-.child-category-section h4 { /* 子カテゴリ名 */
+.child-category-section h4 { 
     font-size: 1em;
     color: #333;
     margin-top: 0;
     margin-bottom: 8px;
     padding-bottom: 5px;
     border-bottom: 1px dashed #e0e0e0;
-    display: flex; /* 横並びのため */
-    justify-content: space-between; /* 要素間にスペース */
-    align-items: center; /* 縦中央揃え */
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    flex-wrap: wrap; 
 }
-/* ★検索モード表示用スタイル */
 .child-category-section h4 .search-mode {
     font-size: 0.8em;
     font-weight: normal;
-    color: #6c757d; /* グレー */
-    margin-left: 8px; /* カテゴリ名との間隔 */
-    white-space: nowrap; /* 折り返さない */
+    color: #6c757d; 
+    margin-left: 8px; 
+    white-space: nowrap; 
+    flex-shrink: 0; 
 }
 
 .tag-filters-inline { 
@@ -180,7 +181,7 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     font-size: 0.95em;
     line-height: 1.5;
     color: #444;
-    flex-grow: 1; 
+    /* flex-grow: 1; */ /* 効果表示エリアとの兼ね合いで調整が必要かも */
     word-break: break-word;
 }
 .item-card p strong {
@@ -199,6 +200,23 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     margin-bottom: 6px;
     display: inline-block;
 }
+.item-card .structured-effects {
+    margin-top: 10px;
+    font-size: 0.85em;
+    color: #555;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+     flex-grow: 1; /* 効果リストがカードの高さを埋めるように */
+}
+.item-card .structured-effects ul {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 5px 0 0 0;
+}
+.item-card .structured-effects li {
+    margin-bottom: 3px;
+}
+
 
 @media (max-width: 768px) {
     .category-button-group {
@@ -207,15 +225,14 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     .child-category-section {
         padding: 8px;
     }
-    /* 子カテゴリ名と検索モードが横並びになるように調整 */
     .child-category-section h4 {
-        flex-wrap: wrap; /* 必要なら折り返す */
+        /* flex-wrap: wrap; */ /* 必要ならコメント解除 */
     }
      .child-category-section h4 .search-mode {
-        margin-left: 0; /* 左マージンをリセット */
-        margin-top: 3px; /* 上に少し隙間 */
-        width: 100%; /* 折り返し時に幅いっぱいにする場合 */
-        text-align: right; /* 右寄せ */
+        /* margin-left: 0; */ 
+        /* margin-top: 3px; */ 
+        /* width: 100%; */ 
+        /* text-align: right; */
     }
     .tag-filters-inline {
         gap: 6px;
