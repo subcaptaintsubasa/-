@@ -75,13 +75,13 @@ h3 { font-size: 1.3em; }
 }
 .form-group textarea { resize: vertical; min-height: 80px; }
 
-.form-control-short {
-    flex-grow: 0.5; 
-    min-width: 150px;
+.form-control-short { /* select に使っていたが、ボタンUIに変更したので不要かも */
+    /* flex-grow: 0.5; */
+    /* min-width: 150px; */
 }
 
-/* ★カテゴリ追加/編集の親カテゴリ選択ボタン用スタイル */
-.category-button-group.admin { /* 管理画面用のスタイル */
+/* カテゴリ追加/編集の親カテゴリ選択ボタン用スタイル */
+.category-button-group.admin { 
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -146,7 +146,9 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-radius: 4px; margin-top:10px;
 }
 
-.inline-form { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+.inline-form { /* カテゴリ追加では使わなくなったが、他で使う可能性 */
+    display: flex; align-items: center; gap: 10px; margin-bottom: 15px; 
+}
 .inline-form input[type="text"] { flex-grow: 1; }
 .inline-form select { width: auto; flex-grow: 0.5; }
 
@@ -205,7 +207,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     margin-bottom: 0; 
 }
 
-/* ★カテゴリ編集モーダル内のタグ選択ボタン用コンテナ */
+/* カテゴリ編集モーダル内のタグ選択ボタン用コンテナ */
 .tag-button-container.admin {
     display: flex;
     flex-wrap: wrap;
@@ -217,8 +219,8 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-radius: 4px;
     background-color: #fdfdfd;
 }
-/* ★カテゴリ編集モーダル内のタグ選択ボタン (ユーザー画面のタグフィルター風) */
-.tag-filter.admin-tag-select { /* 既存の .tag-filter に admin-tag-select クラスを追加して適用 */
+/* カテゴリ編集モーダル内のタグ選択ボタン (ユーザー画面のタグフィルター風) */
+.tag-filter.admin-tag-select { 
     padding: 6px 10px; 
     background-color: #f0f0f0;
     border: 1px solid #ddd;
@@ -304,5 +306,5 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
     #itemSearchAdmin { width: 100% !important; }
-    .category-button-group.admin { justify-content: center; } /* スマホでは親カテゴリボタンを中央寄せ */
+    .category-button-group.admin { justify-content: center; } 
 }
