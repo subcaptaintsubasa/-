@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTagsForSelectedChildCategory() {
         if (!tagFiltersContainer || !tagFilterPlaceholder) return;
-        tagFiltersContainer.innerHTML = '';
+        tagFiltersContainer.innerHTML = ''; // タグフィルターをクリア
         
         let tagsToDisplay = [];
         if (selectedChildCategoryId) { // 子カテゴリが選択されている場合
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tagFilterPlaceholder.style.display = 'block';
             return;
         } else { // 親も子も「すべて」の場合、または親未選択
-            tagFilterPlaceholder.textContent = '子カテゴリを選択してください。';
+            tagFilterPlaceholder.textContent = '子カテゴリを選択してください。'; // もしくは「親カテゴリから選択してください」
             tagFiltersContainer.appendChild(tagFilterPlaceholder);
             tagFilterPlaceholder.style.display = 'block';
             return;
@@ -151,12 +151,15 @@ document.addEventListener('DOMContentLoaded', () => {
             tagFilterPlaceholder.style.display = 'block';
             tagFiltersContainer.appendChild(tagFilterPlaceholder);
         } else {
-            // 上の分岐で処理済み
+            // 上の分岐で処理済みのため、ここに来る場合は tagFilterPlaceholder.textContent の調整が必要なら行う
+            // 現状は、selectedParentCategoryId があっても selectedChildCategoryId がないとタグを表示しない仕様
+            if (tagFilterPlaceholder) tagFilterPlaceholder.textContent = '子カテゴリを選択してください。';
+            tagFilterPlaceholder.style.display = 'block';
+            tagFiltersContainer.appendChild(tagFilterPlaceholder);
         }
     }
 
     function renderItems(itemsToRender) {
-        // この関数自体は変更なし (表示するアイテムのデータが変わるだけ)
         if (!itemList) return;
         itemList.innerHTML = '';
         if (itemCountDisplay) {
@@ -205,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 (item.effect && item.effect.toLowerCase().includes(searchTerm)) ||
                 (item.入手手段 && item.入手手段.toLowerCase().includes(searchTerm));
 
-            let matchesCategoryAndTags = true;
+            let matchesCategoryAndTags = true; // デフォルトは絞り込みなし
             if (selectedTags.length > 0) { // タグが選択されていれば、それでフィルタリング
                 matchesCategoryAndTags = item.tags && selectedTags.every(selTagId => item.tags.includes(selTagId));
             } else if (selectedChildCategoryId) { // タグ未選択だが、子カテゴリが選択されている場合
@@ -227,11 +230,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         return tagObj && childCategoryIdsOfSelectedParent.includes(tagObj.categoryId);
                     });
                 } else {
-                    // 親カテゴリに子カテゴリがない場合は、実質的に何もマッチしない
-                    matchesCategoryAndTags = false;
+                    // 親カテゴリに子カテゴリがない場合は、その親カテゴリ指定では何もマッチしない
+                    matchesCategoryAndTags = false; 
                 }
             }
-            // それ以外（カテゴリもタグも未選択）の場合は、カテゴリ/タグによる絞り込みはなし (true)
+            // それ以外（カテゴリもタグも未選択）の場合は、カテゴリ/タグによる絞り込みはなし (trueのまま)
 
             return matchesSearchTerm && matchesCategoryAndTags;
         });
@@ -257,10 +260,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (parentCategoryFilterSelect) parentCategoryFilterSelect.value = "";
         if (childCategoryFilterSelect) {
             childCategoryFilterSelect.value = "";
-            childCategoryFilterSelect.innerHTML = '<option value="">すべて</option>'; // 内容もクリア
+            // 子カテゴリの選択肢もクリアして、disabled状態に戻す
+            childCategoryFilterSelect.innerHTML = '<option value="">すべて</option>'; 
             childCategoryFilterSelect.disabled = true;
         }
-        renderTagsForSelectedChildCategory(); // タグ表示をリセット
+        renderTagsForSelectedChildCategory(); // タグ表示をリセット（プレースホルダーに戻るはず）
         filterAndRenderItems();
     }
 
@@ -272,19 +276,21 @@ document.addEventListener('DOMContentLoaded', () => {
         parentCategoryFilterSelect.addEventListener('change', (event) => {
             selectedParentCategoryId = event.target.value;
             selectedChildCategoryId = ""; // 親が変わったら子はリセット
-            selectedTags = []; // 親が変わったらタグもリセット
-            renderChildCategories();
-            renderTagsForSelectedChildCategory();
-            filterAndRenderItems();
+            selectedTags = []; // 親が変わったらタグもリセット（UI上もクリアされるように）
+            
+            renderChildCategories(); // 子カテゴリの選択肢を更新
+            renderTagsForSelectedChildCategory(); // タグの選択肢も更新（通常はプレースホルダーに戻る）
+            filterAndRenderItems(); // アイテムリストをフィルタリング
         });
     }
 
     if (childCategoryFilterSelect) {
         childCategoryFilterSelect.addEventListener('change', (event) => {
             selectedChildCategoryId = event.target.value;
-            selectedTags = []; // 子が変わったらタグもリセット
-            renderTagsForSelectedChildCategory();
-            filterAndRenderItems();
+            selectedTags = []; // 子が変わったらタグもリセット（UI上もクリアされるように）
+            
+            renderTagsForSelectedChildCategory(); // タグの選択肢を更新
+            filterAndRenderItems(); // アイテムリストをフィルタリング
         });
     }
 
