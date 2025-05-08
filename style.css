@@ -56,16 +56,24 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     margin-top: 15px;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #e0e0e0; /* 区切り線 */
+    /* border-bottom: 1px solid #e0e0e0; */ /* リセットボタンとの間に区切り線が重複しないように一旦コメントアウト */
+}
+.displayed-parent-category-name { /* 親カテゴリ名を表示する場合のスタイル（任意） */
+    font-size: 1.2em;
+    color: #333;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #007bff; 
 }
 .child-category-section {
     margin-bottom: 15px;
     padding: 10px;
-    border: 1px solid #f0f0f0; /* 各子カテゴリセクションを軽く囲む */
+    border: 1px solid #f0f0f0; 
     border-radius: 5px;
     background-color: #fdfdfd;
 }
-.child-category-section h4 {
+.child-category-section h4 { /* 子カテゴリ名 */
     font-size: 1em;
     color: #333;
     margin-top: 0;
@@ -73,13 +81,13 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     padding-bottom: 5px;
     border-bottom: 1px dashed #e0e0e0;
 }
-.tag-filters-inline { /* 子カテゴリ内のタグ表示用 */
+.tag-filters-inline { 
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
-.tag-filter { /* 既存のタグフィルタースタイルを流用 */
-    padding: 6px 10px; /* 少し小さめに */
+.tag-filter { 
+    padding: 6px 10px; 
     background-color: #f0f0f0;
     border: 1px solid #ddd;
     border-radius: 15px;
@@ -88,7 +96,7 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     transition: background-color 0.2s, color 0.2s;
 }
 .tag-filter.active {
-    background-color: #28a745; /* アクティブなタグの色を変えても良い */
+    background-color: #28a745; 
     color: white;
     border-color: #1e7e34;
 }
@@ -103,6 +111,7 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     padding: 10px 15px; background-color: #6c757d; color: white;
     border: none; border-radius: 4px; cursor: pointer;
     transition: background-color 0.2s;
+    margin-top: 10px; /* 上の要素との間隔を確保 */
 }
 #resetFiltersButton:hover { background-color: #5a6268; }
 #itemCount { margin-bottom: 15px; font-weight: bold; color: #555; }
@@ -110,13 +119,88 @@ h1 { text-align: center; color: #333; margin-bottom: 20px; }
     display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
 }
-.item-card { /* ... (変更なし) ... */ }
-.item-card:hover { /* ... (変更なし) ... */ }
-.item-card img { /* ... (変更なし) ... */ }
-.item-image-text-placeholder { /* ... (変更なし) ... */ }
-.item-card h3 { /* ... (変更なし) ... */ }
-.item-card p { /* ... (変更なし) ... */ }
-.item-card p strong { /* ... (変更なし) ... */ }
-.item-card .tags { /* ... (変更なし) ... */ }
-.item-card .tags span { /* ... (変更なし) ... */ }
-@media (max-width: 768px) { /* ... (カテゴリフィルターエリアの調整は不要になるかも) ... */ }
+.item-card {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.07);
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s ease-in-out;
+}
+.item-card:hover {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.item-card img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    align-self: center;
+    background-color: #eee; 
+}
+.item-image-text-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    align-self: center;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #888;
+    font-size: 1.1em;
+    font-weight: bold;
+    border: 1px dashed #ccc;
+    box-sizing: border-box;
+}
+.item-card h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.25em;
+    color: #0056b3;
+    word-break: break-word;
+}
+.item-card p {
+    margin-bottom: 8px;
+    font-size: 0.95em;
+    line-height: 1.5;
+    color: #444;
+    flex-grow: 1; 
+    word-break: break-word;
+}
+.item-card p strong {
+    color: #333;
+}
+.item-card .tags {
+    margin-top: 12px;
+    font-size: 0.85em;
+    color: #555;
+}
+.item-card .tags span {
+    background-color: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 12px;
+    margin-right: 6px;
+    margin-bottom: 6px;
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .category-button-group {
+        justify-content: center; /* スマホではボタンを中央寄せにしても良い */
+    }
+    .child-category-section {
+        padding: 8px;
+    }
+    .tag-filters-inline {
+        gap: 6px;
+    }
+    .tag-filter {
+        padding: 5px 8px;
+        font-size: 0.8em;
+    }
+}
