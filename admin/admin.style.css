@@ -57,6 +57,7 @@ h3 { font-size: 1.3em; }
     display: block; margin-bottom: 6px; font-weight: bold; color: #495057;
 }
 .form-group input[type="text"],
+.form-group input[type="number"], /* ★numberタイプも */
 .form-group input[type="url"],
 .form-group input[type="file"],
 .form-group textarea,
@@ -66,6 +67,7 @@ h3 { font-size: 1.3em; }
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus, /* ★numberタイプも */
 .form-group input[type="url"]:focus,
 .form-group input[type="file"]:focus,
 .form-group textarea:focus,
@@ -78,7 +80,14 @@ h3 { font-size: 1.3em; }
 .form-control-short { 
     max-width: 300px; 
     width: auto; 
+    display: inline-block; /* 横並びのため */
+    vertical-align: middle;
+    margin-right: 8px;
 }
+.form-control-short:last-child {
+    margin-right: 0;
+}
+
 
 /* カテゴリ追加/編集の親カテゴリ選択ボタン用スタイル */
 .category-button-group.admin { 
@@ -125,18 +134,25 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border: none;
     border-radius: 4px; 
 }
-.action-button.edit, .edit-item, .edit-category, .edit-tag { 
+.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type { /* 効果種類編集ボタンも */
     background-color: #28a745 !important;
 }
-.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover {
+.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover {
     background-color: #218838 !important;
 }
-.action-button.delete, .delete-item, .delete-category, .delete-tag {
+.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list { /* 効果種類削除、リストからの効果削除も */
     background-color: #dc3545 !important;
 }
-.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover {
+.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-from-list:hover {
     background-color: #c82333 !important;
 }
+/* リストからの削除ボタンは小さめに */
+.delete-effect-from-list {
+    padding: 2px 6px;
+    font-size: 0.8em;
+    margin-left: 8px;
+}
+
 
 .info { font-size: 0.85em; color: #6c757d; margin-top: 6px; line-height: 1.4; }
 
@@ -146,11 +162,11 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-radius: 4px; margin-top:10px;
 }
 
-.inline-form { /* 以前はカテゴリ追加で使っていたが、現在は不使用 */
-    /* display: flex; align-items: center; gap: 10px; margin-bottom: 15px; */
+.inline-form { 
+    display: flex; align-items: center; gap: 10px; margin-bottom: 15px; 
 }
-.inline-form input[type="text"] { /* flex-grow: 1; */ }
-.inline-form select { /* width: auto; flex-grow: 0.5; */ }
+.inline-form input[type="text"] { flex-grow: 1; }
+.inline-form select { /* width: auto; flex-grow: 0.5; */ /* 使わなくなった */ }
 
 
 .list-container {
@@ -238,6 +254,47 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-color: #1e7e34;
 }
 
+/* ★アイテムフォームの効果入力エリア */
+.effect-input-area {
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+.effect-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.effect-input-row select,
+.effect-input-row input {
+    flex: 1; /* ある程度均等に幅をとる */
+}
+.effect-input-row button {
+    flex-shrink: 0; /* ボタンは縮まない */
+}
+
+/* ★アイテムフォームの効果リスト表示エリア */
+.effects-list-container {
+    margin-top: 10px;
+    border-top: 1px dashed #ccc;
+    padding-top: 10px;
+}
+.effect-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    padding: 6px 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+.effect-list-item span {
+    font-size: 0.9em;
+}
+
 
 
 #itemsTable {
@@ -297,11 +354,16 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
     header h1 { font-size: 1.5em; }
-    /* .inline-form は使われなくなった */
     .modal-content { width: 95%; padding: 20px; }
     #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
     #itemSearchAdmin { width: 100% !important; }
     .category-button-group.admin { justify-content: flex-start; } 
+    .effect-input-row { flex-direction: column; gap: 10px; }
+    .effect-input-row select, .effect-input-row input, .effect-input-row button {
+        width: 100%;
+        margin-right: 0;
+        max-width: none; /* .form-control-short の max-width を上書き */
+    }
 }
