@@ -7,16 +7,16 @@ body {
 }
 h1 { text-align: center; color: #333; margin-bottom: 30px; } 
 
-/* ★メインコントロールエリアの位置調整 */
+/* メインコントロールエリアの位置調整 */
 .main-controls {
-    /* text-align: center; */ /* 中央寄せやめる */
+    /* text-align: center; */ 
     margin-bottom: 20px;
-    display: flex; /* 右寄せなどのためにflexにする場合 */
-    justify-content: flex-end; /* 例: 右寄せ */
+    display: flex; 
+    justify-content: flex-end; 
 }
 #openSimulatorButton {
-    padding: 10px 20px; /* 少し小さめに */
-    font-size: 1em; /* サイズ調整 */
+    padding: 10px 20px; 
+    font-size: 1em; 
     background-color: #17a2b8; 
     color: white;
     border: none;
@@ -32,7 +32,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     border: 0;
     height: 1px;
     background-color: #e0e0e0;
-    margin: 30px 0; /* 少し狭める */
+    margin: 30px 0; 
 }
 
 /* --- モーダル共通スタイル --- */
@@ -273,14 +273,13 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 .search-controls.selecting-mode {
     opacity: 0.7; 
 }
-/* ★検索バーのスタイル修正 */
 #searchInput {
-    width: 100%; /* 幅を100%に */
+    width: 100%; 
     padding: 10px; 
     margin-bottom: 15px; 
     border: 1px solid #ccc;
     border-radius: 4px; 
-    box-sizing: border-box; /* paddingを含めて100% */
+    box-sizing: border-box; 
 }
 
 .search-tool-message {
@@ -525,9 +524,8 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 
 
 @media (max-width: 768px) {
-     /* ★シミュレータ起動ボタンの位置調整 */
     .main-controls { justify-content: center; margin-bottom: 30px;} 
-    
+
     .equipment-slots {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
         gap: 15px;
