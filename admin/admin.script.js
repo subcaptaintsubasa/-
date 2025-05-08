@@ -23,15 +23,17 @@ const db = getFirestore(app);
 const IMAGE_UPLOAD_WORKER_URL = 'https://denpa-item-uploader.tsubasa-hsty-f58.workers.dev';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
     const passwordPrompt = document.getElementById('password-prompt');
     const adminContent = document.getElementById('admin-content');
-    const loginButton = document.getElementById('loginButton');
+    const loginButton = document.getElementById('loginButton'); 
     const adminEmailInput = document.getElementById('adminEmailInput');
     const adminPasswordInput = document.getElementById('adminPasswordInput');
     const passwordError = document.getElementById('passwordError');
     const logoutButton = document.getElementById('logoutButton');
     const currentUserEmailSpan = document.getElementById('currentUserEmail');
 
+    // Category Management
     const newCategoryNameInput = document.getElementById('newCategoryName');
     const newCategoryParentSelect = document.getElementById('newCategoryParentSelect');
     const addCategoryButton = document.getElementById('addCategoryButton');
@@ -42,16 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const editingCategoryParentSelect = document.getElementById('editingCategoryParentSelect');
     const saveCategoryEditButton = document.getElementById('saveCategoryEditButton');
 
+    // Tag Management
     const newTagNameInput = document.getElementById('newTagName');
-    const newTagCategoriesCheckboxes = document.getElementById('newTagCategoriesCheckboxes');
+    const newTagCategoriesCheckboxes = document.getElementById('newTagCategoriesCheckboxes'); 
     const addTagButton = document.getElementById('addTagButton');
     const tagListContainer = document.getElementById('tagListContainer');
     const editTagModal = document.getElementById('editTagModal');
     const editingTagDocIdInput = document.getElementById('editingTagDocId');
     const editingTagNameInput = document.getElementById('editingTagName');
-    const editingTagCategoriesCheckboxes = document.getElementById('editingTagCategoriesCheckboxes');
+    const editingTagCategoriesCheckboxes = document.getElementById('editingTagCategoriesCheckboxes'); 
     const saveTagEditButton = document.getElementById('saveTagEditButton');
 
+    // Item Management
     const itemForm = document.getElementById('itemForm');
     const itemIdToEditInput = document.getElementById('itemIdToEdit');
     const itemNameInput = document.getElementById('itemName');
@@ -63,17 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadProgressText = document.getElementById('uploadProgressText');
     const itemEffectInput = document.getElementById('itemEffect');
     const itemSourceInput = document.getElementById('itemSource');
-    const itemTagsSelectorCheckboxes = document.getElementById('itemTagsSelectorCheckboxes');
+    const itemTagsSelectorCheckboxes = document.getElementById('itemTagsSelectorCheckboxes'); 
     const saveItemButton = document.getElementById('saveItemButton');
     const clearFormButton = document.getElementById('clearFormButton');
     const itemsTableBody = document.querySelector('#itemsTable tbody');
     const itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
-    let allCategoriesCache = [];
-    let allTagsCache = [];
+    let allCategoriesCache = []; 
+    let allTagsCache = [];      
     let itemsCache = [];
     let selectedImageFile = null;
 
+    // --- Authentication ---
     onAuthStateChanged(auth, (user) => {
         if (user) {
             passwordPrompt.style.display = 'none';
@@ -113,15 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function clearAdminUI() {
         if (categoryListContainer) categoryListContainer.innerHTML = '';
-        if (newCategoryParentSelect) newCategoryParentSelect.innerHTML = '<option value="">親カテゴリなし (最上位)</option>';
-        if (editingCategoryParentSelect) editingCategoryParentSelect.innerHTML = '<option value="">親カテゴリなし (最上位)</option>';
+        if (newCategoryParentSelect) newCategoryParentSelect.innerHTML = '<option value="">(親カテゴリを選択)</option>'; // テキスト変更
+        if (editingCategoryParentSelect) editingCategoryParentSelect.innerHTML = '<option value="">(親カテゴリを選択)</option>'; // テキスト変更
         
         if (tagListContainer) tagListContainer.innerHTML = '';
-        if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
+        if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = ''; 
         if (editingTagCategoriesCheckboxes) editingTagCategoriesCheckboxes.innerHTML = '';
 
         if (itemsTableBody) itemsTableBody.innerHTML = '';
-        if (itemTagsSelectorCheckboxes) itemTagsSelectorCheckboxes.innerHTML = '';
+        if (itemTagsSelectorCheckboxes) itemTagsSelectorCheckboxes.innerHTML = ''; 
         clearItemForm();
     }
 
@@ -132,8 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadItemsFromFirestore();
         
         populateParentCategorySelects();
-        populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
-        populateTagCheckboxesForItemForm();
+        populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); // 新規タグ用
+        populateTagCheckboxesForItemForm(); // アイテムフォーム用
 
         renderCategoriesForManagement();
         renderTagsForManagement();
@@ -141,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("[Initial Load] Completed.");
     }
 
+    // --- Category Management ---
     async function loadCategoriesFromFirestore() {
         console.log("[Categories] Loading all categories...");
         try {
@@ -160,12 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
         selects.forEach(selectEl => {
             if (!selectEl) return;
             const currentValue = selectEl.value; 
-            selectEl.innerHTML = '<option value="">親カテゴリなし (最上位)</option>';
-            allCategoriesCache.forEach(cat => {
-                if (cat.id !== currentCategoryIdToExclude) { 
+            // ★変更: デフォルトオプションのテキスト変更 + 親カテゴリのみリストアップ
+            selectEl.innerHTML = '<option value="">(親カテゴリを選択)</option>'; 
+            allCategoriesCache
+                .filter(cat => (!cat.parentId || cat.parentId === "") && cat.id !== currentCategoryIdToExclude) // 親カテゴリのみをリストアップ
+                .forEach(cat => {
                     selectEl.add(new Option(cat.name, cat.id));
-                }
-            });
+                });
             if (currentValue && Array.from(selectEl.options).some(opt => opt.value === currentValue)) {
                  selectEl.value = currentValue;
             }
@@ -227,8 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 await loadCategoriesFromFirestore();
                 populateParentCategorySelects();
-                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); // For new tag form
-                // Also update checkboxes in edit tag modal if it's open, or ensure they are repopulated on open.
+                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); 
                 if (editTagModal.style.display === 'flex' && editingTagDocIdInput.value) {
                     const tagToRePopulate = allTagsCache.find(t => t.id === editingTagDocIdInput.value);
                     populateCategoryCheckboxesForTagAssignment(editingTagCategoriesCheckboxes, tagToRePopulate ? (tagToRePopulate.categoryIds || []) : []);
@@ -245,10 +251,11 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`[Category Edit] Opening modal for ID: ${docId}, Name: ${currentName}, ParentID: ${currentParentId}`);
         editingCategoryDocIdInput.value = docId;
         editingCategoryNameInput.value = currentName;
-        populateParentCategorySelects(docId);
+        populateParentCategorySelects(docId); // 親候補を再生成（自分を除く）
         editingCategoryParentSelect.value = currentParentId || "";
         editCategoryModal.style.display = 'flex';
         editingCategoryNameInput.focus();
+        // ★子カテゴリ編集時にタグを選択するUIは追加しない方針
     }
 
     if (saveCategoryEditButton) {
@@ -269,9 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (newParentId) {
                 let currentAncestorId = newParentId;
-                let visited = new Set([docId]); // Start with the current docId to prevent self-reference in a chain
+                let visited = new Set([docId]); 
                 while (currentAncestorId) {
-                    if (visited.has(currentAncestorId)) { // Cycle detected
+                    if (visited.has(currentAncestorId)) { 
                         alert("循環参照です。この親カテゴリ設定はできません。");
                         return;
                     }
@@ -282,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
+                // ★子カテゴリ編集時にタグを選択するUIはないので、タグ更新処理は不要
                 await updateDoc(doc(db, 'categories', docId), { 
                     name: newName,
                     parentId: newParentId || ""
@@ -289,15 +297,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("[Category Edit] Category updated successfully.");
                 editCategoryModal.style.display = 'none';
                 
+                // UI更新
                 await loadCategoriesFromFirestore();
                 populateParentCategorySelects();
-                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
+                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); // Update tag forms too
                 if (editTagModal.style.display === 'flex' && editingTagDocIdInput.value) {
-                     const tagToRePopulate = allTagsCache.find(t => t.id === editingTagDocIdInput.value);
+                    const tagToRePopulate = allTagsCache.find(t => t.id === editingTagDocIdInput.value);
                     populateCategoryCheckboxesForTagAssignment(editingTagCategoriesCheckboxes, tagToRePopulate ? (tagToRePopulate.categoryIds || []) : []);
                 }
                 renderCategoriesForManagement();
-                await loadTagsFromFirestore(); 
+                await loadTagsFromFirestore(); // Reload tags as category names might affect display
                 renderTagsForManagement(); 
             } catch (error) {
                 console.error("[Category Edit] Error:", error);
@@ -326,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     batch.update(tagDoc.ref, { categoryIds: updatedCategoryIds });
                 });
                 
-                batch.delete(doc(db, 'categories', docId)); // カテゴリ自体を削除
+                batch.delete(doc(db, 'categories', docId)); 
                 
                 await batch.commit();
                 console.log(`[Category Delete] Category ${docId} deleted and updated ${tagsSnapshot.size} tags.`);
@@ -339,6 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+
+    // --- Tag Management ---
     async function loadTagsFromFirestore() {
         console.log("[Tags] Loading all tags...");
         try {
@@ -352,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // タグに紐付けるカテゴリ選択用のチェックボックス群を生成 (修正なし)
     function populateCategoryCheckboxesForTagAssignment(containerElement, selectedCategoryIds = []) {
         if (!containerElement) return;
         containerElement.innerHTML = ''; 
@@ -362,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         allCategoriesCache.forEach(category => {
-            const checkboxId = `tag-cat-${category.id}-${containerElement.id.replace(/\W/g, '')}`; // Simpler unique ID
+            const checkboxId = `tag-cat-${category.id}-${containerElement.id.replace(/\W/g, '')}`;
             const checkboxWrapper = document.createElement('div');
             checkboxWrapper.classList.add('checkbox-item');
             checkboxWrapper.innerHTML = `
@@ -373,6 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // タグ管理リスト表示 (修正なし)
     function renderTagsForManagement() {
         if (!tagListContainer) return;
         tagListContainer.innerHTML = '';
@@ -405,10 +418,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // タグ追加ボタンのイベントリスナー (修正 - チェックボックスからの値取得を確実にする)
     if (addTagButton) {
         addTagButton.addEventListener('click', async () => {
             const name = newTagNameInput.value.trim();
-            const selectedCategoryIds = Array.from(newTagCategoriesCheckboxes.querySelectorAll('input[name="tagCategory"]:checked'))
+            // ★修正: チェックボックスから値を取得
+            const selectedCategoryIds = Array.from(newTagCategoriesCheckboxes.querySelectorAll('input[type="checkbox"][name="tagCategory"]:checked'))
                                             .map(cb => cb.value);
             
             if (!name) { alert("タグ名を入力してください。"); return; }
@@ -418,16 +433,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!existingQuery.empty) { alert("同じ名前のタグが既に存在します。"); return; }
             
             try {
+                console.log(`[Tag Add] Adding tag '${name}' with categoryIds:`, selectedCategoryIds);
                 await addDoc(collection(db, 'tags'), { 
                     name: name, 
-                    categoryIds: selectedCategoryIds,
+                    categoryIds: selectedCategoryIds, 
                     createdAt: serverTimestamp()
                 });
                 newTagNameInput.value = '';
-                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
+                // チェックボックスのチェックを外す
+                newTagCategoriesCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
-                populateTagCheckboxesForItemForm();
+                populateTagCheckboxesForItemForm(); 
+                console.log("[Tag Add] Success.");
             } catch (error) {
                 console.error("[Tag Add] Error:", error);
                 alert("タグの追加に失敗しました。");
@@ -435,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // タグ編集モーダル表示 (修正なし)
     function openEditTagModal(docId, currentName, currentCategoryIds) {
         editingTagDocIdInput.value = docId;
         editingTagNameInput.value = currentName;
@@ -443,11 +463,13 @@ document.addEventListener('DOMContentLoaded', () => {
         editingTagNameInput.focus();
     }
 
+    // タグ編集保存ボタンのイベントリスナー (修正 - チェックボックスからの値取得を確実にする)
     if (saveTagEditButton) {
         saveTagEditButton.addEventListener('click', async () => {
             const docId = editingTagDocIdInput.value;
             const newName = editingTagNameInput.value.trim();
-            const newSelectedCategoryIds = Array.from(editingTagCategoriesCheckboxes.querySelectorAll('input[name="tagCategory"]:checked'))
+            // ★修正: チェックボックスから値を取得
+            const newSelectedCategoryIds = Array.from(editingTagCategoriesCheckboxes.querySelectorAll('input[type="checkbox"][name="tagCategory"]:checked'))
                                                 .map(cb => cb.value);
 
             if (!newName) { alert("タグ名は空にできません。"); return; }
@@ -459,6 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (conflict) { alert("編集後の名前が、他の既存タグと重複します。"); return; }
 
             try {
+                console.log(`[Tag Edit] Updating tag ${docId} with name '${newName}' and categoryIds:`, newSelectedCategoryIds);
                 await updateDoc(doc(db, 'tags', docId), { 
                     name: newName, 
                     categoryIds: newSelectedCategoryIds 
@@ -467,6 +490,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
                 populateTagCheckboxesForItemForm();
+                await loadItemsFromFirestore(); // アイテムのタグ表示も更新が必要な場合
+                renderItemsAdminTable();
+                console.log("[Tag Edit] Success.");
             } catch (error) {
                 console.error("[Tag Edit] Error:", error);
                 alert("タグの更新に失敗しました。");
@@ -474,6 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // タグ削除 (修正なし)
     async function deleteTag(docId, tagName) {
         console.log(`[Tag Delete] Attempting to delete ID: ${docId}, Name: ${tagName}`);
         if (confirm(`タグ「${tagName}」を削除しますか？\nこのタグを使用している全てのアイテムからも自動的に解除されます。`)) {
@@ -497,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
                 populateTagCheckboxesForItemForm();
-                await loadItemsFromFirestore();
+                await loadItemsFromFirestore(); 
                 renderItemsAdminTable();
 
             } catch (error) {
@@ -507,6 +534,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // --- Item Management ---
+    // アイテムフォーム用タグ選択チェックボックス生成 (修正なし)
     function populateTagCheckboxesForItemForm(selectedTagIds = []) {
         if (!itemTagsSelectorCheckboxes) return;
         itemTagsSelectorCheckboxes.innerHTML = '';
@@ -526,6 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // アイテム読み込み (修正なし)
     async function loadItemsFromFirestore() {
         console.log("[Items] Loading items from Firestore...");
         try {
@@ -539,13 +569,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // アイテム保存 (修正 - チェックボックスからのタグID取得を確実にする)
     if (itemForm) {
         itemForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = itemNameInput.value.trim();
             const effect = itemEffectInput.value.trim();
             const source = itemSourceInput.value.trim();
-            const selectedItemTagIds = Array.from(itemTagsSelectorCheckboxes.querySelectorAll('input[name="itemTag"]:checked'))
+            // ★修正: チェックボックスから値を取得
+            const selectedItemTagIds = Array.from(itemTagsSelectorCheckboxes.querySelectorAll('input[type="checkbox"][name="itemTag"]:checked'))
                                             .map(cb => cb.value);
             const editingDocId = itemIdToEditInput.value;
             let imageUrl = itemImageUrlInput.value;
@@ -561,18 +593,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const itemData = {
                     name: name || "", image: imageUrl || "", effect: effect || "",
-                    入手手段: source || "", tags: selectedItemTagIds,
+                    入手手段: source || "", tags: selectedItemTagIds, 
                     updatedAt: serverTimestamp()
                 };
                 if (editingDocId) {
+                     console.log(`[Item Save] Updating item ${editingDocId} with tags:`, selectedItemTagIds);
                     await updateDoc(doc(db, 'items', editingDocId), itemData);
                 } else {
                     itemData.createdAt = serverTimestamp();
+                    console.log(`[Item Save] Adding new item with tags:`, selectedItemTagIds);
                     await addDoc(collection(db, 'items'), itemData);
                 }
                 await loadItemsFromFirestore();
                 renderItemsAdminTable();
                 clearItemForm();
+                console.log("[Item Save] Success.");
             } catch (error) {
                 console.error("[Item Save] Error:", error);
                 alert(`アイテム保存エラー: ${error.message}`);
@@ -583,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // フォームクリア (修正なし)
     if (clearFormButton) clearFormButton.addEventListener('click', clearItemForm);
 
     function clearItemForm() {
@@ -593,10 +629,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (itemImageFileInput) itemImageFileInput.value = null;
         selectedImageFile = null;
         uploadProgressContainer.style.display = 'none';
-        populateTagCheckboxesForItemForm();
+        populateTagCheckboxesForItemForm(); 
         if (saveItemButton) saveItemButton.textContent = "アイテム保存";
     }
 
+    // アイテムテーブル表示 (修正なし)
     function renderItemsAdminTable() {
         if (!itemsTableBody) return;
         itemsTableBody.innerHTML = '';
@@ -627,8 +664,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // アイテム検索 (修正なし)
     if (itemSearchAdminInput) itemSearchAdminInput.addEventListener('input', renderItemsAdminTable);
 
+    // アイテム編集データ読み込み (修正なし、タグチェックボックス反映は populateTagCheckboxesForItemForm で行われる)
     async function loadItemForEdit(docId) {
         try {
             const itemSnap = await getDoc(doc(db, "items", docId));
@@ -645,13 +684,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemImagePreview.src = '#'; itemImagePreview.style.display = 'none';
                 }
                 if (itemImageFileInput) itemImageFileInput.value = null; selectedImageFile = null;
-                populateTagCheckboxesForItemForm(itemData.tags || []);
+                populateTagCheckboxesForItemForm(itemData.tags || []); 
                 if (saveItemButton) saveItemButton.textContent = "アイテム更新";
                 if (itemForm) itemForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else { alert("編集対象のアイテムが見つかりませんでした。"); }
         } catch (error) { console.error("[Item Edit] Error loading:", error); alert("編集データ読込エラー"); }
     }
     
+    // アイテム削除 (修正なし)
     async function deleteItem(docId, itemName, imageUrl) {
         const displayName = itemName || '(名称未設定)';
         if (confirm(`アイテム「${displayName}」を削除しますか？\nCloudflare R2上の関連画像は手動での削除が必要です。`)) {
@@ -670,6 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // 画像アップロード (修正なし)
     if (itemImageFileInput) {
         itemImageFileInput.addEventListener('change', (event) => {
             selectedImageFile = event.target.files[0];
@@ -689,7 +730,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
     async function uploadImageToWorkerAndGetURL(file) {
         if (!file) return null;
         console.log("[Image Upload] Starting image upload to worker for file:", file.name);
@@ -725,6 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // --- Modal common handlers --- (修正なし)
     document.querySelectorAll('.modal .close-button').forEach(btn => {
         btn.onclick = function() { btn.closest('.modal').style.display = "none"; }
     });
