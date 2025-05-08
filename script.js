@@ -92,8 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeSimulatorSlots(); 
             initializeSimulatorDisplay(); 
             renderParentCategoryFilters();
-            renderChildCategoriesAndTags(); 
-            filterAndRenderItems(); // ★★★ Call filterAndRenderItems to initially populate item list
+            renderChildCategoriesAndTags(); // ★ 子カテゴリ・タグエリア初期描画
+            filterAndRenderItems(); // ★ 初期フィルターでアイテムリスト描画
 
         } catch (error) {
             console.error("Error loading data:", error);
@@ -125,7 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const parentCategories = allCategories.filter(cat => !cat.parentId || cat.parentId === "");
         
         if (parentCategories.length === 0) {
-            // parentCategoryFiltersContainer.innerHTML = '<p>利用可能な親カテゴリはありません。</p>'; // メッセージは任意
+            // メッセージは任意
+            // parentCategoryFiltersContainer.innerHTML = '<p>利用可能な親カテゴリはありません。</p>';
             return;
         }
 
@@ -149,13 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             parentCategoryFiltersContainer.appendChild(button);
         });
-        if (searchControlsElement) { 
-            if (isSelectingForSimulator) {
-                searchControlsElement.classList.add('selecting-mode');
-            } else {
-                searchControlsElement.classList.remove('selecting-mode');
-            }
-        }
+        // ★ searchControlsElement のクラス制御は filterAndRenderItems の前に移動
     }
 
     function toggleParentCategory(button, categoryId) {
@@ -173,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderChildCategoriesAndTags() {
         if (!childCategoriesAndTagsContainer) return;
-        childCategoriesAndTagsContainer.innerHTML = '';
+        childCategoriesAndTagsContainer.innerHTML = ''; // ★常にクリア
 
         if (isSelectingForSimulator) {
              childCategoriesAndTagsContainer.style.display = 'none';
@@ -183,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (selectedParentCategoryIds.length === 0) {
-             // ★初期状態または親未選択時は何も表示しないか、ガイドメッセージを表示
+             // ★ 親が未選択の時はメッセージ表示
              childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p>';
             return; 
         }
@@ -264,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderItems(itemsToRender) {
-        if (!itemList || !effectTypesCache) return; // ★effectTypesCacheのロード確認
+        if (!itemList || !effectTypesCache) return; 
         itemList.innerHTML = ''; 
         
         if (itemCountDisplay) {
@@ -273,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (itemsToRender.length === 0) {
+            // ★アイテムリストをクリアした後にメッセージを表示するように修正
             itemList.innerHTML = '<p>該当するアイテムは見つかりませんでした。</p>';
             return;
         }
@@ -311,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.structured_effects.forEach(eff => {
                      const effectType = effectTypesCache.find(et => et.id === eff.type);
                      const typeName = effectType ? effectType.name : '不明';
-                     const unitText = eff.unit !== 'none' ? `(${eff.unit})` : ''; // 単位を括弧で囲む
+                     const unitText = eff.unit !== 'none' ? `(${eff.unit})` : ''; 
                      structuredEffectsHtml += `<li>${typeName}: ${eff.value}${unitText}</li>`;
                 });
                  structuredEffectsHtml += `</ul></div>`;
@@ -328,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             
             if (isSelectingForSimulator) {
+                itemCard.removeEventListener('click', handleItemCardClick); // 念のため既存を削除
                 itemCard.addEventListener('click', handleItemCardClick);
             }
 
@@ -350,12 +347,19 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Temporarily selected item:", itemId);
     }
 
-    // ★フィルターロジックを修正
     function filterAndRenderItems() {
+        // ★ 検索コントロールエリアのクラス更新をここで行う
+        if (searchControlsElement) { 
+             if (isSelectingForSimulator) {
+                 searchControlsElement.classList.add('selecting-mode');
+             } else {
+                 searchControlsElement.classList.remove('selecting-mode');
+             }
+        }
+
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
         
         let filteredItems = allItems.filter(item => {
-            // 部位タグでの絞り込み (シミュレータ連携時)
             if (isSelectingForSimulator && currentSelectingSlot) {
                 const requiredSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
                 if (!requiredSlotTagId || !item.tags || !item.tags.includes(requiredSlotTagId)) {
@@ -363,7 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 検索バーでの絞り込み
             const matchesSearchTerm = searchTerm === '' ||
                 (item.name && item.name.toLowerCase().includes(searchTerm)) ||
                 (item.structured_effects && item.structured_effects.some(eff => {
@@ -376,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!matchesSearchTerm) return false;
 
-            // カテゴリフィルタリング (シミュレータ連携中はスキップ)
             let matchesCategories = true; 
             if (selectedParentCategoryIds.length > 0 && !isSelectingForSimulator) { 
                 matchesCategories = selectedParentCategoryIds.every(parentId => {
@@ -392,26 +394,56 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!matchesCategories) return false;
 
-            // タグフィルタリング (部位タグを除き、OR/ANDを考慮)
             let matchesTags = true;
             const actualSelectedTags = selectedTagIds.filter(tagId => !Object.values(EQUIPMENT_SLOT_TAG_IDS).includes(tagId)); 
             
             if (actualSelectedTags.length > 0) {
-                // カテゴリIDセット取得 (変更なし)
                 const categoryIdsOfSelectedTags = new Set();
-                 actualSelectedTags.forEach(tagId => { /* ... */ });
-                
-                // 共通の子カテゴリ特定 (変更なし)
+                 actualSelectedTags.forEach(tagId => {
+                    const tagObj = allTags.find(t => t.id === tagId);
+                    (tagObj?.categoryIds || []).forEach(catId => categoryIdsOfSelectedTags.add(catId));
+                });
                 let singleChildCategoryId = null;
                 let belongsToMultipleChildCategories = false;
-                 if (categoryIdsOfSelectedTags.size > 0) { /* ... */ }
-
-                // 検索モード決定 (変更なし)
+                if (categoryIdsOfSelectedTags.size > 0) {
+                    let commonChildCategoryIds = [];
+                    const firstTagId = actualSelectedTags[0];
+                    const firstTagObj = allTags.find(t => t.id === firstTagId);
+                    const firstTagChildCategoryIds = (firstTagObj?.categoryIds || []).filter(catId => {
+                        const cat = allCategories.find(c => c.id === catId);
+                        return cat && cat.parentId; 
+                    });
+                    if (firstTagChildCategoryIds.length > 0) {
+                        commonChildCategoryIds = firstTagChildCategoryIds;
+                        for (let i = 1; i < actualSelectedTags.length; i++) {
+                            const currentTagId = actualSelectedTags[i];
+                            const currentTagObj = allTags.find(t => t.id === currentTagId);
+                            const currentTagChildCategoryIds = new Set(
+                                (currentTagObj?.categoryIds || []).filter(catId => {
+                                    const cat = allCategories.find(c => c.id === catId);
+                                    return cat && cat.parentId;
+                                })
+                            );
+                            commonChildCategoryIds = commonChildCategoryIds.filter(catId => currentTagChildCategoryIds.has(catId));
+                            if (commonChildCategoryIds.length === 0) break; 
+                        }
+                    }
+                    if (commonChildCategoryIds.length === 1) {
+                        singleChildCategoryId = commonChildCategoryIds[0];
+                    } else if (commonChildCategoryIds.length > 1) {
+                         belongsToMultipleChildCategories = true; 
+                    }
+                }
                 let searchMode = 'AND'; 
-                 if (singleChildCategoryId) { /* ... */ }
-                 if (belongsToMultipleChildCategories) { searchMode = 'AND'; }
-
-                // フィルタリング実行 (変更なし)
+                if (singleChildCategoryId) {
+                    const category = allCategories.find(c => c.id === singleChildCategoryId);
+                    if (category && category.tagSearchMode === 'OR') {
+                        searchMode = 'OR';
+                    }
+                }
+                 if (belongsToMultipleChildCategories) {
+                     searchMode = 'AND';
+                 }
                 if (searchMode === 'OR') {
                     matchesTags = actualSelectedTags.some(selTagId => item.tags && item.tags.includes(selTagId));
                 } else {
@@ -421,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             return matchesTags; 
         });
-        renderItems(filteredItems); // アイテムリストをレンダリング
+        renderItems(filteredItems); 
     }
 
     function resetFilters() {
@@ -458,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentSelectingSlot) return;
 
         const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
-        if (!slotTagId) { // null や undefined もチェック
+        if (!slotTagId) { 
             alert(`部位「${currentSelectingSlot}」に対応するタグIDが見つかりません。tagsコレクションを確認してください。`);
             return;
         }
@@ -482,9 +514,9 @@ document.addEventListener('DOMContentLoaded', () => {
             searchToolMessage.style.display = 'block';
         }
         if (confirmSelectionButton) confirmSelectionButton.style.display = 'block';
-        if (searchToolMessage) { // メッセージ要素へスクロール
+        if (searchToolMessage) { 
              searchToolMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else { // フォールバック
+        } else { 
             window.scrollTo({ top: 0, behavior: 'smooth' }); 
         }
     }
@@ -497,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // temporarilySelectedItem が null でも設定可能（選択解除のため）
+            // アイテム未選択 (temporarilySelectedItemがnull) でも決定可能にする
             selectedEquipment[currentSelectingSlot] = temporarilySelectedItem;
 
             const previouslySelectedSlot = currentSelectingSlot; 
@@ -512,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedTagIds = []; 
             renderParentCategoryFilters(); 
             renderChildCategoriesAndTags(); 
-            filterAndRenderItems(); // ★フィルターをリセットしてアイテムリスト再描画
+            filterAndRenderItems(); // ★フィルターリセットしてアイテムリスト再描画
 
             if (simulatorModal) simulatorModal.style.display = 'flex';
             updateSimulatorSlotDisplay(previouslySelectedSlot); 
@@ -562,10 +594,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // ★計算ロジックにOR/ANDモードを反映（ただし、現在のUIではタグは部位ごとにしか選択できないので、実質ANDのみ）
-    //   calculationMethod を参照するように変更
     function calculateAndDisplayTotalEffects() {
-        const combinedEffects = {}; // 計算途中用 { typeId: { sum: 0, max: -Infinity, unit: ''}, ... }
+        const combinedEffects = {}; 
 
         Object.values(selectedEquipment).forEach(itemId => {
             if (!itemId) return; 
@@ -576,16 +606,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { type, value, unit } = effect;
                 if (type && typeof value === 'number') { 
                     const effectTypeInfo = effectTypesCache.find(et => et.id === type);
-                    const calcMethod = effectTypeInfo?.calculationMethod || 'sum'; // デフォルトは加算
+                    const calcMethod = effectTypeInfo?.calculationMethod || 'sum'; 
 
                     const key = `${type}_${unit}`; 
                     if (!combinedEffects[key]) {
                          combinedEffects[key] = { 
                              typeId: type, 
                              unit: unit, 
-                             calcMethod: calcMethod, // 計算方法を保持
+                             calcMethod: calcMethod, 
                              sum: 0, 
-                             max: -Infinity // 最大値計算用に初期化
+                             max: -Infinity 
                          };
                     }
                     combinedEffects[key].sum += value;
@@ -594,7 +624,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // 計算結果の表示
         if (Object.keys(combinedEffects).length === 0) {
             totalEffectsDisplay.innerHTML = '<p>効果はありません。</p>';
         } else {
@@ -604,7 +633,6 @@ document.addEventListener('DOMContentLoaded', () => {
                  const typeName = typeInfo ? typeInfo.name : `不明(${effect.typeId})`;
                  const unitText = effect.unit !== 'none' ? effect.unit : '';
                  
-                 // 計算方法に応じて最終的な値を決定
                  const finalValue = effect.calcMethod === 'max' ? effect.max : effect.sum;
                  const displayValue = Math.round(finalValue * 100) / 100; 
                  
