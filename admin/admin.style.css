@@ -75,8 +75,8 @@ h3 { font-size: 1.3em; }
 }
 .form-group textarea { resize: vertical; min-height: 80px; }
 
-.form-control-short { /* select に使っていたが、ボタンUIに変更したので不要かも */
-    /* flex-grow: 0.5; */
+.form-control-short { 
+    /* flex-grow: 0.5; */ /* ボタンUIに変更したので不要に */
     /* min-width: 150px; */
 }
 
@@ -85,7 +85,7 @@ h3 { font-size: 1.3em; }
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 5px;
+    margin-top: 5px; /* ラベルとの間隔 */
 }
 .category-select-button {
     padding: 6px 12px;
@@ -146,7 +146,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-radius: 4px; margin-top:10px;
 }
 
-.inline-form { /* カテゴリ追加では使わなくなったが、他で使う可能性 */
+.inline-form { /* カテゴリ追加では使わなくなった */
     display: flex; align-items: center; gap: 10px; margin-bottom: 15px; 
 }
 .inline-form input[type="text"] { flex-grow: 1; }
@@ -212,14 +212,14 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    max-height: 150px; /* スクロール可能に */
+    max-height: 150px; 
     overflow-y: auto;
     border: 1px solid #eee;
     padding: 10px;
     border-radius: 4px;
     background-color: #fdfdfd;
 }
-/* カテゴリ編集モーダル内のタグ選択ボタン (ユーザー画面のタグフィルター風) */
+/* カテゴリ編集モーダル内のタグ選択ボタン */
 .tag-filter.admin-tag-select { 
     padding: 6px 10px; 
     background-color: #f0f0f0;
@@ -233,7 +233,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
      background-color: #e0e0e0;
 }
 .tag-filter.admin-tag-select.active {
-    background-color: #28a745; /* 選択時の色 (ユーザー画面と同じ) */
+    background-color: #28a745; 
     color: white;
     border-color: #1e7e34;
 }
@@ -297,7 +297,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
     header h1 { font-size: 1.5em; }
-    /* .inline-form は category-add では使わなくなったが、他で使う可能性のため残す */
+    /* .inline-form は使われなくなったが念のため残す */
     .inline-form { flex-direction: column; align-items: stretch; } 
     .inline-form input[type="text"], .inline-form select { width: 100%; }
     .inline-form button { width: 100%; margin-top: 5px; }
