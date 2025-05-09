@@ -3,29 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- ★タイトル変更 -->
     <title>ゲームアイテム検索 ＆ 装備シミュレーター</title>
     <link rel="stylesheet" href="style.css">
-    <!-- html2canvas ライブラリの読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
     <div class="container">
-        <!-- ★タイトル変更 -->
         <h1>ゲームアイテム検索 ＆ 装備シミュレーター</h1>
 
-        <!-- ★シミュレーター起動ボタンを検索ツールの前に移動 -->
         <div class="main-controls">
             <button id="openSimulatorButton">装備シミュレーターを開く</button>
         </div>
 
         <hr class="section-divider">
 
-        <!-- アイテム検索ツールセクション -->
         <section class="search-tool-section">
             <h2>アイテム検索</h2>
             <div class="search-controls">
-                <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段で検索...">
+                <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段、売値で検索...">
                 <div class="parent-category-filters">
                     <h2>親カテゴリ選択:</h2>
                     <div id="parentCategoryFiltersContainer" class="category-button-group"></div>
@@ -75,13 +70,13 @@
                           <button class="clear-item-button" data-slot="首" style="display: none;">解除</button>
                      </div>
                  </div>
-                 <div class="slot" id="slot-手" data-slot-name="手">
-                     <label>手:</label>
+                 <div class="slot" id="slot-腕" data-slot-name="腕"> {/* IDとdata-slot-name、ラベルを "腕" に変更 */}
+                     <label>腕:</label>
                      <div class="selected-item-display">
-                         <img src="./images/placeholder_slot.png" alt="手" class="slot-image">
+                         <img src="./images/placeholder_slot.png" alt="腕" class="slot-image">
                          <span class="slot-item-name">未選択</span>
-                         <button class="select-item-button" data-slot="手">選択</button>
-                          <button class="clear-item-button" data-slot="手" style="display: none;">解除</button>
+                         <button class="select-item-button" data-slot="腕">選択</button>
+                          <button class="clear-item-button" data-slot="腕" style="display: none;">解除</button>
                      </div>
                  </div>
                  <div class="slot" id="slot-背中" data-slot-name="背中">
@@ -124,18 +119,6 @@
              </div>
          </div>
      </div>
-
-     <!-- itemSelectionModal は script.js でコメントアウトされているため、HTMLも削除またはコメントアウトしてOK -->
-     <!--
-     <div id="itemSelectionModal" class="modal item-select-modal" style="display: none;">
-         <div class="modal-content item-select-modal-content">
-             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
-             <h3 id="itemSelectModalTitle">アイテム選択</h3>
-             <input type="text" id="itemSelectModalSearch" placeholder="アイテム名で検索...">
-             <div id="itemSelectModalList" class="item-select-list"></div>
-         </div>
-     </div>
-     -->
 
     <script type="module" src="script.js"></script>
 </body>
