@@ -83,7 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemNameInput = document.getElementById('itemName');
     const itemImageFileInput = document.getElementById('itemImageFile');
     const itemImagePreview = document.getElementById('itemImagePreview');
-    const itemImageUrlInput = document.getElementById('itemImageUrl'); // Hidden input for image URL
+    const itemImageUrlInput = document.getElementById('itemImageUrl');
+    const itemPriceInput = document.getElementById('itemPrice'); // ★ 売値入力欄
     const uploadProgressContainer = document.getElementById('uploadProgressContainer');
     const uploadProgress = document.getElementById('uploadProgress');
     const uploadProgressText = document.getElementById('uploadProgressText');
@@ -102,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allTagsCache = [];
     let itemsCache = [];
     let effectTypesCache = [];
-    let currentItemEffects = []; // [{ type: 'typeId', value: 10, unit: '%' }, ...]
+    let currentItemEffects = [];
     let selectedImageFile = null;
 
     // --- Authentication ---
@@ -116,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordPrompt.style.display = 'flex';
             adminContent.style.display = 'none';
             if (currentUserEmailSpan) currentUserEmailSpan.textContent = '';
-            clearAdminUI(); // Clear data when logged out
+            clearAdminUI();
         }
     });
 
@@ -132,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             signInWithEmailAndPassword(auth, email, password)
                 .catch(error => {
                     console.error("Login error:", error);
-                    passwordError.textContent = `ログインエラー: ${error.message}`; // More user-friendly
+                    passwordError.textContent = `ログインエラー: ${error.message}`;
                 });
         });
     }
@@ -144,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearAdminUI() {
-        // Clear category UI
         if (categoryListContainer) categoryListContainer.innerHTML = '';
         if (newCategoryParentButtons) newCategoryParentButtons.innerHTML = '';
         if (selectedNewParentCategoryIdInput) selectedNewParentCategoryIdInput.value = '';
@@ -153,46 +153,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = '';
         if (tagSearchModeGroup) tagSearchModeGroup.style.display = 'none';
         if (editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND';
-        if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = 'block'; // Default for child
+        if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = 'block';
 
-        // Clear tag UI
         if (tagListContainer) tagListContainer.innerHTML = '';
         if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
         if (editingTagCategoriesCheckboxes) editingTagCategoriesCheckboxes.innerHTML = '';
 
-        // Clear effect type UI
         if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
         if (effectTypeSelect) effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
         if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
         if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.value = 'point';
         if (newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
 
-        // Clear item UI
+
         if (itemsTableBody) itemsTableBody.innerHTML = '';
         if (itemTagsSelectorCheckboxes) itemTagsSelectorCheckboxes.innerHTML = '';
-        clearItemForm(); // Resets the item form itself
-
-        // Clear caches
-        allCategoriesCache = [];
-        allTagsCache = [];
-        itemsCache = [];
-        effectTypesCache = [];
-        currentItemEffects = [];
+        clearItemForm();
     }
 
     async function loadInitialData() {
         console.log("[Initial Load] Starting...");
-        // Load in order of dependency or parallel if no strict dependency
-        await loadEffectTypesFromFirestore(); // Needed by items
-        await loadCategoriesFromFirestore();  // Needed by tags & items (indirectly)
-        await loadTagsFromFirestore();        // Needed by items & categories edit
-        await loadItemsFromFirestore();       // Main data
+        await loadEffectTypesFromFirestore();
+        await loadCategoriesFromFirestore();
+        await loadTagsFromFirestore();
+        await loadItemsFromFirestore();
 
-        // Populate UI elements that depend on the loaded data
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
         populateTagCheckboxesForItemForm();
-        populateEffectTypeSelect(); // For item form
+        populateEffectTypeSelect();
 
         renderCategoriesForManagement();
         renderTagsForManagement();
@@ -208,10 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const q = query(collection(db, 'effect_types'), orderBy('name'));
             const snapshot = await getDocs(q);
             effectTypesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("[Effect Types] Loaded:", effectTypesCache.length, effectTypesCache);
+            console.log("[Effect Types] Loaded:", effectTypesCache.length);
         } catch (error) {
             console.error("[Effect Types] Error loading:", error);
-            effectTypesCache = []; // Ensure it's an empty array on error
+            effectTypesCache = [];
         }
     }
 
@@ -258,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = newEffectTypeNameInput.value.trim();
             const unit = newEffectTypeUnitSelect.value;
             const calcMethodRadio = Array.from(newEffectTypeCalcMethodRadios).find(r => r.checked);
-            const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum'; // Default to sum
+            const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum';
 
             if (!name) { alert("効果種類名を入力してください。"); return; }
             if (effectTypesCache.some(et => et.name.toLowerCase() === name.toLowerCase())) {
@@ -269,15 +258,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: name,
                     defaultUnit: unit,
                     calculationMethod: calcMethod,
-                    createdAt: serverTimestamp() // Optional: for tracking
+                    createdAt: serverTimestamp()
                 });
                 newEffectTypeNameInput.value = '';
-                newEffectTypeUnitSelect.value = 'point'; // Reset to default
+                newEffectTypeUnitSelect.value = 'point';
                 if(newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
 
-                await loadEffectTypesFromFirestore(); // Reload cache
-                renderEffectTypesForManagement();    // Re-render list
-                populateEffectTypeSelect();          // Update dropdown in item form
+                await loadEffectTypesFromFirestore();
+                renderEffectTypesForManagement();
+                populateEffectTypeSelect();
             } catch (error) {
                 console.error("[Effect Types] Error adding:", error);
                 alert("効果種類の追加に失敗しました。");
@@ -294,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const radioToCheck = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.value === calcMethod);
         if (radioToCheck) {
             radioToCheck.checked = true;
-        } else if (editingEffectTypeCalcMethodRadios[0]) { // Fallback to first option
+        } else if (editingEffectTypeCalcMethodRadios[0]) {
             editingEffectTypeCalcMethodRadios[0].checked = true;
         }
 
@@ -318,13 +307,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: newName,
                     defaultUnit: newUnit,
                     calculationMethod: newCalcMethod,
-                    updatedAt: serverTimestamp() // Optional
+                    updatedAt: serverTimestamp()
                  });
                 if (editEffectTypeModal) editEffectTypeModal.style.display = 'none';
                 await loadEffectTypesFromFirestore();
                 renderEffectTypesForManagement();
                 populateEffectTypeSelect();
-                await loadItemsFromFirestore(); // Items might depend on this for display
+                await loadItemsFromFirestore();
                 renderItemsAdminTable();
             } catch (error) {
                  console.error("[Effect Types] Error updating:", error);
@@ -340,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  await loadEffectTypesFromFirestore();
                  renderEffectTypesForManagement();
                  populateEffectTypeSelect();
-                 await loadItemsFromFirestore(); // Refresh items display
+                 await loadItemsFromFirestore();
                  renderItemsAdminTable();
              } catch (error) {
                   console.error("[Effect Types] Error deleting:", error);
@@ -356,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const q = query(collection(db, 'categories'), orderBy('name'));
             const snapshot = await getDocs(q);
             allCategoriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("[Categories] All categories loaded:", allCategoriesCache.length, allCategoriesCache);
+            console.log("[Categories] All categories loaded:", allCategoriesCache.length);
         } catch (error) {
             console.error("[Categories] Error loading categories:", error);
             allCategoriesCache = [];
@@ -371,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const topLevelButton = document.createElement('div');
         topLevelButton.classList.add('category-select-button');
-        topLevelButton.textContent = '最上位カテゴリとして設定'; // Changed text
+        topLevelButton.textContent = '最上位カテゴリとして設定';
         topLevelButton.dataset.parentId = "";
         topLevelButton.classList.toggle('active', selectedParentId === "");
         topLevelButton.addEventListener('click', () => {
@@ -393,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 buttonContainer.appendChild(button);
             });
 
-        hiddenInput.value = selectedParentId; // Ensure hidden input is set
+        hiddenInput.value = selectedParentId;
     }
 
     function selectParentCategoryButton(container, hiddenInput, clickedButton, parentId) {
@@ -403,13 +392,11 @@ document.addEventListener('DOMContentLoaded', () => {
         clickedButton.classList.add('active');
         hiddenInput.value = parentId;
 
-        // Special handling for the edit category modal
         if (container === editingCategoryParentButtons) {
-             const isParentSelected = (parentId === ""); // True if "最上位" is selected
-             // Show/hide tag selection and search mode only if a parent is *not* selected (i.e., it's a child)
+             const isParentSelected = (parentId === "");
              if (tagSearchModeGroup) tagSearchModeGroup.style.display = isParentSelected ? 'none' : 'block';
              if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = isParentSelected ? 'none' : 'block';
-             if (!isParentSelected && editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND'; // Default for new child
+             if (!isParentSelected && editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND';
         }
     }
 
@@ -473,26 +460,22 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const categoryData = {
                     name: name,
-                    parentId: parentId || "", // Ensure empty string if no parent
+                    parentId: parentId || "",
                     createdAt: serverTimestamp()
                 };
-                if (parentId) { // If it's a child category
-                    categoryData.tagSearchMode = 'AND'; // Default search mode
+                if (parentId) {
+                    categoryData.tagSearchMode = 'AND';
                 }
 
                 await addDoc(collection(db, 'categories'), categoryData);
                 newCategoryNameInput.value = '';
-                // selectedNewParentCategoryIdInput.value = ''; // Keep parent selection or reset? User preference.
-                // For now, reset the parent selection UI for new category addition
                 populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
 
 
                 await loadCategoriesFromFirestore();
                 renderCategoriesForManagement();
-                // populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput); // Re-populate for next add // Already done above
-                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); // Update tag assignment options
+                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
 
-                // Update parent selection in edit modal if it's open and a category was just added
                 if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
                     const currentlyEditingCatId = editingCategoryDocIdInput.value;
                     const currentlyEditingCat = allCategoriesCache.find(c => c.id === currentlyEditingCatId);
@@ -500,7 +483,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         populateParentCategoryButtons(editingCategoryParentButtons, selectedEditingParentCategoryIdInput, { currentCategoryIdToExclude: currentlyEditingCatId, selectedParentId: currentlyEditingCat.parentId || "" });
                     }
                 }
-                // Update category checkboxes in edit tag modal
                 if (editTagModal.style.display === 'flex' && editingTagDocIdInput.value) {
                     const tagToRePopulate = allTagsCache.find(t => t.id === editingTagDocIdInput.value);
                     populateCategoryCheckboxesForTagAssignment(editingTagCategoriesCheckboxes, tagToRePopulate ? (tagToRePopulate.categoryIds || []) : []);
@@ -548,13 +530,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Display all tags, and mark as active if they are associated with THIS category
         allTagsCache.forEach(tag => {
             const button = document.createElement('div');
             button.classList.add('tag-filter', 'admin-tag-select');
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
-            // A tag is active if its categoryIds array includes the current categoryId
             if (tag.categoryIds && tag.categoryIds.includes(categoryId)) {
                 button.classList.add('active');
             }
@@ -577,7 +557,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!newName) { alert("カテゴリ名は空にできません。"); return; }
             if (docId === newParentId) { alert("自身を親カテゴリに設定することはできません。"); return; }
 
-            // Check for name conflict (only if name or parentId changed to avoid self-conflict on no-name-change)
             const originalCategory = allCategoriesCache.find(c => c.id === docId);
             if (originalCategory && (originalCategory.name !== newName || originalCategory.parentId !== (newParentId || ""))) {
                 const q = query(collection(db, 'categories'), where('name', '==', newName), where('parentId', '==', newParentId || ""));
@@ -590,10 +569,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Circular dependency check
-            if (newParentId) { // Only if trying to set a parent
+            if (newParentId) {
                 let currentAncestorId = newParentId;
-                const visited = new Set([docId]); // Start with the category being edited
+                const visited = new Set([docId]);
                 while (currentAncestorId) {
                     if (visited.has(currentAncestorId)) {
                         alert("循環参照です。この親カテゴリ設定はできません。");
@@ -612,40 +590,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     parentId: newParentId || ""
                 };
 
-                const isBecomingChild = !!newParentId; // True if newParentId is not empty
+                const isBecomingChild = !!newParentId;
 
                 if (isBecomingChild) {
                     categoryUpdateData.tagSearchMode = newTagSearchMode;
-                } else { // Is becoming a parent category
-                    categoryUpdateData.tagSearchMode = deleteField(); // Remove search mode if it's a parent
+                } else {
+                    categoryUpdateData.tagSearchMode = deleteField();
                 }
                 batch.update(doc(db, 'categories', docId), categoryUpdateData);
 
-                // Update tags:
-                // For all tags, check if their association with this category needs to change.
                 allTagsCache.forEach(tag => {
                     const isCurrentlySelectedForCat = selectedTagIdsForThisCategory.includes(tag.id);
                     const isAlreadyAssociatedWithCat = tag.categoryIds && tag.categoryIds.includes(docId);
 
-                    if (isBecomingChild) { // Only associate tags if it's a child category
+                    if (isBecomingChild) {
                         if (isCurrentlySelectedForCat && !isAlreadyAssociatedWithCat) {
-                            // Add this category to the tag's list
                             batch.update(doc(db, 'tags', tag.id), { categoryIds: arrayUnion(docId) });
                         } else if (!isCurrentlySelectedForCat && isAlreadyAssociatedWithCat) {
-                            // Remove this category from the tag's list
                             batch.update(doc(db, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
                         }
-                    } else { // If becoming a parent, remove all tag associations from this category
+                    } else {
                         if (isAlreadyAssociatedWithCat) {
                              batch.update(doc(db, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
                         }
                     }
                 });
 
-
                 await batch.commit();
                 editCategoryModal.style.display = 'none';
-                // Full reload to ensure all caches and UI are consistent
                 await loadInitialData();
 
             } catch (error) {
@@ -666,17 +638,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirm(`カテゴリ「${categoryName}」を削除しますか？\nこのカテゴリに紐づいているタグの関連付けも解除されます。`)) {
             try {
                 const batch = writeBatch(db);
-                // Remove this categoryId from all tags that might reference it
                 const tagsToUpdateQuery = query(collection(db, 'tags'), where('categoryIds', 'array-contains', docId));
                 const tagsSnapshot = await getDocs(tagsToUpdateQuery);
                 tagsSnapshot.forEach(tagDoc => {
                     batch.update(tagDoc.ref, { categoryIds: arrayRemove(docId) });
                 });
 
-                batch.delete(doc(db, 'categories', docId)); // Delete the category itself
+                batch.delete(doc(db, 'categories', docId));
 
                 await batch.commit();
-                await loadInitialData(); // Reload all data and refresh UI
+                await loadInitialData();
             } catch (error) {
                 console.error("[Category Delete] Error:", error);
                 alert("カテゴリの削除または関連タグの更新に失敗しました。");
@@ -692,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const q = query(collection(db, 'tags'), orderBy('name'));
             const snapshot = await getDocs(q);
             allTagsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("[Tags] All tags loaded:", allTagsCache.length, allTagsCache);
+            console.log("[Tags] All tags loaded:", allTagsCache.length);
         } catch (error) {
             console.error("[Tags] Error loading tags:", error);
             allTagsCache = [];
@@ -703,7 +674,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!containerElement) return;
         containerElement.innerHTML = '';
 
-        // Only child categories can have tags assigned to them directly via this UI
         const assignableCategories = allCategoriesCache.filter(cat => cat.parentId && cat.parentId !== "");
 
         if (assignableCategories.length === 0) {
@@ -712,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         assignableCategories.forEach(category => {
-            const checkboxId = `tag-cat-${category.id}-${containerElement.id.replace(/\W/g, '')}`; // Unique ID
+            const checkboxId = `tag-cat-${category.id}-${containerElement.id.replace(/\W/g, '')}`;
             const checkboxWrapper = document.createElement('div');
             checkboxWrapper.classList.add('checkbox-item');
             let labelText = category.name;
@@ -740,18 +710,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const belongingCategoriesNames = (tag.categoryIds || [])
                 .map(catId => {
                     const cat = allCategoriesCache.find(c => c.id === catId);
-                    // Only show if it's a child category for clarity
                     if (cat && cat.parentId) {
                         let name = cat.name;
                         const parentCat = allCategoriesCache.find(p => p.id === cat.parentId);
                         name += parentCat ? ` (親:${parentCat.name})` : ` (親:不明)`;
                         return name;
                     }
-                    return null; // Don't list if it's a parent category association (shouldn't happen via UI)
+                    return null;
                 })
-                .filter(name => name) // Remove nulls
+                .filter(name => name)
                 .join(', ');
-            const displayCategories = belongingCategoriesNames || '未分類 (どの特定の子カテゴリにも属していません)';
+            const displayCategories = belongingCategoriesNames || '未分類';
 
 
             const div = document.createElement('div');
@@ -798,7 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await addDoc(collection(db, 'tags'), {
                     name: name,
-                    categoryIds: selectedCategoryIdsForTag, // Store array of child category IDs
+                    categoryIds: selectedCategoryIdsForTag,
                     createdAt: serverTimestamp()
                 });
                 newTagNameInput.value = '';
@@ -806,8 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
-                populateTagCheckboxesForItemForm(); // Update item form's tag selector
-                // Also, if category edit modal is open, its tag list might need refresh if relevant
+                populateTagCheckboxesForItemForm();
                 if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
                     populateTagsForCategoryEdit(editingCategoryTagsSelector, editingCategoryDocIdInput.value);
                 }
@@ -836,7 +804,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!newName) { alert("タグ名は空にできません。"); return; }
 
-            // Check for name conflict (only if name changed)
             const originalTag = allTagsCache.find(t => t.id === docId);
             if (originalTag && originalTag.name !== newName) {
                 const q = query(collection(db, 'tags'), where('name', '==', newName));
@@ -857,11 +824,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
                 populateTagCheckboxesForItemForm();
-                // If category edit modal is open and this tag was listed, refresh its state
                 if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
                      populateTagsForCategoryEdit(editingCategoryTagsSelector, editingCategoryDocIdInput.value);
                 }
-                await loadItemsFromFirestore(); // Item display might use tag names
+                await loadItemsFromFirestore();
                 renderItemsAdminTable();
 
             } catch (error) {
@@ -876,28 +842,16 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const batch = writeBatch(db);
 
-                // Remove tag from items
                 const itemsToUpdateQuery = query(collection(db, 'items'), where('tags', 'array-contains', docId));
                 const itemsSnapshot = await getDocs(itemsToUpdateQuery);
                 itemsSnapshot.forEach(itemDoc => {
                     batch.update(itemDoc.ref, { tags: arrayRemove(docId) });
                 });
 
-                // Remove this tag from any category's categoryIds list (if it's somehow there, though UI focuses on child cats for tags)
-                // This is more of a cleanup for direct associations if they were ever made.
-                // The primary link is tag.categoryIds -> category.
-                // If a category was associated with this tag (via its own UI to pick tags), that's handled by tag.categoryIds.
-                // This loop is for safety, if a category had a direct `tags: [tagId]` field (which is not the current model).
-                // The current model is `tag.categoryIds = [childCategoryId]`.
-                // And `category.tagSearchMode` with tags selected in `editingCategoryTagsSelector`.
-                // When a category is edited, `saveCategoryEditButton` handles updating tag.categoryIds.
-                // So, when deleting a tag, we primarily need to ensure items are cleaned up.
-                // Categories that *used* to list this tag (in their `editingCategoryTagsSelector`) will simply no longer see it.
-
-                batch.delete(doc(db, 'tags', docId)); // Delete the tag itself
+                batch.delete(doc(db, 'tags', docId));
 
                 await batch.commit();
-                await loadInitialData(); // Reload all
+                await loadInitialData();
 
             } catch (error) {
                 console.error("[Tag Delete] Error:", error);
@@ -928,7 +882,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateEffectTypeSelect() {
         if (!effectTypeSelect) return;
-        const currentVal = effectTypeSelect.value; // Preserve selection if possible
+        const currentVal = effectTypeSelect.value;
         effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
         effectTypesCache.forEach(et => {
             effectTypeSelect.add(new Option(et.name, et.id));
@@ -936,15 +890,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentVal && effectTypeSelect.querySelector(`option[value="${currentVal}"]`)) {
             effectTypeSelect.value = currentVal;
         }
-        // Trigger change to update unit display if a value was restored
         if (effectTypeSelect.value) {
             effectTypeSelect.dispatchEvent(new Event('change'));
         } else {
-            if (effectUnitDisplay) effectUnitDisplay.textContent = ''; // Clear if no selection
+            if (effectUnitDisplay) effectUnitDisplay.textContent = '';
         }
     }
 
-    if (effectTypeSelect) { // For item effect input
+    if (effectTypeSelect) {
         effectTypeSelect.addEventListener('change', () => {
             const selectedTypeId = effectTypeSelect.value;
             const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
@@ -952,7 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  if (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') {
                      effectUnitDisplay.textContent = `(${selectedEffectType.defaultUnit})`;
                  } else {
-                     effectUnitDisplay.textContent = ''; // Clear if no unit or "none"
+                     effectUnitDisplay.textContent = '';
                  }
             }
         });
@@ -982,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', (e) => {
                 const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
                 currentItemEffects.splice(indexToRemove, 1);
-                renderCurrentItemEffectsList(); // Re-render the list of current effects
+                renderCurrentItemEffectsList();
             });
         });
     }
@@ -999,16 +952,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const value = parseFloat(valueStr);
 
             const selectedEffectType = effectTypesCache.find(et => et.id === typeId);
-            // Use the defaultUnit from the selected effect type
             const unit = selectedEffectType ? (selectedEffectType.defaultUnit || 'point') : 'point';
 
             currentItemEffects.push({ type: typeId, value: value, unit: unit });
             renderCurrentItemEffectsList();
 
-            // Reset input fields for next effect
             effectTypeSelect.value = '';
             effectValueInput.value = '';
-            if(effectUnitDisplay) effectUnitDisplay.textContent = ''; // Clear unit display
+            if(effectUnitDisplay) effectUnitDisplay.textContent = '';
         });
     }
 
@@ -1018,7 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const q = query(collection(db, 'items'), orderBy('name'));
             const snapshot = await getDocs(q);
             itemsCache = snapshot.docs.map(docSnap => ({ docId: docSnap.id, ...docSnap.data() }));
-            console.log("[Items] Items loaded successfully:", itemsCache.length, itemsCache);
+            console.log("[Items] Items loaded successfully:", itemsCache.length);
         } catch (error) {
             console.error("[Items] Error loading items from Firestore:", error);
             itemsCache = [];
@@ -1030,33 +981,49 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const name = itemNameInput.value.trim();
             const source = itemSourceInput.value.trim();
+            const priceStr = itemPriceInput.value.trim(); // ★ 売値取得
             const selectedItemTagIds = Array.from(itemTagsSelectorCheckboxes.querySelectorAll('input[type="checkbox"][name="itemTag"]:checked'))
                                             .map(cb => cb.value);
             const editingDocId = itemIdToEditInput.value;
-            let finalImageUrl = itemImageUrlInput.value; // Use existing URL by default
+            let finalImageUrl = itemImageUrlInput.value;
+
+            // ★ 売値バリデーションと変換
+            let price = null;
+            if (priceStr !== "") {
+                price = parseInt(priceStr, 10);
+                if (isNaN(price) || price < 0) {
+                    alert("売値は0以上の数値を入力してください。");
+                    saveItemButton.disabled = false; saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
+                    return;
+                }
+            }
+
 
             saveItemButton.disabled = true; saveItemButton.textContent = "保存中...";
             try {
-                if (selectedImageFile) { // If a new file was selected
+                if (selectedImageFile) {
                     const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
                     if (uploadedUrl) {
                         finalImageUrl = uploadedUrl;
-                    } else { // Upload failed, but a file was selected
+                    } else {
                         alert("画像アップロードに失敗しましたが、他の情報は保存を試みます。画像は後で更新してください。");
-                        // Optionally, prevent save:
-                        // saveItemButton.disabled = false; saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
-                        // return;
                     }
                 }
 
                 const itemData = {
-                    name: name || "", // Ensure empty string if blank
-                    image: finalImageUrl || "", // Ensure empty string
-                    structured_effects: currentItemEffects, // Already an array of objects
+                    name: name || "",
+                    image: finalImageUrl || "",
+                    price: price, // ★ 売値保存 (nullの場合もある)
+                    structured_effects: currentItemEffects,
                     入手手段: source || "",
-                    tags: selectedItemTagIds, // Array of tag IDs
+                    tags: selectedItemTagIds,
                     updatedAt: serverTimestamp()
                 };
+                // price が null の場合、フィールドごと削除して保存 (Firestoreの挙動によっては不要)
+                if (itemData.price === null) {
+                    delete itemData.price;
+                }
+
 
                 if (editingDocId) {
                     await updateDoc(doc(db, 'items', editingDocId), itemData);
@@ -1064,15 +1031,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemData.createdAt = serverTimestamp();
                     await addDoc(collection(db, 'items'), itemData);
                 }
-                await loadItemsFromFirestore(); // Reload items
-                renderItemsAdminTable();    // Re-render table
-                clearItemForm();            // Clear form for next entry
+                await loadItemsFromFirestore();
+                renderItemsAdminTable();
+                clearItemForm();
             } catch (error) {
                 console.error("[Item Save] Error:", error);
                 alert(`アイテム保存エラー: ${error.message}`);
             } finally {
                 saveItemButton.disabled = false;
-                saveItemButton.textContent = itemIdToEditInput.value ? "アイテム更新" : "アイテム保存"; // Reset button text based on mode
+                saveItemButton.textContent = itemIdToEditInput.value ? "アイテム更新" : "アイテム保存";
             }
         });
     }
@@ -1080,26 +1047,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearFormButton) clearFormButton.addEventListener('click', clearItemForm);
 
     function clearItemForm() {
-        if (itemForm) itemForm.reset(); // Resets basic form inputs
-        itemIdToEditInput.value = ''; // Clear hidden ID
-        itemImageUrlInput.value = ''; // Clear hidden image URL
+        if (itemForm) itemForm.reset();
+        itemIdToEditInput.value = '';
+        itemImageUrlInput.value = '';
+        if (itemPriceInput) itemPriceInput.value = ''; // ★ 売値クリア
         if (itemImagePreview) { itemImagePreview.src = '#'; itemImagePreview.style.display = 'none'; }
-        if (itemImageFileInput) itemImageFileInput.value = null; // Clear file input
-        selectedImageFile = null; // Clear stored file object
+        if (itemImageFileInput) itemImageFileInput.value = null;
+        selectedImageFile = null;
         uploadProgressContainer.style.display = 'none';
         uploadProgress.value = 0;
         uploadProgressText.textContent = '';
 
-        populateTagCheckboxesForItemForm(); // Reset tag checkboxes (no selection)
+        populateTagCheckboxesForItemForm();
 
-        currentItemEffects = []; // Clear effects array
-        renderCurrentItemEffectsList(); // Update effects display
-        if(effectTypeSelect) effectTypeSelect.value = ''; // Reset effect type dropdown
-        if(effectValueInput) effectValueInput.value = ''; // Clear effect value input
-        if(effectUnitDisplay) effectUnitDisplay.textContent = ''; // Clear unit display
+        currentItemEffects = [];
+        renderCurrentItemEffectsList();
+        if(effectTypeSelect) effectTypeSelect.value = '';
+        if(effectValueInput) effectValueInput.value = '';
+        if(effectUnitDisplay) effectUnitDisplay.textContent = '';
 
-        if (saveItemButton) saveItemButton.textContent = "アイテム保存"; // Reset button text
-        itemNameInput.focus(); // Focus on name for new entry
+        if (saveItemButton) saveItemButton.textContent = "アイテム保存";
+        itemNameInput.focus();
     }
 
     function renderItemsAdminTable() {
@@ -1111,13 +1079,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchTerm = itemSearchAdminInput ? itemSearchAdminInput.value.toLowerCase() : "";
         const filteredItems = itemsCache.filter(item =>
             (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-            (!searchTerm && (item.name === "" || !item.name)) // Show unnamed if search is empty
+            (!searchTerm && (item.name === "" || !item.name))
         );
 
         if (filteredItems.length === 0) {
             const tr = itemsTableBody.insertRow();
             const td = tr.insertCell();
-            td.colSpan = 5; // Number of columns in the table
+            td.colSpan = 6; // ★ 列数変更 (画像, 名前, 売値, 効果, タグ, 操作)
             td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
             td.style.textAlign = 'center';
             return;
@@ -1125,10 +1093,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filteredItems.forEach(item => {
             const tr = document.createElement('tr');
-            const imageDisplayPath = item.image || '../images/placeholder_item.png'; // Fallback image
+            const imageDisplayPath = item.image || '../images/placeholder_item.png';
             const itemTagsString = (item.tags || [])
                 .map(tagId => allTagsCache.find(t => t.id === tagId)?.name)
-                .filter(name => name) // Filter out undefined if tag not found
+                .filter(name => name)
                 .join(', ') || 'なし';
 
             let effectsDisplay = '(未設定)';
@@ -1139,13 +1107,17 @@ document.addEventListener('DOMContentLoaded', () => {
                      const unit = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
                      return `${typeName}: ${eff.value}${unit}`;
                  }).join('; ');
-                 if (effectsDisplay.length > 50) effectsDisplay = effectsDisplay.substring(0, 47) + '...'; // Truncate if too long
+                 if (effectsDisplay.length > 40) effectsDisplay = effectsDisplay.substring(0, 37) + '...';
             }
+            const priceDisplay = typeof item.price === 'number' ? `${item.price}G` : '未設定'; // ★ 売値表示
 
             const nameDisplay = item.name || '(名称未設定)';
             tr.innerHTML = `
                 <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='../images/placeholder_item.png';"></td>
-                <td>${nameDisplay}</td><td>${effectsDisplay}</td><td>${itemTagsString}</td>
+                <td>${nameDisplay}</td>
+                <td>${priceDisplay}</td> {/* ★ 売値セル追加 */}
+                <td>${effectsDisplay}</td>
+                <td>${itemTagsString}</td>
                 <td>
                     <button class="edit-item action-button" data-item-doc-id="${item.docId}" title="編集">✎</button>
                     <button class="delete-item action-button delete" data-item-doc-id="${item.docId}" data-item-name="${nameDisplay}" data-item-image="${item.image || ''}" title="削除">×</button>
@@ -1169,20 +1141,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemIdToEditInput.value = itemSnap.id;
                 itemNameInput.value = itemData.name || "";
                 itemSourceInput.value = itemData.入手手段 || "";
-                itemImageUrlInput.value = itemData.image || ''; // Store current image URL
+                itemImageUrlInput.value = itemData.image || '';
+                if (itemPriceInput) itemPriceInput.value = typeof itemData.price === 'number' ? itemData.price : ''; // ★ 売値読み込み
+
                 if (itemData.image) {
                     itemImagePreview.src = itemData.image; itemImagePreview.style.display = 'block';
                 } else {
                     itemImagePreview.src = '#'; itemImagePreview.style.display = 'none';
                 }
-                if (itemImageFileInput) itemImageFileInput.value = null; // Clear file input
-                selectedImageFile = null; // Clear selected file object
+                if (itemImageFileInput) itemImageFileInput.value = null;
+                selectedImageFile = null;
 
                 populateTagCheckboxesForItemForm(itemData.tags || []);
 
                 currentItemEffects = itemData.structured_effects || [];
                 renderCurrentItemEffectsList();
-                // Reset effect input fields when loading an item for edit
                 if(effectTypeSelect) effectTypeSelect.value = '';
                 if(effectValueInput) effectValueInput.value = '';
                 if(effectUnitDisplay) effectUnitDisplay.textContent = '';
@@ -1198,12 +1171,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirm(`アイテム「${itemName}」を削除しますか？\n注意: Cloudflare R2上の関連画像は、この操作では削除されません。必要に応じて手動で削除してください。`)) {
             try {
                 await deleteDoc(doc(db, 'items', docId));
-                if (imageUrl) { // Log if there was an image for manual R2 cleanup
+                if (imageUrl) {
                     console.warn(`Image ${imageUrl} (associated with deleted item ${docId}) may need manual deletion from Cloudflare R2.`);
                 }
-                await loadItemsFromFirestore(); // Reload cache
-                renderItemsAdminTable();    // Re-render table
-                if (itemIdToEditInput.value === docId) { // If deleted item was being edited
+                await loadItemsFromFirestore();
+                renderItemsAdminTable();
+                if (itemIdToEditInput.value === docId) {
                     clearItemForm();
                 }
             } catch (error) {
@@ -1218,10 +1191,9 @@ document.addEventListener('DOMContentLoaded', () => {
         itemImageFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
-                // Basic validation (optional)
-                if (file.size > 5 * 1024 * 1024) { // e.g., 5MB limit
+                if (file.size > 5 * 1024 * 1024) {
                     alert("ファイルサイズが大きすぎます。5MB以下の画像を選択してください。");
-                    itemImageFileInput.value = null; // Reset file input
+                    itemImageFileInput.value = null;
                     return;
                 }
                 if (!file.type.startsWith('image/')) {
@@ -1237,9 +1209,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemImagePreview.style.display = 'block';
                 }
                 reader.readAsDataURL(selectedImageFile);
-                itemImageUrlInput.value = ''; // Clear any existing URL if new file is chosen
-                uploadProgressContainer.style.display = 'none'; // Hide progress bar until upload starts
-            } else { // No file selected (e.g., user cancelled)
+                itemImageUrlInput.value = '';
+                uploadProgressContainer.style.display = 'none';
+            } else {
                 selectedImageFile = null;
             }
         });
@@ -1250,12 +1222,12 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadProgress.value = 0;
         uploadProgressText.textContent = 'アップロード準備中...';
         const formData = new FormData();
-        formData.append('imageFile', file); // Key must match worker's expectation
+        formData.append('imageFile', file);
 
         try {
             uploadProgressText.textContent = 'アップロード中... (0%)';
             let progress = 0;
-            const interval = setInterval(() => { // Simple progress simulation
+            const interval = setInterval(() => {
                 progress += 10;
                 if (progress <= 90) {
                     uploadProgress.value = progress;
