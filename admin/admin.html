@@ -36,10 +36,6 @@
                      <label for="newCategoryName">新しいカテゴリ名:</label>
                      <input type="text" id="newCategoryName" placeholder="カテゴリ名">
                 </div>
-                <div class="form-group">
-                    <label for="newCategoryOrder">表示順 (数値が小さい順):</label>
-                    <input type="number" id="newCategoryOrder" placeholder="例: 10" class="form-control-short">
-                </div>
                  <div class="form-group">
                      <label>親カテゴリ設定:</label>
                      <div id="newCategoryParentButtons" class="category-button-group admin"></div>
@@ -47,10 +43,7 @@
                  </div>
                 <button id="addCategoryButton">カテゴリ追加</button>
                 <h3 style="margin-top: 20px;">カテゴリ一覧</h3>
-                <p class="info">各カテゴリの横にある数値で表示順を編集できます。変更後は自動保存されます。</p>
-                <div id="categoryListContainer" class="list-container">
-                    <!-- 親カテゴリと子カテゴリがここに表示される -->
-                </div>
+                <div id="categoryListContainer" class="list-container"></div>
             </section>
             <hr>
 
@@ -62,16 +55,11 @@
                     <input type="text" id="newTagName" placeholder="タグの名前">
                 </div>
                 <div class="form-group">
-                    <label for="newTagOrder">表示順 (数値が小さい順):</label>
-                    <input type="number" id="newTagOrder" placeholder="例: 10" class="form-control-short">
-                </div>
-                <div class="form-group">
-                    <label>このタグが所属するカテゴリ (複数選択可):</label>
+                    <label>このタグが所属するカテゴリ (子カテゴリのみ選択可):</label>
                     <div id="newTagCategoriesCheckboxes" class="checkbox-group-container"></div>
                 </div>
                 <button id="addTagButton">タグ追加</button>
                 <h3 style="margin-top: 20px;">既存タグ一覧</h3>
-                <p class="info">各タグの横にある数値で表示順を編集できます。変更後は自動保存されます。</p>
                 <div id="tagListContainer" class="list-container"></div>
             </section>
             <hr>
@@ -84,15 +72,15 @@
                      <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
                  </div>
                  <div class="form-group">
-                    <label for="newEffectTypeOrder">表示順 (数値が小さい順):</label>
-                    <input type="number" id="newEffectTypeOrder" placeholder="例: 10" class="form-control-short">
-                </div>
-                 <div class="form-group">
                      <label for="newEffectTypeUnit">デフォルト単位:</label>
                      <select id="newEffectTypeUnit" class="form-control-short">
-                         {/* Options will be populated by JavaScript */}
+                         <option value="point">ポイント</option>
+                         <option value="%">%</option>
+                         <option value="倍">倍</option>
+                         <option value="回">回</option>
+                         <option value="秒">秒</option>
+                         <option value="none">なし</option>
                      </select>
-                     <button type="button" id="editEffectUnitsButton" class="button-like" style="margin-left: 10px;">単位選択肢を編集</button>
                  </div>
                  <div class="form-group">
                      <label>計算方法:</label>
@@ -105,7 +93,6 @@
                  </div>
                  <button id="addEffectTypeButton">効果種類を追加</button>
                  <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
-                 <p class="info">各効果種類の横にある数値で表示順を編集できます。変更後は自動保存されます。</p>
                  <div id="effectTypeListContainer" class="list-container"></div>
             </section>
             <hr>
@@ -123,8 +110,8 @@
                         <label for="itemImageFile">画像:</label>
                         <input type="file" id="itemImageFile" accept="image/*">
                         <img id="itemImagePreview" src="#" alt="画像プレビュー" style="max-width: 100px; max-height: 100px; display: none; margin-top: 10px;">
-                        <input type="hidden" id="itemImageUrl">
-                        <p class="info">画像アップロード...</p>
+                        <input type="hidden" id="itemImageUrl"> <!-- To store existing or uploaded image URL -->
+                        <p class="info">新しい画像をアップロードするか、既存の画像URLが使用されます。</p>
                         <div id="uploadProgressContainer" style="display:none;">
                             <progress id="uploadProgress" value="0" max="100"></progress>
                             <span id="uploadProgressText"></span>
@@ -137,13 +124,14 @@
                              <div class="effect-input-row">
                                  <select id="effectTypeSelect" class="form-control-short">
                                      <option value="">効果種類を選択...</option>
-                                     {/* Options will be populated by JavaScript based on effectTypesCache */}
                                  </select>
                                  <input type="number" id="effectValueInput" placeholder="値" step="any" class="form-control-short">
                                  <span id="effectUnitDisplay" class="unit-display"></span>
                                  <button type="button" id="addEffectToListButton">効果を追加</button>
                              </div>
-                             <div id="currentEffectsList" class="effects-list-container"></div>
+                             <div id="currentEffectsList" class="effects-list-container">
+                                <p>効果が追加されていません。</p>
+                             </div>
                         </div>
                     </div>
 
@@ -160,7 +148,7 @@
                 </form>
 
                 <h3><span class="icon"></span> アイテム一覧</h3>
-                <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." style="margin-bottom:10px; width: 50%;">
+                <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." style="margin-bottom:10px; width: calc(100% - 22px); max-width: 400px;">
                 <table id="itemsTable">
                     <thead>
                         <tr><th>画像</th><th>名前</th><th>効果</th><th>タグ</th><th>操作</th></tr>
@@ -182,20 +170,16 @@
                 <input type="text" id="editingCategoryName">
             </div>
             <div class="form-group">
-                <label for="editingCategoryOrder">表示順:</label>
-                <input type="number" id="editingCategoryOrder" class="form-control-short">
-            </div>
-            <div class="form-group">
                 <label>親カテゴリ:</label>
                  <div id="editingCategoryParentButtons" class="category-button-group admin"></div>
                  <input type="hidden" id="selectedEditingParentCategoryId">
             </div>
              <div class="form-group" id="editCategoryTagsGroup">
-                 <label>所属タグ:</label>
+                 <label>この子カテゴリに所属させるタグ (複数選択可):</label>
                  <div id="editingCategoryTagsSelector" class="tag-button-container admin"></div>
              </div>
              <div class="form-group" id="tagSearchModeGroup" style="display: none;">
-                 <label>同カテゴリ内タグ検索モード:</label>
+                 <label>同カテゴリ内タグ検索モード (子カテゴリ専用):</label>
                  <select id="editingTagSearchMode" class="form-control-short">
                      <option value="AND">AND検索</option>
                      <option value="OR">OR検索</option>
@@ -216,11 +200,7 @@
                 <input type="text" id="editingTagName">
             </div>
             <div class="form-group">
-                <label for="editingTagOrder">表示順:</label>
-                <input type="number" id="editingTagOrder" class="form-control-short">
-            </div>
-            <div class="form-group">
-                <label>このタグが所属するカテゴリ (複数選択可):</label>
+                <label>このタグが所属する子カテゴリ (複数選択可):</label>
                 <div id="editingTagCategoriesCheckboxes" class="checkbox-group-container"></div>
             </div>
             <button id="saveTagEditButton">変更を保存</button>
@@ -237,14 +217,15 @@
                 <label for="editingEffectTypeName">効果種類名:</label>
                 <input type="text" id="editingEffectTypeName">
             </div>
-            <div class="form-group">
-                <label for="editingEffectTypeOrder">表示順:</label>
-                <input type="number" id="editingEffectTypeOrder" class="form-control-short">
-            </div>
              <div class="form-group">
                  <label for="editingEffectTypeUnit">デフォルト単位:</label>
                  <select id="editingEffectTypeUnit" class="form-control-short">
-                     {/* Options will be populated by JavaScript */}
+                     <option value="point">ポイント</option>
+                     <option value="%">%</option>
+                     <option value="倍">倍</option>
+                     <option value="回">回</option>
+                     <option value="秒">秒</option>
+                     <option value="none">なし</option>
                  </select>
              </div>
              <div class="form-group">
@@ -259,27 +240,6 @@
             <button id="saveEffectTypeEditButton">変更を保存</button>
         </div>
     </div>
-
-    <!-- 単位編集モーダル -->
-    <div id="editEffectUnitsModal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width: 400px;">
-            <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
-            <h3>効果単位 編集</h3>
-            <div class="form-group">
-                <label for="newEffectUnitInput">新しい単位を追加:</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="newEffectUnitInput" placeholder="例: km">
-                    <button type="button" id="addEffectUnitToList" class="button-like" style="flex-shrink: 0;">追加</button>
-                </div>
-            </div>
-            <div id="currentEffectUnitsList" class="list-container" style="max-height: 200px;">
-                {/* List of units with delete buttons */}
-            </div>
-            <button id="saveEffectUnitsButton" style="margin-top: 15px;">この単位リストを保存</button>
-            <p class="info" style="margin-top: 10px;">保存すると、効果種類追加/編集時の単位プルダウンに反映されます。</p>
-        </div>
-    </div>
-
 
     <script type="module" src="admin.script.js"></script>
 </body>
