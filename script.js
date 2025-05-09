@@ -4,9 +4,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
 let EQUIPMENT_SLOT_TAG_IDS = {};
-// ★ シミュレーターの特定カテゴリ名を定数化（実際のカテゴリ名に合わせてください）
-const SIMULATOR_PARENT_CATEGORY_NAME = "装備"; // 親カテゴリ「装備」の名前
-const SIMULATOR_EFFECT_CHILD_CATEGORY_NAME = "効果"; // 子カテゴリ「効果」の名前
+const SIMULATOR_PARENT_CATEGORY_NAME = "装備";
+const SIMULATOR_EFFECT_CHILD_CATEGORY_NAME = "効果";
 
 
 const firebaseConfig = {
@@ -57,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isSelectingForSimulator = false;
 
     // --- Simulator State ---
-    const equipmentSlots = ["服", "顔", "首", "腕", "背中", "足"]; // "手" から "腕" に変更
+    const equipmentSlots = ["服", "顔", "首", "腕", "背中", "足"];
     let selectedEquipment = {};
     let currentSelectingSlot = null;
     let temporarilySelectedItem = null;
@@ -136,10 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
         parentCategories.forEach(category => {
             const button = document.createElement('div');
             button.classList.add('category-filter-button');
-            // ★ シミュレーター選択モード時の親カテゴリ制御
             let isDisabledForSimulator = false;
             if (isSelectingForSimulator) {
-                // 「装備」親カテゴリ以外は無効化
                 if (category.name !== SIMULATOR_PARENT_CATEGORY_NAME) {
                     isDisabledForSimulator = true;
                 }
@@ -158,14 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (searchControlsElement) {
-            searchControlsElement.classList.toggle('selecting-mode', isSelectingForSimulator);
+             // シミュレーター選択モードでも searchControlsElement自体は半透明にしない
+            searchControlsElement.classList.toggle('selecting-mode', false);
+            if (isSelectingForSimulator && searchInput) searchInput.disabled = false; // 検索バーは常に有効
         }
     }
 
     function toggleParentCategory(button, categoryId) {
-        // ★ シミュレーター選択モードで「装備」親カテゴリがクリックされた場合、状態変更を許可しない
         if (isSelectingForSimulator && allCategories.find(c => c.id === categoryId)?.name === SIMULATOR_PARENT_CATEGORY_NAME) {
-            return;
+            return; // 「装備」親カテゴリはシミュレーターモード中に変更不可
         }
 
         button.classList.toggle('active');
@@ -176,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedParentCategoryIds.push(categoryId);
         }
         selectedTagIds = [];
-        if (isSelectingForSimulator && currentSelectingSlot) { // シミュレーターモード中は部位タグを維持
+        if (isSelectingForSimulator && currentSelectingSlot) {
             const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
             if (slotTagId) selectedTagIds.push(slotTagId);
         }
@@ -188,21 +186,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!childCategoriesAndTagsContainer) return;
         childCategoriesAndTagsContainer.innerHTML = '';
 
-        let displayChildCategoriesAndTags = !isSelectingForSimulator;
-
-        if (isSelectingForSimulator) {
-            // シミュレーター選択モードでも「効果」子カテゴリは表示・操作可能にする
+        let displayChildCategories = false;
+        if (!isSelectingForSimulator && selectedParentCategoryIds.length > 0) {
+            displayChildCategories = true;
+        } else if (isSelectingForSimulator) {
             const equipmentParent = allCategories.find(c => c.name === SIMULATOR_PARENT_CATEGORY_NAME && (!c.parentId || c.parentId === ""));
             if (equipmentParent && selectedParentCategoryIds.includes(equipmentParent.id)) {
-                displayChildCategoriesAndTags = true;
-            } else {
-                 childCategoriesAndTagsContainer.style.display = 'none';
-                 return;
+                displayChildCategories = true; // 「装備」親カテゴリが選択されていれば子を表示
             }
-        } else if (selectedParentCategoryIds.length === 0) {
-             childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p>';
-             childCategoriesAndTagsContainer.style.display = 'block';
-             return;
+        }
+
+        if (!displayChildCategories) {
+            childCategoriesAndTagsContainer.style.display = 'none';
+            if (!isSelectingForSimulator && selectedParentCategoryIds.length === 0) {
+                childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p>';
+                childCategoriesAndTagsContainer.style.display = 'block';
+            }
+            return;
         }
         childCategoriesAndTagsContainer.style.display = 'block';
 
@@ -218,9 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (childCategoriesOfParent.length > 0) {
                 childCategoriesOfParent.forEach(childCat => {
-                    // ★ シミュレーター選択モード時の子カテゴリ表示制御
                     if (isSelectingForSimulator && parentCat.name === SIMULATOR_PARENT_CATEGORY_NAME && childCat.name !== SIMULATOR_EFFECT_CHILD_CATEGORY_NAME) {
-                        return; // 「効果」子カテゴリ以外は表示しない
+                        return;
                     }
                     hasContentToShow = true;
 
@@ -244,17 +243,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             tagButton.dataset.tagId = tag.id;
                             const isSlotTag = validSlotTagIds.includes(tag.id);
 
-                            // ★ シミュレーター選択モード時のタグボタン制御
                             let isDisabledTag = false;
                             if (isSelectingForSimulator) {
-                                if (isSlotTag && tag.id !== EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
-                                    isDisabledTag = true; // 他の部位タグは無効
-                                }
                                 // 「効果」カテゴリのタグは常に有効
                                 // 「部位」カテゴリのタグ（現在選択中の部位以外）は無効
                                 const isEffectCategoryTag = childCat.name === SIMULATOR_EFFECT_CHILD_CATEGORY_NAME;
                                 if (!isEffectCategoryTag && isSlotTag && tag.id !== EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
                                     isDisabledTag = true;
+                                } else if (isSlotTag && tag.id === EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]){
+                                    isDisabledTag = true; // 選択中の部位タグも操作不可
                                 }
                             }
 
@@ -282,12 +279,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (!hasContentToShow && selectedParentCategoryIds.length > 0) {
-            childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">選択された親カテゴリには表示可能な子カテゴリがありません。</p>';
+             // シミュレーターモードで「装備」が選択されているが「効果」カテゴリがない場合などのメッセージ
+            if (isSelectingForSimulator && selectedParentCategoryIds.some(id => allCategories.find(c=>c.id === id)?.name === SIMULATOR_PARENT_CATEGORY_NAME)) {
+                 childCategoriesAndTagsContainer.innerHTML = `<p style="color: #777; margin-top: 10px;">「${SIMULATOR_EFFECT_CHILD_CATEGORY_NAME}」カテゴリ、または関連タグが見つかりません。</p>`;
+            } else if (!isSelectingForSimulator) {
+                childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">選択された親カテゴリには表示可能な子カテゴリがありません。</p>';
+            }
         }
     }
 
     function toggleTag(button, tagId) {
-        // ★ シミュレーター選択モードで、現在のスロットに対応する部位タグは変更不可
         if (isSelectingForSimulator && currentSelectingSlot && tagId === EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
             return;
         }
@@ -330,9 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
             itemCard.dataset.itemId = item.docId;
 
             const nameDisplay = item.name || '名称未設定';
-            const sourceDisplay = item.入手手段 || 'Coming Soon'; // ★変更
-            const priceDisplay = typeof item.price === 'number' ? `売値: ${item.price}G` : '';
-
+            const sourceDisplay = item.入手手段 || 'Coming Soon';
+            const priceDisplay = (typeof item.price === 'number' && item.price >= 0) ? `売値: ${item.price}G` : (item.hasOwnProperty('price') ? 'Coming Soon' : ''); // ★ 修正
 
             let imageElementHTML;
             if (item.image && item.image.trim() !== "") {
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 structuredEffectsHtml += `</ul></div>`;
             } else {
-                structuredEffectsHtml = `<p><strong>効果:</strong> Coming Soon</p>`; // ★変更
+                structuredEffectsHtml = `<p><strong>効果:</strong> Coming Soon</p>`;
             }
 
             itemCard.innerHTML = `
@@ -411,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 2. 検索語による絞り込み (常に適用)
-            // ★ シミュレーター選択モード時は検索バーを有効にするので、ここでの isSelectingForSimulator 条件は削除
             if (searchTerm) {
                 const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
                 const sourceMatch = item.入手手段 && item.入手手段.toLowerCase().includes(searchTerm);
@@ -430,9 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 3. 親カテゴリによる絞り込み
             if (selectedParentCategoryIds.length > 0) {
-                // ★ シミュレーター選択モードで「装備」親カテゴリが選択されている場合、このフィルターは実質的にパススルー（部位タグと効果タグで絞るため）
-                // 通常検索モードでは選択された親カテゴリに合致するかチェック
-                if (!isSelectingForSimulator || (isSelectingForSimulator && !selectedParentCategoryIds.some(id => allCategories.find(c=>c.id === id)?.name === SIMULATOR_PARENT_CATEGORY_NAME))) {
+                if (!isSelectingForSimulator || !selectedParentCategoryIds.some(id => allCategories.find(c => c.id === id)?.name === SIMULATOR_PARENT_CATEGORY_NAME)) {
                     const itemChildCategoryIds = (item.tags || []).reduce((acc, tagId) => {
                         const tag = allTags.find(t => t.id === tagId);
                         if (tag && tag.categoryIds) {
@@ -456,25 +453,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-
             // 4. タグによる絞り込み
             if (selectedTagIds.length > 0) {
                 let tagsToFilterByEffective = [...selectedTagIds];
-
-                // シミュレーター選択モードでは、選択中のスロットタグは必須、その他は選択されたタグで絞り込む
                 if (isSelectingForSimulator && currentSelectingSlot) {
                     const currentSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
-                    // selectedTagIds には currentSlotTagId と、もしあれば「効果」カテゴリのタグが入っている
-                    // currentSlotTagId は上でチェック済みなので、ここではそれ以外のタグでAND/ORを判定
+                     // 部位タグは必須なので、それ以外の選択されたタグで絞り込む
                     tagsToFilterByEffective = selectedTagIds.filter(tid => tid !== currentSlotTagId);
-                     if (tagsToFilterByEffective.length === 0 && selectedTagIds.includes(currentSlotTagId)) {
-                         // 部位タグのみ選択されている場合は、タグフィルターはパス
-                     } else if (!tagsToFilterByEffective.every(tagId => item.tags && item.tags.includes(tagId))) { // 仮にANDで
-                         // return false; // ここは複雑なので、一旦ANDで絞り込む。ORのロジックを精査する必要あり。
-                     }
-
                 }
-                // 通常検索時、またはシミュレーターで効果タグ等も選択された場合
+
                 if (tagsToFilterByEffective.length > 0) {
                     let effectiveSearchMode = 'AND';
                     const categoriesOfSelectedTags = new Map();
@@ -523,13 +510,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (resetFiltersButton) resetFiltersButton.addEventListener('click', resetFilters);
     if (searchInput) searchInput.addEventListener('input', () => {
-        // ★ シミュレーター選択モードでも検索バーの入力でフィルターが再実行されるように
         filterAndRenderItems();
     });
 
 
     function resetFilters() {
-        if (isSelectingForSimulator) return; // 通常検索時のみリセット
+        // シミュレーター選択モード時はリセットボタン自体が無効化される想定だが、念のためチェック
+        if (isSelectingForSimulator && !confirm("シミュレーターのアイテム選択を中断してフィルターをリセットしますか？")) {
+            return;
+        }
+        cancelItemSelection(); // 選択中ならキャンセル処理も行う
         if (searchInput) searchInput.value = '';
         selectedParentCategoryIds = [];
         selectedTagIds = [];
@@ -564,7 +554,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (simulatorModal) simulatorModal.style.display = 'none';
 
-        // ★ シミュレーター選択時のフィルター設定
         const equipmentParentCategory = allCategories.find(c => c.name === SIMULATOR_PARENT_CATEGORY_NAME && (!c.parentId || c.parentId === ""));
         if (equipmentParentCategory) {
             selectedParentCategoryIds = [equipmentParentCategory.id];
@@ -572,13 +561,14 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedParentCategoryIds = [];
             console.warn(`親カテゴリ「${SIMULATOR_PARENT_CATEGORY_NAME}」が見つかりません。`);
         }
-        selectedTagIds = [slotTagId]; // 部位タグは必須
+        selectedTagIds = [slotTagId]; // 部位タグは必須で選択状態
 
-        // 検索入力はクリアしないでおく
-        // if (searchInput) searchInput.value = ''; // 検索バーは使えるようにするのでクリアしない
+        // 検索入力はクリアせず、そのまま利用可能にする
+        if (searchInput) searchInput.disabled = false;
 
-        renderParentCategoryFilters(); // 親カテゴリ「装備」を選択状態にし、他を無効化
-        renderChildCategoriesAndTags(); // 子カテゴリ「効果」のみ表示・操作可能に
+
+        renderParentCategoryFilters();
+        renderChildCategoriesAndTags();
         filterAndRenderItems();
 
         if (searchToolMessage) {
@@ -586,19 +576,17 @@ document.addEventListener('DOMContentLoaded', () => {
             searchToolMessage.style.display = 'block';
         }
         if (confirmSelectionButton) confirmSelectionButton.style.display = 'block';
-        // 検索コントロールが disabling-mode で隠れてしまう場合があるので、メッセージ部へスクロール
+        if (resetFiltersButton) resetFiltersButton.disabled = true; // シミュレーター選択中はリセット不可
+
+
         if (searchToolMessage.offsetParent !== null) {
-             window.scrollTo({ top: searchToolMessage.offsetTop - 70, behavior: 'smooth' }); // Adjust offset if header is fixed
+             window.scrollTo({ top: searchToolMessage.offsetTop - 70, behavior: 'smooth' });
         } else if (searchControlsElement.offsetParent !== null) {
             window.scrollTo({ top: searchControlsElement.offsetTop - 20, behavior: 'smooth' });
         } else {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
-        // シミュレーター選択モードでは検索バーを操作可能にする
-        if(searchInput) searchInput.disabled = false;
-        if(searchControlsElement) searchControlsElement.classList.remove('selecting-mode'); // opacity を戻す
-        // ただし、カテゴリボタンなどは個別に disabled やイベントリスナーで制御
+        if (searchControlsElement) searchControlsElement.classList.remove('selecting-mode'); // opacity を戻す
     }
 
 
@@ -617,11 +605,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (searchToolMessage) searchToolMessage.style.display = 'none';
             if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
+            if (resetFiltersButton) resetFiltersButton.disabled = false;
+
 
             selectedParentCategoryIds = [];
             selectedTagIds = [];
             if (searchInput) searchInput.value = '';
-            if (searchInput) searchInput.disabled = false; // 検索バーを再度有効化
+            if (searchInput) searchInput.disabled = false;
 
             renderParentCategoryFilters();
             renderChildCategoriesAndTags();
@@ -825,6 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
         if(searchInput) searchInput.disabled = false;
         if(searchControlsElement) searchControlsElement.classList.remove('selecting-mode');
+        if (resetFiltersButton) resetFiltersButton.disabled = false;
 
 
         selectedParentCategoryIds = [];
