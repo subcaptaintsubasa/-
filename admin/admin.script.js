@@ -1,11 +1,11 @@
-// admin.script.js (省略なし・完全版)
+// admin.script.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import {
     getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc,
-    query, where, orderBy, serverTimestamp, writeBatch, getDoc, runTransaction,
+    query, where, orderBy, serverTimestamp, writeBatch, getDoc,
     arrayUnion, arrayRemove, deleteField
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
@@ -63,6 +63,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const editingTagCategoriesCheckboxes = document.getElementById('editingTagCategoriesCheckboxes');
     const saveTagEditButton = document.getElementById('saveTagEditButton');
 
+    // Effect Unit Management (NEW)
+    const newEffectUnitNameInput = document.getElementById('newEffectUnitName');
+    const addEffectUnitButton = document.getElementById('addEffectUnitButton');
+    const effectUnitListContainer = document.getElementById('effectUnitListContainer');
+    const editEffectUnitModal = document.getElementById('editEffectUnitModal');
+    const editingEffectUnitDocIdInput = document.getElementById('editingEffectUnitDocId');
+    const editingEffectUnitNameInput = document.getElementById('editingEffectUnitName');
+    const saveEffectUnitEditButton = document.getElementById('saveEffectUnitEditButton');
+    const manageUnitsForNewEffectTypeButton = document.getElementById('manageUnitsForNewEffectTypeButton');
+    const manageUnitsForEditingEffectTypeButton = document.getElementById('manageUnitsForEditingEffectTypeButton');
+
+
     // Effect Type Management
     const newEffectTypeNameInput = document.getElementById('newEffectTypeName');
     const newEffectTypeUnitSelect = document.getElementById('newEffectTypeUnit');
@@ -75,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editingEffectTypeUnitSelect = document.getElementById('editingEffectTypeUnit');
     const editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethod"]');
     const saveEffectTypeEditButton = document.getElementById('saveEffectTypeEditButton');
-    const effectTypeSelect = document.getElementById('effectTypeSelect'); // For item form
+    const effectTypeSelect = document.getElementById('effectTypeSelect');
 
     // Item Management
     const itemForm = document.getElementById('itemForm');
@@ -84,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemImageFileInput = document.getElementById('itemImageFile');
     const itemImagePreview = document.getElementById('itemImagePreview');
     const itemImageUrlInput = document.getElementById('itemImageUrl');
-    const itemPriceInput = document.getElementById('itemPrice'); // ★ 売値入力欄
+    const itemPriceInput = document.getElementById('itemPrice');
     const uploadProgressContainer = document.getElementById('uploadProgressContainer');
     const uploadProgress = document.getElementById('uploadProgress');
     const uploadProgressText = document.getElementById('uploadProgressText');
@@ -103,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allTagsCache = [];
     let itemsCache = [];
     let effectTypesCache = [];
+    let effectUnitsCache = []; // NEW cache for units
     let currentItemEffects = [];
     let selectedImageFile = null;
 
@@ -159,10 +172,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
         if (editingTagCategoriesCheckboxes) editingTagCategoriesCheckboxes.innerHTML = '';
 
+        if (effectUnitListContainer) effectUnitListContainer.innerHTML = ''; // NEW
+        if (newEffectUnitNameInput) newEffectUnitNameInput.value = ''; // NEW
+
+
         if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
         if (effectTypeSelect) effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
         if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
-        if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.value = 'point';
+        if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = '<option value="none">なし</option>'; // NEW default after clearing
         if (newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
 
 
@@ -173,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadInitialData() {
         console.log("[Initial Load] Starting...");
+        await loadEffectUnitsFromFirestore(); // NEW: Load units first
         await loadEffectTypesFromFirestore();
         await loadCategoriesFromFirestore();
         await loadTagsFromFirestore();
@@ -181,16 +199,174 @@ document.addEventListener('DOMContentLoaded', () => {
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
         populateTagCheckboxesForItemForm();
-        populateEffectTypeSelect();
+        populateEffectUnitSelects(); // NEW: Populate unit dropdowns
+        populateEffectTypeSelect(); // For item form (depends on effect types)
+
 
         renderCategoriesForManagement();
         renderTagsForManagement();
+        renderEffectUnitsForManagement(); // NEW
         renderEffectTypesForManagement();
         renderItemsAdminTable();
         console.log("[Initial Load] Completed.");
     }
 
-    // --- Effect Type Management ---
+    // --- Effect Unit Management (NEW SECTION) ---
+    async function loadEffectUnitsFromFirestore() {
+        console.log("[Effect Units] Loading effect units...");
+        try {
+            const q = query(collection(db, 'effect_units'), orderBy('name'));
+            const snapshot = await getDocs(q);
+            effectUnitsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            console.log("[Effect Units] Loaded:", effectUnitsCache.length, effectUnitsCache);
+        } catch (error) {
+            console.error("[Effect Units] Error loading:", error);
+            effectUnitsCache = [];
+        }
+    }
+
+    function renderEffectUnitsForManagement(openModalForId = null) {
+        if (!effectUnitListContainer) return;
+        effectUnitListContainer.innerHTML = '';
+        if (effectUnitsCache.length === 0) {
+            effectUnitListContainer.innerHTML = '<p>効果単位が登録されていません。「なし」は自動的に利用可能です。</p>';
+            return;
+        }
+        effectUnitsCache.forEach(unit => {
+            const div = document.createElement('div');
+            div.classList.add('list-item');
+            div.innerHTML = `
+                <span>${unit.name}</span>
+                <div>
+                    <button class="edit-effect-unit action-button" data-id="${unit.id}" title="編集">✎</button>
+                    <button class="delete-effect-unit action-button delete" data-id="${unit.id}" data-name="${unit.name}" title="削除">×</button>
+                </div>
+            `;
+            effectUnitListContainer.appendChild(div);
+        });
+        effectUnitListContainer.querySelectorAll('.edit-effect-unit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const unitId = e.currentTarget.dataset.id;
+                const unitData = effectUnitsCache.find(u => u.id === unitId);
+                if (unitData) openEditEffectUnitModal(unitData);
+            });
+        });
+        effectUnitListContainer.querySelectorAll('.delete-effect-unit').forEach(btn => {
+            btn.addEventListener('click', (e) => deleteEffectUnit(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
+        });
+
+        if (openModalForId === "manageUnits") { // Special case to just open the modal
+             // This assumes a generic modal for unit management, if we build one.
+             // For now, we'll use the edit modal for adding too, or make the list the primary management.
+             // Let's assume the "Manage Units" buttons will open the section with the list.
+             // If a dedicated modal is needed, it should be triggered here.
+             // For now, focus on the section.
+            if(effectUnitListContainer.offsetParent !== null) { // if visible
+                effectUnitListContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+    if(manageUnitsForNewEffectTypeButton) manageUnitsForNewEffectTypeButton.addEventListener('click', () => renderEffectUnitsForManagement("manageUnits"));
+    if(manageUnitsForEditingEffectTypeButton) manageUnitsForEditingEffectTypeButton.addEventListener('click', () => renderEffectUnitsForManagement("manageUnits"));
+
+
+    if (addEffectUnitButton) {
+        addEffectUnitButton.addEventListener('click', async () => {
+            const name = newEffectUnitNameInput.value.trim();
+            if (!name) { alert("効果単位名を入力してください。"); return; }
+            if (name.toLowerCase() === "なし") { alert("「なし」は予約語であり、単位として登録できません。"); return; }
+            if (effectUnitsCache.some(u => u.name.toLowerCase() === name.toLowerCase())) {
+                alert("同じ名前の効果単位が既に存在します。"); return;
+            }
+            try {
+                await addDoc(collection(db, 'effect_units'), { name: name, createdAt: serverTimestamp() });
+                newEffectUnitNameInput.value = '';
+                await loadEffectUnitsFromFirestore();
+                renderEffectUnitsForManagement();
+                populateEffectUnitSelects(); // Update all unit dropdowns
+            } catch (error) {
+                console.error("[Effect Units] Error adding:", error);
+                alert("効果単位の追加に失敗しました。");
+            }
+        });
+    }
+
+    function openEditEffectUnitModal(unitData) {
+        editingEffectUnitDocIdInput.value = unitData.id;
+        editingEffectUnitNameInput.value = unitData.name;
+        if (editEffectUnitModal) editEffectUnitModal.style.display = 'flex';
+    }
+
+    if (saveEffectUnitEditButton) {
+        saveEffectUnitEditButton.addEventListener('click', async () => {
+            const id = editingEffectUnitDocIdInput.value;
+            const newName = editingEffectUnitNameInput.value.trim();
+            if (!newName) { alert("効果単位名は空にできません。"); return; }
+            if (newName.toLowerCase() === "なし") { alert("「なし」は予約語であり、単位として登録できません。"); return; }
+            if (effectUnitsCache.some(u => u.id !== id && u.name.toLowerCase() === newName.toLowerCase())) {
+                alert("編集後の名前が他の効果単位と重複します。"); return;
+            }
+            try {
+                await updateDoc(doc(db, 'effect_units', id), { name: newName, updatedAt: serverTimestamp() });
+                if (editEffectUnitModal) editEffectUnitModal.style.display = 'none';
+                await loadEffectUnitsFromFirestore();
+                renderEffectUnitsForManagement();
+                populateEffectUnitSelects();
+                // Potentially update effect types if their defaultUnit was this one and name changed (more complex)
+            } catch (error) {
+                console.error("[Effect Units] Error updating:", error);
+                alert("効果単位の更新に失敗しました。");
+            }
+        });
+    }
+
+    async function deleteEffectUnit(id, name) {
+        // Check if this unit is used as a defaultUnit in any effect_type
+        const usedByEffectType = effectTypesCache.find(et => et.defaultUnit === name); // Assuming defaultUnit stores name
+        if (usedByEffectType) {
+            alert(`効果単位「${name}」は効果種類「${usedByEffectType.name}」のデフォルト単位として使用されているため削除できません。\n先に効果種類のデフォルト単位を変更してください。`);
+            return;
+        }
+        // Check if this unit is used in any item's structured_effects
+        const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.unit === name));
+        if (usedByItem) {
+            alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。\n先にアイテムの効果設定を変更してください。`);
+            return;
+        }
+
+        if (confirm(`効果単位「${name}」を削除しますか？`)) {
+            try {
+                await deleteDoc(doc(db, 'effect_units', id));
+                await loadEffectUnitsFromFirestore();
+                renderEffectUnitsForManagement();
+                populateEffectUnitSelects();
+            } catch (error) {
+                console.error("[Effect Units] Error deleting:", error);
+                alert("効果単位の削除に失敗しました。");
+            }
+        }
+    }
+
+    function populateEffectUnitSelects() {
+        const selectsToUpdate = [newEffectTypeUnitSelect, editingEffectTypeUnitSelect /*, potentially others if added */];
+        selectsToUpdate.forEach(selectElement => {
+            if (!selectElement) return;
+            const currentValue = selectElement.value;
+            selectElement.innerHTML = '<option value="none">なし</option>'; // Default "none" option
+            effectUnitsCache.forEach(unit => {
+                selectElement.add(new Option(unit.name, unit.name)); // Using name as value for simplicity here
+            });
+            // Try to restore previous selection
+            if (Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
+                selectElement.value = currentValue;
+            } else {
+                selectElement.value = 'none'; // Default if previous not found
+            }
+        });
+    }
+
+
+    // --- Effect Type Management (Adjusted for dynamic units) ---
     async function loadEffectTypesFromFirestore() {
         console.log("[Effect Types] Loading effect types...");
         try {
@@ -245,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addEffectTypeButton) {
         addEffectTypeButton.addEventListener('click', async () => {
             const name = newEffectTypeNameInput.value.trim();
-            const unit = newEffectTypeUnitSelect.value;
+            const unit = newEffectTypeUnitSelect.value; // Now gets value from dynamically populated select
             const calcMethodRadio = Array.from(newEffectTypeCalcMethodRadios).find(r => r.checked);
             const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum';
 
@@ -256,12 +432,12 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await addDoc(collection(db, 'effect_types'), {
                     name: name,
-                    defaultUnit: unit,
+                    defaultUnit: unit, // Storing the unit name directly
                     calculationMethod: calcMethod,
                     createdAt: serverTimestamp()
                 });
                 newEffectTypeNameInput.value = '';
-                newEffectTypeUnitSelect.value = 'point';
+                newEffectTypeUnitSelect.value = 'none'; // Reset to default "なし"
                 if(newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
 
                 await loadEffectTypesFromFirestore();
@@ -277,7 +453,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditEffectTypeModal(effectTypeData) {
         editingEffectTypeDocIdInput.value = effectTypeData.id;
         editingEffectTypeNameInput.value = effectTypeData.name;
-        editingEffectTypeUnitSelect.value = effectTypeData.defaultUnit || 'point';
+        // Ensure the unit dropdown is populated before setting its value
+        populateEffectUnitSelects(); // Make sure it's up-to-date
+        editingEffectTypeUnitSelect.value = effectTypeData.defaultUnit || 'none';
+
 
         const calcMethod = effectTypeData.calculationMethod || 'sum';
         const radioToCheck = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.value === calcMethod);
@@ -294,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveEffectTypeEditButton.addEventListener('click', async () => {
             const id = editingEffectTypeDocIdInput.value;
             const newName = editingEffectTypeNameInput.value.trim();
-            const newUnit = editingEffectTypeUnitSelect.value;
+            const newUnit = editingEffectTypeUnitSelect.value; // From dynamic select
             const editCalcMethodRadio = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.checked);
             const newCalcMethod = editCalcMethodRadio ? editCalcMethodRadio.value : 'sum';
 
@@ -325,6 +504,20 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteEffectType(id, name) {
          if (confirm(`効果種類「${name}」を削除しますか？\n注意: この効果種類を使用しているアイテムの効果設定は残りますが、種類名が表示されなくなる可能性があります。`)) {
              try {
+                // Check if any items use this effect type
+                const itemsUsingEffectTypeQuery = query(collection(db, 'items'), where('structured_effects', 'array-contains-any', [{type: id}]));
+                // Note: Firestore 'array-contains-any' is tricky for nested objects. A more robust check might involve iterating through itemsCache.
+                let isUsed = false;
+                for (const item of itemsCache) {
+                    if (item.structured_effects && item.structured_effects.some(eff => eff.type === id)) {
+                        isUsed = true;
+                        alert(`効果種類「${name}」はアイテム「${item.name}」で使用されているため削除できません。\n先にアイテムの効果設定からこの種類を削除してください。`);
+                        break;
+                    }
+                }
+                if(isUsed) return;
+
+
                  await deleteDoc(doc(db, 'effect_types', id));
                  await loadEffectTypesFromFirestore();
                  renderEffectTypesForManagement();
@@ -338,7 +531,8 @@ document.addEventListener('DOMContentLoaded', () => {
          }
     }
 
-    // --- Category Management ---
+
+    // --- Category Management (No changes from previous version) ---
     async function loadCategoriesFromFirestore() {
         console.log("[Categories] Loading all categories...");
         try {
@@ -656,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- Tag Management ---
+    // --- Tag Management (No changes from previous version) ---
     async function loadTagsFromFirestore() {
         console.log("[Tags] Loading all tags...");
         try {
@@ -860,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Item Management ---
+    // --- Item Management (Adjusted for Price) ---
     function populateTagCheckboxesForItemForm(selectedTagIds = []) {
         if (!itemTagsSelectorCheckboxes) return;
         itemTagsSelectorCheckboxes.innerHTML = '';
@@ -880,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function populateEffectTypeSelect() {
+    function populateEffectTypeSelect() { // For item effect type selection
         if (!effectTypeSelect) return;
         const currentVal = effectTypeSelect.value;
         effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
@@ -952,7 +1146,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const value = parseFloat(valueStr);
 
             const selectedEffectType = effectTypesCache.find(et => et.id === typeId);
-            const unit = selectedEffectType ? (selectedEffectType.defaultUnit || 'point') : 'point';
+            const unit = selectedEffectType ? (selectedEffectType.defaultUnit || 'none') : 'none'; // Use 'none' if no unit
 
             currentItemEffects.push({ type: typeId, value: value, unit: unit });
             renderCurrentItemEffectsList();
@@ -981,13 +1175,12 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const name = itemNameInput.value.trim();
             const source = itemSourceInput.value.trim();
-            const priceStr = itemPriceInput.value.trim(); // ★ 売値取得
+            const priceStr = itemPriceInput.value.trim();
             const selectedItemTagIds = Array.from(itemTagsSelectorCheckboxes.querySelectorAll('input[type="checkbox"][name="itemTag"]:checked'))
                                             .map(cb => cb.value);
             const editingDocId = itemIdToEditInput.value;
             let finalImageUrl = itemImageUrlInput.value;
 
-            // ★ 売値バリデーションと変換
             let price = null;
             if (priceStr !== "") {
                 price = parseInt(priceStr, 10);
@@ -997,7 +1190,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
             }
-
 
             saveItemButton.disabled = true; saveItemButton.textContent = "保存中...";
             try {
@@ -1013,16 +1205,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const itemData = {
                     name: name || "",
                     image: finalImageUrl || "",
-                    price: price, // ★ 売値保存 (nullの場合もある)
+                    price: price, // Firestore handles null by not creating the field or storing as null
                     structured_effects: currentItemEffects,
                     入手手段: source || "",
                     tags: selectedItemTagIds,
                     updatedAt: serverTimestamp()
                 };
-                // price が null の場合、フィールドごと削除して保存 (Firestoreの挙動によっては不要)
-                if (itemData.price === null) {
-                    delete itemData.price;
-                }
+                 if (itemData.price === null) { // Ensure field is removed if price is null
+                     itemData.price = deleteField();
+                 }
 
 
                 if (editingDocId) {
@@ -1050,7 +1241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (itemForm) itemForm.reset();
         itemIdToEditInput.value = '';
         itemImageUrlInput.value = '';
-        if (itemPriceInput) itemPriceInput.value = ''; // ★ 売値クリア
+        if (itemPriceInput) itemPriceInput.value = '';
         if (itemImagePreview) { itemImagePreview.src = '#'; itemImagePreview.style.display = 'none'; }
         if (itemImageFileInput) itemImageFileInput.value = null;
         selectedImageFile = null;
@@ -1085,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filteredItems.length === 0) {
             const tr = itemsTableBody.insertRow();
             const td = tr.insertCell();
-            td.colSpan = 6; // ★ 列数変更 (画像, 名前, 売値, 効果, タグ, 操作)
+            td.colSpan = 6;
             td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
             td.style.textAlign = 'center';
             return;
@@ -1099,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .filter(name => name)
                 .join(', ') || 'なし';
 
-            let effectsDisplay = '(未設定)';
+            let effectsDisplay = 'Coming Soon';
             if (item.structured_effects && item.structured_effects.length > 0) {
                  effectsDisplay = item.structured_effects.map(eff => {
                      const typeInfo = effectTypesCache.find(et => et.id === eff.type);
@@ -1109,13 +1300,13 @@ document.addEventListener('DOMContentLoaded', () => {
                  }).join('; ');
                  if (effectsDisplay.length > 40) effectsDisplay = effectsDisplay.substring(0, 37) + '...';
             }
-            const priceDisplay = typeof item.price === 'number' ? `${item.price}G` : '未設定'; // ★ 売値表示
+            const priceDisplay = typeof item.price === 'number' ? `${item.price}G` : '未設定';
 
             const nameDisplay = item.name || '(名称未設定)';
             tr.innerHTML = `
                 <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='../images/placeholder_item.png';"></td>
                 <td>${nameDisplay}</td>
-                <td>${priceDisplay}</td> {/* ★ 売値セル追加 */}
+                <td>${priceDisplay}</td>
                 <td>${effectsDisplay}</td>
                 <td>${itemTagsString}</td>
                 <td>
@@ -1142,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemNameInput.value = itemData.name || "";
                 itemSourceInput.value = itemData.入手手段 || "";
                 itemImageUrlInput.value = itemData.image || '';
-                if (itemPriceInput) itemPriceInput.value = typeof itemData.price === 'number' ? itemData.price : ''; // ★ 売値読み込み
+                if (itemPriceInput) itemPriceInput.value = typeof itemData.price === 'number' ? itemData.price : '';
 
                 if (itemData.image) {
                     itemImagePreview.src = itemData.image; itemImagePreview.style.display = 'block';
@@ -1278,9 +1469,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.modal .close-button').forEach(btn => {
         btn.onclick = function() { btn.closest('.modal').style.display = "none"; }
     });
-    window.onclick = function(event) {
-        if (event.target.classList.contains('modal')) {
-            event.target.style.display = "none";
-        }
-    }
+    // Close modals by clicking outside content (if target is the modal itself)
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    });
 });
