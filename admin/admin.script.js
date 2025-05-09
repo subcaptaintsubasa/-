@@ -6,7 +6,7 @@ import {
 import {
     getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc,
     query, where, orderBy, serverTimestamp, writeBatch, getDoc,
-    arrayUnion, arrayRemove, deleteField // deleteField は updateDoc({merge:true}) でのみ有効なので注意
+    arrayUnion, arrayRemove, deleteField
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editingTagCategoriesCheckboxes = document.getElementById('editingTagCategoriesCheckboxes');
     const saveTagEditButton = document.getElementById('saveTagEditButton');
 
-    // Effect Unit Management (NEW)
+    // Effect Unit Management
     const newEffectUnitNameInput = document.getElementById('newEffectUnitName');
     const addEffectUnitButton = document.getElementById('addEffectUnitButton');
     const effectUnitListContainer = document.getElementById('effectUnitListContainer');
@@ -230,9 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         effectUnitListContainer.innerHTML = '';
         if (effectUnitsCache.length === 0) {
             effectUnitListContainer.innerHTML = '<p>効果単位が登録されていません。「なし」は自動的に利用可能です。</p>';
-            // return; // 「なし」は選択肢として常に表示するので、ここでreturnしない
         }
-        // 「なし」はリストには表示せず、選択肢でのみ扱う
         effectUnitsCache.forEach(unit => {
             const div = document.createElement('div');
             div.classList.add('list-item');
@@ -257,14 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (openModalForId === "manageUnits") {
-            if(editEffectUnitModal && effectUnitListContainer.offsetParent !== null) { // if section is visible
-                 // For now, simply scroll to the section. A dedicated modal could be opened here.
+            if(editEffectUnitModal && effectUnitListContainer.offsetParent !== null) {
                 effectUnitListContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                 // If we want to open the "add new" part of a dedicated unit management modal:
-                 // editingEffectUnitDocIdInput.value = ''; // Clear ID for new entry
-                 // editingEffectUnitNameInput.value = ''; // Clear name
-                 // editEffectUnitModal.style.display = 'flex';
-                 // editingEffectUnitNameInput.focus();
             }
         }
     }
@@ -312,16 +304,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const oldUnitName = effectUnitsCache.find(u => u.id === id)?.name;
                 await updateDoc(doc(db, 'effect_units', id), { name: newName, updatedAt: serverTimestamp() });
 
-                // If unit name changed, update effect_types and items that used the old name
                 if (oldUnitName && oldUnitName !== newName) {
                     const batch = writeBatch(db);
-                    // Update effect_types
                     effectTypesCache.forEach(et => {
                         if (et.defaultUnit === oldUnitName) {
                             batch.update(doc(db, 'effect_types', et.id), { defaultUnit: newName });
                         }
                     });
-                    // Update items
                     itemsCache.forEach(item => {
                         let itemEffectsUpdated = false;
                         const updatedEffects = (item.structured_effects || []).map(eff => {
@@ -336,10 +325,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                     await batch.commit();
-                    // Reload all data to reflect changes everywhere
                     await loadInitialData();
                 } else {
-                    await loadEffectUnitsFromFirestore(); // Just reload units if name didn't change (or no old name)
+                    await loadEffectUnitsFromFirestore();
                     renderEffectUnitsForManagement();
                     populateEffectUnitSelects();
                 }
@@ -482,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditEffectTypeModal(effectTypeData) {
         editingEffectTypeDocIdInput.value = effectTypeData.id;
         editingEffectTypeNameInput.value = effectTypeData.name;
-        populateEffectUnitSelects(); // Ensure unit options are current
+        populateEffectUnitSelects();
         editingEffectTypeUnitSelect.value = effectTypeData.defaultUnit || 'none';
 
 
@@ -1204,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const editingDocId = itemIdToEditInput.value;
             let finalImageUrl = itemImageUrlInput.value;
 
-            let price = null; // Default to null if not provided or invalid
+            let price = null;
             if (priceStr !== "") {
                 price = parseInt(priceStr, 10);
                 if (isNaN(price) || price < 0) {
@@ -1228,7 +1216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const itemData = {
                     name: name || "",
                     image: finalImageUrl || "",
-                    // price is handled below
+                    // price will be added conditionally
                     structured_effects: currentItemEffects,
                     入手手段: source || "",
                     tags: selectedItemTagIds,
@@ -1237,35 +1225,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (price !== null) {
                     itemData.price = price;
-                } else {
-                    // If you want to explicitly remove the field if price is null/empty:
-                    // itemData.price = deleteField(); // Use this only with updateDoc({merge:true}) or handle differently for addDoc
-                    // For simplicity, if price is null, we just don't add it or Firestore will store it as null.
-                    // To truly remove a field on update, you'd use deleteField(), but for addDoc, just don't include it.
-                    // If editing and price is cleared, we need to handle field deletion carefully.
-                    if (editingDocId) { // If updating, and price is now null, explicitly set to null or delete field
-                        itemData.price = null; // Or use deleteField() if that's preferred for updates
-                    }
-                    // If adding and price is null, it will just not be included.
                 }
 
 
                 if (editingDocId) {
-                    // If price is null and we want to remove the field from an existing document
-                    if (price === null && itemData.hasOwnProperty('price')) {
-                         // To remove field on update, ensure merge is not true, or use `deleteField()` with caution
-                         // For now, setting to null is often sufficient, or manually construct update object.
-                         // A more robust way for updates to remove a field:
-                         const updatePayload = {...itemData};
-                         if (price === null) updatePayload.price = deleteField();
-                         await updateDoc(doc(db, 'items', editingDocId), updatePayload);
-                    } else {
-                        await updateDoc(doc(db, 'items', editingDocId), itemData);
+                    const updatePayload = {...itemData};
+                    if (price === null) {
+                        // If editing and price is cleared, explicitly set to delete the field
+                        updatePayload.price = deleteField();
                     }
+                    await updateDoc(doc(db, 'items', editingDocId), updatePayload);
                 } else {
                     itemData.createdAt = serverTimestamp();
                     const dataToAdd = {...itemData};
-                    if (price === null) delete dataToAdd.price; // Don't add price field if it's null for new docs
+                    // If adding and price is null, don't include the field
+                    if (price === null) delete dataToAdd.price;
                     await addDoc(collection(db, 'items'), dataToAdd);
                 }
                 await loadItemsFromFirestore();
@@ -1346,7 +1320,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  }).join('; ');
                  if (effectsDisplay.length > 40) effectsDisplay = effectsDisplay.substring(0, 37) + '...';
             }
-            const priceDisplay = typeof item.price === 'number' ? `${item.price}G` : 'Coming Soon';
+            const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : 'Coming Soon';
 
             const nameDisplay = item.name || '(名称未設定)';
             tr.innerHTML = `
@@ -1379,7 +1353,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemNameInput.value = itemData.name || "";
                 itemSourceInput.value = itemData.入手手段 || "";
                 itemImageUrlInput.value = itemData.image || '';
-                if (itemPriceInput) itemPriceInput.value = typeof itemData.price === 'number' ? itemData.price : '';
+                if (itemPriceInput) itemPriceInput.value = typeof itemData.price === 'number' && !isNaN(itemData.price) ? itemData.price : '';
 
                 if (itemData.image) {
                     itemImagePreview.src = itemData.image; itemImagePreview.style.display = 'block';
