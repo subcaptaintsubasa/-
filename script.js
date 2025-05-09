@@ -49,12 +49,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Search Tool State ---
     let selectedParentCategoryIds = [];
-    let selectedTagIds = []; // 部位タグも含む可能性あり
+    let selectedTagIds = [];
     let isSelectingForSimulator = false;
 
     // --- Simulator State ---
-    const equipmentSlots = ["服", "顔", "首", "手", "背中", "足"];
-    let selectedEquipment = {}; // { "服": "itemId1", "顔": null, ... }
+    const equipmentSlots = ["服", "顔", "首", "腕", "背中", "足"]; // "手" から "腕" に変更
+    let selectedEquipment = {};
     let currentSelectingSlot = null;
     let temporarilySelectedItem = null;
 
@@ -70,16 +70,16 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
 
             effectTypesCache = effectTypesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("Effect Types loaded:", effectTypesCache.length, effectTypesCache);
+            console.log("Effect Types loaded:", effectTypesCache.length);
 
             allCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("All Categories loaded:", allCategories.length, allCategories);
+            console.log("All Categories loaded:", allCategories.length);
 
             allTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("All Tags loaded:", allTags.length, allTags);
+            console.log("All Tags loaded:", allTags.length);
 
             allItems = itemsSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-            console.log("Items loaded:", allItems.length, allItems);
+            console.log("Items loaded:", allItems.length);
 
             buildEquipmentSlotTagMap();
 
@@ -105,7 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
             equipmentSlots.forEach(slotName => {
                 EQUIPMENT_SLOT_TAG_IDS[slotName] = null;
             });
-            // alert("タグデータの読み込みに失敗したため、装備部位によるアイテム絞り込みが正しく動作しない可能性があります。");
             return;
         }
         equipmentSlots.forEach(slotName => {
@@ -158,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             selectedParentCategoryIds.push(categoryId);
         }
-        selectedTagIds = []; // 親カテゴリ変更時はタグ選択をリセット
+        selectedTagIds = [];
         renderChildCategoriesAndTags();
         filterAndRenderItems();
     }
@@ -274,6 +273,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const nameDisplay = item.name || '名称未設定';
             const sourceDisplay = item.入手手段 || '後日追加予定';
+            const priceDisplay = typeof item.price === 'number' ? `売値: ${item.price}G` : '';
+
+
             let imageElementHTML;
             if (item.image && item.image.trim() !== "") {
                 imageElementHTML = `<img src="${item.image}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/placeholder_item.png'; this.alt='画像読み込みエラー';">`;
@@ -285,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.tags && item.tags.length > 0) {
                 const displayableTags = item.tags.map(tagId => {
                     const tagObj = allTags.find(t => t.id === tagId);
-                    if (!tagObj || validSlotTagIds.includes(tagId)) return null; // 部位タグは表示しない
+                    if (!tagObj || validSlotTagIds.includes(tagId)) return null;
                     return `<span>${tagObj.name}</span>`;
                 }).filter(Boolean);
 
@@ -313,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3>${nameDisplay}</h3>
                 ${structuredEffectsHtml}
                 <p><strong>入手手段:</strong> ${sourceDisplay}</p>
+                ${priceDisplay ? `<p><strong>${priceDisplay}</strong></p>` : ''}
                 ${tagsHtml}
             `;
 
@@ -341,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null);
 
         let filteredItems = allItems.filter(item => {
-            // 1. 部位タグによる絞り込み (シミュレーター選択モード時)
+            // 1. 部位タグによる絞り込み (シミュレーター選択モード時のみ)
             if (isSelectingForSimulator && currentSelectingSlot) {
                 const requiredSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
                 if (requiredSlotTagId && (!item.tags || !item.tags.includes(requiredSlotTagId))) {
@@ -349,30 +352,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 2. 検索語による絞り込み
+            // 2. 検索語による絞り込み (常に適用)
             if (searchTerm) {
                 const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
                 const sourceMatch = item.入手手段 && item.入手手段.toLowerCase().includes(searchTerm);
+                const priceMatch = typeof item.price === 'number' && String(item.price).includes(searchTerm);
                 const effectMatch = item.structured_effects && item.structured_effects.some(eff => {
                     const typeInfo = effectTypesCache.find(et => et.id === eff.type);
                     const typeName = typeInfo ? typeInfo.name.toLowerCase() : '';
                     const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit.toLowerCase() : '';
                     const valueText = String(eff.value).toLowerCase();
-                    return `${typeName}${valueText}${unitText}`.includes(searchTerm) || // 効果名+値+単位
-                           typeName.includes(searchTerm) || // 効果名のみ
-                           `${valueText}${unitText}`.includes(searchTerm); // 値+単位
+                    return `${typeName}${valueText}${unitText}`.includes(searchTerm) ||
+                           typeName.includes(searchTerm) ||
+                           `${valueText}${unitText}`.includes(searchTerm);
                 });
-                if (!nameMatch && !sourceMatch && !effectMatch) return false;
+                if (!nameMatch && !sourceMatch && !effectMatch && !priceMatch) return false;
             }
 
-            // 3. 親カテゴリによる絞り込み (通常検索モード時)
+            // 3. 親カテゴリによる絞り込み (通常検索モード時のみ)
             if (!isSelectingForSimulator && selectedParentCategoryIds.length > 0) {
                 const itemChildCategoryIds = (item.tags || []).reduce((acc, tagId) => {
                     const tag = allTags.find(t => t.id === tagId);
                     if (tag && tag.categoryIds) {
                         tag.categoryIds.forEach(catId => {
                             const category = allCategories.find(c => c.id === catId);
-                            if (category && category.parentId) { // Ensure it's a child category
+                            if (category && category.parentId) {
                                 acc.add(catId);
                             }
                         });
@@ -389,54 +393,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!matchesAnySelectedParent) return false;
             }
 
+            // 4. タグによる絞り込み (通常検索モード時は全部位タグも対象、シミュレーター選択モード時は選択中の部位タグ以外)
+            let tagsToFilterBy = selectedTagIds;
+            if (isSelectingForSimulator && currentSelectingSlot) {
+                 // シミュレーターモードでは、現在選択中のスロットタグは既に上でフィルターされているので、
+                 // ここではそれ以外の選択中タグで絞り込む（通常はないはずだが念のため）
+                const currentSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
+                tagsToFilterBy = selectedTagIds.filter(tagId => tagId !== currentSlotTagId);
+            }
 
-            // 4. タグによる絞り込み (通常検索モード時、部位タグを除く)
-            if (!isSelectingForSimulator && selectedTagIds.length > 0) {
-                const nonSlotSelectedTagIds = selectedTagIds.filter(tagId => !validSlotTagIds.includes(tagId));
-                if (nonSlotSelectedTagIds.length > 0) {
-                    // Determine search mode (AND/OR) based on the categories of selected tags
-                    let effectiveSearchMode = 'AND'; // Default
-                    const categoriesOfSelectedTags = new Map(); // childCategoryId -> { mode: 'AND'/'OR', tags: [tagId1, tagId2] }
+            if (tagsToFilterBy.length > 0) {
+                let effectiveSearchMode = 'AND';
+                const categoriesOfSelectedTags = new Map();
 
-                    nonSlotSelectedTagIds.forEach(tagId => {
-                        const tag = allTags.find(t => t.id === tagId);
-                        if (tag && tag.categoryIds) {
-                            tag.categoryIds.forEach(catId => {
-                                const category = allCategories.find(c => c.id === catId);
-                                if (category && category.parentId) { // Is a child category
-                                    if (!categoriesOfSelectedTags.has(catId)) {
-                                        categoriesOfSelectedTags.set(catId, {
-                                            mode: category.tagSearchMode || 'AND',
-                                            tags: []
-                                        });
-                                    }
-                                    categoriesOfSelectedTags.get(catId).tags.push(tagId);
+                tagsToFilterBy.forEach(tagId => {
+                    const tag = allTags.find(t => t.id === tagId);
+                    if (tag && tag.categoryIds) {
+                        tag.categoryIds.forEach(catId => {
+                            const category = allCategories.find(c => c.id === catId);
+                            if (category && category.parentId) {
+                                if (!categoriesOfSelectedTags.has(catId)) {
+                                    categoriesOfSelectedTags.set(catId, {
+                                        mode: category.tagSearchMode || 'AND',
+                                        tags: []
+                                    });
                                 }
-                            });
-                        }
-                    });
-
-                    // If all selected tags belong to a single child category with OR mode
-                    if (categoriesOfSelectedTags.size === 1) {
-                        const [catData] = categoriesOfSelectedTags.values();
-                        if (catData.mode === 'OR' && catData.tags.length === nonSlotSelectedTagIds.length) {
-                            effectiveSearchMode = 'OR';
-                        }
-                    } else if (categoriesOfSelectedTags.size > 1) {
-                        // If tags span multiple child categories, generally treat as AND across those categories' requirements,
-                        // or if any child category involved has AND, then overall tends to AND.
-                        // This simplified logic will use AND if tags are from different groups or complex relations.
+                                categoriesOfSelectedTags.get(catId).tags.push(tagId);
+                            }
+                        });
                     }
+                });
 
+                if (categoriesOfSelectedTags.size === 1) {
+                    const [catData] = categoriesOfSelectedTags.values();
+                    if (catData.mode === 'OR' && catData.tags.length === tagsToFilterBy.length) {
+                        effectiveSearchMode = 'OR';
+                    }
+                }
 
-                    if (effectiveSearchMode === 'OR') {
-                        if (!nonSlotSelectedTagIds.some(tagId => item.tags && item.tags.includes(tagId))) {
-                            return false;
-                        }
-                    } else { // AND
-                        if (!nonSlotSelectedTagIds.every(tagId => item.tags && item.tags.includes(tagId))) {
-                            return false;
-                        }
+                if (effectiveSearchMode === 'OR') {
+                    if (!tagsToFilterBy.some(tagId => item.tags && item.tags.includes(tagId))) {
+                        return false;
+                    }
+                } else { // AND
+                    if (!tagsToFilterBy.every(tagId => item.tags && item.tags.includes(tagId))) {
+                        return false;
                     }
                 }
             }
@@ -461,11 +462,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initializeSimulatorSlots() {
         equipmentSlotsContainer.querySelectorAll('.select-item-button').forEach(button => {
-            button.removeEventListener('click', startItemSelectionForSlot); // Clean up old
+            button.removeEventListener('click', startItemSelectionForSlot);
             button.addEventListener('click', startItemSelectionForSlot);
         });
         equipmentSlotsContainer.querySelectorAll('.clear-item-button').forEach(button => {
-            button.removeEventListener('click', clearEquipmentSlot); // Clean up old
+            button.removeEventListener('click', clearEquipmentSlot);
             button.addEventListener('click', clearEquipmentSlot);
         });
     }
@@ -476,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
         if (slotTagId === undefined || slotTagId === null) {
-            alert(`部位「${currentSelectingSlot}」に対応するタグIDが設定されていません。管理画面でタグを確認・設定してください。`);
+            alert(`部位「${currentSelectingSlot}」に対応するタグIDが設定されていません。管理画面で「${currentSelectingSlot}」という名前のタグが正しく登録されているか確認してください。`);
             return;
         }
 
@@ -485,37 +486,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (simulatorModal) simulatorModal.style.display = 'none';
 
-        // Reset filters for slot selection mode
         selectedParentCategoryIds = [];
-        selectedTagIds = [slotTagId]; // Only the slot tag is active for filtering
+        selectedTagIds = [slotTagId];
         if (searchInput) searchInput.value = '';
 
-        renderParentCategoryFilters(); // Will disable parent category buttons
-        renderChildCategoriesAndTags(); // Will hide child/tag filters
-        filterAndRenderItems(); // Filter by slot tag and search term
+        renderParentCategoryFilters();
+        renderChildCategoriesAndTags();
+        filterAndRenderItems();
 
         if (searchToolMessage) {
             searchToolMessage.textContent = `「${currentSelectingSlot}」のアイテムを選択し、「決定」ボタンを押してください。`;
             searchToolMessage.style.display = 'block';
         }
         if (confirmSelectionButton) confirmSelectionButton.style.display = 'block';
-        if (searchToolMessage.offsetParent !== null) { // Check if visible
+        if (searchToolMessage.offsetParent !== null) {
             window.scrollTo({ top: searchToolMessage.offsetTop - 20, behavior: 'smooth' });
         } else {
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // Fallback scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
 
     if (confirmSelectionButton) {
         confirmSelectionButton.addEventListener('click', () => {
             if (!currentSelectingSlot) {
-                cancelItemSelection(); // Should not happen if UI logic is correct
+                cancelItemSelection();
                 return;
             }
             selectedEquipment[currentSelectingSlot] = temporarilySelectedItem;
             const previouslySelectedSlot = currentSelectingSlot;
 
-            // Reset selection state
             isSelectingForSimulator = false;
             currentSelectingSlot = null;
             temporarilySelectedItem = null;
@@ -523,14 +522,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (searchToolMessage) searchToolMessage.style.display = 'none';
             if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
 
-            // Reset main search filters to their previous state or clear them
             selectedParentCategoryIds = [];
             selectedTagIds = [];
             if (searchInput) searchInput.value = '';
 
             renderParentCategoryFilters();
             renderChildCategoriesAndTags();
-            filterAndRenderItems(); // Render with cleared/restored filters
+            filterAndRenderItems();
 
             if (simulatorModal) simulatorModal.style.display = 'flex';
             updateSimulatorSlotDisplay(previouslySelectedSlot);
@@ -547,8 +545,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateSimulatorSlotDisplay(slotName) {
-        const slotElement = document.getElementById(`slot-${slotName}`);
-        if (!slotElement) return;
+        const slotElement = document.getElementById(`slot-${slotName.replace(/\s/g, '')}`); // IDにスペースが含まれないように
+        if (!slotElement) {
+            console.error(`Slot element for "${slotName}" not found.`);
+            return;
+        }
+
 
         const imgElement = slotElement.querySelector('.slot-image');
         const nameElement = slotElement.querySelector('.slot-item-name');
@@ -564,14 +566,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 nameElement.textContent = item.name || '(名称未設定)';
                 clearButton.style.display = 'inline-block';
                 selectButton.textContent = '変更';
-            } else { // Item ID exists but item not found (data inconsistency?)
+            } else {
                 imgElement.src = './images/placeholder_slot.png';
                 imgElement.alt = slotName;
                 nameElement.textContent = 'エラー(データ不整合)';
                 clearButton.style.display = 'none';
                 selectButton.textContent = '選択';
             }
-        } else { // No item selected for this slot
+        } else {
             imgElement.src = './images/placeholder_slot.png';
             imgElement.alt = slotName;
             nameElement.textContent = '未選択';
@@ -581,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function calculateAndDisplayTotalEffects() {
-        const totalEffectsMap = new Map(); // key: effectTypeId_unit, value: { typeId, typeName, value, unit, calculationMethod, valuesForMax[] }
+        const totalEffectsMap = new Map();
 
         Object.values(selectedEquipment).forEach(itemId => {
             if (!itemId) return;
@@ -595,34 +597,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 const effectTypeInfo = effectTypesCache.find(et => et.id === effectTypeId);
                 if (!effectTypeInfo) {
                     console.warn(`Unknown effect type ID: ${effectTypeId} for item ID: ${itemId}`);
-                    return; // Skip if effect type definition is missing
+                    return;
                 }
 
-                const calculationMethod = effectTypeInfo.calculationMethod || 'sum'; // Default to sum
-                const currentUnit = unit || 'none'; // Default unit if not specified
+                const calculationMethod = effectTypeInfo.calculationMethod || 'sum';
+                const currentUnit = unit || 'none';
                 const effectKey = `${effectTypeId}_${currentUnit}`;
 
                 if (!totalEffectsMap.has(effectKey)) {
                     totalEffectsMap.set(effectKey, {
                         typeId: effectTypeId,
                         typeName: effectTypeInfo.name,
-                        value: 0, // For 'sum', this accumulates. For 'max', this will be set at the end.
+                        value: 0,
                         unit: currentUnit,
                         calculationMethod: calculationMethod,
-                        valuesForMax: [] // Only used if calculationMethod is 'max'
+                        valuesForMax: []
                     });
                 }
 
                 const currentEffectData = totalEffectsMap.get(effectKey);
                 if (calculationMethod === 'max') {
                     currentEffectData.valuesForMax.push(value);
-                } else { // 'sum'
+                } else {
                     currentEffectData.value += value;
                 }
             });
         });
 
-        // Finalize values for 'max' calculation method
         totalEffectsMap.forEach(effectData => {
             if (effectData.calculationMethod === 'max' && effectData.valuesForMax.length > 0) {
                 effectData.value = Math.max(...effectData.valuesForMax);
@@ -635,7 +636,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let html = '<ul>';
             totalEffectsMap.forEach(effData => {
                 const unitText = (effData.unit && effData.unit !== 'none') ? effData.unit : '';
-                // Round to avoid floating point inaccuracies for display
                 const displayValue = Math.round(effData.value * 1000) / 1000;
                 html += `<li>${effData.typeName}: ${displayValue}${unitText}</li>`;
             });
@@ -680,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
             exportEffects.innerHTML = totalEffectsDisplay.innerHTML;
 
             try {
-                await new Promise(resolve => setTimeout(resolve, 150)); // Ensure rendering
+                await new Promise(resolve => setTimeout(resolve, 150));
                 const canvas = await html2canvas(imageExportArea, { useCORS: true, backgroundColor: '#ffffff' });
                 const link = document.createElement('a');
                 link.download = '装備構成.png';
@@ -695,9 +695,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (openSimulatorButton) {
         openSimulatorButton.addEventListener('click', () => {
-            if (isSelectingForSimulator) return; // Avoid opening while in selection mode
+            if (isSelectingForSimulator) return;
             if (simulatorModal) simulatorModal.style.display = 'flex';
-            initializeSimulatorDisplay(); // Refresh display
+            initializeSimulatorDisplay();
         });
     }
 
@@ -728,14 +728,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchToolMessage) searchToolMessage.style.display = 'none';
         if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
 
-        // Restore general search filters or clear them
-        selectedParentCategoryIds = []; // Cleared for simplicity
+        selectedParentCategoryIds = [];
         selectedTagIds = [];
         if (searchInput) searchInput.value = '';
 
         renderParentCategoryFilters();
         renderChildCategoriesAndTags();
-        filterAndRenderItems(); // Re-render with general (cleared) filters
+        filterAndRenderItems();
     }
 
     loadData();
