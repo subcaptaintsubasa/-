@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- ★タイトル変更 -->
-    <title>ゲームアイテム検索 ＆ 装備シミュレーター</title> 
+    <title>ゲームアイテム検索 ＆ 装備シミュレーター</title>
     <link rel="stylesheet" href="style.css">
     <!-- html2canvas ライブラリの読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -35,7 +35,7 @@
             </div>
              <div id="searchToolMessage" class="search-tool-message" style="display: none;"></div>
             <div id="itemCount"></div>
-            <div id="itemList" class="item-list"></div> 
+            <div id="itemList" class="item-list"></div>
         </section>
 
          <button id="confirmSelectionButton" class="confirm-selection-button" style="display: none;">このアイテムに決定</button>
@@ -115,7 +115,7 @@
                  <button id="saveImageButton">構成を画像として保存</button>
                  <button id="resetSimulatorButton">構成をリセット</button>
              </div>
-             
+
               <div id="imageExportArea" class="image-export-container">
                  <h2>装備構成</h2>
                  <div id="exportSlots" class="export-slots-grid"></div>
@@ -125,6 +125,8 @@
          </div>
      </div>
 
+     <!-- itemSelectionModal は script.js でコメントアウトされているため、HTMLも削除またはコメントアウトしてOK -->
+     <!--
      <div id="itemSelectionModal" class="modal item-select-modal" style="display: none;">
          <div class="modal-content item-select-modal-content">
              <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
@@ -133,6 +135,7 @@
              <div id="itemSelectModalList" class="item-select-list"></div>
          </div>
      </div>
+     -->
 
     <script type="module" src="script.js"></script>
 </body>
