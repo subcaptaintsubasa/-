@@ -1,4 +1,4 @@
-// admin.script.js (SortableJS, 階層表示, 単位管理機能対応, 表示・追加不具合修正)
+// admin.script.js (SortableJS, 階層表示, 単位管理機能対応, 表示・追加不具合修正, 関数補完)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -86,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Item Management
     const itemForm = document.getElementById('itemForm');
     const itemIdToEditInput = document.getElementById('itemIdToEdit');
-    // ... (other item management DOM elements) ...
     const itemNameInput = document.getElementById('itemName');
     const itemImageFileInput = document.getElementById('itemImageFile');
     const itemImagePreview = document.getElementById('itemImagePreview');
@@ -120,7 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordPrompt.style.display = 'none';
             adminContent.style.display = 'block';
             if (currentUserEmailSpan) currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
-            loadInitialData();
+            loadInitialData().catch(err => { // loadInitialData can now throw, catch it here
+                 console.error("Failed to load initial data from onAuthStateChanged:", err);
+                 alert("データの初期化中に重大なエラーが発生しました。ページを再読み込みするか、コンソールを確認してください。");
+            });
         } else {
             passwordPrompt.style.display = 'flex';
             adminContent.style.display = 'none';
@@ -170,7 +172,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
         if (effectTypeSelect) effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
         if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
-        // newEffectTypeUnitSelect and editingEffectTypeUnitSelect are cleared in their populate function
+        if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = ''; // Will be populated
+        if (editingEffectTypeUnitSelect) editingEffectTypeUnitSelect.innerHTML = ''; // Will be populated
+
 
         if (effectUnitListContainer) effectUnitListContainer.innerHTML = '';
         if (newEffectUnitNameInput) newEffectUnitNameInput.value = '';
@@ -184,34 +188,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadInitialData() {
         console.log("[Initial Load] Starting...");
+        // Ensure all load functions are awaited and errors are caught
         try {
             await loadEffectUnitsFromFirestore();
             await loadEffectTypesFromFirestore();
             await loadCategoriesFromFirestore();
             await loadTagsFromFirestore();
-            await loadItemsFromFirestore();
+            await loadItemsFromFirestore(); // This was missing previously, now added.
 
             populateAllUIElements();
-            initializeAllSortableLists();
+            initializeAllSortableLists(); // Initialize after all lists are rendered
             console.log("[Initial Load] Completed.");
         } catch (error) {
-            console.error("Error during initial data load or UI population:", error);
-            alert("データの初期読み込みまたはUIの準備中にエラーが発生しました。コンソールを確認してください。");
+             console.error("Error during initial data load or UI population:", error); // Log specific error
+             // Re-throw or handle more gracefully if needed
+             throw error; // Propagate error to be caught by caller if any
         }
     }
 
     function populateAllUIElements() {
+        console.log("[Populate UI] Starting...");
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
-        populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
-        populateTagCheckboxesForItemForm();
-        populateEffectTypeSelect(); // For item form
-        populateEffectUnitSelect(newEffectTypeUnitSelect); // For new effect type form
+        populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); // For new tag form
+        populateTagCheckboxesForItemForm(); // For item form
+        populateEffectTypeSelect(); // For item form's effect type dropdown
+        populateEffectUnitSelect(newEffectTypeUnitSelect); // For new effect type form's unit dropdown
 
         renderCategoriesForManagement();
         renderTagsForManagement();
         renderEffectTypesForManagement();
         renderEffectUnitsForManagement();
         renderItemsAdminTable();
+        console.log("[Populate UI] Completed.");
     }
 
 
@@ -221,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // console.warn(`Sortable cannot be initialized for ${collectionName}. Element or SortableJS missing.`);
             return;
         }
-        // Destroy existing instance if any, to prevent duplicates if re-initializing
         if (listElement.sortableInstance) {
             listElement.sortableInstance.destroy();
         }
@@ -230,13 +237,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
-            handle: '.list-item', // Ensure dragging is on the item itself
+            handle: '.list-item',
             ...additionalSortableOptions,
             onEnd: async function (evt) {
-                // Ensure evt.oldIndex and evt.newIndex are numbers
                 if (typeof evt.oldIndex !== 'number' || typeof evt.newIndex !== 'number') {
                     console.error("Sortable event oldIndex/newIndex is not a number.");
-                    if (onUpdateCallback) await onUpdateCallback(true); // Force reload on error
+                    if (onUpdateCallback) await onUpdateCallback(true);
                     return;
                 }
 
@@ -250,13 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const docRef = doc(db, collectionName, docId);
                         batch.update(docRef, { order: index });
                     } else {
-                        console.warn("Sortable item missing data-doc-id:", itemElement);
                         reorderSuccess = false;
                     }
                 });
 
                 if (!reorderSuccess) {
-                    alert(`${collectionName}の並び替え中にエラーが発生しました。要素のIDが正しく設定されていません。`);
+                    alert(`${collectionName}の並び替え中にエラーが発生しました。リスト要素にIDがありません。`);
                     if (onUpdateCallback) await onUpdateCallback(true);
                     return;
                 }
@@ -264,8 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     await batch.commit();
                     console.log(`${collectionName} order updated successfully.`);
-                    // After successful reorder, reload data and re-render to reflect new order from Firestore
-                    if (onUpdateCallback) await onUpdateCallback();
+                    if (onUpdateCallback) await onUpdateCallback(); // Callback reloads and re-renders
                 } catch (error) {
                     console.error(`Error updating ${collectionName} order:`, error);
                     alert(`${collectionName}の順序更新に失敗しました。`);
@@ -279,9 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Initializing all sortable lists...");
         if (categoryListContainer) {
             initializeSortableList(categoryListContainer, 'categories', async (errorOccurred = false) => {
-                await loadCategoriesFromFirestore(); // Always reload from Firestore after sort
+                await loadCategoriesFromFirestore();
                 renderCategoriesForManagement();
-                // Update dependent UI elements
                 populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
                 if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
                     const cat = allCategoriesCache.find(c => c.id === editingCategoryDocIdInput.value);
@@ -293,15 +296,15 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeSortableList(tagListContainer, 'tags', async (errorOccurred = false) => {
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
-                populateTagCheckboxesForItemForm((itemIdToEditInput.value && itemsCache.find(i => i.docId === itemIdToEditInput.value)?.tags) || []);
+                const currentItem = itemIdToEditInput.value ? itemsCache.find(i => i.docId === itemIdToEditInput.value) : null;
+                populateTagCheckboxesForItemForm(currentItem?.tags || []);
             });
         }
         if (effectUnitListContainer) {
             initializeSortableList(effectUnitListContainer, 'effect_units', async (errorOccurred = false) => {
                 await loadEffectUnitsFromFirestore();
                 renderEffectUnitsForManagement();
-                // Update dependent selects
-                populateEffectUnitSelect(newEffectTypeUnitSelect);
+                populateEffectUnitSelect(newEffectTypeUnitSelect); // Update new effect type form's unit select
                 if (editEffectTypeModal.style.display === 'flex' && editingEffectTypeDocIdInput.value) {
                     const et = effectTypesCache.find(e => e.id === editingEffectTypeDocIdInput.value);
                     if (et) populateEffectUnitSelect(editingEffectTypeUnitSelect, et.defaultUnit);
@@ -317,11 +320,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const q = query(collection(db, 'effect_units'), orderBy('order', 'asc'));
             const snapshot = await getDocs(q);
-            effectUnitsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            effectUnitsCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
             console.log("[Effect Units] Loaded:", effectUnitsCache.length);
         } catch (error) {
             console.error("[Effect Units] Error loading:", error);
-            effectUnitsCache = [];
+            effectUnitsCache = []; // Ensure it's an empty array on error
         }
     }
 
@@ -342,9 +345,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedValue && effectUnitsCache.some(u => u.value === selectedValue)) {
             selectElement.value = selectedValue;
         } else if (currentValInSelect && effectUnitsCache.some(u => u.value === currentValInSelect)) {
-            selectElement.value = currentValInSelect; // Preserve user's unsaved change if possible
+            selectElement.value = currentValInSelect;
         } else if (effectUnitsCache.length > 0) {
-            selectElement.value = effectUnitsCache[0].value; // Default to first
+            selectElement.value = effectUnitsCache[0].value;
         }
     }
 
@@ -355,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
             effectUnitListContainer.innerHTML = '<p>登録されている単位はありません。</p>';
             return;
         }
-        // Firestore already sorts by order, if not, sort here
+        // Firestore already sorts by order due to query, but explicit sort ensures client-side consistency if needed
         const sortedUnits = [...effectUnitsCache].sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 
         sortedUnits.forEach(unit => {
@@ -370,8 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             effectUnitListContainer.appendChild(div);
-            // Event listeners for edit/delete
-            // div.querySelector('.edit-effect-unit').addEventListener('click', () => openEditEffectUnitModal(unit));
+            // div.querySelector('.edit-effect-unit').addEventListener('click', () => openEditEffectUnitModal(unit)); // Placeholder
             div.querySelector('.delete-effect-unit').addEventListener('click', (e) => deleteEffectUnit(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
         });
     }
@@ -389,9 +391,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 await addDoc(collection(db, 'effect_units'), { name, value, order: newOrder, createdAt: serverTimestamp() });
                 newEffectUnitNameInput.value = '';
                 newEffectUnitValueInput.value = '';
-                await loadEffectUnitsFromFirestore(); // Reload
-                renderEffectUnitsForManagement();     // Re-render list
-                populateEffectUnitSelect(newEffectTypeUnitSelect); // Update dependent selects
+                await loadEffectUnitsFromFirestore();
+                renderEffectUnitsForManagement();
+                populateEffectUnitSelect(newEffectTypeUnitSelect);
                 if (editEffectTypeModal.style.display === 'flex') {
                      const et = effectTypesCache.find(e => e.id === editingEffectTypeDocIdInput.value);
                      if(et) populateEffectUnitSelect(editingEffectTypeUnitSelect, et.defaultUnit);
@@ -405,27 +407,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function deleteEffectUnit(id, name) {
         const unitToDelete = effectUnitsCache.find(u => u.id === id);
-        if (!unitToDelete) return;
+        if (!unitToDelete) { console.error("Unit to delete not found in cache:", id); return; }
 
         const usedByEffectTypes = effectTypesCache.filter(et => et.defaultUnit === unitToDelete.value);
         if (usedByEffectTypes.length > 0) {
-            alert(`単位「${name}」は効果種類 (${usedByEffectTypes.map(et=>et.name).join(', ')}) でデフォルト単位として使用されているため削除できません。\nまず該当効果種類のデフォルト単位を変更してください。`);
+            alert(`単位「${name}」は効果種類 (${usedByEffectTypes.map(et=>et.name).join(', ')}) でデフォルト単位として使用されているため削除できません。`);
             return;
         }
-        // Additionally, check if any *item* directly uses this unit value (though items should primarily use defaultUnit)
         const itemsUsingUnit = itemsCache.filter(item => item.structured_effects && item.structured_effects.some(eff => eff.unit === unitToDelete.value));
         if (itemsUsingUnit.length > 0) {
-             alert(`単位「${name}」は${itemsUsingUnit.length}個のアイテムの効果で直接使用されています。\nアイテムの効果設定を変更するか、この単位を別のものに置き換えることを検討してください。`);
-             // Potentially offer a replacement feature here, or just block. For now, block.
+             alert(`単位「${name}」は${itemsUsingUnit.length}個のアイテムの効果で直接使用されています。`);
              return;
         }
-
 
         if (confirm(`単位「${name}」 (値: ${unitToDelete.value}) を削除しますか？`)) {
             try {
                 const batch = writeBatch(db);
                 batch.delete(doc(db, 'effect_units', id));
-                // Re-order remaining units
                 effectUnitsCache.filter(u => u.id !== id)
                     .sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity))
                     .forEach((unit, index) => {
@@ -434,14 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 await batch.commit();
-
-                await loadEffectUnitsFromFirestore();
-                renderEffectUnitsForManagement();
-                populateEffectUnitSelect(newEffectTypeUnitSelect);
-                 if (editEffectTypeModal.style.display === 'flex') {
-                     const et = effectTypesCache.find(e => e.id === editingEffectTypeDocIdInput.value);
-                     if(et) populateEffectUnitSelect(editingEffectTypeUnitSelect, et.defaultUnit);
-                }
+                await loadInitialData(); // Reload all for simplicity and consistency
             } catch (error) {
                 console.error("Error deleting effect unit:", error);
                 alert("単位の削除に失敗しました。");
@@ -450,25 +441,144 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- Effect Type Management (Adjusted for dynamic units) ---
+    // --- Effect Type Management ---
     async function loadEffectTypesFromFirestore() {
         console.log("[Effect Types] Loading...");
         try {
-            // Effect types don't have a user-defined order, sort by name
-            const q = query(collection(db, 'effect_types'), orderBy('name'));
+            const q = query(collection(db, 'effect_types'), orderBy('name')); // No user order for effect types
             const snapshot = await getDocs(q);
-            effectTypesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            effectTypesCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
             console.log("[Effect Types] Loaded:", effectTypesCache.length);
         } catch (error) {
             console.error("[Effect Types] Error loading:", error);
             effectTypesCache = [];
         }
     }
-    // renderEffectTypesForManagement, addEffectTypeButton, openEditEffectTypeModal, saveEffectTypeEditButton, deleteEffectType
-    // These need to use populateEffectUnitSelect for their respective unit dropdowns. (Already adjusted in snippets)
-    // Make sure defaultUnit is saved as the *value* of the unit, not its name.
 
-    // --- Category Management (Adjusted for order and hierarchical display) ---
+    function renderEffectTypesForManagement() {
+        if (!effectTypeListContainer) return;
+        effectTypeListContainer.innerHTML = '';
+        if(effectTypesCache.length === 0) {
+            effectTypeListContainer.innerHTML = "<p>登録されている効果種類はありません。</p>";
+            return;
+        }
+        effectTypesCache.forEach(effectType => {
+            const unitObj = effectUnitsCache.find(u => u.value === effectType.defaultUnit);
+            const unitText = unitObj ? `(${unitObj.name})` : (effectType.defaultUnit && effectType.defaultUnit !== 'none' ? `(${effectType.defaultUnit})` : '(単位なし)');
+            const calcText = effectType.calculationMethod === 'max' ? '(最大値)' : '(加算)';
+            const div = document.createElement('div');
+            div.classList.add('list-item'); // Not sortable by default
+            div.innerHTML = `
+                <span>${effectType.name} ${unitText} ${calcText}</span>
+                <div>
+                    <button class="edit-effect-type action-button" data-id="${effectType.id}" title="編集">✎</button>
+                    <button class="delete-effect-type action-button delete" data-id="${effectType.id}" data-name="${effectType.name}" title="削除">×</button>
+                </div>
+            `;
+            effectTypeListContainer.appendChild(div);
+            div.querySelector('.edit-effect-type').addEventListener('click', () => openEditEffectTypeModal(effectType));
+            div.querySelector('.delete-effect-type').addEventListener('click', (e) => deleteEffectType(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
+        });
+    }
+
+    if (addEffectTypeButton) {
+        addEffectTypeButton.addEventListener('click', async () => {
+            const name = newEffectTypeNameInput.value.trim();
+            const unitValue = newEffectTypeUnitSelect.value;
+            const calcMethodRadio = Array.from(newEffectTypeCalcMethodRadios).find(r => r.checked);
+            const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum';
+
+            if (!name) { alert("効果種類名を入力してください。"); return; }
+            if (!unitValue && effectUnitsCache.length > 0 && newEffectTypeUnitSelect.options.length > 0 && newEffectTypeUnitSelect.options[0].value !== "") { // Check if units are loaded and required
+                 alert("デフォルト単位を選択してください。"); return;
+            }
+            if (effectTypesCache.some(et => et.name.toLowerCase() === name.toLowerCase())) {
+                alert("同じ名前の効果種類が既に存在します。"); return;
+            }
+            try {
+                await addDoc(collection(db, 'effect_types'), {
+                    name: name,
+                    defaultUnit: unitValue || "none", // Store unit's value, or "none"
+                    calculationMethod: calcMethod,
+                    createdAt: serverTimestamp()
+                });
+                newEffectTypeNameInput.value = '';
+                populateEffectUnitSelect(newEffectTypeUnitSelect); // Reset unit select to default
+                if(newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
+
+                await loadEffectTypesFromFirestore();
+                renderEffectTypesForManagement();
+                populateEffectTypeSelect(); // For item form
+            } catch (error) {
+                console.error("[Effect Types] Error adding:", error);
+                alert("効果種類の追加に失敗しました。");
+            }
+        });
+    }
+
+    function openEditEffectTypeModal(effectTypeData) {
+        editingEffectTypeDocIdInput.value = effectTypeData.id;
+        editingEffectTypeNameInput.value = effectTypeData.name;
+        populateEffectUnitSelect(editingEffectTypeUnitSelect, effectTypeData.defaultUnit);
+
+        const calcMethod = effectTypeData.calculationMethod || 'sum';
+        const radioToCheck = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.value === calcMethod);
+        if (radioToCheck) radioToCheck.checked = true;
+        else if (editingEffectTypeCalcMethodRadios[0]) editingEffectTypeCalcMethodRadios[0].checked = true;
+
+        if (editEffectTypeModal) editEffectTypeModal.style.display = 'flex';
+    }
+
+     if (saveEffectTypeEditButton) {
+        saveEffectTypeEditButton.addEventListener('click', async () => {
+            const id = editingEffectTypeDocIdInput.value;
+            const newName = editingEffectTypeNameInput.value.trim();
+            const newUnitValue = editingEffectTypeUnitSelect.value;
+            const editCalcMethodRadio = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.checked);
+            const newCalcMethod = editCalcMethodRadio ? editCalcMethodRadio.value : 'sum';
+
+            if (!newName) { alert("効果種類名は空にできません。"); return; }
+            if (!newUnitValue && effectUnitsCache.length > 0 && editingEffectTypeUnitSelect.options.length > 0 && editingEffectTypeUnitSelect.options[0].value !== "") {
+                alert("デフォルト単位を選択してください。"); return;
+            }
+            if (effectTypesCache.some(et => et.id !== id && et.name.toLowerCase() === newName.toLowerCase())) {
+                 alert("編集後の名前が他の効果種類と重複します。"); return;
+            }
+            try {
+                await updateDoc(doc(db, 'effect_types', id), {
+                    name: newName,
+                    defaultUnit: newUnitValue || "none",
+                    calculationMethod: newCalcMethod
+                 });
+                if (editEffectTypeModal) editEffectTypeModal.style.display = 'none';
+                await loadInitialData(); // Reload relevant data
+            } catch (error) {
+                 console.error("[Effect Types] Error updating:", error);
+                 alert("効果種類の更新に失敗しました。");
+            }
+        });
+    }
+
+    async function deleteEffectType(id, name) {
+        const itemsUsingThisType = itemsCache.filter(item =>
+            item.structured_effects && item.structured_effects.some(eff => eff.type === id)
+        );
+        if (itemsUsingThisType.length > 0) {
+            alert(`効果種類「${name}」は${itemsUsingThisType.length}個のアイテムで使用されているため、直接削除できません。`);
+            return;
+        }
+         if (confirm(`効果種類「${name}」を削除しますか？`)) {
+             try {
+                 await deleteDoc(doc(db, 'effect_types', id));
+                 await loadInitialData(); // Reload
+             } catch (error) {
+                  console.error("[Effect Types] Error deleting:", error);
+                  alert("効果種類の削除に失敗しました。");
+             }
+         }
+    }
+
+    // --- Category Management ---
     async function loadCategoriesFromFirestore() {
         console.log("[Categories] Loading...");
         try {
@@ -477,102 +587,15 @@ document.addEventListener('DOMContentLoaded', () => {
             allCategoriesCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
             console.log("[Categories] Loaded:", allCategoriesCache.length);
         } catch (error) {
-            console.error("[Categories] Error loading categories:", error);
+            console.error("[Categories] Error loading:", error);
             allCategoriesCache = [];
         }
     }
-    // renderCategoriesForManagement, addCategoryButton, openEditCategoryModal, saveCategoryEditButton, deleteCategory
-    // These were adjusted for order and hierarchy. Ensure deleteCategory and saveCategoryEditButton correctly handle 'order' updates for siblings.
-
-    function renderCategoriesForManagement() {
-        if (!categoryListContainer) return;
-        categoryListContainer.innerHTML = '';
-        if (allCategoriesCache.length === 0) {
-            categoryListContainer.innerHTML = '<p>登録されているカテゴリはありません。</p>';
-            return;
-        }
-
-        const sortedCategories = [...allCategoriesCache].sort((a, b) => {
-            const orderA = typeof a.order === 'number' ? a.order : Infinity;
-            const orderB = typeof b.order === 'number' ? b.order : Infinity;
-            if (orderA !== orderB) return orderA - orderB;
-            return (a.name || "").localeCompare(b.name || "");
-        });
-
-        const parentCategories = sortedCategories.filter(category => !category.parentId || category.parentId === "");
-
-        parentCategories.forEach(parentCategory => {
-            appendCategoryToList(parentCategory, 0); // Level 0 for parents
-            const childCategories = sortedCategories.filter(category => category.parentId === parentCategory.id);
-            // Children are already sorted by their own 'order' due to overall sort
-            childCategories.forEach(childCategory => {
-                appendCategoryToList(childCategory, 1); // Level 1 for children
-            });
-        });
-
-        function appendCategoryToList(category, indentLevel) {
-            const div = document.createElement('div');
-            div.classList.add('list-item');
-            div.style.marginLeft = `${indentLevel * 25}px`;
-            div.dataset.docId = category.id;
-
-            let displayInfo = category.parentId ? `(子)` : "(親)";
-            let searchModeInfo = category.parentId && category.tagSearchMode ? ` (${category.tagSearchMode.toUpperCase()}検索)` : '';
-
-            // Using spans for better flex control in CSS if needed
-            div.innerHTML = `
-                <span class="category-name-display">${category.name}</span>
-                <span class="category-info-display">${displayInfo}${searchModeInfo}</span>
-                <div class="category-actions">
-                    <button class="edit-category action-button" data-category-id="${category.id}" title="編集">✎</button>
-                    <button class="delete-category action-button delete" data-category-id="${category.id}" data-category-name="${category.name}" title="削除">×</button>
-                </div>
-            `;
-            categoryListContainer.appendChild(div);
-            div.querySelector('.edit-category').addEventListener('click', () => openEditCategoryModal(category));
-            div.querySelector('.delete-category').addEventListener('click', (e) => deleteCategory(e.currentTarget.dataset.categoryId, e.currentTarget.dataset.categoryName));
-        }
-    }
-
-
-    // --- Tag Management (Adjusted for order) ---
-    async function loadTagsFromFirestore() {
-        console.log("[Tags] Loading...");
-        try {
-            const q = query(collection(db, 'tags'), orderBy('order', 'asc'));
-            const snapshot = await getDocs(q);
-            allTagsCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-            console.log("[Tags] Loaded:", allTagsCache.length);
-        } catch (error) {
-            console.error("[Tags] Error loading tags:", error);
-            allTagsCache = [];
-        }
-    }
-    // renderTagsForManagement, addTagButton, openEditTagModal, saveTagEditButton, deleteTag
-    // These were adjusted for order. Ensure deleteTag and saveTagEditButton correctly handle 'order' updates for siblings if needed (though tags are flat list).
-
-    // --- Item Management (No major changes to data loading, but uses updated caches) ---
-    // loadItemsFromFirestore, itemForm submit, clearItemForm, renderItemsAdminTable, loadItemForEdit, deleteItem
-    // These should generally work if their dependent caches (allTagsCache, effectTypesCache, effectUnitsCache) are correct.
-    // Ensure renderItemsAdminTable displays effect units by looking up unit.name from unit.value.
-
-    // Re-check all create/update functions to ensure 'order' is handled consistently.
-    // For example, when a category's parentId changes, its 'order' within the new parent group
-    // and the 'order' of its old siblings need recalculation.
-    // This can get complex. A simpler approach for now is to make 'order' manual via D&D.
-    // The provided SortableJS onEnd updates order based on visual position.
-
-    // ----- The rest of the functions (populateParentCategoryButtons, selectParentCategoryButton, etc.) -----
-    // ----- from the previous full script should be here, adjusted as necessary. -----
-    // ----- For brevity, I'm not re-pasting everything if it was mostly correct before, -----
-    // ----- but focusing on the areas of concern (order, list display, new additions). -----
-
-    // Make sure all `addDoc` calls include the `order` field with a calculated value.
-    // Example for addCategoryButton (ensure this is the active version):
+    // renderCategoriesForManagement is above, in SortableJS section for now
     if (addCategoryButton) {
         addCategoryButton.addEventListener('click', async () => {
             const name = newCategoryNameInput.value.trim();
-            const parentId = selectedNewParentCategoryIdInput.value || ""; // Ensure empty string for top-level
+            const parentId = selectedNewParentCategoryIdInput.value || "";
             if (!name) { alert("カテゴリ名を入力してください。"); return; }
 
             const q = query(collection(db, 'categories'), where('name', '==', name), where('parentId', '==', parentId));
@@ -589,90 +612,452 @@ document.addEventListener('DOMContentLoaded', () => {
                     order: newOrder,
                     createdAt: serverTimestamp(),
                 };
-                if (parentId) { // Only child categories have tagSearchMode
+                if (parentId) {
                     categoryData.tagSearchMode = 'AND';
+                } else {
+                    categoryData.tagSearchMode = deleteField(); // Ensure no search mode for parent
                 }
 
                 await addDoc(collection(db, 'categories'), categoryData);
                 newCategoryNameInput.value = '';
-                // Reset parent selector to "Top Level" visual state
                 const topLevelButton = newCategoryParentButtons.querySelector('div[data-parent-id=""]');
                 if(topLevelButton) selectParentCategoryButton(newCategoryParentButtons, selectedNewParentCategoryIdInput, topLevelButton, "");
 
-
-                await loadInitialData(); // Reload and re-render everything to ensure consistency
-
+                await loadInitialData(); // Full reload for consistency
             } catch (error) {
                 console.error("[Category Add] Error:", error);
                 alert("カテゴリの追加に失敗しました。");
             }
         });
     }
-    // Similar checks for addTagButton and addEffectUnitButton for `order` and full data reload.
 
-    // Ensure `populateParentCategoryButtons` sorts parent categories by their 'order'
-    function populateParentCategoryButtons(buttonContainer, hiddenInput, options = {}) {
-        const { currentCategoryIdToExclude = null, selectedParentId = "" } = options;
-        if (!buttonContainer || !hiddenInput) return;
-        buttonContainer.innerHTML = '';
+    function openEditCategoryModal(category) {
+        editingCategoryDocIdInput.value = category.id;
+        editingCategoryNameInput.value = category.name;
+        const currentParentId = category.parentId || "";
+        populateParentCategoryButtons(editingCategoryParentButtons, selectedEditingParentCategoryIdInput, { currentCategoryIdToExclude: category.id, selectedParentId: currentParentId });
 
-        const createButton = (text, parentIdVal) => {
-            const btn = document.createElement('div');
-            btn.classList.add('category-select-button');
-            btn.textContent = text;
-            btn.dataset.parentId = parentIdVal;
-            if (selectedParentId === parentIdVal) {
-                btn.classList.add('active');
+        const isChildCategory = !!currentParentId;
+        editCategoryTagsGroup.style.display = isChildCategory ? 'block' : 'none';
+        tagSearchModeGroup.style.display = isChildCategory ? 'block' : 'none';
+
+        if (isChildCategory) {
+            populateTagsForCategoryEdit(editingCategoryTagsSelector, category.id);
+            editingTagSearchModeSelect.value = category.tagSearchMode || 'AND';
+        } else {
+            editingCategoryTagsSelector.innerHTML = ''; // Clear tags if it becomes parent
+        }
+        editCategoryModal.style.display = 'flex';
+    }
+
+    if (saveCategoryEditButton) {
+        saveCategoryEditButton.addEventListener('click', async () => {
+            const docId = editingCategoryDocIdInput.value;
+            const originalCategory = allCategoriesCache.find(c => c.id === docId);
+            if (!originalCategory) { alert("元のカテゴリ情報が見つかりません。"); return; }
+
+            const newName = editingCategoryNameInput.value.trim();
+            const newParentId = selectedEditingParentCategoryIdInput.value || "";
+            const newTagSearchMode = editingTagSearchModeSelect.value;
+            const selectedTagIdsForThisCategory = Array.from(editingCategoryTagsSelector.querySelectorAll('.tag-filter.active')).map(btn => btn.dataset.tagId);
+
+            if (!newName) { alert("カテゴリ名は空にできません。"); return; }
+            if (docId === newParentId) { alert("自身を親カテゴリに設定することはできません。"); return; }
+
+            const q = query(collection(db, 'categories'), where('name', '==', newName), where('parentId', '==', newParentId));
+            const existingQuery = await getDocs(q);
+            if (existingQuery.docs.some(d => d.id !== docId)) {
+                alert("編集後の名前が、同じ階層の他の既存カテゴリと重複します。"); return;
             }
-            btn.addEventListener('click', () => {
-                 selectParentCategoryButton(buttonContainer, hiddenInput, btn, parentIdVal);
-            });
-            return btn;
-        };
 
-        buttonContainer.appendChild(createButton('最上位カテゴリとして追加', "")); // value is ""
+            if (newParentId) { // Circular dependency check
+                let currentAncestorId = newParentId;
+                const visited = new Set([docId]);
+                while (currentAncestorId) {
+                    if (visited.has(currentAncestorId)) {
+                        alert("循環参照です。この親カテゴリ設定はできません。"); return;
+                    }
+                    visited.add(currentAncestorId);
+                    const ancestor = allCategoriesCache.find(c => c.id === currentAncestorId);
+                    currentAncestorId = ancestor ? (ancestor.parentId || "") : "";
+                }
+            }
 
-        allCategoriesCache
-            .filter(cat => (!cat.parentId || cat.parentId === "") && cat.id !== currentCategoryIdToExclude)
-            .sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity) || (a.name||"").localeCompare(b.name||""))
-            .forEach(cat => {
-                buttonContainer.appendChild(createButton(cat.name, cat.id));
-            });
+            try {
+                const batch = writeBatch(db);
+                const categoryUpdateData = { name: newName, parentId: newParentId };
 
-        hiddenInput.value = selectedParentId;
-        // Trigger side effects of parent selection (for edit modal)
-        if (buttonContainer === editingCategoryParentButtons) {
-             const isParent = (selectedParentId === "");
-             if (tagSearchModeGroup) tagSearchModeGroup.style.display = isParent ? 'none' : 'block';
-             if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = isParent ? 'none' : 'block';
+                if (originalCategory.parentId !== newParentId) {
+                    categoryUpdateData.order = allCategoriesCache.filter(c => (c.parentId || "") === newParentId && c.id !== docId).length;
+                    // Re-order in old parent group
+                    const oldParentSiblings = allCategoriesCache
+                        .filter(c => (c.parentId || "") === (originalCategory.parentId || "") && c.id !== docId)
+                        .sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+                    oldParentSiblings.forEach((sibling, index) => {
+                        if (sibling.order !== index) {
+                             batch.update(doc(db, 'categories', sibling.id), { order: index });
+                        }
+                    });
+                } // If parent doesn't change, order is preserved (changed by D&D)
+
+                if (newParentId) { // Is a child category
+                    categoryUpdateData.tagSearchMode = newTagSearchMode;
+                    // Link/unlink tags
+                    const tagsCurrentlyAssociatedWithCat = allTagsCache.filter(tag => tag.categoryIds && tag.categoryIds.includes(docId)).map(t => t.id);
+                    const tagsToAddLink = selectedTagIdsForThisCategory.filter(id => !tagsCurrentlyAssociatedWithCat.includes(id));
+                    const tagsToRemoveLink = tagsCurrentlyAssociatedWithCat.filter(id => !selectedTagIdsForThisCategory.includes(id));
+                    tagsToAddLink.forEach(tagId => batch.update(doc(db, 'tags', tagId), { categoryIds: arrayUnion(docId) }));
+                    tagsToRemoveLink.forEach(tagId => batch.update(doc(db, 'tags', tagId), { categoryIds: arrayRemove(docId) }));
+                } else { // Is becoming a parent category
+                    categoryUpdateData.tagSearchMode = deleteField();
+                    allTagsCache.forEach(tag => {
+                        if (tag.categoryIds && tag.categoryIds.includes(docId)) {
+                            batch.update(doc(db, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
+                        }
+                    });
+                }
+
+                batch.update(doc(db, 'categories', docId), categoryUpdateData);
+                await batch.commit();
+                editCategoryModal.style.display = 'none';
+                await loadInitialData();
+            } catch (error) {
+                console.error("[Category Edit] Error:", error);
+                alert("カテゴリの更新に失敗しました。");
+            }
+        });
+    }
+
+    async function deleteCategory(docId, categoryName) {
+        const childCheckQuery = query(collection(db, 'categories'), where('parentId', '==', docId));
+        const childSnapshot = await getDocs(childCheckQuery);
+        if (!childSnapshot.empty) {
+            alert(`カテゴリ「${categoryName}」には子カテゴリが存在するため削除できません。`);
+            return;
+        }
+        const categoryToDelete = allCategoriesCache.find(c => c.id === docId);
+        if (categoryToDelete && categoryToDelete.parentId) { // Child category
+            const tagsUsingThisCategoryQuery = query(collection(db, 'tags'), where('categoryIds', 'array-contains', docId));
+            const tagsSnapshot = await getDocs(tagsUsingThisCategoryQuery);
+            if (!tagsSnapshot.empty) {
+                 alert(`カテゴリ「${categoryName}」は${tagsSnapshot.size}個のタグで使用されています。`);
+                 return;
+            }
+        }
+
+        if (confirm(`カテゴリ「${categoryName}」を削除しますか？`)) {
+            try {
+                const batch = writeBatch(db);
+                if (categoryToDelete && categoryToDelete.parentId) { // Remove from tags if it was a child
+                    const tagsToUpdateQuery = query(collection(db, 'tags'), where('categoryIds', 'array-contains', docId));
+                    const tagsSnapshot = await getDocs(tagsToUpdateQuery);
+                    tagsSnapshot.forEach(tagDoc => {
+                        batch.update(tagDoc.ref, { categoryIds: arrayRemove(docId) });
+                    });
+                }
+                batch.delete(doc(db, 'categories', docId));
+
+                const parentIdOfDeleted = categoryToDelete?.parentId || "";
+                allCategoriesCache.filter(c => (c.parentId || "") === parentIdOfDeleted && c.id !== docId)
+                    .sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity))
+                    .forEach((sibling, index) => {
+                         if (sibling.order !== index) {
+                            batch.update(doc(db, 'categories', sibling.id), { order: index });
+                         }
+                    });
+                await batch.commit();
+                await loadInitialData();
+            } catch (error) {
+                console.error("[Category Delete] Error:", error);
+                alert("カテゴリの削除に失敗しました。");
+            }
         }
     }
 
-    // Most other functions like openEditCategoryModal, saveCategoryEditButton, deleteCategory,
-    // openEditTagModal, saveTagEditButton, deleteTag,
-    // populateTagCheckboxesForItemForm, populateEffectTypeSelect, updateEffectUnitDisplay,
-    // renderCurrentItemEffectsList, addEffectToListButton,
-    // loadItemsFromFirestore, itemForm submit, clearItemForm, renderItemsAdminTable, loadItemForEdit, deleteItem,
-    // image upload functions, and modal common handlers are assumed to be largely the same as the previous full script,
-    // but ensure they correctly use the updated caches (especially effectUnitsCache) and handle 'order' implicitly
-    // through loadInitialData() or specific reloads after CRUD operations.
+    // --- Tag Management ---
+    async function loadTagsFromFirestore() {
+        console.log("[Tags] Loading...");
+        try {
+            const q = query(collection(db, 'tags'), orderBy('order', 'asc'));
+            const snapshot = await getDocs(q);
+            allTagsCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            console.log("[Tags] Loaded:", allTagsCache.length);
+        } catch (error) {
+            console.error("[Tags] Error loading tags:", error);
+            allTagsCache = [];
+        }
+    }
+    // renderTagsForManagement is above
+    if (addTagButton) {
+        addTagButton.addEventListener('click', async () => {
+            const name = newTagNameInput.value.trim();
+            const selectedCategoryIds = Array.from(newTagCategoriesCheckboxes.querySelectorAll('input[type="checkbox"][name="tagCategory"]:checked'))
+                                            .map(cb => cb.value);
+            if (!name) { alert("タグ名を入力してください。"); return; }
+            const q = query(collection(db, 'tags'), where('name', '==', name));
+            const existingQuery = await getDocs(q);
+            if (!existingQuery.empty) { alert("同じ名前のタグが既に存在します。"); return; }
 
-    // Crucial: Ensure all Firestore write operations (add, update, delete) that affect ordered lists
-    // are followed by a mechanism to reload the relevant cache and re-render the list,
-    // and potentially re-initialize SortableJS for that list if direct DOM manipulation was done.
-    // The simplest robust way is often `await loadInitialData();` after a write, though it's a full reload.
-    // Or more targeted: `await loadSpecificCache(); renderSpecificList(); initializeSpecificSortable();`
-    // The current `onEnd` for SortableJS calls the callback which reloads and re-renders.
+            try {
+                const newOrder = allTagsCache.length;
+                await addDoc(collection(db, 'tags'), {
+                    name: name,
+                    categoryIds: selectedCategoryIds,
+                    order: newOrder,
+                    createdAt: serverTimestamp()
+                });
+                newTagNameInput.value = '';
+                newTagCategoriesCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                await loadInitialData(); // Reload
+            } catch (error) {
+                console.error("[Tag Add] Error:", error);
+                alert("タグの追加に失敗しました。");
+            }
+        });
+    }
 
-    // Final check on all `addDoc` and `updateDoc` for `order` field inclusion and calculation.
-    // For example, `saveCategoryEditButton` needs to be very careful if `parentId` changes,
-    // as it affects `order` in both old and new parent groups. The SortableJS `onEnd`
-    // callback handles visual reordering within the same list/parent. Cross-parent D&D is not
-    // implemented here and would be much more complex.
-    // The existing `saveCategoryEditButton` has logic for `order` when parent changes, ensure it's robust.
+    function openEditTagModal(tag) { // Pass the whole tag object
+        editingTagDocIdInput.value = tag.id;
+        editingTagNameInput.value = tag.name;
+        populateCategoryCheckboxesForTagAssignment(editingTagCategoriesCheckboxes, tag.categoryIds || []);
+        editTagModal.style.display = 'flex';
+    }
 
-    // Re-pasting a few more critical functions with minor checks:
-    // (All other functions from previous full script should be included here if not explicitly changed)
+    if (saveTagEditButton) {
+        saveTagEditButton.addEventListener('click', async () => {
+            const docId = editingTagDocIdInput.value;
+            const newName = editingTagNameInput.value.trim();
+            const newSelectedCategoryIds = Array.from(editingTagCategoriesCheckboxes.querySelectorAll('input[type="checkbox"][name="tagCategory"]:checked'))
+                                                .map(cb => cb.value);
+            if (!newName) { alert("タグ名は空にできません。"); return; }
+            const q = query(collection(db, 'tags'), where('name', '==', newName));
+            const existingQuery = await getDocs(q);
+            if (existingQuery.docs.some(d => d.id !== docId)) {
+                alert("編集後の名前が、他の既存タグと重複します。"); return;
+            }
+            try {
+                await updateDoc(doc(db, 'tags', docId), {
+                    name: newName,
+                    categoryIds: newSelectedCategoryIds
+                    // Order is not changed here, only by D&D
+                });
+                editTagModal.style.display = 'none';
+                await loadInitialData(); // Reload
+            } catch (error) {
+                console.error("[Tag Edit] Error:", error);
+                alert("タグの更新に失敗しました。");
+            }
+        });
+    }
+
+    async function deleteTag(docId, tagName) {
+        const itemsUsingTagQuery = query(collection(db, 'items'), where('tags', 'array-contains', docId));
+        const itemsSnapshot = await getDocs(itemsUsingTagQuery);
+        if (!itemsSnapshot.empty) {
+            alert(`タグ「${tagName}」は${itemsSnapshot.size}個のアイテムで使用されています。`);
+            return;
+        }
+        if (confirm(`タグ「${tagName}」を削除しますか？`)) {
+            try {
+                const batch = writeBatch(db);
+                batch.delete(doc(db, 'tags', docId));
+                allTagsCache.filter(t => t.id !== docId)
+                    .sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity))
+                    .forEach((tag, index) => {
+                        if(tag.order !== index) {
+                             batch.update(doc(db, 'tags', tag.id), { order: index });
+                        }
+                    });
+                await batch.commit();
+                await loadInitialData();
+            } catch (error) {
+                console.error("[Tag Delete] Error:", error);
+                alert("タグの削除に失敗しました。");
+            }
+        }
+    }
+
+    // --- Item Management ---
+    // loadItemsFromFirestore, renderItemsAdminTable, loadItemForEdit, deleteItem are above (in Step 2)
+    // itemForm submit, clearItemForm, populateTagCheckboxesForItemForm,
+    // populateEffectTypeSelect, updateEffectUnitDisplay, renderCurrentItemEffectsList, addEffectToListButton
+    // image upload functions, modal common handlers from previous full script.
+
+    // (Re-pasting a few key item form related functions to ensure completeness)
+    function populateTagCheckboxesForItemForm(selectedTagIds = []) {
+        if (!itemTagsSelectorCheckboxes) return;
+        itemTagsSelectorCheckboxes.innerHTML = '';
+        if (allTagsCache.length === 0) {
+            itemTagsSelectorCheckboxes.innerHTML = '<p>登録されているタグがありません。</p>';
+            return;
+        }
+        const sortedTags = [...allTagsCache].sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity) || (a.name||"").localeCompare(b.name||""));
+        sortedTags.forEach(tag => {
+            const checkboxId = `item-tag-sel-${tag.id}`;
+            const checkboxWrapper = document.createElement('div');
+            checkboxWrapper.classList.add('checkbox-item');
+            checkboxWrapper.innerHTML = `
+                <input type="checkbox" id="${checkboxId}" name="itemTag" value="${tag.id}" ${selectedTagIds.includes(tag.id) ? 'checked' : ''}>
+                <label for="${checkboxId}">${tag.name}</label>
+            `;
+            itemTagsSelectorCheckboxes.appendChild(checkboxWrapper);
+        });
+    }
+
+    function populateEffectTypeSelect() {
+        if (!effectTypeSelect) return;
+        const currentVal = effectTypeSelect.value;
+        effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
+        if (effectTypesCache.length === 0) {
+            effectTypeSelect.disabled = true; return;
+        }
+        effectTypeSelect.disabled = false;
+        effectTypesCache.forEach(et => {
+            effectTypeSelect.add(new Option(et.name, et.id));
+        });
+        if (currentVal && effectTypesCache.some(et => et.id === currentVal)) {
+            effectTypeSelect.value = currentVal;
+        }
+        updateEffectUnitDisplay();
+    }
+
+    function updateEffectUnitDisplay() {
+        if (!effectTypeSelect || !effectUnitDisplay) return;
+        const selectedTypeId = effectTypeSelect.value;
+        const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
+        if (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') {
+            const unitObj = effectUnitsCache.find(u => u.value === selectedEffectType.defaultUnit);
+            effectUnitDisplay.textContent = unitObj ? `(${unitObj.name})` : `(${selectedEffectType.defaultUnit})`;
+        } else {
+            effectUnitDisplay.textContent = '';
+        }
+    }
+    if (effectTypeSelect) effectTypeSelect.addEventListener('change', updateEffectUnitDisplay);
+
+    function renderCurrentItemEffectsList() {
+        if (!currentEffectsList) return;
+        currentEffectsList.innerHTML = '';
+        if (currentItemEffects.length === 0) {
+            currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
+            return;
+        }
+        currentItemEffects.forEach((effect, index) => {
+            const effectType = effectTypesCache.find(et => et.id === effect.type);
+            const typeName = effectType ? effectType.name : '不明な効果';
+            const unitObj = effectUnitsCache.find(u => u.value === effect.unit);
+            const unitText = unitObj ? unitObj.name : (effect.unit !== 'none' ? effect.unit : '');
+            const displayUnit = unitText ? `(${unitText})` : '';
+
+            const div = document.createElement('div');
+            div.classList.add('effect-list-item');
+            div.innerHTML = `
+                <span>${typeName}: ${effect.value}${displayUnit}</span>
+                <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="削除">×</button>
+            `;
+            currentEffectsList.appendChild(div);
+        });
+        currentEffectsList.querySelectorAll('.delete-effect-from-list').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
+                currentItemEffects.splice(indexToRemove, 1);
+                renderCurrentItemEffectsList();
+            });
+        });
+    }
+
+    if (addEffectToListButton) {
+        addEffectToListButton.addEventListener('click', () => {
+            const typeId = effectTypeSelect.value;
+            const valueStr = effectValueInput.value;
+            if (!typeId) { alert("効果種類を選択してください。"); return; }
+            if (valueStr === '' || isNaN(parseFloat(valueStr))) {
+                alert("効果の値を数値で入力してください。"); return;
+            }
+            const value = parseFloat(valueStr);
+            const selectedEffectType = effectTypesCache.find(et => et.id === typeId);
+            const unitValue = selectedEffectType ? (selectedEffectType.defaultUnit || 'none') : 'none';
+
+            currentItemEffects.push({ type: typeId, value: value, unit: unitValue });
+            renderCurrentItemEffectsList();
+            effectTypeSelect.value = '';
+            effectValueInput.value = '';
+            updateEffectUnitDisplay();
+        });
+    }
+
+    if (itemForm) {
+        itemForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = itemNameInput.value.trim();
+            const source = itemSourceInput.value.trim();
+            const selectedItemTagIds = Array.from(itemTagsSelectorCheckboxes.querySelectorAll('input[type="checkbox"][name="itemTag"]:checked'))
+                                            .map(cb => cb.value);
+            const editingDocId = itemIdToEditInput.value;
+            let imageUrl = itemImageUrlInput.value;
+
+            saveItemButton.disabled = true; saveItemButton.textContent = "保存中...";
+            try {
+                if (selectedImageFile) {
+                    imageUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
+                    if (imageUrl === null && selectedImageFile) { // Check selectedImageFile to ensure error was due to upload
+                        saveItemButton.disabled = false; saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
+                        return;
+                    }
+                }
+                const itemData = {
+                    name: name || "",
+                    image: imageUrl || "",
+                    structured_effects: currentItemEffects,
+                    入手手段: source || "",
+                    tags: selectedItemTagIds,
+                    updatedAt: serverTimestamp()
+                };
+                if (editingDocId) {
+                    await updateDoc(doc(db, 'items', editingDocId), itemData);
+                } else {
+                    itemData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'items'), itemData);
+                }
+                await loadItemsFromFirestore(); // Reload items
+                renderItemsAdminTable();      // Re-render table
+                clearItemForm();
+            } catch (error) {
+                console.error("[Item Save] Error:", error);
+                alert(`アイテム保存エラー: ${error.message}`);
+            } finally {
+                saveItemButton.disabled = false;
+                // Check itemIdToEditInput.value *again* because clearItemForm might have cleared it
+                saveItemButton.textContent = document.getElementById('itemIdToEdit').value ? "アイテム更新" : "アイテム保存";
+            }
+        });
+    }
+
+    if (clearFormButton) clearFormButton.addEventListener('click', clearItemForm);
+
+    function clearItemForm() {
+        if (itemForm) itemForm.reset(); // Resets native form elements
+        itemIdToEditInput.value = '';   // Clear hidden input
+        itemNameInput.value = '';       // Explicitly clear text inputs
+        itemImageUrlInput.value = '';   // Clear hidden URL
+        itemSourceInput.value = '';     // Clear textarea
+
+        if (itemImagePreview) { itemImagePreview.src = '#'; itemImagePreview.style.display = 'none'; }
+        if (itemImageFileInput) itemImageFileInput.value = null; // Important for file input
+        selectedImageFile = null;
+        uploadProgressContainer.style.display = 'none';
+
+        populateTagCheckboxesForItemForm(); // Clears and re-populates (effectively clearing selections)
+
+        currentItemEffects = [];
+        renderCurrentItemEffectsList(); // Clears effect list UI
+
+        if(effectTypeSelect) effectTypeSelect.value = ''; // Reset select
+        if(effectValueInput) effectValueInput.value = ''; // Clear input
+        updateEffectUnitDisplay(); // Update unit display based on cleared select
+
+        if (saveItemButton) saveItemButton.textContent = "アイテム保存";
+    }
+
     if (itemImageFileInput) {
         itemImageFileInput.addEventListener('change', (event) => {
             selectedImageFile = event.target.files[0];
@@ -726,23 +1111,57 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadProgressContainer.style.display = 'none'; return null;
         }
     }
-    document.querySelectorAll('.modal .close-button').forEach(btn => {
-        btn.onclick = function() { btn.closest('.modal').style.display = "none"; }
-    });
-    window.onclick = function(event) {
-        if (event.target.classList.contains('modal')) event.target.style.display = "none";
+
+    function populateParentCategoryButtons(buttonContainer, hiddenInput, options = {}) {
+        const { currentCategoryIdToExclude = null, selectedParentId = "" } = options;
+        if (!buttonContainer || !hiddenInput) return;
+        buttonContainer.innerHTML = '';
+
+        const createButton = (text, parentIdVal) => {
+            const btn = document.createElement('div');
+            btn.classList.add('category-select-button');
+            btn.textContent = text;
+            btn.dataset.parentId = parentIdVal;
+            if (String(selectedParentId) === String(parentIdVal)) { // Ensure type consistency for comparison
+                btn.classList.add('active');
+            }
+            btn.addEventListener('click', () => {
+                 selectParentCategoryButton(buttonContainer, hiddenInput, btn, parentIdVal);
+            });
+            return btn;
+        };
+
+        buttonContainer.appendChild(createButton('最上位カテゴリとして追加', ""));
+
+        allCategoriesCache
+            .filter(cat => (!cat.parentId || cat.parentId === "") && cat.id !== currentCategoryIdToExclude)
+            .sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity) || (a.name||"").localeCompare(b.name||""))
+            .forEach(cat => {
+                buttonContainer.appendChild(createButton(cat.name, cat.id));
+            });
+
+        hiddenInput.value = selectedParentId;
+        if (buttonContainer === editingCategoryParentButtons) {
+             const isParent = (selectedParentId === "");
+             if (tagSearchModeGroup) tagSearchModeGroup.style.display = isParent ? 'none' : 'block';
+             if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = isParent ? 'none' : 'block';
+        }
     }
 
-    // Functions like openEditTagModal, saveTagEditButton, deleteTag,
-    // populateTagCheckboxesForItemForm, etc., from the prior complete script
-    // should be included here. The primary changes were related to 'order'
-    // and the new 'Effect Units' section.
-    // For brevity, only functions with direct changes related to the bug report or new features
-    // were fully re-iterated here or had snippets provided.
-    // A complete merge would be needed.
-    // The following are stubs or re-iterations of a few more:
+    function selectParentCategoryButton(container, hiddenInput, clickedButton, parentId) {
+        container.querySelectorAll('.category-select-button.active').forEach(activeBtn => {
+            activeBtn.classList.remove('active');
+        });
+        clickedButton.classList.add('active');
+        hiddenInput.value = parentId;
 
-    // (Re-iterating from previous full script, ensure they are present and correct)
+        if (container === editingCategoryParentButtons) {
+             const isParent = (parentId === "");
+             if (tagSearchModeGroup) tagSearchModeGroup.style.display = isParent ? 'none' : 'block';
+             if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = isParent ? 'none' : 'block';
+             if (isParent && editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = ''; // Clear tags if parent
+        }
+    }
     function populateTagsForCategoryEdit(containerElement, categoryId) {
         if (!containerElement) return;
         containerElement.innerHTML = '';
@@ -750,123 +1169,26 @@ document.addEventListener('DOMContentLoaded', () => {
             containerElement.innerHTML = '<p>タグがありません。</p>';
             return;
         }
-        // Sort tags for consistent display
         const sortedTags = [...allTagsCache].sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity) || (a.name||"").localeCompare(b.name||""));
-
         sortedTags.forEach(tag => {
             const button = document.createElement('div');
             button.classList.add('tag-filter', 'admin-tag-select');
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
-            // Check if this tag is already associated with the category (via tag's categoryIds)
             if (tag.categoryIds && tag.categoryIds.includes(categoryId)) {
                 button.classList.add('active');
             }
-            button.addEventListener('click', () => {
-                button.classList.toggle('active');
-            });
+            button.addEventListener('click', () => button.classList.toggle('active'));
             containerElement.appendChild(button);
         });
      }
 
 
-    // Assume all other functions from the previous provided full admin.script.js are here,
-    // especially CRUD for categories, tags, effect types, and items.
-    // The key is that after any CUD operation, the `load...` and `render...` functions
-    // for the affected and dependent data should be called to refresh the UI.
-    // And `initializeAllSortableLists()` if the lists themselves are re-rendered from scratch.
-
-    // Final check for saveCategoryEditButton (complex due to parent change and order)
-    if (saveCategoryEditButton) {
-        saveCategoryEditButton.addEventListener('click', async () => {
-            const docId = editingCategoryDocIdInput.value;
-            const originalCategory = allCategoriesCache.find(c => c.id === docId);
-            if (!originalCategory) { alert("元のカテゴリ情報が見つかりません。"); return; }
-
-            const newName = editingCategoryNameInput.value.trim();
-            const newParentId = selectedEditingParentCategoryIdInput.value || ""; // "" for top-level
-            const newTagSearchMode = editingTagSearchModeSelect.value;
-            const selectedTagIdsForThisCategory = Array.from(editingCategoryTagsSelector.querySelectorAll('.tag-filter.active')).map(btn => btn.dataset.tagId);
-
-            if (!newName) { alert("カテゴリ名は空にできません。"); return; }
-            if (docId === newParentId) { alert("自身を親カテゴリに設定することはできません。"); return; }
-
-            const q = query(collection(db, 'categories'), where('name', '==', newName), where('parentId', '==', newParentId));
-            const existingQuery = await getDocs(q);
-            if (existingQuery.docs.some(d => d.id !== docId)) {
-                alert("編集後の名前が、同じ階層の他の既存カテゴリと重複します。"); return;
-            }
-
-            // Circular dependency check
-            if (newParentId) {
-                let currentAncestorId = newParentId;
-                const visited = new Set([docId]);
-                while (currentAncestorId) {
-                    if (visited.has(currentAncestorId)) {
-                        alert("循環参照です。この親カテゴリ設定はできません。"); return;
-                    }
-                    visited.add(currentAncestorId);
-                    const ancestor = allCategoriesCache.find(c => c.id === currentAncestorId);
-                    currentAncestorId = ancestor ? (ancestor.parentId || "") : "";
-                }
-            }
-
-            try {
-                const batch = writeBatch(db);
-                const categoryUpdateData = { name: newName, parentId: newParentId };
-
-                if (originalCategory.parentId !== newParentId) {
-                    // Category moved, calculate new order in its new parent group
-                    categoryUpdateData.order = allCategoriesCache.filter(c => (c.parentId || "") === newParentId && c.id !== docId).length;
-                    // Re-order items in the old parent group
-                    if (originalCategory.parentId || originalCategory.parentId === "") { // handle if it was top-level or child
-                        allCategoriesCache
-                            .filter(c => (c.parentId || "") === (originalCategory.parentId || "") && c.id !== docId)
-                            .sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity))
-                            .forEach((sibling, index) => {
-                                if (sibling.order !== index) {
-                                     batch.update(doc(db, 'categories', sibling.id), { order: index });
-                                }
-                            });
-                    }
-                }
-                // If only name or other properties changed but not parent, order remains same unless manually D&D.
-
-                if (newParentId) { // Is a child category after edit
-                    categoryUpdateData.tagSearchMode = newTagSearchMode;
-                    const tagsCurrentlyAssociatedWithCat = allTagsCache.filter(tag => tag.categoryIds && tag.categoryIds.includes(docId)).map(t => t.id);
-                    const tagsToAddLink = selectedTagIdsForThisCategory.filter(id => !tagsCurrentlyAssociatedWithCat.includes(id));
-                    const tagsToRemoveLink = tagsCurrentlyAssociatedWithCat.filter(id => !selectedTagIdsForThisCategory.includes(id));
-                    tagsToAddLink.forEach(tagId => batch.update(doc(db, 'tags', tagId), { categoryIds: arrayUnion(docId) }));
-                    tagsToRemoveLink.forEach(tagId => batch.update(doc(db, 'tags', tagId), { categoryIds: arrayRemove(docId) }));
-                } else { // Is becoming a top-level parent category
-                    categoryUpdateData.tagSearchMode = deleteField();
-                    allTagsCache.forEach(tag => { // Remove this category from any tag's categoryIds
-                        if (tag.categoryIds && tag.categoryIds.includes(docId)) {
-                            batch.update(doc(db, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
-                        }
-                    });
-                }
-
-                batch.update(doc(db, 'categories', docId), categoryUpdateData);
-                await batch.commit();
-                editCategoryModal.style.display = 'none';
-                await loadInitialData(); // Full reload due to potential cascading changes
-
-            } catch (error) {
-                console.error("[Category Edit] Error:", error);
-                alert("カテゴリの更新または関連情報の更新に失敗しました。");
-            }
-        });
+    // --- Modal common handlers ---
+    document.querySelectorAll('.modal .close-button').forEach(btn => {
+        btn.onclick = function() { btn.closest('.modal').style.display = "none"; }
+    });
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) event.target.style.display = "none";
     }
-
-
-    // Ensure all other functions like openEditTagModal, saveTagEditButton, deleteTag,
-    // populateTagCheckboxesForItemForm, etc., are present and use the correct caches and logic.
-    // The most important change is that after any add/update/delete that could affect
-    // what's displayed in a list or a dropdown, the relevant `load...` and `render...`
-    // (or `populate...`) functions MUST be called. For ordered lists, if they are fully
-    // re-rendered, SortableJS will pick them up. If not, `initializeAllSortableLists()`
-    // might be needed again, but it's better if `render...` functions handle full list recreation.
-
 }); // End DOMContentLoaded
