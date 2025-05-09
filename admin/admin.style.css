@@ -57,7 +57,7 @@ h3 { font-size: 1.3em; }
     display: block; margin-bottom: 6px; font-weight: bold; color: #495057;
 }
 .form-group input[type="text"],
-.form-group input[type="number"], 
+.form-group input[type="number"],
 .form-group input[type="url"],
 .form-group input[type="file"],
 .form-group textarea,
@@ -67,7 +67,7 @@ h3 { font-size: 1.3em; }
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .form-group input[type="text"]:focus,
-.form-group input[type="number"]:focus, 
+.form-group input[type="number"]:focus,
 .form-group input[type="url"]:focus,
 .form-group input[type="file"]:focus,
 .form-group textarea:focus,
@@ -77,10 +77,10 @@ h3 { font-size: 1.3em; }
 }
 .form-group textarea { resize: vertical; min-height: 80px; }
 
-.form-control-short { 
-    max-width: 300px; 
-    width: auto; 
-    display: inline-block; 
+.form-control-short {
+    max-width: 300px;
+    width: auto;
+    display: inline-block;
     vertical-align: middle;
     margin-right: 8px;
 }
@@ -89,11 +89,11 @@ h3 { font-size: 1.3em; }
 }
 
 /* カテゴリ追加/編集の親カテゴリ選択ボタン用スタイル */
-.category-button-group.admin { 
+.category-button-group.admin {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 5px; 
+    margin-top: 5px;
 }
 .category-select-button {
     padding: 6px 12px;
@@ -113,7 +113,7 @@ h3 { font-size: 1.3em; }
     border-color: #0056b3;
 }
 
-/* ★ラジオボタングループのスタイル */
+/* ラジオボタングループのスタイル */
 .radio-group {
     display: flex;
     gap: 15px; /* ラジオボタン間のスペース */
@@ -144,20 +144,21 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     padding: 5px 10px;
     font-size: 0.9em;
     margin-left: 5px;
-    color: white !important;
+    color: white !important; /* Ensure text is white */
     border: none;
-    border-radius: 4px; 
+    border-radius: 4px;
+    line-height: 1.2; /* Adjust line height for better vertical alignment */
 }
-.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type { 
+.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type, .edit-effect-unit { /* .edit-effect-unit追加 */
     background-color: #28a745 !important;
 }
-.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover {
+.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover, .edit-effect-unit:hover {
     background-color: #218838 !important;
 }
-.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list { 
+.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list, .delete-effect-unit { /* .delete-effect-unit追加 */
     background-color: #dc3545 !important;
 }
-.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-from-list:hover {
+.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-from-list:hover, .delete-effect-unit:hover {
     background-color: #c82333 !important;
 }
 .delete-effect-from-list {
@@ -175,11 +176,11 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-radius: 4px; margin-top:10px;
 }
 
-.inline-form { 
-    display: flex; align-items: center; gap: 10px; margin-bottom: 15px; 
+.inline-form {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
 }
 .inline-form input[type="text"] { flex-grow: 1; }
-.inline-form select { /* width: auto; flex-grow: 0.5; */ }
+/* .inline-form select { width: auto; flex-grow: 0.5; } */
 
 
 .list-container {
@@ -187,30 +188,63 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border: 1px solid #eee;
     border-radius: 4px;
     padding: 10px;
-    max-height: 300px; 
+    max-height: 300px; /* Adjust as needed, or remove for full height */
     overflow-y: auto;
+    background-color: #fdfdfd; /* Slightly different background for list area */
 }
 .list-item {
-    display: flex;
-    justify-content: space-between;
+    display: flex; /* Use flex for better alignment */
+    justify-content: space-between; /* Push actions to the right */
     align-items: center;
     padding: 8px 10px;
     border-bottom: 1px solid #f0f0f0;
+    cursor: grab; /* Indicate draggable items for SortableJS */
 }
 .list-item:last-child { border-bottom: none; }
-.list-item span { flex-grow: 1; margin-right: 10px; word-break: break-word; }
-.list-item div .action-button { 
-    margin-left: 5px; 
+
+/* Styles for category list hierarchical display */
+.list-item .category-name-display {
+    flex-grow: 1; /* Allow name to take available space */
+    margin-right: 10px; /* Space before info/actions */
+    word-break: break-word;
+}
+.list-item .category-info-display {
+    color: #555;
+    font-size: 0.85em; /* Slightly smaller */
+    margin-right: 10px;
+    white-space: nowrap; /* Prevent info from wrapping too early */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+.list-item .category-actions,
+.list-item div:not(.category-name-display):not(.category-info-display) { /* General selector for action buttons container */
+    margin-left: auto; /* Push to the right if not using justify-content on list-item */
+    white-space: nowrap; /* Keep buttons on one line */
+    flex-shrink: 0;
+}
+.list-item div .action-button { /* Ensure buttons in the div have consistent margin */
+    margin-left: 5px;
 }
 .list-item div .action-button:first-child {
     margin-left: 0;
 }
 
+/* SortableJS helper classes (optional, but good for visual feedback) */
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: #c8ebfb !important; /* Ensure high specificity */
+}
+.sortable-chosen, .sortable-drag {
+    /* Styles for the item being dragged or chosen */
+    /* background-color: #f0f8ff !important; */ /* Example */
+    /* box-shadow: 0 2px 5px rgba(0,0,0,0.1); */
+}
+
+
 .checkbox-group-container {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    max-height: 150px; 
+    max-height: 150px;
     overflow-y: auto;
     border: 1px solid #eee;
     padding: 10px;
@@ -223,17 +257,17 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .checkbox-item input[type="checkbox"] {
     margin-right: 8px;
-    width: auto; 
-    padding: initial; 
-    border: initial;  
-    box-shadow: none; 
+    width: auto;
+    padding: initial;
+    border: initial;
+    box-shadow: none;
 }
 .checkbox-item input[type="checkbox"]:focus {
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); 
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 .checkbox-item label {
     font-weight: normal;
-    margin-bottom: 0; 
+    margin-bottom: 0;
 }
 
 /* カテゴリ編集モーダル内のタグ選択ボタン用コンテナ */
@@ -241,7 +275,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    max-height: 150px; 
+    max-height: 150px;
     overflow-y: auto;
     border: 1px solid #eee;
     padding: 10px;
@@ -249,8 +283,8 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     background-color: #fdfdfd;
 }
 /* カテゴリ編集モーダル内のタグ選択ボタン */
-.tag-filter.admin-tag-select { 
-    padding: 6px 10px; 
+.tag-filter.admin-tag-select {
+    padding: 6px 10px;
     background-color: #f0f0f0;
     border: 1px solid #ddd;
     border-radius: 15px;
@@ -262,7 +296,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
      background-color: #e0e0e0;
 }
 .tag-filter.admin-tag-select.active {
-    background-color: #28a745; 
+    background-color: #28a745;
     color: white;
     border-color: #1e7e34;
 }
@@ -276,28 +310,28 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .effect-input-row {
     display: flex;
-    flex-wrap: wrap; 
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
     margin-bottom: 15px;
 }
 .effect-input-row select,
 .effect-input-row input {
-    flex: 1 1 120px; 
+    flex: 1 1 120px; /* Allow shrinking but prefer 120px base */
 }
 .effect-input-row button {
-    flex-shrink: 0; 
-    margin-left: auto; 
+    flex-shrink: 0;
+    margin-left: auto; /* Push to the right if space allows */
 }
-/* ★追加: 効果単位表示用 */
 .unit-display {
     display: inline-block;
-    min-width: 40px; /* 幅確保 */
+    min-width: 40px;
     text-align: left;
     font-style: italic;
     color: #6c757d;
-    margin-left: -4px; /* inputとの隙間調整 */
-    margin-right: 8px;
+    margin-left: -4px; /* Adjust spacing with input */
+    margin-right: 8px; /* Space before next element or button */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 
@@ -306,7 +340,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     margin-top: 10px;
     border-top: 1px dashed #ccc;
     padding-top: 10px;
-    max-height: 150px; 
+    max-height: 150px;
     overflow-y: auto;
 }
 .effect-list-item {
@@ -321,6 +355,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .effect-list-item span {
     font-size: 0.9em;
+    word-break: break-word;
 }
 
 
@@ -336,6 +371,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 #itemsTable img {
     max-width: 60px; max-height: 60px; object-fit: cover;
     background-color: #e9ecef; border-radius: 3px; border: 1px solid #ddd;
+    display: block; /* Prevents extra space below image */
 }
 #itemsTable td button { margin-right: 5px; }
 #itemsTable td button:last-child { margin-right: 0; }
@@ -351,7 +387,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 
 .modal {
     position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%;
-    overflow: auto; background-color: rgba(0,0,0,0.6); display: none; /* ★デフォルト非表示 */
+    overflow: auto; background-color: rgba(0,0,0,0.6); display: none;
     align-items: center; justify-content: center;
 }
 .modal-content {
@@ -359,9 +395,9 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border: none; width: 90%; max-width: 550px; border-radius: 8px;
     position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     animation: fadeInModal 0.3s ease-out;
-    display: flex; /* ★追加 */
-    flex-direction: column; /* ★追加 */
-    max-height: 90vh; /* ★追加 */
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
 }
 @keyframes fadeInModal {
     from { opacity: 0; transform: translateY(-20px); }
@@ -370,41 +406,61 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 .modal-content h3 {
     margin-top: 0; margin-bottom: 20px; font-size: 1.5em; color: #343a40;
     border-bottom: 1px solid #eee; padding-bottom: 10px;
-    flex-shrink: 0; /* ★追加 */
+    flex-shrink: 0;
 }
 .close-button {
     color: #6c757d; position: absolute; top: 15px; right: 20px;
     font-size: 28px; font-weight: bold; line-height: 1;
-    cursor: pointer; z-index: 10; /* ★追加 */
+    cursor: pointer; z-index: 10;
 }
 .close-button:hover,
 .close-button:focus {
-    color: #343a40; text-decoration: none; 
+    color: #343a40; text-decoration: none;
 }
 
-.icon { margin-right: 7px; font-size: 1.1em; }
+.icon { margin-right: 7px; font-size: 1.1em; vertical-align: middle;} /* vertical-align追加 */
 
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
     header h1 { font-size: 1.5em; }
-    .inline-form { /* 影響範囲を確認して調整 */
-       flex-direction: column; align-items: stretch; 
-       input[type="text"], select { width: 100%; } 
-       button { width: 100%; margin-top: 5px; } 
+    .inline-form {
+       flex-direction: column; align-items: stretch;
     }
+    .inline-form input[type="text"], .inline-form select { width: 100%; max-width: none; }
+    .inline-form button { width: 100%; margin-top: 5px; margin-right: 0; }
+
     .modal-content { width: 95%; padding: 20px; max-height: 90vh;}
-    #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
+    #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; word-break: break-word; } /* word-break追加 */
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
-    #itemSearchAdmin { width: 100% !important; }
-    .category-button-group.admin { justify-content: flex-start; } 
-    .effect-input-row { flex-direction: column; gap: 10px; align-items: stretch; } 
+    #itemSearchAdmin { width: 100% !important; } /* Ensure it takes full width on mobile */
+    .category-button-group.admin { justify-content: flex-start; }
+    .effect-input-row { flex-direction: column; gap: 10px; align-items: stretch; }
     .effect-input-row select, .effect-input-row input, .effect-input-row button {
         width: 100%;
         margin-right: 0;
-        max-width: none; 
-        flex-basis: auto; 
+        max-width: none;
+        flex-basis: auto;
     }
-     .effect-input-row button { margin-left: 0; margin-top: 5px; } 
-     .unit-display { display: block; text-align: left; margin-left: 0; margin-bottom: 5px; } /* スマホでは単位表示を調整 */
+     .effect-input-row button { margin-left: 0; margin-top: 5px; }
+     .unit-display { display: block; text-align: left; margin-left: 0; margin-bottom: 5px; min-width: auto;}
+
+    .list-item { flex-wrap: wrap; /* Allow wrapping on small screens */ }
+    .list-item .category-name-display, .list-item span { /* span for general lists */
+        flex-basis: 100%; /* Name/main text takes full width first */
+        margin-bottom: 5px; /* Space before actions if they wrap */
+    }
+    .list-item .category-info-display {
+        flex-basis: 100%; /* Info also takes full width if it wraps */
+        margin-bottom: 5px;
+        font-size: 0.8em;
+    }
+    .list-item .category-actions, .list-item div:not(.category-name-display):not(.category-info-display) {
+        flex-basis: 100%; /* Actions take full width if they wrap */
+        margin-left: 0; /* Reset margin for wrapped actions */
+        display: flex; /* Align buttons in a row even when wrapped */
+        justify-content: flex-end; /* Align buttons to the right */
+    }
+     .list-item div .action-button { margin-left: 5px; } /* Keep consistent spacing for buttons */
+     .list-item div .action-button:first-child { margin-left: 0; }
 }
