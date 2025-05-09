@@ -426,7 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         // If tags span multiple child categories, generally treat as AND across those categories' requirements,
                         // or if any child category involved has AND, then overall tends to AND.
                         // This simplified logic will use AND if tags are from different groups or complex relations.
-                        // More sophisticated logic might be needed for precise cross-category OR.
                     }
 
 
@@ -525,8 +524,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
 
             // Reset main search filters to their previous state or clear them
-            selectedParentCategoryIds = []; // Or restore previous state if desired
-            selectedTagIds = [];          // Or restore previous state
+            selectedParentCategoryIds = [];
+            selectedTagIds = [];
             if (searchInput) searchInput.value = '';
 
             renderParentCategoryFilters();
@@ -730,8 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
 
         // Restore general search filters or clear them
-        // For simplicity, let's clear them. A more advanced version might restore previous state.
-        selectedParentCategoryIds = [];
+        selectedParentCategoryIds = []; // Cleared for simplicity
         selectedTagIds = [];
         if (searchInput) searchInput.value = '';
 
