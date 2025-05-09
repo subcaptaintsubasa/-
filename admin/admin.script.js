@@ -6,7 +6,7 @@ import {
 import {
     getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc,
     query, where, orderBy, serverTimestamp, writeBatch, getDoc,
-    arrayUnion, arrayRemove, deleteField
+    arrayUnion, arrayRemove, deleteField // deleteField は updateDoc({merge:true}) でのみ有効なので注意
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allTagsCache = [];
     let itemsCache = [];
     let effectTypesCache = [];
-    let effectUnitsCache = []; // NEW cache for units
+    let effectUnitsCache = [];
     let currentItemEffects = [];
     let selectedImageFile = null;
 
@@ -172,14 +172,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
         if (editingTagCategoriesCheckboxes) editingTagCategoriesCheckboxes.innerHTML = '';
 
-        if (effectUnitListContainer) effectUnitListContainer.innerHTML = ''; // NEW
-        if (newEffectUnitNameInput) newEffectUnitNameInput.value = ''; // NEW
+        if (effectUnitListContainer) effectUnitListContainer.innerHTML = '';
+        if (newEffectUnitNameInput) newEffectUnitNameInput.value = '';
 
 
         if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
         if (effectTypeSelect) effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
         if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
-        if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = '<option value="none">なし</option>'; // NEW default after clearing
+        if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = '<option value="none">なし</option>';
         if (newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
 
 
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadInitialData() {
         console.log("[Initial Load] Starting...");
-        await loadEffectUnitsFromFirestore(); // NEW: Load units first
+        await loadEffectUnitsFromFirestore();
         await loadEffectTypesFromFirestore();
         await loadCategoriesFromFirestore();
         await loadTagsFromFirestore();
@@ -199,19 +199,19 @@ document.addEventListener('DOMContentLoaded', () => {
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
         populateTagCheckboxesForItemForm();
-        populateEffectUnitSelects(); // NEW: Populate unit dropdowns
-        populateEffectTypeSelect(); // For item form (depends on effect types)
+        populateEffectUnitSelects();
+        populateEffectTypeSelect();
 
 
         renderCategoriesForManagement();
         renderTagsForManagement();
-        renderEffectUnitsForManagement(); // NEW
+        renderEffectUnitsForManagement();
         renderEffectTypesForManagement();
         renderItemsAdminTable();
         console.log("[Initial Load] Completed.");
     }
 
-    // --- Effect Unit Management (NEW SECTION) ---
+    // --- Effect Unit Management ---
     async function loadEffectUnitsFromFirestore() {
         console.log("[Effect Units] Loading effect units...");
         try {
@@ -230,8 +230,9 @@ document.addEventListener('DOMContentLoaded', () => {
         effectUnitListContainer.innerHTML = '';
         if (effectUnitsCache.length === 0) {
             effectUnitListContainer.innerHTML = '<p>効果単位が登録されていません。「なし」は自動的に利用可能です。</p>';
-            return;
+            // return; // 「なし」は選択肢として常に表示するので、ここでreturnしない
         }
+        // 「なし」はリストには表示せず、選択肢でのみ扱う
         effectUnitsCache.forEach(unit => {
             const div = document.createElement('div');
             div.classList.add('list-item');
@@ -255,14 +256,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', (e) => deleteEffectUnit(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
         });
 
-        if (openModalForId === "manageUnits") { // Special case to just open the modal
-             // This assumes a generic modal for unit management, if we build one.
-             // For now, we'll use the edit modal for adding too, or make the list the primary management.
-             // Let's assume the "Manage Units" buttons will open the section with the list.
-             // If a dedicated modal is needed, it should be triggered here.
-             // For now, focus on the section.
-            if(effectUnitListContainer.offsetParent !== null) { // if visible
+        if (openModalForId === "manageUnits") {
+            if(editEffectUnitModal && effectUnitListContainer.offsetParent !== null) { // if section is visible
+                 // For now, simply scroll to the section. A dedicated modal could be opened here.
                 effectUnitListContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                 // If we want to open the "add new" part of a dedicated unit management modal:
+                 // editingEffectUnitDocIdInput.value = ''; // Clear ID for new entry
+                 // editingEffectUnitNameInput.value = ''; // Clear name
+                 // editEffectUnitModal.style.display = 'flex';
+                 // editingEffectUnitNameInput.focus();
             }
         }
     }
@@ -283,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 newEffectUnitNameInput.value = '';
                 await loadEffectUnitsFromFirestore();
                 renderEffectUnitsForManagement();
-                populateEffectUnitSelects(); // Update all unit dropdowns
+                populateEffectUnitSelects();
             } catch (error) {
                 console.error("[Effect Units] Error adding:", error);
                 alert("効果単位の追加に失敗しました。");
@@ -307,12 +309,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("編集後の名前が他の効果単位と重複します。"); return;
             }
             try {
+                const oldUnitName = effectUnitsCache.find(u => u.id === id)?.name;
                 await updateDoc(doc(db, 'effect_units', id), { name: newName, updatedAt: serverTimestamp() });
+
+                // If unit name changed, update effect_types and items that used the old name
+                if (oldUnitName && oldUnitName !== newName) {
+                    const batch = writeBatch(db);
+                    // Update effect_types
+                    effectTypesCache.forEach(et => {
+                        if (et.defaultUnit === oldUnitName) {
+                            batch.update(doc(db, 'effect_types', et.id), { defaultUnit: newName });
+                        }
+                    });
+                    // Update items
+                    itemsCache.forEach(item => {
+                        let itemEffectsUpdated = false;
+                        const updatedEffects = (item.structured_effects || []).map(eff => {
+                            if (eff.unit === oldUnitName) {
+                                itemEffectsUpdated = true;
+                                return { ...eff, unit: newName };
+                            }
+                            return eff;
+                        });
+                        if (itemEffectsUpdated) {
+                            batch.update(doc(db, 'items', item.docId), { structured_effects: updatedEffects });
+                        }
+                    });
+                    await batch.commit();
+                    // Reload all data to reflect changes everywhere
+                    await loadInitialData();
+                } else {
+                    await loadEffectUnitsFromFirestore(); // Just reload units if name didn't change (or no old name)
+                    renderEffectUnitsForManagement();
+                    populateEffectUnitSelects();
+                }
                 if (editEffectUnitModal) editEffectUnitModal.style.display = 'none';
-                await loadEffectUnitsFromFirestore();
-                renderEffectUnitsForManagement();
-                populateEffectUnitSelects();
-                // Potentially update effect types if their defaultUnit was this one and name changed (more complex)
+
             } catch (error) {
                 console.error("[Effect Units] Error updating:", error);
                 alert("効果単位の更新に失敗しました。");
@@ -321,13 +353,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteEffectUnit(id, name) {
-        // Check if this unit is used as a defaultUnit in any effect_type
-        const usedByEffectType = effectTypesCache.find(et => et.defaultUnit === name); // Assuming defaultUnit stores name
+        const usedByEffectType = effectTypesCache.find(et => et.defaultUnit === name);
         if (usedByEffectType) {
             alert(`効果単位「${name}」は効果種類「${usedByEffectType.name}」のデフォルト単位として使用されているため削除できません。\n先に効果種類のデフォルト単位を変更してください。`);
             return;
         }
-        // Check if this unit is used in any item's structured_effects
         const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.unit === name));
         if (usedByItem) {
             alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。\n先にアイテムの効果設定を変更してください。`);
@@ -348,25 +378,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateEffectUnitSelects() {
-        const selectsToUpdate = [newEffectTypeUnitSelect, editingEffectTypeUnitSelect /*, potentially others if added */];
+        const selectsToUpdate = [newEffectTypeUnitSelect, editingEffectTypeUnitSelect];
         selectsToUpdate.forEach(selectElement => {
             if (!selectElement) return;
             const currentValue = selectElement.value;
-            selectElement.innerHTML = '<option value="none">なし</option>'; // Default "none" option
+            selectElement.innerHTML = '<option value="none">なし</option>';
             effectUnitsCache.forEach(unit => {
-                selectElement.add(new Option(unit.name, unit.name)); // Using name as value for simplicity here
+                selectElement.add(new Option(unit.name, unit.name));
             });
-            // Try to restore previous selection
             if (Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
                 selectElement.value = currentValue;
             } else {
-                selectElement.value = 'none'; // Default if previous not found
+                selectElement.value = 'none';
             }
         });
     }
 
 
-    // --- Effect Type Management (Adjusted for dynamic units) ---
+    // --- Effect Type Management ---
     async function loadEffectTypesFromFirestore() {
         console.log("[Effect Types] Loading effect types...");
         try {
@@ -421,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addEffectTypeButton) {
         addEffectTypeButton.addEventListener('click', async () => {
             const name = newEffectTypeNameInput.value.trim();
-            const unit = newEffectTypeUnitSelect.value; // Now gets value from dynamically populated select
+            const unit = newEffectTypeUnitSelect.value;
             const calcMethodRadio = Array.from(newEffectTypeCalcMethodRadios).find(r => r.checked);
             const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum';
 
@@ -432,12 +461,12 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await addDoc(collection(db, 'effect_types'), {
                     name: name,
-                    defaultUnit: unit, // Storing the unit name directly
+                    defaultUnit: unit,
                     calculationMethod: calcMethod,
                     createdAt: serverTimestamp()
                 });
                 newEffectTypeNameInput.value = '';
-                newEffectTypeUnitSelect.value = 'none'; // Reset to default "なし"
+                newEffectTypeUnitSelect.value = 'none';
                 if(newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
 
                 await loadEffectTypesFromFirestore();
@@ -453,8 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditEffectTypeModal(effectTypeData) {
         editingEffectTypeDocIdInput.value = effectTypeData.id;
         editingEffectTypeNameInput.value = effectTypeData.name;
-        // Ensure the unit dropdown is populated before setting its value
-        populateEffectUnitSelects(); // Make sure it's up-to-date
+        populateEffectUnitSelects(); // Ensure unit options are current
         editingEffectTypeUnitSelect.value = effectTypeData.defaultUnit || 'none';
 
 
@@ -473,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveEffectTypeEditButton.addEventListener('click', async () => {
             const id = editingEffectTypeDocIdInput.value;
             const newName = editingEffectTypeNameInput.value.trim();
-            const newUnit = editingEffectTypeUnitSelect.value; // From dynamic select
+            const newUnit = editingEffectTypeUnitSelect.value;
             const editCalcMethodRadio = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.checked);
             const newCalcMethod = editCalcMethodRadio ? editCalcMethodRadio.value : 'sum';
 
@@ -504,9 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteEffectType(id, name) {
          if (confirm(`効果種類「${name}」を削除しますか？\n注意: この効果種類を使用しているアイテムの効果設定は残りますが、種類名が表示されなくなる可能性があります。`)) {
              try {
-                // Check if any items use this effect type
-                const itemsUsingEffectTypeQuery = query(collection(db, 'items'), where('structured_effects', 'array-contains-any', [{type: id}]));
-                // Note: Firestore 'array-contains-any' is tricky for nested objects. A more robust check might involve iterating through itemsCache.
                 let isUsed = false;
                 for (const item of itemsCache) {
                     if (item.structured_effects && item.structured_effects.some(eff => eff.type === id)) {
@@ -516,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 if(isUsed) return;
-
 
                  await deleteDoc(doc(db, 'effect_types', id));
                  await loadEffectTypesFromFirestore();
@@ -531,8 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
          }
     }
 
-
-    // --- Category Management (No changes from previous version) ---
+    // --- Category Management ---
     async function loadCategoriesFromFirestore() {
         console.log("[Categories] Loading all categories...");
         try {
@@ -850,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- Tag Management (No changes from previous version) ---
+    // --- Tag Management ---
     async function loadTagsFromFirestore() {
         console.log("[Tags] Loading all tags...");
         try {
@@ -1054,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Item Management (Adjusted for Price) ---
+    // --- Item Management ---
     function populateTagCheckboxesForItemForm(selectedTagIds = []) {
         if (!itemTagsSelectorCheckboxes) return;
         itemTagsSelectorCheckboxes.innerHTML = '';
@@ -1074,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function populateEffectTypeSelect() { // For item effect type selection
+    function populateEffectTypeSelect() {
         if (!effectTypeSelect) return;
         const currentVal = effectTypeSelect.value;
         effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
@@ -1146,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const value = parseFloat(valueStr);
 
             const selectedEffectType = effectTypesCache.find(et => et.id === typeId);
-            const unit = selectedEffectType ? (selectedEffectType.defaultUnit || 'none') : 'none'; // Use 'none' if no unit
+            const unit = selectedEffectType ? (selectedEffectType.defaultUnit || 'none') : 'none';
 
             currentItemEffects.push({ type: typeId, value: value, unit: unit });
             renderCurrentItemEffectsList();
@@ -1181,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const editingDocId = itemIdToEditInput.value;
             let finalImageUrl = itemImageUrlInput.value;
 
-            let price = null;
+            let price = null; // Default to null if not provided or invalid
             if (priceStr !== "") {
                 price = parseInt(priceStr, 10);
                 if (isNaN(price) || price < 0) {
@@ -1205,22 +1228,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 const itemData = {
                     name: name || "",
                     image: finalImageUrl || "",
-                    price: price, // Firestore handles null by not creating the field or storing as null
+                    // price is handled below
                     structured_effects: currentItemEffects,
                     入手手段: source || "",
                     tags: selectedItemTagIds,
                     updatedAt: serverTimestamp()
                 };
-                 if (itemData.price === null) { // Ensure field is removed if price is null
-                     itemData.price = deleteField();
-                 }
+
+                if (price !== null) {
+                    itemData.price = price;
+                } else {
+                    // If you want to explicitly remove the field if price is null/empty:
+                    // itemData.price = deleteField(); // Use this only with updateDoc({merge:true}) or handle differently for addDoc
+                    // For simplicity, if price is null, we just don't add it or Firestore will store it as null.
+                    // To truly remove a field on update, you'd use deleteField(), but for addDoc, just don't include it.
+                    // If editing and price is cleared, we need to handle field deletion carefully.
+                    if (editingDocId) { // If updating, and price is now null, explicitly set to null or delete field
+                        itemData.price = null; // Or use deleteField() if that's preferred for updates
+                    }
+                    // If adding and price is null, it will just not be included.
+                }
 
 
                 if (editingDocId) {
-                    await updateDoc(doc(db, 'items', editingDocId), itemData);
+                    // If price is null and we want to remove the field from an existing document
+                    if (price === null && itemData.hasOwnProperty('price')) {
+                         // To remove field on update, ensure merge is not true, or use `deleteField()` with caution
+                         // For now, setting to null is often sufficient, or manually construct update object.
+                         // A more robust way for updates to remove a field:
+                         const updatePayload = {...itemData};
+                         if (price === null) updatePayload.price = deleteField();
+                         await updateDoc(doc(db, 'items', editingDocId), updatePayload);
+                    } else {
+                        await updateDoc(doc(db, 'items', editingDocId), itemData);
+                    }
                 } else {
                     itemData.createdAt = serverTimestamp();
-                    await addDoc(collection(db, 'items'), itemData);
+                    const dataToAdd = {...itemData};
+                    if (price === null) delete dataToAdd.price; // Don't add price field if it's null for new docs
+                    await addDoc(collection(db, 'items'), dataToAdd);
                 }
                 await loadItemsFromFirestore();
                 renderItemsAdminTable();
@@ -1300,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  }).join('; ');
                  if (effectsDisplay.length > 40) effectsDisplay = effectsDisplay.substring(0, 37) + '...';
             }
-            const priceDisplay = typeof item.price === 'number' ? `${item.price}G` : '未設定';
+            const priceDisplay = typeof item.price === 'number' ? `${item.price}G` : 'Coming Soon';
 
             const nameDisplay = item.name || '(名称未設定)';
             tr.innerHTML = `
@@ -1469,7 +1515,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.modal .close-button').forEach(btn => {
         btn.onclick = function() { btn.closest('.modal').style.display = "none"; }
     });
-    // Close modals by clicking outside content (if target is the modal itself)
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', function(event) {
             if (event.target === modal) {
