@@ -149,13 +149,13 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border-radius: 4px;
     line-height: 1.2; /* Adjust line height for better vertical alignment */
 }
-.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type, .edit-effect-unit { /* .edit-effect-unit追加 */
+.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type, .edit-effect-unit {
     background-color: #28a745 !important;
 }
 .action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover, .edit-effect-unit:hover {
     background-color: #218838 !important;
 }
-.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list, .delete-effect-unit { /* .delete-effect-unit追加 */
+.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list, .delete-effect-unit {
     background-color: #dc3545 !important;
 }
 .action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-from-list:hover, .delete-effect-unit:hover {
@@ -165,6 +165,11 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     padding: 2px 6px;
     font-size: 0.8em;
     margin-left: 8px;
+}
+/* Specifically for delete unit button if different styling is needed */
+.delete-effect-unit {
+    padding: 3px 7px; /* Example, adjust as needed */
+    font-size: 0.85em; /* Example */
 }
 
 
@@ -188,54 +193,62 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border: 1px solid #eee;
     border-radius: 4px;
     padding: 10px;
-    max-height: 300px; /* Adjust as needed, or remove for full height */
+    max-height: 350px; /* Increased max-height slightly */
     overflow-y: auto;
-    background-color: #fdfdfd; /* Slightly different background for list area */
+    background-color: #fdfdfd;
 }
 .list-item {
-    display: flex; /* Use flex for better alignment */
-    justify-content: space-between; /* Push actions to the right */
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     padding: 8px 10px;
     border-bottom: 1px solid #f0f0f0;
-    cursor: grab; /* Indicate draggable items for SortableJS */
+    /* cursor: grab; */ /* Commented out if not using SortableJS or similar */
 }
 .list-item:last-child { border-bottom: none; }
 
-/* Styles for category list hierarchical display */
-.list-item .category-name-display {
-    flex-grow: 1; /* Allow name to take available space */
-    margin-right: 10px; /* Space before info/actions */
+/* Span inside list-item for general text content */
+.list-item > span { /* Direct child span for main text, including order input */
+    display: flex; /* Align order input and text */
+    align-items: center;
+    flex-grow: 1;
+    margin-right: 10px;
     word-break: break-word;
 }
-.list-item .category-info-display {
-    color: #555;
-    font-size: 0.85em; /* Slightly smaller */
-    margin-right: 10px;
-    white-space: nowrap; /* Prevent info from wrapping too early */
+.list-item .order-input {
+    padding: 4px 6px;
+    font-size: 0.9em;
+    text-align: right;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    width: 60px; /* Fixed width for order input */
+    margin-right: 8px; /* Space between order input and name */
     flex-shrink: 0; /* Prevent shrinking */
 }
-.list-item .category-actions,
-.list-item div:not(.category-name-display):not(.category-info-display) { /* General selector for action buttons container */
-    margin-left: auto; /* Push to the right if not using justify-content on list-item */
-    white-space: nowrap; /* Keep buttons on one line */
+.list-item .order-input:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25);
+}
+
+/* Action buttons container in list-item */
+.list-item div:last-child { /* Assuming action buttons are always in the last div */
+    white-space: nowrap;
     flex-shrink: 0;
 }
-.list-item div .action-button { /* Ensure buttons in the div have consistent margin */
+.list-item div .action-button {
     margin-left: 5px;
 }
 .list-item div .action-button:first-child {
     margin-left: 0;
 }
 
-/* SortableJS helper classes (optional, but good for visual feedback) */
+/* SortableJS helper classes (optional) */
 .sortable-ghost {
     opacity: 0.4;
-    background-color: #c8ebfb !important; /* Ensure high specificity */
+    background-color: #c8ebfb !important;
 }
 .sortable-chosen, .sortable-drag {
-    /* Styles for the item being dragged or chosen */
-    /* background-color: #f0f8ff !important; */ /* Example */
+    /* background-color: #f0f8ff !important; */
     /* box-shadow: 0 2px 5px rgba(0,0,0,0.1); */
 }
 
@@ -317,11 +330,11 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .effect-input-row select,
 .effect-input-row input {
-    flex: 1 1 120px; /* Allow shrinking but prefer 120px base */
+    flex: 1 1 120px;
 }
 .effect-input-row button {
     flex-shrink: 0;
-    margin-left: auto; /* Push to the right if space allows */
+    margin-left: auto;
 }
 .unit-display {
     display: inline-block;
@@ -329,9 +342,9 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     text-align: left;
     font-style: italic;
     color: #6c757d;
-    margin-left: -4px; /* Adjust spacing with input */
-    margin-right: 8px; /* Space before next element or button */
-    flex-shrink: 0; /* Prevent shrinking */
+    margin-left: -4px;
+    margin-right: 8px;
+    flex-shrink: 0;
 }
 
 
@@ -371,7 +384,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 #itemsTable img {
     max-width: 60px; max-height: 60px; object-fit: cover;
     background-color: #e9ecef; border-radius: 3px; border: 1px solid #ddd;
-    display: block; /* Prevents extra space below image */
+    display: block;
 }
 #itemsTable td button { margin-right: 5px; }
 #itemsTable td button:last-child { margin-right: 0; }
@@ -418,7 +431,17 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     color: #343a40; text-decoration: none;
 }
 
-.icon { margin-right: 7px; font-size: 1.1em; vertical-align: middle;} /* vertical-align追加 */
+.icon { margin-right: 7px; font-size: 1.1em; vertical-align: middle;}
+
+/* Edit Effect Units Modal specific styles */
+#editEffectUnitsModal .list-container { /* Overrides general .list-container for this modal if needed */
+    margin-bottom: 15px;
+    max-height: 200px; /* Shorter list for units */
+}
+#editEffectUnitsModal .list-item span { /* Unit text style */
+    font-size: 0.95em;
+}
+
 
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
@@ -430,10 +453,10 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     .inline-form button { width: 100%; margin-top: 5px; margin-right: 0; }
 
     .modal-content { width: 95%; padding: 20px; max-height: 90vh;}
-    #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; word-break: break-word; } /* word-break追加 */
+    #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; word-break: break-word; }
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
-    #itemSearchAdmin { width: 100% !important; } /* Ensure it takes full width on mobile */
+    #itemSearchAdmin { width: 100% !important; }
     .category-button-group.admin { justify-content: flex-start; }
     .effect-input-row { flex-direction: column; gap: 10px; align-items: stretch; }
     .effect-input-row select, .effect-input-row input, .effect-input-row button {
@@ -445,22 +468,19 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
      .effect-input-row button { margin-left: 0; margin-top: 5px; }
      .unit-display { display: block; text-align: left; margin-left: 0; margin-bottom: 5px; min-width: auto;}
 
-    .list-item { flex-wrap: wrap; /* Allow wrapping on small screens */ }
-    .list-item .category-name-display, .list-item span { /* span for general lists */
-        flex-basis: 100%; /* Name/main text takes full width first */
-        margin-bottom: 5px; /* Space before actions if they wrap */
-    }
-    .list-item .category-info-display {
-        flex-basis: 100%; /* Info also takes full width if it wraps */
+    .list-item { flex-wrap: wrap; }
+    .list-item > span { /* Target direct child span for main text */
+        flex-basis: 100%;
         margin-bottom: 5px;
-        font-size: 0.8em;
+        word-break: break-word; /* Ensure long names wrap */
     }
-    .list-item .category-actions, .list-item div:not(.category-name-display):not(.category-info-display) {
-        flex-basis: 100%; /* Actions take full width if they wrap */
-        margin-left: 0; /* Reset margin for wrapped actions */
-        display: flex; /* Align buttons in a row even when wrapped */
-        justify-content: flex-end; /* Align buttons to the right */
+    /* Adjusting for the div that contains action buttons */
+    .list-item div:last-child:not(:first-child) { /* If the div is the last child and not the only child */
+        flex-basis: 100%;
+        margin-left: 0;
+        display: flex;
+        justify-content: flex-end;
     }
-     .list-item div .action-button { margin-left: 5px; } /* Keep consistent spacing for buttons */
-     .list-item div .action-button:first-child { margin-left: 0; }
+    .list-item div .action-button { margin-left: 5px; }
+    .list-item div .action-button:first-child { margin-left: 0; }
 }
