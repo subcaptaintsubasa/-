@@ -79,27 +79,27 @@ h3 { font-size: 1.3em; }
 
 .form-control-short {
     max-width: 300px;
-    width: auto;
-    display: inline-block;
+    width: auto; /* Changed from 100% to auto for inline-block behavior */
+    display: inline-block; /* To allow side-by-side elements */
     vertical-align: middle;
-    margin-right: 8px;
+    margin-right: 8px; /* Space between short controls */
 }
 .form-control-short:last-child {
     margin-right: 0;
 }
 
 /* カテゴリ追加/編集の親カテゴリ選択ボタン用スタイル */
-.category-button-group.admin {
+.category-button-group.admin { /* Specific to admin page if needed */
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 5px;
+    margin-top: 5px; /* Space from label */
 }
 .category-select-button {
     padding: 6px 12px;
     background-color: #f8f9fa;
     border: 1px solid #ced4da;
-    border-radius: 15px;
+    border-radius: 15px; /* Rounded buttons */
     cursor: pointer;
     font-size: 0.9em;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
@@ -113,7 +113,7 @@ h3 { font-size: 1.3em; }
     border-color: #0056b3;
 }
 
-/* ラジオボタングループのスタイル */
+/* ★ラジオボタングループのスタイル */
 .radio-group {
     display: flex;
     gap: 15px; /* ラジオボタン間のスペース */
@@ -133,9 +133,11 @@ button, .button-like {
     background-color: #007bff; color: white; padding: 10px 18px;
     border: none; border-radius: 4px; cursor: pointer;
     margin-right: 8px; font-size: 1em; transition: background-color 0.2s;
-    vertical-align: middle;
+    vertical-align: middle; /* Align with other inline elements like inputs */
 }
 button:hover, .button-like:hover { background-color: #0056b3; }
+button:last-child { margin-right: 0; }
+
 
 button[type="button"], #clearFormButton { background-color: #6c757d; }
 button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62; }
@@ -146,19 +148,18 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     margin-left: 5px;
     color: white !important; /* Ensure text is white */
     border: none;
-    border-radius: 4px;
-    line-height: 1.2; /* Adjust line height for better vertical alignment */
+    border-radius: 4px; /* Consistent with other buttons */
 }
-.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type, .edit-effect-unit {
-    background-color: #28a745 !important;
+.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type { /* Edit buttons */
+    background-color: #28a745 !important; /* Green */
 }
-.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover, .edit-effect-unit:hover {
+.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover {
     background-color: #218838 !important;
 }
-.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list, .delete-effect-unit {
-    background-color: #dc3545 !important;
+.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-from-list { /* Delete buttons */
+    background-color: #dc3545 !important; /* Red */
 }
-.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-from-list:hover, .delete-effect-unit:hover {
+.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-from-list:hover {
     background-color: #c82333 !important;
 }
 .delete-effect-from-list {
@@ -166,26 +167,21 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     font-size: 0.8em;
     margin-left: 8px;
 }
-/* Specifically for delete unit button if different styling is needed */
-.delete-effect-unit {
-    padding: 3px 7px; /* Example, adjust as needed */
-    font-size: 0.85em; /* Example */
-}
 
 
 .info { font-size: 0.85em; color: #6c757d; margin-top: 6px; line-height: 1.4; }
 
-.info-message {
+.info-message { /* General info message box */
     font-size: 0.9em; color: #0c5460; background-color: #d1ecf1;
     border: 1px solid #bee5eb; padding: 10px 15px;
     border-radius: 4px; margin-top:10px;
 }
 
-.inline-form {
+.inline-form { /* For forms where elements are on the same line */
     display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
 }
 .inline-form input[type="text"] { flex-grow: 1; }
-/* .inline-form select { width: auto; flex-grow: 0.5; } */
+/* .inline-form select { width: auto; flex-grow: 0.5; } */ /* Adjust as needed */
 
 
 .list-container {
@@ -193,9 +189,8 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border: 1px solid #eee;
     border-radius: 4px;
     padding: 10px;
-    max-height: 350px; /* Increased max-height slightly */
+    max-height: 300px; /* Limit height and enable scroll */
     overflow-y: auto;
-    background-color: #fdfdfd;
 }
 .list-item {
     display: flex;
@@ -203,66 +198,26 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     align-items: center;
     padding: 8px 10px;
     border-bottom: 1px solid #f0f0f0;
-    /* cursor: grab; */ /* Commented out if not using SortableJS or similar */
 }
 .list-item:last-child { border-bottom: none; }
-
-/* Span inside list-item for general text content */
-.list-item > span { /* Direct child span for main text, including order input */
-    display: flex; /* Align order input and text */
-    align-items: center;
-    flex-grow: 1;
-    margin-right: 10px;
-    word-break: break-word;
-}
-.list-item .order-input {
-    padding: 4px 6px;
-    font-size: 0.9em;
-    text-align: right;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    width: 60px; /* Fixed width for order input */
-    margin-right: 8px; /* Space between order input and name */
-    flex-shrink: 0; /* Prevent shrinking */
-}
-.list-item .order-input:focus {
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25);
-}
-
-/* Action buttons container in list-item */
-.list-item div:last-child { /* Assuming action buttons are always in the last div */
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-.list-item div .action-button {
-    margin-left: 5px;
+.list-item span { flex-grow: 1; margin-right: 10px; word-break: break-word; }
+.list-item div .action-button { /* Container for action buttons in a list item */
+    margin-left: 5px; /* Space between buttons */
 }
 .list-item div .action-button:first-child {
     margin-left: 0;
 }
 
-/* SortableJS helper classes (optional) */
-.sortable-ghost {
-    opacity: 0.4;
-    background-color: #c8ebfb !important;
-}
-.sortable-chosen, .sortable-drag {
-    /* background-color: #f0f8ff !important; */
-    /* box-shadow: 0 2px 5px rgba(0,0,0,0.1); */
-}
-
-
 .checkbox-group-container {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-    max-height: 150px;
-    overflow-y: auto;
+    flex-direction: column; /* Stack checkboxes vertically */
+    gap: 5px; /* Space between checkbox items */
+    max-height: 150px; /* Limit height */
+    overflow-y: auto; /* Scroll if many checkboxes */
     border: 1px solid #eee;
     padding: 10px;
     border-radius: 4px;
-    background-color: #fdfdfd;
+    background-color: #fdfdfd; /* Slightly different background */
 }
 .checkbox-item {
     display: flex;
@@ -270,17 +225,17 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .checkbox-item input[type="checkbox"] {
     margin-right: 8px;
-    width: auto;
-    padding: initial;
-    border: initial;
-    box-shadow: none;
+    width: auto; /* Override full-width from .form-group */
+    padding: initial; /* Reset padding */
+    border: initial;  /* Reset border */
+    box-shadow: none; /* Reset box-shadow */
 }
 .checkbox-item input[type="checkbox"]:focus {
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); /* Focus style */
 }
 .checkbox-item label {
-    font-weight: normal;
-    margin-bottom: 0;
+    font-weight: normal; /* Labels for checkboxes usually normal weight */
+    margin-bottom: 0; /* Override from .form-group label */
 }
 
 /* カテゴリ編集モーダル内のタグ選択ボタン用コンテナ */
@@ -288,15 +243,15 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    max-height: 150px;
-    overflow-y: auto;
+    max-height: 150px; /* Limit height */
+    overflow-y: auto; /* Scroll if many tags */
     border: 1px solid #eee;
     padding: 10px;
     border-radius: 4px;
     background-color: #fdfdfd;
 }
 /* カテゴリ編集モーダル内のタグ選択ボタン */
-.tag-filter.admin-tag-select {
+.tag-filter.admin-tag-select { /* Using .tag-filter base from user CSS for consistency */
     padding: 6px 10px;
     background-color: #f0f0f0;
     border: 1px solid #ddd;
@@ -309,7 +264,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
      background-color: #e0e0e0;
 }
 .tag-filter.admin-tag-select.active {
-    background-color: #28a745;
+    background-color: #28a745; /* Green, same as user-side active tag */
     color: white;
     border-color: #1e7e34;
 }
@@ -323,28 +278,28 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .effect-input-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 8px; /* Space between elements */
+    align-items: center; /* Align items vertically */
     margin-bottom: 15px;
 }
 .effect-input-row select,
 .effect-input-row input {
-    flex: 1 1 120px;
+    flex: 1 1 120px; /* Allow shrinking but base width 120px */
 }
 .effect-input-row button {
-    flex-shrink: 0;
-    margin-left: auto;
+    flex-shrink: 0; /* Button should not shrink */
+    margin-left: auto; /* Push button to the right if space allows */
 }
+/* ★追加: 効果単位表示用 */
 .unit-display {
     display: inline-block;
-    min-width: 40px;
+    min-width: 40px; /* Ensure some space for the unit */
     text-align: left;
     font-style: italic;
     color: #6c757d;
-    margin-left: -4px;
-    margin-right: 8px;
-    flex-shrink: 0;
+    margin-left: -4px; /* Adjust spacing with input field */
+    margin-right: 8px; /* Space before next element */
 }
 
 
@@ -353,8 +308,8 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     margin-top: 10px;
     border-top: 1px dashed #ccc;
     padding-top: 10px;
-    max-height: 150px;
-    overflow-y: auto;
+    max-height: 150px; /* Limit height */
+    overflow-y: auto; /* Scroll if many effects */
 }
 .effect-list-item {
     display: flex;
@@ -368,7 +323,6 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 }
 .effect-list-item span {
     font-size: 0.9em;
-    word-break: break-word;
 }
 
 
@@ -384,7 +338,6 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 #itemsTable img {
     max-width: 60px; max-height: 60px; object-fit: cover;
     background-color: #e9ecef; border-radius: 3px; border: 1px solid #ddd;
-    display: block;
 }
 #itemsTable td button { margin-right: 5px; }
 #itemsTable td button:last-child { margin-right: 0; }
@@ -395,12 +348,12 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     padding: 5px; background-color: #f8f9fa; max-width: 100px; max-height: 100px;
 }
 #uploadProgressContainer { margin-top: 10px; }
-#uploadProgress { width: 100%; height: 20px; margin-bottom: 5px; }
+#uploadProgress { width: 100%; height: 20px; margin-bottom: 5px; } /* Standard progress bar */
 #uploadProgressText { font-size: 0.9em; color: #495057; }
 
-.modal {
+.modal { /* Admin modal styles, similar to user modal */
     position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%;
-    overflow: auto; background-color: rgba(0,0,0,0.6); display: none;
+    overflow: auto; background-color: rgba(0,0,0,0.6); display: none; /* ★デフォルト非表示 */
     align-items: center; justify-content: center;
 }
 .modal-content {
@@ -408,79 +361,52 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     border: none; width: 90%; max-width: 550px; border-radius: 8px;
     position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     animation: fadeInModal 0.3s ease-out;
-    display: flex;
-    flex-direction: column;
-    max-height: 90vh;
+    display: flex; /* ★追加 */
+    flex-direction: column; /* ★追加 */
+    max-height: 90vh; /* ★追加 */
 }
 @keyframes fadeInModal {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
 }
-.modal-content h3 {
+.modal-content h3 { /* Modal title */
     margin-top: 0; margin-bottom: 20px; font-size: 1.5em; color: #343a40;
     border-bottom: 1px solid #eee; padding-bottom: 10px;
-    flex-shrink: 0;
+    flex-shrink: 0; /* ★追加 */
 }
 .close-button {
     color: #6c757d; position: absolute; top: 15px; right: 20px;
     font-size: 28px; font-weight: bold; line-height: 1;
-    cursor: pointer; z-index: 10;
+    cursor: pointer; z-index: 10; /* ★追加 */
 }
 .close-button:hover,
 .close-button:focus {
     color: #343a40; text-decoration: none;
 }
 
-.icon { margin-right: 7px; font-size: 1.1em; vertical-align: middle;}
-
-/* Edit Effect Units Modal specific styles */
-#editEffectUnitsModal .list-container { /* Overrides general .list-container for this modal if needed */
-    margin-bottom: 15px;
-    max-height: 200px; /* Shorter list for units */
-}
-#editEffectUnitsModal .list-item span { /* Unit text style */
-    font-size: 0.95em;
-}
-
+.icon { margin-right: 7px; font-size: 1.1em; } /* Simple icon styling */
 
 @media (max-width: 768px) {
     .container { margin: 15px; padding: 15px; }
     header h1 { font-size: 1.5em; }
-    .inline-form {
+    .inline-form { /* Stack elements in inline forms on small screens */
        flex-direction: column; align-items: stretch;
+       input[type="text"], select { width: 100%; }
+       button { width: 100%; margin-top: 5px; }
     }
-    .inline-form input[type="text"], .inline-form select { width: 100%; max-width: none; }
-    .inline-form button { width: 100%; margin-top: 5px; margin-right: 0; }
-
     .modal-content { width: 95%; padding: 20px; max-height: 90vh;}
-    #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; word-break: break-word; }
+    #itemsTable th, #itemsTable td { padding: 8px 6px; font-size: 0.9em; }
     #itemsTable img { max-width: 40px; max-height: 40px; }
     #itemsTable td button { padding: 4px 6px; font-size: 0.8em; }
-    #itemSearchAdmin { width: 100% !important; }
-    .category-button-group.admin { justify-content: flex-start; }
-    .effect-input-row { flex-direction: column; gap: 10px; align-items: stretch; }
+    #itemSearchAdmin { width: 100% !important; } /* Full width search on mobile */
+    .category-button-group.admin { justify-content: flex-start; } /* Align buttons to start */
+    .effect-input-row { flex-direction: column; gap: 10px; align-items: stretch; } /* Stack effect inputs */
     .effect-input-row select, .effect-input-row input, .effect-input-row button {
         width: 100%;
         margin-right: 0;
-        max-width: none;
-        flex-basis: auto;
+        max-width: none; /* Override max-width for full width */
+        flex-basis: auto; /* Reset flex-basis */
     }
-     .effect-input-row button { margin-left: 0; margin-top: 5px; }
-     .unit-display { display: block; text-align: left; margin-left: 0; margin-bottom: 5px; min-width: auto;}
-
-    .list-item { flex-wrap: wrap; }
-    .list-item > span { /* Target direct child span for main text */
-        flex-basis: 100%;
-        margin-bottom: 5px;
-        word-break: break-word; /* Ensure long names wrap */
-    }
-    /* Adjusting for the div that contains action buttons */
-    .list-item div:last-child:not(:first-child) { /* If the div is the last child and not the only child */
-        flex-basis: 100%;
-        margin-left: 0;
-        display: flex;
-        justify-content: flex-end;
-    }
-    .list-item div .action-button { margin-left: 5px; }
-    .list-item div .action-button:first-child { margin-left: 0; }
+     .effect-input-row button { margin-left: 0; margin-top: 5px; } /* Adjust button margin */
+     .unit-display { display: block; text-align: left; margin-left: 0; margin-bottom: 5px; } /* スマホでは単位表示を調整 */
 }
