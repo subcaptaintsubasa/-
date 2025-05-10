@@ -117,7 +117,8 @@ body {
     animation: fadeInModal 0.3s ease-out;
     display: flex;
     flex-direction: column;
-    max-height: 90vh;
+    max-height: 90vh; /* ★デフォルトの最大高さを設定 */
+    overflow-y: auto; /* ★内容が多い場合にスクロール可能に */
 }
 @keyframes fadeInModal {
     from { opacity: 0; transform: translateY(-20px); }
@@ -144,6 +145,7 @@ body {
 /* --- 装備構成シミュレーター (モーダル内) --- */
 .simulator-modal .modal-content {
     max-width: 900px;
+    /* スマホでの高さを調整 */
 }
 
 .equipment-slots {
@@ -226,7 +228,8 @@ body {
     border-radius: 5px;
     background-color: #f9f9f9;
     overflow-y: auto;
-    flex-grow: 1;
+    flex-grow: 1; /* 空きスペースを埋める */
+    min-height: 100px; /* ★内容が少なくても最低限の高さを確保 */
 }
 .calculation-result-area h3 {
     margin-top: 0;
@@ -248,10 +251,27 @@ body {
 .simulator-actions {
     margin-top: 20px;
     display: flex;
+    flex-wrap: wrap; /* スマホでボタンが折り返すように */
     gap: 10px;
     justify-content: flex-end;
     flex-shrink: 0;
 }
+/* ★プレビューボタン用の共通ボタンスタイル */
+.button-like-secondary {
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    border-radius: 5px;
+    border: 1px solid #6c757d;
+    background-color: #6c757d;
+    color: white;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.button-like-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
 #saveImageButton, #resetSimulatorButton {
      padding: 10px 20px;
      font-size: 1em;
@@ -323,6 +343,17 @@ body {
 }
 #exportEffects li {
      margin-bottom: 4px;
+}
+
+/* 画像プレビューモーダル */
+.image-preview-modal .modal-content {
+    max-width: 90%;
+    max-height: 90vh;
+    padding: 15px;
+}
+.image-preview-modal-content img {
+    display: block;
+    margin: 0 auto; /* 中央寄せ */
 }
 
 
@@ -484,7 +515,7 @@ body {
     padding: 10px 15px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.07);
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* ★画像を上、詳細をその横に配置するため top ではなく flex-start */
     gap: 15px;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
@@ -504,6 +535,7 @@ body {
 
 .item-card .item-image-container {
     flex-shrink: 0;
+    margin-right: 10px; /* 画像と詳細の間隔 */
 }
 .item-card img, .item-image-text-placeholder {
     width: 40px;
@@ -529,20 +561,21 @@ body {
     flex-grow: 1;
     min-width: 0;
 }
-.item-card h3 {
+.item-card h3 { /* 名前 */
     margin: 0 0 5px 0;
     font-size: 1.1em;
     color: #0056b3;
     word-break: break-word;
     line-height: 1.3;
 }
-.item-card .item-info-row {
+.item-card .item-info-row { /* 効果、入手手段、売値などをまとめて表示する行 */
     display: flex;
-    flex-wrap: wrap;
-    gap: 5px 15px;
+    flex-direction: column; /* スマホ以外でも縦に並べる方が見やすいかも */
+    gap: 3px; /* 各情報間の間隔 */
     font-size: 0.9em;
     color: #444;
     line-height: 1.4;
+    margin-bottom: 8px; /* タグとの間隔 */
 }
 .item-card .item-info-row > div,
 .item-card .item-info-row > p {
@@ -554,19 +587,10 @@ body {
     margin-right: 0.3em;
 }
 
-.item-card .structured-effects,
 .item-card .tags {
-    margin-top: 8px;
+    margin-top: auto; /* タグをカード下部に押しやる（もしflex-direction:columnの場合） */
     font-size: 0.85em;
     color: #555;
-}
-.item-card .structured-effects ul {
-    list-style: disc;
-    padding-left: 18px;
-    margin: 3px 0 0 0;
-}
-.item-card .structured-effects li {
-    margin-bottom: 2px;
 }
 .item-card .tags span {
     background-color: #f0f0f0;
@@ -577,7 +601,7 @@ body {
     display: inline-block;
 }
 
-/* ★ページネーションコントロールのスタイル */
+
 .pagination-controls {
     margin-top: 25px;
     display: flex;
@@ -637,15 +661,27 @@ body {
     .side-navigation.open { width: 200px; }
     .container { margin-top: 70px; }
 
-
+    .simulator-modal .modal-content {
+        max-height: 85vh; /* スマホでのモーダルの高さを少し調整 */
+    }
     .equipment-slots {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
+        grid-template-columns: 1fr; /* スマホでは1列表示 */
+        gap: 10px;
     }
     .slot { padding: 10px; }
-    .simulator-actions { flex-direction: column; align-items: stretch; }
-    #saveImageButton, #resetSimulatorButton { width: 100%; margin-right: 0; margin-bottom: 10px; }
-    #resetSimulatorButton:last-child { margin-bottom: 0; }
+    .simulator-actions {
+        flex-direction: row; /* ボタンを横並びに戻すか、必要ならcolumn */
+        flex-wrap: wrap;
+        justify-content: space-around; /* ボタン間のスペースを均等に */
+    }
+    .simulator-actions button {
+        flex-grow: 1; /* ボタンが利用可能なスペースを分け合う */
+        margin-bottom: 10px;
+    }
+    #saveImageButton, #resetSimulatorButton, .button-like-secondary {
+        width: auto; /* 自動幅に戻す */
+        min-width: 120px; /* 最低幅 */
+    }
 
 
     .category-button-group { justify-content: center; }
@@ -654,27 +690,29 @@ body {
     .tag-filter { padding: 5px 8px; font-size: 0.8em; }
 
     .item-card {
-        /* スマホでは各情報ブロックを縦積みに戻す */
-        flex-direction: column;
-        align-items: flex-start;
+        /* スマホでは画像と詳細を縦にしても良いが、一旦横並びを維持し、詳細内で調整 */
+        align-items: flex-start; /* 画像と詳細ブロックの上端揃え */
     }
     .item-card .item-image-container {
-        align-self: center; /* 画像は中央に */
-        margin-bottom: 10px;
+        margin-right: 8px; /* 少し詰める */
     }
-    .item-card .item-details {
-        width: 100%; /* 詳細部分の幅を100%に */
+    .item-card img, .item-image-text-placeholder {
+        width: 35px; /* スマホではさらに小さく */
+        height: 35px;
+    }
+    .item-card h3 {
+        font-size: 1em; /* 名前を少し小さく */
     }
     .item-card .item-info-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 3px;
+        font-size: 0.85em; /* 詳細情報を少し小さく */
+        gap: 2px 10px; /* 間隔調整 */
     }
-    .item-card .item-info-row > div,
-    .item-card .item-info-row > p {
-        width: 100%; /* 各情報ブロックも幅100% */
+    .item-card .tags {
+        font-size: 0.8em;
     }
-
+    .item-card .tags span {
+        padding: 2px 6px;
+    }
 
      .confirm-selection-button {
         padding: 10px 20px;
