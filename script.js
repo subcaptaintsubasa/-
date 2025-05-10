@@ -29,20 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemList = document.getElementById('itemList');
     const itemCountDisplay = document.getElementById('itemCount');
     const resetFiltersButton = document.getElementById('resetFiltersButton');
-    // const openSimulatorButton = document.getElementById('openSimulatorButton'); // ナビゲーションへ移動
     const simulatorModal = document.getElementById('simulatorModal');
     const confirmSelectionButton = document.getElementById('confirmSelectionButton');
     const searchToolMessage = document.getElementById('searchToolMessage');
     const searchControlsElement = document.querySelector('.search-controls');
 
-    // Hamburger Menu Elements
     const hamburgerButton = document.getElementById('hamburgerButton');
     const sideNav = document.getElementById('sideNav');
     const closeNavButton = document.getElementById('closeNavButton');
     const openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
 
 
-    // Simulator DOM
     const equipmentSlotsContainer = document.querySelector('.equipment-slots');
     const totalEffectsDisplay = document.getElementById('totalEffectsDisplay');
     const saveImageButton = document.getElementById('saveImageButton');
@@ -51,24 +48,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportSlots = document.getElementById('exportSlots');
     const exportEffects = document.getElementById('exportEffects');
 
-    // --- Data Cache ---
     let allItems = [];
     let allCategories = [];
     let allTags = [];
     let effectTypesCache = [];
 
-    // --- Search Tool State ---
     let selectedParentCategoryIds = [];
     let selectedTagIds = [];
     let isSelectingForSimulator = false;
 
-    // --- Simulator State ---
     const equipmentSlots = ["服", "顔", "首", "腕", "背中", "足"];
     let selectedEquipment = {};
     let currentSelectingSlot = null;
     let temporarilySelectedItem = null;
 
-    // --- Hamburger Menu Logic ---
     if (hamburgerButton) {
         hamburgerButton.addEventListener('click', () => {
             sideNav.classList.add('open');
@@ -79,15 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
             sideNav.classList.remove('open');
         });
     }
-    // Close nav if clicking outside of it (optional)
-    // document.addEventListener('click', (event) => {
-    //     if (sideNav.classList.contains('open') && !sideNav.contains(event.target) && event.target !== hamburgerButton) {
-    //         sideNav.classList.remove('open');
-    //     }
-    // });
 
 
-    // --- Initial Data Load ---
     async function loadData() {
         console.log("Loading data...");
         try {
@@ -265,11 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             let isDisabledTag = false;
                             if (isSelectingForSimulator) {
-                                if (childCat.name !== SIMULATOR_EFFECT_CHILD_CATEGORY_NAME) {
+                                // 「効果」カテゴリ以外のタグ、かつ、現在選択中の部位タグでもない場合は無効
+                                if (childCat.name !== SIMULATOR_EFFECT_CHILD_CATEGORY_NAME && tag.id !== EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
                                      isDisabledTag = true;
-                                     if (isSlotTag && tag.id === EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
-                                         isDisabledTag = false;
-                                     }
                                 }
                             }
 
@@ -341,7 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             itemCard.dataset.itemId = item.docId;
 
-            // Image Part
             const imageContainer = document.createElement('div');
             imageContainer.classList.add('item-image-container');
             let imageElement;
@@ -358,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
             imageContainer.appendChild(imageElement);
             itemCard.appendChild(imageContainer);
 
-            // Details Part
             const detailsContainer = document.createElement('div');
             detailsContainer.classList.add('item-details');
 
@@ -369,7 +351,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const infoRow = document.createElement('div');
             infoRow.classList.add('item-info-row');
 
-            // Effects
             if (item.structured_effects && item.structured_effects.length > 0) {
                 const effectsDiv = document.createElement('div');
                 effectsDiv.innerHTML = '<strong>効果:</strong> ';
@@ -386,20 +367,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 infoRow.appendChild(noEffects);
             }
 
-            // Source
             const sourceP = document.createElement('div');
             sourceP.innerHTML = `<strong>入手:</strong> ${item.入手手段 || 'Coming Soon'}`;
             infoRow.appendChild(sourceP);
 
-            // Price
             const priceP = document.createElement('div');
             priceP.innerHTML = `<strong>売値:</strong> ${(typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : 'Coming Soon'}`;
             infoRow.appendChild(priceP);
 
             detailsContainer.appendChild(infoRow);
 
-
-            // Tags (non-slot tags)
             const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null);
             if (item.tags && item.tags.length > 0) {
                 const displayableTags = item.tags.map(tagId => {
@@ -439,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function filterAndRenderItems() {
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
-        const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null);
+        // const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null); // filterAndRenderItems内では直接使われなくなった
 
         let filteredItems = allItems.filter(item => {
             if (isSelectingForSimulator && currentSelectingSlot) {
@@ -449,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (searchTerm) {
+            if (searchTerm && !isSelectingForSimulator) { // 通常検索時のみ検索語で絞り込み（シミュレーター時はUIから制御）
                 const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
                 const sourceMatch = item.入手手段 && item.入手手段.toLowerCase().includes(searchTerm);
                 const priceMatch = typeof item.price === 'number' && String(item.price).includes(searchTerm);
@@ -463,10 +440,21 @@ document.addEventListener('DOMContentLoaded', () => {
                            `${valueText}${unitText}`.includes(searchTerm);
                 });
                 if (!nameMatch && !sourceMatch && !effectMatch && !priceMatch) return false;
+            } else if (searchTerm && isSelectingForSimulator) { // シミュレーター選択時も検索バーを有効にする
+                 const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
+                 // シミュレーター選択時は名前でのみ検索（シンプル化のため。必要なら他も追加）
+                 if (!nameMatch) return false;
             }
 
+
             if (selectedParentCategoryIds.length > 0) {
-                if (!isSelectingForSimulator || (isSelectingForSimulator && !selectedParentCategoryIds.some(id => allCategories.find(c=>c.id === id)?.name === SIMULATOR_PARENT_CATEGORY_NAME))) {
+                let matchesSelectedParent = true;
+                if (isSelectingForSimulator) {
+                    const equipmentParent = allCategories.find(c => c.name === SIMULATOR_PARENT_CATEGORY_NAME && (!c.parentId || c.parentId === ""));
+                    if (!equipmentParent || !selectedParentCategoryIds.includes(equipmentParent.id)) {
+                        matchesSelectedParent = false; // 「装備」親カテゴリが選択されていなければ不一致
+                    }
+                } else { // 通常検索
                     const itemChildCategoryIds = (item.tags || []).reduce((acc, tagId) => {
                         const tag = allTags.find(t => t.id === tagId);
                         if (tag && tag.categoryIds) {
@@ -480,29 +468,30 @@ document.addEventListener('DOMContentLoaded', () => {
                         return acc;
                     }, new Set());
 
-                    const matchesAnySelectedParent = selectedParentCategoryIds.some(selectedParentId => {
+                    matchesSelectedParent = selectedParentCategoryIds.some(selectedParentId => {
                         return Array.from(itemChildCategoryIds).some(itemCatId => {
                             const category = allCategories.find(c => c.id === itemCatId);
                             return category && category.parentId === selectedParentId;
                         });
                     });
-                    if (!matchesAnySelectedParent) return false;
                 }
+                 if (!matchesSelectedParent) return false;
             }
 
+
             if (selectedTagIds.length > 0) {
-                let tagsToFilterByEffective = [...selectedTagIds];
+                let tagsToActuallyFilterBy = [...selectedTagIds];
                 if (isSelectingForSimulator && currentSelectingSlot) {
+                     // 部位タグは既にチェック済みなので、ここではそれ以外のタグ（効果カテゴリのタグなど）で絞る
                     const currentSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
-                    tagsToFilterByEffective = selectedTagIds.filter(tid => tid !== currentSlotTagId);
+                    tagsToActuallyFilterBy = selectedTagIds.filter(tid => tid !== currentSlotTagId);
                 }
 
-
-                if (tagsToFilterByEffective.length > 0) {
+                if (tagsToActuallyFilterBy.length > 0) {
                     let effectiveSearchMode = 'AND';
                     const categoriesOfSelectedTags = new Map();
 
-                    tagsToFilterByEffective.forEach(tagId => {
+                    tagsToActuallyFilterBy.forEach(tagId => {
                         const tag = allTags.find(t => t.id === tagId);
                         if (tag && tag.categoryIds) {
                             tag.categoryIds.forEach(catId => {
@@ -522,17 +511,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (categoriesOfSelectedTags.size === 1) {
                         const [catData] = categoriesOfSelectedTags.values();
-                        if (catData.mode === 'OR' && catData.tags.length === tagsToFilterByEffective.length) {
+                        if (catData.mode === 'OR' && catData.tags.length === tagsToActuallyFilterBy.length) {
                             effectiveSearchMode = 'OR';
                         }
                     }
 
                     if (effectiveSearchMode === 'OR') {
-                        if (!tagsToFilterByEffective.some(tagId => item.tags && item.tags.includes(tagId))) {
+                        if (!tagsToActuallyFilterBy.some(tagId => item.tags && item.tags.includes(tagId))) {
                             return false;
                         }
                     } else {
-                        if (!tagsToFilterByEffective.every(tagId => item.tags && item.tags.includes(tagId))) {
+                        if (!tagsToActuallyFilterBy.every(tagId => item.tags && item.tags.includes(tagId))) {
                             return false;
                         }
                     }
@@ -603,6 +592,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         selectedTagIds = [slotTagId];
 
+        if (searchInput) searchInput.disabled = false; // 検索バーは常に有効
+
+
         renderParentCategoryFilters();
         renderChildCategoriesAndTags();
         filterAndRenderItems();
@@ -619,9 +611,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
-        if(searchInput) searchInput.disabled = false;
-        // searchControlsElement の selecting-mode は使わない方針
     }
 
 
@@ -812,13 +801,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Changed to openSimulatorButtonNav for the button inside the nav
     if (openSimulatorButtonNav) {
         openSimulatorButtonNav.addEventListener('click', () => {
             if (isSelectingForSimulator) return;
             if (simulatorModal) simulatorModal.style.display = 'flex';
             initializeSimulatorDisplay();
-            if (sideNav) sideNav.classList.remove('open'); // Close nav after clicking
+            if (sideNav) sideNav.classList.remove('open');
         });
     }
 
@@ -839,7 +827,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 cancelItemSelection();
             }
         }
-        // Close nav if clicking outside of it and it's open
         if (sideNav.classList.contains('open') && !sideNav.contains(event.target) && event.target !== hamburgerButton) {
             sideNav.classList.remove('open');
         }
@@ -853,8 +840,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchToolMessage) searchToolMessage.style.display = 'none';
         if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
         if(searchInput) searchInput.disabled = false;
-        // if(searchControlsElement) searchControlsElement.classList.remove('selecting-mode');
-
 
         selectedParentCategoryIds = [];
         selectedTagIds = [];
