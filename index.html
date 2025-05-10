@@ -37,7 +37,7 @@
              <div id="searchToolMessage" class="search-tool-message" style="display: none;"></div>
             <div id="itemCount"></div>
             <div id="itemList" class="item-list"></div>
-            <div id="paginationControls" class="pagination-controls"></div> {/* ★ページネーションコントロール用 */}
+            <div id="paginationControls" class="pagination-controls"></div>
         </section>
 
          <button id="confirmSelectionButton" class="confirm-selection-button" style="display: none;">このアイテムに決定</button>
@@ -114,6 +114,7 @@
              </div>
 
              <div class="simulator-actions">
+                 <button id="previewImageButton" class="button-like-secondary">プレビュー表示</button> {/* ★プレビューボタン追加 */}
                  <button id="saveImageButton">構成を画像として保存</button>
                  <button id="resetSimulatorButton">構成をリセット</button>
              </div>
@@ -126,6 +127,16 @@
              </div>
          </div>
      </div>
+
+     <!-- ★画像プレビュー用モーダル -->
+     <div id="imagePreviewModal" class="modal image-preview-modal" style="display: none;">
+        <div class="modal-content image-preview-modal-content">
+            <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+            <h2>画像プレビュー</h2>
+            <img id="generatedImagePreview" src="#" alt="生成された画像プレビュー" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
+        </div>
+    </div>
+
 
     <script type="module" src="script.js"></script>
 </body>
