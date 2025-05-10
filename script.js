@@ -804,12 +804,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedOption.effects.forEach(effect => {
                     const { type: effectTypeId, value, unit } = effect;
                     if (!effectTypeId || typeof value !== 'number') return;
-
                     const effectTypeInfo = effectTypesCache.find(et => et.id === effectTypeId);
-                    if (!effectTypeInfo) { console.warn(`Char Base: Unknown effect type ID: ${effectTypeId}`); return; }
-
+                    if (!effectTypeInfo) return;
                     const calculationMethod = effectTypeInfo.calculationMethod || 'sum';
-                    const sumCap = typeof effectTypeInfo.sumCap === 'number' ? effectTypeInfo.sumCap : null; // ★上限値を取得
+                    let sumCap = typeof effectTypeInfo.sumCap === 'number' ? effectTypeInfo.sumCap : Infinity;
                     const currentUnit = unit || 'none';
                     const effectKey = `${effectTypeId}_${currentUnit}`;
 
@@ -817,8 +815,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         totalEffectsMap.set(effectKey, { typeId: effectTypeId, typeName: effectTypeInfo.name, value: 0, unit: currentUnit, calculationMethod: calculationMethod, sumCap: sumCap, valuesForMax: [] });
                     }
                     const currentEffectData = totalEffectsMap.get(effectKey);
-                    if (calculationMethod === 'max') currentEffectData.valuesForMax.push(value);
-                    else currentEffectData.value += value;
+                    if (calculationMethod === 'max') {
+                         currentEffectData.valuesForMax.push(value);
+                    } else { // sum
+                        currentEffectData.value = Math.min(currentEffectData.value + value, currentEffectData.sumCap);
+                    }
                 });
             }
         });
@@ -833,10 +834,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { type: effectTypeId, value, unit } = effect;
                 if (!effectTypeId || typeof value !== 'number') return;
                 const effectTypeInfo = effectTypesCache.find(et => et.id === effectTypeId);
-                if (!effectTypeInfo) { console.warn(`Item: Unknown effect type ID: ${effectTypeId} for item ID: ${itemId}`); return; }
-
+                if (!effectTypeInfo) return;
                 const calculationMethod = effectTypeInfo.calculationMethod || 'sum';
-                const sumCap = typeof effectTypeInfo.sumCap === 'number' ? effectTypeInfo.sumCap : null; // ★上限値を取得
+                let sumCap = typeof effectTypeInfo.sumCap === 'number' ? effectTypeInfo.sumCap : Infinity;
                 const currentUnit = unit || 'none';
                 const effectKey = `${effectTypeId}_${currentUnit}`;
 
@@ -844,16 +844,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     totalEffectsMap.set(effectKey, { typeId: effectTypeId, typeName: effectTypeInfo.name, value: 0, unit: currentUnit, calculationMethod: calculationMethod, sumCap: sumCap, valuesForMax: [] });
                 }
                 const currentEffectData = totalEffectsMap.get(effectKey);
-                if (calculationMethod === 'max') currentEffectData.valuesForMax.push(value);
-                else currentEffectData.value += value;
+                if (calculationMethod === 'max') {
+                    currentEffectData.valuesForMax.push(value);
+                } else { // sum
+                     currentEffectData.value = Math.min(currentEffectData.value + value, currentEffectData.sumCap);
+                }
             });
         });
 
         totalEffectsMap.forEach(effectData => {
             if (effectData.calculationMethod === 'max' && effectData.valuesForMax.length > 0) {
                 effectData.value = Math.max(...effectData.valuesForMax);
-            } else if (effectData.calculationMethod === 'sum' && effectData.sumCap !== null && effectData.value > effectData.sumCap) {
-                effectData.value = effectData.sumCap; // ★上限値を適用
             }
         });
 
@@ -903,19 +904,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (exportCharBase) {
             exportCharBase.innerHTML = '<h4>基礎情報:</h4>';
             let hasBaseInfo = false;
+            const baseTypeDisplayNames = { // 日本語表示用
+                headShape: "頭の形",
+                correction: "補正",
+                color: "色",
+                pattern: "柄"
+            };
             characterBaseTypes.forEach(baseTypeKey => {
                 const selectedOption = selectedCharacterBase[baseTypeKey];
                 if (selectedOption && selectedOption.name) {
-                    let label = '';
-                    if (baseTypeKey === 'headShape') label = '頭の形';
-                    else if (baseTypeKey === 'correction') label = '補正';
-                    else if (baseTypeKey === 'color') label = '色';
-                    else if (baseTypeKey === 'pattern') label = '柄';
-
-                    if (label) {
-                        exportCharBase.innerHTML += `<div><strong>${label}:</strong> ${selectedOption.name}</div>`;
-                        hasBaseInfo = true;
-                    }
+                    const label = baseTypeDisplayNames[baseTypeKey] || baseTypeKey;
+                    exportCharBase.innerHTML += `<div><strong>${label}:</strong> ${selectedOption.name}</div>`;
+                    hasBaseInfo = true;
                 }
             });
             if (!hasBaseInfo && exportCharBase.innerHTML === '<h4>基礎情報:</h4>') {
