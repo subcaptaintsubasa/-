@@ -61,7 +61,6 @@
              <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
              <h2>装備構成シミュレーター</h2>
 
-             <!-- ★キャラクター基礎情報選択セクション -->
              <div class="character-base-selection">
                  <h3>キャラクター基礎情報</h3>
                  <div class="base-selectors">
@@ -69,7 +68,6 @@
                          <label for="charBaseHeadShape">頭の形:</label>
                          <select id="charBaseHeadShape" data-base-type="headShape">
                              <option value="">選択なし</option>
-                             {/* オプションはJSで動的に追加 */}
                          </select>
                      </div>
                      <div class="base-selector-group">
@@ -92,11 +90,10 @@
                      </div>
                  </div>
              </div>
-             <hr class="sub-divider"> {/* 区切り線 */}
+             <hr class="sub-divider">
 
 
              <div class="equipment-slots">
-                 {/* ... 既存の装備スロット ... */}
                  <div class="slot" id="slot-服" data-slot-name="服">
                      <label>服:</label>
                      <div class="selected-item-display">
@@ -168,7 +165,7 @@
 
               <div id="imageExportArea" class="image-export-container">
                  <h2>装備構成</h2>
-                 <div id="exportCharBase" class="export-char-base"></div> {/* ★基礎情報エクスポート用 */}
+                 <div id="exportCharBase" class="export-char-base"></div>
                  <div id="exportSlots" class="export-slots-grid"></div>
                  <h3>発動効果 合計:</h3>
                  <div id="exportEffects"></div>
