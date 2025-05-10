@@ -1,13 +1,96 @@
 body {
     font-family: sans-serif; margin: 0; background-color: #f4f4f4; color: #333;
 }
+
+/* ヘッダースタイル */
+.site-header {
+    background-color: #343a40;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky; /* スクロール追従 */
+    top: 0;
+    z-index: 1000; /* 他の要素より手前に */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.site-title {
+    margin: 0;
+    font-size: 1.5em;
+}
+.hamburger-button {
+    font-size: 1.8em;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 5px 10px;
+}
+
+/* サイドナビゲーションパネル */
+.side-navigation {
+    height: 100%;
+    width: 0; /* 初期状態では非表示 */
+    position: fixed;
+    z-index: 10002; /* ヘッダーより手前、モーダルよりは奥でも良い */
+    top: 0;
+    right: 0;
+    background-color: #222; /* 少し濃いめの背景 */
+    overflow-x: hidden;
+    transition: 0.3s ease-in-out; /* スムーズな開閉 */
+    padding-top: 60px; /* ヘッダーとかぶらないように */
+    box-shadow: -3px 0 8px rgba(0,0,0,0.3);
+}
+.side-navigation.open {
+    width: 250px; /* 開いたときの幅 */
+}
+.side-navigation ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.side-navigation li .nav-button {
+    padding: 15px 20px;
+    text-decoration: none;
+    font-size: 1.1em;
+    color: #f1f1f1;
+    display: block;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.side-navigation li .nav-button:hover {
+    background-color: #444;
+}
+.close-nav-button {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 2em;
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+}
+.close-nav-button:hover {
+    color: white;
+}
+
+
 .container {
     width: 90%; max-width: 1200px; margin: 20px auto; padding: 20px;
     background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px;
+    margin-top: 80px; /* ヘッダーの高さ分マージン */
 }
+/* h1 は .site-title に移動したので削除またはコメントアウト
 h1 { text-align: center; color: #333; margin-bottom: 30px; }
+*/
 
-/* メインコントロールエリア */
+/* メインコントロールエリアはナビゲーションに移動したため不要なら削除
 .main-controls {
     text-align: center;
     margin-bottom: 20px;
@@ -25,7 +108,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 #openSimulatorButton:hover {
     background-color: #138496;
 }
-
+*/
 .section-divider {
     border: 0;
     height: 1px;
@@ -37,7 +120,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 .modal {
     position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%;
     overflow: auto; background-color: rgba(0,0,0,0.6);
-    display: none; /* ★デフォルトは非表示 */
+    display: none;
     align-items: center; justify-content: center;
 }
 .modal-content {
@@ -204,15 +287,14 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
      background-color: #c82333;
 }
 
-/* 画像出力用エリアのスタイル（通常は非表示） */
 .image-export-container {
     position: absolute;
-    left: -9999px; /* 画面外に配置 */
-    width: 600px; /* 出力画像の幅に合わせる */
+    left: -9999px;
+    width: 600px;
     background: white;
     padding: 20px;
-    border: 1px solid black; /* 確認用（通常は見えない） */
-    font-family: sans-serif; /* bodyと同じフォント */
+    border: 1px solid black;
+    font-family: sans-serif;
     color: #333;
     line-height: 1.5;
 }
@@ -224,7 +306,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 }
 .export-slots-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2列表示 */
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-bottom: 15px;
 }
@@ -234,7 +316,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     font-size: 0.9em;
 }
 .export-slot-item strong {
-    min-width: 40px; /* ラベル幅の最小値 */
+    min-width: 40px;
 }
 .export-item-image {
     width: 25px;
@@ -246,7 +328,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     background-color: #eee;
     border: 1px solid #ddd;
 }
-#exportEffects ul { /* シミュレーターの表示とスタイルを合わせる */
+#exportEffects ul {
      list-style: disc;
      padding-left: 20px;
      margin: 0;
@@ -270,10 +352,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     border-radius: 5px; background-color: #f9f9f9;
     transition: opacity 0.3s ease-in-out;
 }
-.search-controls.selecting-mode {
-    opacity: 0.7;
-    /* pointer-events: none; */ /* これを有効にすると内部要素も操作不可になるので注意 */
-}
+/* .search-controls.selecting-mode は不要になった可能性 */
 .search-tool-message {
     background-color: #d1ecf1;
     color: #0c5460;
@@ -285,7 +364,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     font-size: 0.9em;
 }
 #searchInput {
-    width: calc(100% - 22px); /* padding考慮 */
+    width: calc(100% - 22px);
     padding: 10px;
     margin-bottom: 20px;
     border: 1px solid #ccc;
@@ -300,7 +379,7 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     padding-bottom: 15px;
     border-bottom: 1px solid #e0e0e0;
 }
-.parent-category-filters h2 { /* アイテム検索ツール内のH2と区別するため変更 */
+.parent-category-filters h2 {
     font-size: 1.1em;
     margin-top: 0;
     margin-bottom: 10px;
@@ -320,11 +399,11 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     font-size: 0.95em;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
 }
-.category-filter-button.disabled { /* シミュレーター選択モード時に親カテゴリを無効化 */
+.category-filter-button.disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
-.category-filter-button:hover:not(.disabled) { /* 無効でない場合のみホバー効果 */
+.category-filter-button:hover:not(.disabled) {
     background-color: #dee2e6;
     border-color: #adb5bd;
 }
@@ -337,42 +416,41 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     margin-top: 15px;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    /* border-bottom: 1px solid #e0e0e0; */ /* 不要なら削除 */
-    transition: opacity 0.2s; /* 表示・非表示時のアニメーション */
+    transition: opacity 0.2s;
 }
 .child-category-section {
     margin-bottom: 15px;
     padding: 10px;
-    border: 1px solid #f0f0f0; /* やや薄い境界線 */
+    border: 1px solid #f0f0f0;
     border-radius: 5px;
     background-color: #fdfdfd;
 }
-.child-category-section h4 { /* 子カテゴリのタイトル */
+.child-category-section h4 {
     font-size: 1em;
     color: #333;
     margin-top: 0;
     margin-bottom: 8px;
     padding-bottom: 5px;
     border-bottom: 1px dashed #e0e0e0;
-    display: flex; /* search-modeを右寄せにするため */
-    justify-content: space-between; /* search-modeを右寄せにするため */
-    align-items: center; /* search-modeを中央揃えにするため */
-    flex-wrap: wrap; /* タイトルが長い場合に折り返し */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
 }
-.child-category-section h4 .search-mode { /* AND/OR検索表示 */
+.child-category-section h4 .search-mode {
     font-size: 0.8em;
     font-weight: normal;
     color: #6c757d;
-    margin-left: 8px; /* タイトルとの間隔 */
-    white-space: nowrap; /* 折り返さない */
-    flex-shrink: 0; /* 縮まないように */
+    margin-left: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
-.tag-filters-inline { /* 子カテゴリ内のタグボタンコンテナ */
+.tag-filters-inline {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
-.tag-filter { /* タグボタン */
+.tag-filter {
     padding: 6px 10px;
     background-color: #f0f0f0;
     border: 1px solid #ddd;
@@ -381,15 +459,15 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     font-size: 0.85em;
     transition: background-color 0.2s, color 0.2s, opacity 0.2s;
 }
-.tag-filter.disabled { /* シミュレーター選択モード時に一部タグを無効化 */
+.tag-filter.disabled {
      opacity: 0.5;
      cursor: not-allowed;
 }
-.tag-filter:hover:not(.disabled) { /* 無効でない場合のみホバー効果 */
+.tag-filter:hover:not(.disabled) {
      background-color: #e0e0e0;
 }
 .tag-filter.active {
-    background-color: #28a745; /* Bootstrap success color */
+    background-color: #28a745;
     color: white;
     border-color: #1e7e34;
 }
@@ -402,122 +480,132 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     padding: 10px 15px; background-color: #6c757d; color: white;
     border: none; border-radius: 4px; cursor: pointer;
     transition: background-color 0.2s;
-    margin-top: 10px; /* 他の要素との間隔調整 */
+    margin-top: 10px;
 }
 #resetFiltersButton:hover { background-color: #5a6268; }
 #itemCount { margin-bottom: 15px; font-weight: bold; color: #555; }
+
+/* アイテムリストのスタイル変更 */
 .item-list {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    display: flex; /* Flexboxコンテナに変更 */
+    flex-direction: column; /* アイテムを縦に並べる */
+    gap: 10px; /* アイテム間の間隔 */
 }
+
 .item-card {
-    background-color: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
-    padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.07);
-    display: flex; flex-direction: column; transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px 15px; /* 少しパディング調整 */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.07);
+    display: flex; /* アイテムカード内もFlexbox */
+    align-items: center; /* 垂直方向中央揃え */
+    gap: 15px; /* カード内要素の間隔 */
+    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
-.item-card.selectable { /* シミュレーター選択モード時 */
+
+.item-card.selectable {
     cursor: pointer;
-    border-color: #80bdff; /* Bootstrap info color for focus */
+    border-color: #80bdff;
 }
 .item-card.selectable:hover {
-     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2); /* Bootstrap primary color shadow */
+     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
 }
-.item-card.selected-for-simulator { /* シミュレーターで一時選択中 */
+.item-card.selected-for-simulator {
     border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5); /* Stronger highlight */
-    background-color: #e7f3ff; /* Light blue background */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5);
+    background-color: #e7f3ff;
 }
-.item-card:hover:not(.selectable) { /* 通常時のホバー */
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+
+.item-card .item-image-container { /* 画像コンテナ */
+    flex-shrink: 0; /* 画像が縮まないように */
 }
-.item-card img {
-    width: 120px; height: 120px; object-fit: cover; border-radius: 4px;
-    margin-bottom: 12px; align-self: center; background-color: #eee; /* 画像未読み込み時の背景 */
+.item-card img, .item-image-text-placeholder {
+    width: 40px; /* 画像サイズを小さく */
+    height: 40px; /* 画像サイズを小さく */
+    object-fit: cover;
+    border-radius: 4px;
+    background-color: #eee;
+    border: 1px solid #ddd; /* プレースホルダーにも枠線 */
+    box-sizing: border-box; /* 枠線を含めたサイズ */
+    display: flex; /* プレースホルダー用 */
+    justify-content: center; /* プレースホルダー用 */
+    align-items: center; /* プレースホルダー用 */
 }
-.item-image-text-placeholder { /* 画像がない場合のプレースホルダー */
-    width: 120px; height: 120px; border-radius: 4px; margin-bottom: 12px;
-    align-self: center; background-color: #f0f0f0; display: flex;
-    justify-content: center; align-items: center; color: #888;
-    font-size: 1.1em; font-weight: bold; border: 1px dashed #ccc; box-sizing: border-box;
+.item-image-text-placeholder {
+    color: #888;
+    font-size: 0.8em; /* プレースホルダー内テキスト調整 */
+    font-weight: bold;
 }
-.item-card h3 {
-    margin-top: 0; margin-bottom: 10px; font-size: 1.25em; color: #0056b3; word-break: break-word;
+
+.item-card .item-details { /* 画像以外の詳細情報コンテナ */
+    display: flex;
+    flex-direction: column; /* 名前、効果などを縦に並べる */
+    flex-grow: 1; /* 残りのスペースを埋める */
+    min-width: 0; /* flexアイテムが縮むのを許可 */
 }
-.item-card p {
-    margin-bottom: 8px; font-size: 0.95em; line-height: 1.5; color: #444;
-    flex-grow: 1; word-break: break-word;
+.item-card h3 { /* 名前 */
+    margin: 0 0 5px 0;
+    font-size: 1.1em; /* 少し調整 */
+    color: #0056b3;
+    word-break: break-word;
+    line-height: 1.3;
 }
-.item-card p strong { color: #333; }
-.item-card .tags {
-    margin-top: 12px; font-size: 0.85em; color: #555;
+.item-card .item-info-row { /* 効果、入手手段、売値などを横に並べるための行 */
+    display: flex;
+    flex-wrap: wrap; /* 折り返し可 */
+    gap: 5px 15px; /* 縦横の間隔 */
+    font-size: 0.9em;
+    color: #444;
+    line-height: 1.4;
 }
-.item-card .tags span {
-    background-color: #f0f0f0; padding: 4px 8px; border-radius: 12px;
-    margin-right: 6px; margin-bottom: 6px; display: inline-block;
+.item-card .item-info-row > div,
+.item-card .item-info-row > p { /* 各情報ブロック */
+    margin: 0; /* pタグのデフォルトマージンリセット */
+    word-break: break-word;
 }
-.item-card .structured-effects {
-    margin-top: 10px; font-size: 0.85em; color: #555;
-    border-top: 1px solid #eee; padding-top: 8px;
+.item-card .item-info-row strong {
+    color: #333;
+    margin-right: 0.3em;
+}
+
+.item-card .structured-effects,
+.item-card .tags { /* 効果詳細とタグは少し下に配置 */
+    margin-top: 8px;
+    font-size: 0.85em;
+    color: #555;
 }
 .item-card .structured-effects ul {
-    list-style: disc; padding-left: 20px; margin: 5px 0 0 0;
+    list-style: disc;
+    padding-left: 18px; /* 少し調整 */
+    margin: 3px 0 0 0;
 }
-.item-card .structured-effects li { margin-bottom: 3px; }
-
-/* アイテム選択モーダル (現在未使用だがスタイルは残す) */
-.modal.item-select-modal { /* 既存のモーダルスタイルを継承 */ }
-.item-select-modal .modal-content {
-     max-width: 80%;
-     max-height: 80vh;
-     display: flex;
-     flex-direction: column;
+.item-card .structured-effects li {
+    margin-bottom: 2px;
 }
-.item-select-modal-content h3 { margin-bottom: 15px; flex-shrink: 0;}
-#itemSelectModalSearch {
-     width: 100%; padding: 10px; margin-bottom: 15px;
-     border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
-     flex-shrink: 0;
-}
-.item-select-list {
-     flex-grow: 1;
-     overflow-y: auto;
-     display: grid;
-     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-     gap: 15px;
-     padding: 5px;
-}
-.item-select-modal-item {
-     display: flex; flex-direction: column; align-items: center;
-     padding: 10px; border: 1px solid #eee; border-radius: 5px;
-     cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s;
-     text-align: center; background-color: #fff;
-}
-.item-select-modal-item:hover {
-     background-color: #f0f8ff; /* AliceBlue */
-     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-.item-select-modal-item img {
-     width: 60px; height: 60px; object-fit: cover; margin-bottom: 8px;
-     border-radius: 4px; background-color: #eee;
-}
-.item-select-modal-item span {
-     font-size: 0.9em; color: #333; word-break: break-word;
+.item-card .tags span {
+    background-color: #f0f0f0;
+    padding: 3px 7px; /* 少し調整 */
+    border-radius: 10px; /* 少し調整 */
+    margin-right: 5px;
+    margin-bottom: 4px;
+    display: inline-block;
 }
 
-/* 選択決定ボタン */
+
 .confirm-selection-button {
     position: fixed;
     bottom: 20px;
     right: 20px;
     padding: 12px 25px;
     font-size: 1.1em;
-    background-color: #28a745; /* Bootstrap success */
+    background-color: #28a745;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    z-index: 1000; /* 他の要素より手前に */
+    z-index: 1000;
     transition: opacity 0.3s, transform 0.3s;
 }
 .confirm-selection-button:hover {
@@ -527,6 +615,13 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 
 
 @media (max-width: 768px) {
+    .site-header { padding: 8px 15px; }
+    .site-title { font-size: 1.3em; }
+    .hamburger-button { font-size: 1.6em; }
+    .side-navigation.open { width: 200px; } /* スマホでは少し細く */
+    .container { margin-top: 60px; }
+
+
     .equipment-slots {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 15px;
@@ -539,13 +634,24 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 
     .category-button-group { justify-content: center; }
     .child-category-section { padding: 8px; }
-    .child-category-section h4 .search-mode { /* 折り返し時調整は特に不要か */ }
     .tag-filters-inline { gap: 6px; }
     .tag-filter { padding: 5px 8px; font-size: 0.8em; }
 
-    .item-select-modal .modal-content { max-width: 95%; max-height: 85vh;}
-    .item-select-list { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-    .item-select-modal-item img { width: 50px; height: 50px; }
+    /* アイテムカードのスマホ表示調整 */
+    .item-card {
+        flex-direction: column; /* スマホでは縦積みに戻すことも検討 */
+        align-items: flex-start; /* 左揃えに */
+    }
+    .item-card img, .item-image-text-placeholder {
+        align-self: center; /* 画像は中央に */
+        margin-bottom: 10px; /* 画像と詳細の間隔 */
+    }
+    .item-card .item-info-row {
+        flex-direction: column; /* 情報も縦積みに */
+        align-items: flex-start;
+        gap: 3px; /* 間隔を詰める */
+    }
+
 
      .confirm-selection-button {
         padding: 10px 20px;
