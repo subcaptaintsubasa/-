@@ -3,136 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ゲームアイテム検索 ＆ 装備シミュレーター</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>アイテム管理ツール (Firebase v9版)</title>
+    <link rel="stylesheet" href="admin.style.css">
 </head>
 <body>
-    <header class="site-header">
-        <div class="header-content">
-            <h1 class="site-title">ゲームアイテム検索</h1>
-            <button id="hamburgerButton" class="hamburger-button">☰</button>
-        </div>
-        <nav id="sideNav" class="side-navigation">
-            <button id="closeNavButton" class="close-nav-button">×</button>
-            <ul>
-                <li><button id="openSimulatorButtonNav" class="nav-button">装備シミュレーター</button></li>
-                <!-- 他のメニュー項目があればここに追加 -->
-            </ul>
-        </nav>
-    </header>
-
-    <div class="container">
-        <!-- 装備シミュレーター起動ボタンはヘッダーのナビゲーションに移動
-        <div class="main-controls">
-            <button id="openSimulatorButton">装備シミュレーターを開く</button>
-        </div>
-        <hr class="section-divider">
-        -->
-
-        <section class="search-tool-section">
-            <h2>アイテム検索</h2>
-            <div class="search-controls">
-                <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段、売値で検索...">
-                <div class="parent-category-filters">
-                    <h2>親カテゴリ選択:</h2>
-                    <div id="parentCategoryFiltersContainer" class="category-button-group"></div>
-                </div>
-                <div id="childCategoriesAndTagsContainer"></div>
-                <button id="resetFiltersButton">フィルターリセット</button>
-            </div>
-             <div id="searchToolMessage" class="search-tool-message" style="display: none;"></div>
-            <div id="itemCount"></div>
-            <div id="itemList" class="item-list"></div> {/* 表示形式変更のためクラス名注意 */}
-        </section>
-
-         <button id="confirmSelectionButton" class="confirm-selection-button" style="display: none;">このアイテムに決定</button>
-
+    <div id="password-prompt">
+        <h2>管理者ログイン</h2>
+        <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
+        <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
+        <button id="loginButton">ログイン</button>
+        <p id="passwordError" class="error-message"></p>
     </div>
 
-     <!-- 装備構成シミュレーターモーダル -->
-     <div id="simulatorModal" class="modal simulator-modal" style="display: none;">
-         <div class="modal-content simulator-modal-content">
-             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
-             <h2>装備構成シミュレーター</h2>
-             <div class="equipment-slots">
-                 <div class="slot" id="slot-服" data-slot-name="服">
-                     <label>服:</label>
-                     <div class="selected-item-display">
-                         <img src="./images/placeholder_slot.png" alt="服" class="slot-image">
-                         <span class="slot-item-name">未選択</span>
-                         <button class="select-item-button" data-slot="服">選択</button>
-                         <button class="clear-item-button" data-slot="服" style="display: none;">解除</button>
+    <div id="admin-content" style="display:none;">
+        <header>
+            <h1>アイテム管理ツール</h1>
+            <div>
+                <span id="currentUserEmail" style="margin-right: 15px;"></span>
+                <button id="logoutButton">ログアウト</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <p class="info-message" style="text-align: center; margin-bottom: 20px;">
+                カテゴリ、タグ、効果種類、アイテムの変更は、保存ボタンを押すとFirebaseに直接保存されます。
+            </p>
+
+            <!-- カテゴリ管理 -->
+            <section id="category-management">
+                <h2><span class="icon"></span> カテゴリ管理</h2>
+                <div class="form-group">
+                     <label for="newCategoryName">新しいカテゴリ名:</label>
+                     <input type="text" id="newCategoryName" placeholder="カテゴリ名">
+                </div>
+                 <div class="form-group">
+                     <label>親カテゴリ設定:</label>
+                     <div id="newCategoryParentButtons" class="category-button-group admin"></div>
+                     <input type="hidden" id="selectedNewParentCategoryId" value="">
+                 </div>
+                <button id="addCategoryButton">カテゴリ追加</button>
+                <h3 style="margin-top: 20px;">カテゴリ一覧</h3>
+                <div id="categoryListContainer" class="list-container"></div>
+            </section>
+            <hr>
+
+            <!-- タグ管理 -->
+            <section id="tag-management">
+                <h2><span class="icon"></span> タグ管理</h2>
+                <div class="form-group">
+                    <label for="newTagName">新しいタグ名:</label>
+                    <input type="text" id="newTagName" placeholder="タグの名前">
+                </div>
+                <div class="form-group">
+                    <label>このタグが所属するカテゴリ (子カテゴリのみ選択可):</label>
+                    <div id="newTagCategoriesCheckboxes" class="checkbox-group-container"></div>
+                </div>
+                <button id="addTagButton">タグ追加</button>
+                <h3 style="margin-top: 20px;">既存タグ一覧</h3>
+                <div id="tagListContainer" class="list-container"></div>
+            </section>
+            <hr>
+
+            <!-- 効果単位管理 -->
+            <section id="effect-unit-management">
+                <h2><span class="icon">📏</span> 効果単位管理</h2>
+                <div class="form-group">
+                    <label for="newEffectUnitName">新しい効果単位名:</label>
+                    <input type="text" id="newEffectUnitName" placeholder="単位名 (例: ポイント, %, 秒)">
+                </div>
+                <button id="addEffectUnitButton">効果単位を追加</button>
+                <h3 style="margin-top: 20px;">既存の効果単位一覧</h3>
+                <div id="effectUnitListContainer" class="list-container"></div>
+            </section>
+            <hr>
+
+            <!-- 効果種類管理 -->
+            <section id="effect-type-management">
+                <h2><span class="icon">✨</span> 効果種類管理</h2>
+                 <div class="form-group">
+                     <label for="newEffectTypeName">新しい効果種類名:</label>
+                     <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
+                 </div>
+                 <div class="form-group">
+                     <label for="newEffectTypeUnit">デフォルト単位:</label>
+                     <div style="display: flex; align-items: center; gap: 10px;">
+                         <select id="newEffectTypeUnit" class="form-control-short"></select>
+                         <button type="button" id="manageUnitsForNewEffectTypeButton" class="button-like" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
                      </div>
                  </div>
-                 <div class="slot" id="slot-顔" data-slot-name="顔">
-                     <label>顔:</label>
-                     <div class="selected-item-display">
-                         <img src="./images/placeholder_slot.png" alt="顔" class="slot-image">
-                         <span class="slot-item-name">未選択</span>
-                         <button class="select-item-button" data-slot="顔">選択</button>
-                          <button class="clear-item-button" data-slot="顔" style="display: none;">解除</button>
+                 <div class="form-group">
+                     <label>計算方法:</label>
+                     <div class="radio-group">
+                         <input type="radio" id="newCalcMethodSum" name="newCalcMethod" value="sum" checked>
+                         <label for="newCalcMethodSum">加算</label>
+                         <input type="radio" id="newCalcMethodMax" name="newCalcMethod" value="max">
+                         <label for="newCalcMethodMax">最大値</label>
                      </div>
                  </div>
-                  <div class="slot" id="slot-首" data-slot-name="首">
-                     <label>首:</label>
-                     <div class="selected-item-display">
-                         <img src="./images/placeholder_slot.png" alt="首" class="slot-image">
-                         <span class="slot-item-name">未選択</span>
-                         <button class="select-item-button" data-slot="首">選択</button>
-                          <button class="clear-item-button" data-slot="首" style="display: none;">解除</button>
-                     </div>
-                 </div>
-                 <div class="slot" id="slot-腕" data-slot-name="腕">
-                     <label>腕:</label>
-                     <div class="selected-item-display">
-                         <img src="./images/placeholder_slot.png" alt="腕" class="slot-image">
-                         <span class="slot-item-name">未選択</span>
-                         <button class="select-item-button" data-slot="腕">選択</button>
-                          <button class="clear-item-button" data-slot="腕" style="display: none;">解除</button>
-                     </div>
-                 </div>
-                 <div class="slot" id="slot-背中" data-slot-name="背中">
-                     <label>背中:</label>
-                     <div class="selected-item-display">
-                         <img src="./images/placeholder_slot.png" alt="背中" class="slot-image">
-                         <span class="slot-item-name">未選択</span>
-                         <button class="select-item-button" data-slot="背中">選択</button>
-                          <button class="clear-item-button" data-slot="背中" style="display: none;">解除</button>
-                     </div>
-                 </div>
-                 <div class="slot" id="slot-足" data-slot-name="足">
-                     <label>足:</label>
-                     <div class="selected-item-display">
-                         <img src="./images/placeholder_slot.png" alt="足" class="slot-image">
-                         <span class="slot-item-name">未選択</span>
-                         <button class="select-item-button" data-slot="足">選択</button>
-                          <button class="clear-item-button" data-slot="足" style="display: none;">解除</button>
-                     </div>
+                 <button id="addEffectTypeButton">効果種類を追加</button>
+                 <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
+                 <div id="effectTypeListContainer" class="list-container"></div>
+            </section>
+            <hr>
+
+            <!-- アイテム管理 -->
+            <section id="item-management">
+                <h2><span class="icon"></span> アイテム管理</h2>
+                <form id="itemForm">
+                    <input type="hidden" id="itemIdToEdit">
+                    <div class="form-group">
+                        <label for="itemName">名前:</label>
+                        <input type="text" id="itemName">
+                    </div>
+                    <div class="form-group">
+                        <label for="itemImageFile">画像:</label>
+                        <input type="file" id="itemImageFile" accept="image/*">
+                        <img id="itemImagePreview" src="#" alt="画像プレビュー" style="max-width: 100px; max-height: 100px; display: none; margin-top: 10px;">
+                        <input type="hidden" id="itemImageUrl">
+                        <p class="info">新しい画像をアップロードするか、既存の画像URLが使用されます。</p>
+                        <div id="uploadProgressContainer" style="display:none;">
+                            <progress id="uploadProgress" value="0" max="100"></progress>
+                            <span id="uploadProgressText"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="itemPrice">売値 (G):</label>
+                        <input type="number" id="itemPrice" placeholder="例: 100" min="0" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>効果設定:</label>
+                        <div class="effect-input-area">
+                             <div class="effect-input-row">
+                                 <select id="effectTypeSelect" class="form-control-short">
+                                     <option value="">効果種類を選択...</option>
+                                 </select>
+                                 <input type="number" id="effectValueInput" placeholder="値" step="any" class="form-control-short">
+                                 <span id="effectUnitDisplay" class="unit-display"></span>
+                                 <button type="button" id="addEffectToListButton">効果を追加</button>
+                             </div>
+                             <div id="currentEffectsList" class="effects-list-container">
+                                <p>効果が追加されていません。</p>
+                             </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="itemSource">入手手段:</label>
+                        <textarea id="itemSource" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>このアイテムのタグ (複数選択可):</label>
+                        <div id="itemTagsSelectorCheckboxes" class="checkbox-group-container"></div>
+                    </div>
+                    <button type="submit" id="saveItemButton">アイテム保存</button>
+                    <button type="button" id="clearFormButton">フォームクリア</button>
+                </form>
+
+                <h3><span class="icon"></span> アイテム一覧</h3>
+                <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." style="margin-bottom:10px; width: calc(100% - 22px); max-width: 400px;">
+                <table id="itemsTable">
+                    <thead>
+                        <tr><th>画像</th><th>名前</th><th>売値</th><th>効果</th><th>タグ</th><th>操作</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+
+    <!-- カテゴリ編集モーダル -->
+    <div id="editCategoryModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+            <h3>カテゴリ編集</h3>
+            <input type="hidden" id="editingCategoryDocId">
+            <div class="form-group">
+                <label for="editingCategoryName">カテゴリ名:</label>
+                <input type="text" id="editingCategoryName">
+            </div>
+            <div class="form-group">
+                <label>親カテゴリ:</label>
+                 <div id="editingCategoryParentButtons" class="category-button-group admin"></div>
+                 <input type="hidden" id="selectedEditingParentCategoryId">
+            </div>
+             <div class="form-group" id="editCategoryTagsGroup">
+                 <label>この子カテゴリに所属させるタグ (複数選択可):</label>
+                 <div id="editingCategoryTagsSelector" class="tag-button-container admin"></div>
+             </div>
+             <div class="form-group" id="tagSearchModeGroup" style="display: none;">
+                 <label>同カテゴリ内タグ検索モード (子カテゴリ専用):</label>
+                 <select id="editingTagSearchMode" class="form-control-short">
+                     <option value="AND">AND検索</option>
+                     <option value="OR">OR検索</option>
+                 </select>
+             </div>
+            <button id="saveCategoryEditButton">変更を保存</button>
+        </div>
+    </div>
+
+    <!-- タグ編集モーダル -->
+    <div id="editTagModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+            <h3>タグ編集</h3>
+            <input type="hidden" id="editingTagDocId">
+            <div class="form-group">
+                <label for="editingTagName">タグ名:</label>
+                <input type="text" id="editingTagName">
+            </div>
+            <div class="form-group">
+                <label>このタグが所属する子カテゴリ (複数選択可):</label>
+                <div id="editingTagCategoriesCheckboxes" class="checkbox-group-container"></div>
+            </div>
+            <button id="saveTagEditButton">変更を保存</button>
+        </div>
+    </div>
+
+    <!-- 効果種類編集モーダル -->
+    <div id="editEffectTypeModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+            <h3>効果種類編集</h3>
+            <input type="hidden" id="editingEffectTypeDocId">
+            <div class="form-group">
+                <label for="editingEffectTypeName">効果種類名:</label>
+                <input type="text" id="editingEffectTypeName">
+            </div>
+             <div class="form-group">
+                 <label for="editingEffectTypeUnit">デフォルト単位:</label>
+                 <div style="display: flex; align-items: center; gap: 10px;">
+                     <select id="editingEffectTypeUnit" class="form-control-short"></select>
+                     <button type="button" id="manageUnitsForEditingEffectTypeButton" class="button-like" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
                  </div>
              </div>
-
-             <div class="calculation-result-area">
-                 <h3>発動効果 合計:</h3>
-                 <div id="totalEffectsDisplay" class="effects-display">
-                     <p>アイテムを選択してください。</p>
+             <div class="form-group">
+                 <label>計算方法:</label>
+                 <div class="radio-group">
+                     <input type="radio" id="editCalcMethodSum" name="editCalcMethod" value="sum">
+                     <label for="editCalcMethodSum">加算</label>
+                     <input type="radio" id="editCalcMethodMax" name="editCalcMethod" value="max">
+                     <label for="editCalcMethodMax">最大値</label>
                  </div>
              </div>
+            <button id="saveEffectTypeEditButton">変更を保存</button>
+        </div>
+    </div>
 
-             <div class="simulator-actions">
-                 <button id="saveImageButton">構成を画像として保存</button>
-                 <button id="resetSimulatorButton">構成をリセット</button>
-             </div>
+    <!-- 効果単位編集モーダル -->
+    <div id="editEffectUnitModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+            <h3>効果単位編集</h3>
+            <input type="hidden" id="editingEffectUnitDocId">
+            <div class="form-group">
+                <label for="editingEffectUnitName">単位名:</label>
+                <input type="text" id="editingEffectUnitName">
+            </div>
+            <button id="saveEffectUnitEditButton">単位を保存</button>
+        </div>
+    </div>
 
-              <div id="imageExportArea" class="image-export-container">
-                 <h2>装備構成</h2>
-                 <div id="exportSlots" class="export-slots-grid"></div>
-                 <h3>発動効果 合計:</h3>
-                 <div id="exportEffects"></div>
-             </div>
-         </div>
-     </div>
 
-    <script type="module" src="script.js"></script>
+    <script type="module" src="admin.script.js"></script>
 </body>
 </html>
