@@ -79,17 +79,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const newEffectTypeNameInput = document.getElementById('newEffectTypeName');
     const newEffectTypeUnitSelect = document.getElementById('newEffectTypeUnit');
     const newEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="newCalcMethod"]');
-    const newEffectTypeSumCapGroup = document.getElementById('newEffectTypeSumCapGroup'); // ★
-    const newEffectTypeSumCapInput = document.getElementById('newEffectTypeSumCap'); // ★
+    const newEffectTypeMaxValueInput = document.getElementById('newEffectTypeMaxValue'); // ★New
+    const newEffectTypeMaxValueGroup = document.getElementById('newEffectTypeMaxValueGroup'); // ★New
     const addEffectTypeButton = document.getElementById('addEffectTypeButton');
     const effectTypeListContainer = document.getElementById('effectTypeListContainer');
     const editEffectTypeModal = document.getElementById('editEffectTypeModal');
     const editingEffectTypeDocIdInput = document.getElementById('editingEffectTypeDocId');
     const editingEffectTypeNameInput = document.getElementById('editingEffectTypeName');
     const editingEffectTypeUnitSelect = document.getElementById('editingEffectTypeUnit');
-    const editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethod"]');
-    const editingEffectTypeSumCapGroup = document.getElementById('editingEffectTypeSumCapGroup'); // ★
-    const editingEffectTypeSumCapInput = document.getElementById('editingEffectTypeSumCap'); // ★
+    const editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethodModal"]'); // ★name変更
+    const editingEffectTypeMaxValueInput = document.getElementById('editingEffectTypeMaxValue'); // ★New
+    const editingEffectTypeMaxValueGroup = document.getElementById('editingEffectTypeMaxValueGroup'); // ★New
     const saveEffectTypeEditButton = document.getElementById('saveEffectTypeEditButton');
     const effectTypeSelect = document.getElementById('effectTypeSelect');
 
@@ -182,19 +182,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearAdminUI() {
-        // ... (other UI clearings) ...
+        if (categoryListContainer) categoryListContainer.innerHTML = '';
+        if (newCategoryParentButtons) newCategoryParentButtons.innerHTML = '';
+        if (selectedNewParentCategoryIdInput) selectedNewParentCategoryIdInput.value = '';
+        if (editingCategoryParentButtons) editingCategoryParentButtons.innerHTML = '';
+        if (selectedEditingParentCategoryIdInput) selectedEditingParentCategoryIdInput.value = '';
+        if (editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = '';
+        if (tagSearchModeGroup) tagSearchModeGroup.style.display = 'none';
+        if (editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND';
+        if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = 'block';
+
+        if (tagListContainer) tagListContainer.innerHTML = '';
+        if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
+        if (editingTagCategoriesCheckboxes) editingTagCategoriesCheckboxes.innerHTML = '';
+
         if (effectUnitListContainer) effectUnitListContainer.innerHTML = '';
         if (newEffectUnitNameInput) newEffectUnitNameInput.value = '';
-        if (charBaseOptionListContainer) charBaseOptionListContainer.innerHTML = '';
-
 
         if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
         if (effectTypeSelect) effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
+        if (charBaseOptionEffectTypeSelect) charBaseOptionEffectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
         if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
         if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = '<option value="none">なし</option>';
         if (newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
-        if (newEffectTypeSumCapInput) newEffectTypeSumCapInput.value = ''; // ★
-        if (newEffectTypeSumCapGroup) newEffectTypeSumCapGroup.style.display = 'block'; // ★デフォルト表示（加算がデフォルトのため）
+        if (newEffectTypeMaxValueInput) newEffectTypeMaxValueInput.value = '';
+        if (newEffectTypeMaxValueGroup) newEffectTypeMaxValueGroup.style.display = 'block'; // Default for 'sum'
+
+
+        if (charBaseOptionListContainer) charBaseOptionListContainer.innerHTML = '';
 
 
         if (itemsTableBody) itemsTableBody.innerHTML = '';
@@ -210,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadTagsFromFirestore();
         await loadCharacterBasesFromFirestore();
         await loadItemsFromFirestore();
-
 
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
@@ -229,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Effect Unit Management ---
+    // ... (No changes from previous version) ...
     async function loadEffectUnitsFromFirestore() {
         console.log("[Effect Units] Loading effect units...");
         try {
@@ -356,8 +371,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     }
+
                     await batch.commit();
-                    await loadInitialData(); // Reload to reflect changes across all entities
+                    await loadInitialData();
                 } else {
                     await loadEffectUnitsFromFirestore();
                     renderEffectUnitsForManagement();
@@ -388,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.effects && option.effects.some(eff => eff.unit === name)
             );
             if (usedInBase) {
-                alert(`効果単位「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定を変更してください。`);
+                alert(`効果単位「${name}」はキャラクター基礎情報「${baseTypeMappings[baseKey]} - ${usedInBase.name}」の効果で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定を変更してください。`);
                 return;
             }
         }
@@ -424,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- Effect Type Management ---
+    // --- Effect Type Management (Adjusted for maxValue) ---
     async function loadEffectTypesFromFirestore() {
         console.log("[Effect Types] Loading effect types...");
         try {
@@ -448,8 +464,8 @@ document.addEventListener('DOMContentLoaded', () => {
         effectTypesCache.forEach(effectType => {
             const unitText = effectType.defaultUnit && effectType.defaultUnit !== 'none' ? `(${effectType.defaultUnit})` : '(単位なし)';
             let calcText = effectType.calculationMethod === 'max' ? '(最大値)' : '(加算)';
-            if (effectType.calculationMethod === 'sum' && typeof effectType.sumCap === 'number') {
-                calcText += `, 上限: ${effectType.sumCap}`;
+            if (effectType.calculationMethod === 'sum' && typeof effectType.maxValue === 'number') {
+                calcText += `, 最大: ${effectType.maxValue}`;
             }
 
             const div = document.createElement('div');
@@ -479,22 +495,25 @@ document.addEventListener('DOMContentLoaded', () => {
              btn.addEventListener('click', (e) => deleteEffectType(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
         });
     }
-
-    // ★計算方法ラジオボタンの変更イベント（新規追加フォーム用）
+    // ★計算方法ラジオボタンの変更イベント (新規追加フォーム)
     newEffectTypeCalcMethodRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            if (newEffectTypeSumCapGroup) {
-                newEffectTypeSumCapGroup.style.display = radio.value === 'sum' ? 'block' : 'none';
-                if (radio.value !== 'sum') newEffectTypeSumCapInput.value = ''; // 加算でないなら上限値クリア
+        radio.addEventListener('change', function() {
+            if (newEffectTypeMaxValueGroup) {
+                newEffectTypeMaxValueGroup.style.display = this.value === 'sum' ? 'block' : 'none';
+                if (this.value !== 'sum' && newEffectTypeMaxValueInput) {
+                    newEffectTypeMaxValueInput.value = ''; // 加算以外なら最大値クリア
+                }
             }
         });
     });
-     // ★計算方法ラジオボタンの変更イベント（編集モーダル用）
+    // ★計算方法ラジオボタンの変更イベント (編集モーダル)
     editingEffectTypeCalcMethodRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            if (editingEffectTypeSumCapGroup) {
-                editingEffectTypeSumCapGroup.style.display = radio.value === 'sum' ? 'block' : 'none';
-                if (radio.value !== 'sum') editingEffectTypeSumCapInput.value = '';
+        radio.addEventListener('change', function() {
+            if (editingEffectTypeMaxValueGroup) {
+                editingEffectTypeMaxValueGroup.style.display = this.value === 'sum' ? 'block' : 'none';
+                if (this.value !== 'sum' && editingEffectTypeMaxValueInput) {
+                    editingEffectTypeMaxValueInput.value = ''; // 加算以外なら最大値クリア
+                }
             }
         });
     });
@@ -506,13 +525,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const unit = newEffectTypeUnitSelect.value;
             const calcMethodRadio = Array.from(newEffectTypeCalcMethodRadios).find(r => r.checked);
             const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum';
-            const sumCapStr = newEffectTypeSumCapInput.value.trim();
-            let sumCap = null;
+            const maxValueStr = newEffectTypeMaxValueInput.value.trim();
+            let maxValue = null;
 
-            if (calcMethod === 'sum' && sumCapStr !== "") {
-                sumCap = parseFloat(sumCapStr);
-                if (isNaN(sumCap)) {
-                    alert("加算上限値は数値を入力してください。"); return;
+            if (calcMethod === 'sum' && maxValueStr !== "") {
+                maxValue = parseFloat(maxValueStr);
+                if (isNaN(maxValue)) {
+                    alert("加算時の最大値は数値を入力してください。"); return;
                 }
             }
 
@@ -521,22 +540,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("同じ名前の効果種類が既に存在します。"); return;
             }
             try {
-                const dataToSave = {
+                const effectTypeData = {
                     name: name,
                     defaultUnit: unit,
                     calculationMethod: calcMethod,
                     createdAt: serverTimestamp()
                 };
-                if (calcMethod === 'sum' && sumCap !== null) {
-                    dataToSave.sumCap = sumCap;
+                if (calcMethod === 'sum' && maxValue !== null) {
+                    effectTypeData.maxValue = maxValue;
                 }
 
-                await addDoc(collection(db, 'effect_types'), dataToSave);
+                await addDoc(collection(db, 'effect_types'), effectTypeData);
                 newEffectTypeNameInput.value = '';
                 newEffectTypeUnitSelect.value = 'none';
                 if(newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
-                newEffectTypeSumCapInput.value = '';
-                newEffectTypeSumCapGroup.style.display = 'block';
+                if(newEffectTypeMaxValueInput) newEffectTypeMaxValueInput.value = '';
+                if(newEffectTypeMaxValueGroup) newEffectTypeMaxValueGroup.style.display = 'block';
 
 
                 await loadEffectTypesFromFirestore();
@@ -564,12 +583,13 @@ document.addEventListener('DOMContentLoaded', () => {
             editingEffectTypeCalcMethodRadios[0].checked = true;
         }
 
-        // ★上限値の表示制御と値設定
-        if (editingEffectTypeSumCapGroup) {
-            editingEffectTypeSumCapGroup.style.display = calcMethod === 'sum' ? 'block' : 'none';
-        }
-        if (editingEffectTypeSumCapInput) {
-            editingEffectTypeSumCapInput.value = (calcMethod === 'sum' && typeof effectTypeData.sumCap === 'number') ? effectTypeData.sumCap : '';
+        // ★加算時の最大値を設定し、表示を制御
+        if (calcMethod === 'sum') {
+            editingEffectTypeMaxValueInput.value = typeof effectTypeData.maxValue === 'number' ? effectTypeData.maxValue : '';
+            editingEffectTypeMaxValueGroup.style.display = 'block';
+        } else {
+            editingEffectTypeMaxValueInput.value = '';
+            editingEffectTypeMaxValueGroup.style.display = 'none';
         }
 
 
@@ -583,34 +603,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const newUnit = editingEffectTypeUnitSelect.value;
             const editCalcMethodRadio = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.checked);
             const newCalcMethod = editCalcMethodRadio ? editCalcMethodRadio.value : 'sum';
-            const sumCapStr = editingEffectTypeSumCapInput.value.trim();
-            let sumCap = null;
+            const newMaxValueStr = editingEffectTypeMaxValueInput.value.trim();
+            let newMaxValue = null;
 
-            if (newCalcMethod === 'sum' && sumCapStr !== "") {
-                sumCap = parseFloat(sumCapStr);
-                if (isNaN(sumCap)) {
-                    alert("加算上限値は数値を入力してください。"); return;
+            if (newCalcMethod === 'sum' && newMaxValueStr !== "") {
+                newMaxValue = parseFloat(newMaxValueStr);
+                if (isNaN(newMaxValue)) {
+                    alert("加算時の最大値は数値を入力してください。"); return;
                 }
             }
+
 
             if (!newName) { alert("効果種類名は空にできません。"); return; }
             if (effectTypesCache.some(et => et.id !== id && et.name.toLowerCase() === newName.toLowerCase())) {
                  alert("編集後の名前が他の効果種類と重複します。"); return;
             }
             try {
-                const dataToUpdate = {
+                const updateData = {
                     name: newName,
                     defaultUnit: newUnit,
                     calculationMethod: newCalcMethod,
                     updatedAt: serverTimestamp()
-                 };
-                 if (newCalcMethod === 'sum') {
-                     dataToUpdate.sumCap = sumCap !== null ? sumCap : deleteField(); // 空ならフィールド削除
-                 } else {
-                     dataToUpdate.sumCap = deleteField(); // 加算でないならフィールド削除
-                 }
+                };
+                if (newCalcMethod === 'sum') {
+                    if (newMaxValue !== null) {
+                        updateData.maxValue = newMaxValue;
+                    } else {
+                        updateData.maxValue = deleteField(); // 未入力の場合はフィールドを削除
+                    }
+                } else {
+                    updateData.maxValue = deleteField(); // 加算以外ならフィールド削除
+                }
 
-                await updateDoc(doc(db, 'effect_types', id), dataToUpdate);
+
+                await updateDoc(doc(db, 'effect_types', id), updateData);
                 if (editEffectTypeModal) editEffectTypeModal.style.display = 'none';
                 await loadEffectTypesFromFirestore();
                 renderEffectTypesForManagement();
@@ -647,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     for (const option of characterBasesCache[baseKey] || []) {
                         if (option.effects && option.effects.some(eff => eff.type === id)) {
                             isUsedByBase = true;
-                            alert(`効果種類「${name}」はキャラクター基礎情報「${baseKeyMappings[baseKey]} - ${option.name}」で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定からこの種類を削除してください。`);
+                            alert(`効果種類「${name}」はキャラクター基礎情報「${baseTypeMappings[baseKey]} - ${option.name}」で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定からこの種類を削除してください。`);
                             break;
                         }
                     }
@@ -670,7 +696,6 @@ document.addEventListener('DOMContentLoaded', () => {
              }
          }
     }
-
 
     // --- Category Management ---
     // ... (No changes) ...
@@ -1196,8 +1221,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+
     // --- Item Management ---
-    // ... (populateTagCheckboxesForItemForm, populateEffectTypeSelect for item form, effect handling for item form - No major changes needed here beyond ensuring populateEffectTypeSelect is called correctly) ...
+    // ... (No changes from previous version for these item form related functions) ...
     function populateTagCheckboxesForItemForm(selectedTagIds = []) {
         if (!itemTagsSelectorCheckboxes) return;
         itemTagsSelectorCheckboxes.innerHTML = '';
@@ -1227,20 +1253,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentVal && selectElement.querySelector(`option[value="${currentVal}"]`)) {
             selectElement.value = currentVal;
         }
-        // Trigger change for the specific select element to update its unit display
-        const targetUnitDisplay = selectElement === effectTypeSelect ? effectUnitDisplay :
-                                 selectElement === charBaseOptionEffectTypeSelect ? charBaseOptionEffectUnitDisplay : null;
 
-        if (selectElement.value && targetUnitDisplay) {
-             const selectedTypeId = selectElement.value;
-             const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
-             if (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') {
-                 targetUnitDisplay.textContent = `(${selectedEffectType.defaultUnit})`;
-             } else {
-                 targetUnitDisplay.textContent = '';
-             }
-        } else if (targetUnitDisplay) {
-            targetUnitDisplay.textContent = '';
+        // Dispatch change only if a specific unit display is associated
+        if (selectElement === effectTypeSelect && effectUnitDisplay) {
+            if (selectElement.value) effectTypeSelect.dispatchEvent(new Event('change'));
+            else effectUnitDisplay.textContent = '';
+        } else if (selectElement === charBaseOptionEffectTypeSelect && charBaseOptionEffectUnitDisplay) {
+            if (selectElement.value) charBaseOptionEffectTypeSelect.dispatchEvent(new Event('change'));
+            else charBaseOptionEffectUnitDisplay.textContent = '';
         }
     }
 
@@ -1364,7 +1384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tags: selectedItemTagIds,
                     updatedAt: serverTimestamp()
                 };
-                // Only add price field if it's a valid number
+
                 if (price !== null) {
                     itemData.price = price;
                 }
@@ -1372,17 +1392,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (editingDocId) {
                     const updatePayload = {...itemData};
-                    // If editing and price is now empty/null, ensure it's removed or set to null in Firestore
                     if (price === null) {
-                        updatePayload.price = deleteField(); // Use deleteField to remove the field entirely
+                        updatePayload.price = deleteField();
                     }
                     await updateDoc(doc(db, 'items', editingDocId), updatePayload);
                 } else {
                     itemData.createdAt = serverTimestamp();
                     const dataToAdd = {...itemData};
-                    if (price === null) { // Don't add the price field if it's null for new documents
-                        delete dataToAdd.price;
-                    }
+                    if (price === null) delete dataToAdd.price;
                     await addDoc(collection(db, 'items'), dataToAdd);
                 }
                 await loadItemsFromFirestore();
@@ -1541,6 +1558,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Image Upload ---
+    // ... (No changes) ...
     if (itemImageFileInput) {
         itemImageFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
