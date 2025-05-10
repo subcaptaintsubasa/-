@@ -100,7 +100,6 @@
                          <label for="newCalcMethodMax">最大値</label>
                      </div>
                  </div>
-                 {/* ★加算上限値の入力欄 */}
                  <div class="form-group" id="newEffectTypeSumCapGroup">
                     <label for="newEffectTypeSumCap">加算時の最大値 (空欄で上限なし):</label>
                     <input type="number" id="newEffectTypeSumCap" placeholder="例: 100" step="any" class="form-control-short">
@@ -126,6 +125,7 @@
                 <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button>
                 <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
                 <div id="charBaseOptionListContainer" class="list-container">
+                    {/* ここに選択された種類の基礎情報オプションが表示される */}
                 </div>
             </section>
             <hr>
@@ -272,8 +272,7 @@
                      <label for="editCalcMethodMax">最大値</label>
                  </div>
              </div>
-             {/* ★加算上限値の入力欄 (編集モーダル) */}
-             <div class="form-group" id="editingEffectTypeSumCapGroup" style="display: none;"> {/* 初期非表示 */}
+             <div class="form-group" id="editingEffectTypeSumCapGroup" style="display: none;">
                 <label for="editingEffectTypeSumCap">加算時の最大値 (空欄で上限なし):</label>
                 <input type="number" id="editingEffectTypeSumCap" placeholder="例: 100" step="any" class="form-control-short">
              </div>
