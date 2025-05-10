@@ -40,6 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeNavButton = document.getElementById('closeNavButton');
     const openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
 
+    // Item Detail Modal Elements
+    const itemDetailModal = document.getElementById('itemDetailModal');
+    const itemDetailContent = document.getElementById('itemDetailContent');
+
 
     const equipmentSlotsContainer = document.querySelector('.equipment-slots');
     const totalEffectsDisplay = document.getElementById('totalEffectsDisplay');
@@ -64,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const itemsPerPage = 10;
     let currentFilteredItems = [];
-    // let lastGeneratedImageDataUrl = null; // ★プレビューボタンクリック時に都度生成するため不要に
 
     const equipmentSlots = ["服", "顔", "首", "腕", "背中", "足"];
     let selectedEquipment = {};
@@ -283,13 +286,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         itemsToRenderOnPage.forEach(item => {
-            const itemCard = document.createElement('div');
-            itemCard.classList.add('item-card');
-            itemCard.classList.toggle('selectable', isSelectingForSimulator);
-            if (isSelectingForSimulator && temporarilySelectedItem === item.docId) {
-                itemCard.classList.add('selected-for-simulator');
+            // 一覧表示用カード (item-card-compact)
+            const itemCardCompact = document.createElement('div');
+            itemCardCompact.classList.add('item-card-compact');
+            if (isSelectingForSimulator) { // シミュレーター選択モードでもタップ可能にする
+                itemCardCompact.classList.add('selectable');
+                if (temporarilySelectedItem === item.docId) {
+                    itemCardCompact.classList.add('selected-for-simulator');
+                }
             }
-            itemCard.dataset.itemId = item.docId;
+            itemCardCompact.dataset.itemId = item.docId; // 個別表示モーダル用にIDを保持
 
             const imageContainer = document.createElement('div');
             imageContainer.classList.add('item-image-container');
@@ -301,77 +307,109 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageElement.onerror = function() { this.onerror=null; this.src='./images/placeholder_item.png'; this.alt='画像読込エラー'; };
             } else {
                 imageElement = document.createElement('div');
-                imageElement.classList.add('item-image-text-placeholder');
+                imageElement.classList.add('item-image-text-placeholder'); // CSSで定義したプレースホルダークラス
                 imageElement.textContent = 'NoImg';
             }
             imageContainer.appendChild(imageElement);
-            itemCard.appendChild(imageContainer);
+            itemCardCompact.appendChild(imageContainer);
 
-            const detailsContainer = document.createElement('div');
-            detailsContainer.classList.add('item-details');
+            const infoCompact = document.createElement('div');
+            infoCompact.classList.add('item-info-compact');
 
-            const nameElement = document.createElement('h3');
-            nameElement.textContent = item.name || '名称未設定';
-            detailsContainer.appendChild(nameElement);
+            const nameCompact = document.createElement('div');
+            nameCompact.classList.add('item-name-compact');
+            nameCompact.textContent = item.name || '名称未設定';
+            infoCompact.appendChild(nameCompact);
 
-            const infoRow = document.createElement('div');
-            infoRow.classList.add('item-info-row');
-
+            const effectsSummary = document.createElement('div');
+            effectsSummary.classList.add('item-effects-summary-compact');
             if (item.structured_effects && item.structured_effects.length > 0) {
-                const effectsDiv = document.createElement('div');
-                effectsDiv.innerHTML = '<strong>効果:</strong> ';
-                item.structured_effects.forEach((eff, index) => {
+                effectsSummary.textContent = item.structured_effects.map(eff => {
                     const effectType = effectTypesCache.find(et => et.id === eff.type);
-                    const typeName = effectType ? effectType.name : `不明(${eff.type})`;
+                    const typeName = effectType ? effectType.name : `不明`;
                     const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
-                    effectsDiv.innerHTML += `${typeName}: ${eff.value}${unitText}${index < item.structured_effects.length - 1 ? '; ' : ''}`;
-                });
-                infoRow.appendChild(effectsDiv);
+                    return `${typeName}: ${eff.value}${unitText}`;
+                }).slice(0, 2).join('; ') + (item.structured_effects.length > 2 ? '...' : ''); // 2つまで表示
             } else {
-                const noEffects = document.createElement('div');
-                noEffects.innerHTML = '<strong>効果:</strong> Coming Soon';
-                infoRow.appendChild(noEffects);
+                effectsSummary.textContent = '効果: Coming Soon';
             }
+            infoCompact.appendChild(effectsSummary);
+            itemCardCompact.appendChild(infoCompact);
 
-            const sourceP = document.createElement('div');
-            sourceP.innerHTML = `<strong>入手:</strong> ${item.入手手段 || 'Coming Soon'}`;
-            infoRow.appendChild(sourceP);
-
-            const priceP = document.createElement('div');
-            priceP.innerHTML = `<strong>売値:</strong> ${(typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : 'Coming Soon'}`;
-            infoRow.appendChild(priceP);
-
-            detailsContainer.appendChild(infoRow);
-
-            const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null);
-            if (item.tags && item.tags.length > 0) {
-                const displayableTags = item.tags.map(tagId => {
-                    const tagObj = allTags.find(t => t.id === tagId);
-                    if (!tagObj || validSlotTagIds.includes(tagId)) return null;
-                    return `<span>${tagObj.name}</span>`;
-                }).filter(Boolean);
-
-                if (displayableTags.length > 0) {
-                    const tagsDiv = document.createElement('div');
-                    tagsDiv.classList.add('tags');
-                    tagsDiv.innerHTML = `タグ: ${displayableTags.join(' ')}`;
-                    detailsContainer.appendChild(tagsDiv);
+            itemCardCompact.addEventListener('click', () => {
+                if (isSelectingForSimulator) {
+                    handleItemCardClick({ currentTarget: itemCardCompact }); // 選択処理
+                } else {
+                    openItemDetailModal(item.docId); // 個別表示モーダルを開く
                 }
-            }
-            itemCard.appendChild(detailsContainer);
-
-            if (isSelectingForSimulator) {
-                itemCard.addEventListener('click', handleItemCardClick);
-            }
-            itemList.appendChild(itemCard);
+            });
+            itemList.appendChild(itemCardCompact);
         });
     }
+
+    function openItemDetailModal(itemId) {
+        const item = allItems.find(i => i.docId === itemId);
+        if (!item) {
+            console.error("Item not found for detail view:", itemId);
+            return;
+        }
+
+        itemDetailContent.innerHTML = ''; // Clear previous content
+
+        const cardFull = document.createElement('div');
+        cardFull.classList.add('item-card-full'); // 個別表示用スタイル
+
+        let imageElementHTML;
+        if (item.image && item.image.trim() !== "") {
+            imageElementHTML = `<img src="${item.image}" alt="${item.name || 'アイテム画像'}" onerror="this.onerror=null; this.src='./images/placeholder_item.png'; this.alt='画像読み込みエラー';">`;
+        } else {
+            imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
+        }
+
+        let effectsHtml = '<p><strong>効果:</strong> Coming Soon</p>';
+        if (item.structured_effects && item.structured_effects.length > 0) {
+            effectsHtml = `<div class="structured-effects"><strong>効果詳細:</strong><ul>`;
+            item.structured_effects.forEach(eff => {
+                const effectType = effectTypesCache.find(et => et.id === eff.type);
+                const typeName = effectType ? effectType.name : `不明(${eff.type})`;
+                const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
+                effectsHtml += `<li>${typeName}: ${eff.value}${unitText}</li>`;
+            });
+            effectsHtml += `</ul></div>`;
+        }
+
+        let tagsHtml = '';
+        const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null);
+        if (item.tags && item.tags.length > 0) {
+            const displayableTags = item.tags.map(tagId => {
+                const tagObj = allTags.find(t => t.id === tagId);
+                if (!tagObj || validSlotTagIds.includes(tagId)) return null;
+                return `<span>${tagObj.name}</span>`;
+            }).filter(Boolean);
+            if (displayableTags.length > 0) {
+                tagsHtml = `<div class="tags">タグ: ${displayableTags.join(' ')}</div>`;
+            }
+        }
+        const priceText = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : 'Coming Soon';
+
+        cardFull.innerHTML = `
+            ${imageElementHTML}
+            <h3>${item.name || '名称未設定'}</h3>
+            ${effectsHtml}
+            <p><strong>入手手段:</strong> ${item.入手手段 || 'Coming Soon'}</p>
+            <p><strong>売値:</strong> ${priceText}</p>
+            ${tagsHtml}
+        `;
+        itemDetailContent.appendChild(cardFull);
+        itemDetailModal.style.display = 'flex';
+    }
+
 
     function handleItemCardClick(event) {
         if (!isSelectingForSimulator) return;
         const clickedCard = event.currentTarget;
         const itemId = clickedCard.dataset.itemId;
-        itemList.querySelectorAll('.item-card.selected-for-simulator').forEach(card => {
+        itemList.querySelectorAll('.item-card-compact.selected-for-simulator').forEach(card => { // クラス名変更
             card.classList.remove('selected-for-simulator');
         });
         clickedCard.classList.add('selected-for-simulator');
@@ -758,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function generateAndPreviewImage() { // ★プレビューと保存で共通化できる画像生成処理
+    async function generateAndPreviewImage(forPreview = false) {
         exportSlots.innerHTML = '';
         equipmentSlots.forEach(slotName => {
             const itemId = selectedEquipment[slotName];
@@ -779,37 +817,29 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await new Promise(resolve => setTimeout(resolve, 150));
             const canvas = await html2canvas(imageExportArea, { useCORS: true, backgroundColor: '#ffffff' });
-            return canvas.toDataURL('image/png');
-        } catch (error) {
-            console.error("Image generation error:", error);
-            alert("画像の生成に失敗しました。コンソールログを確認してください。");
-            return null;
-        }
-    }
+            const imageDataUrl = canvas.toDataURL('image/png');
 
-
-    if (saveImageButton) {
-        saveImageButton.addEventListener('click', async () => {
-            const imageDataUrl = await generateAndPreviewImage();
-            if (imageDataUrl) {
+            if (forPreview) {
+                generatedImagePreview.src = imageDataUrl;
+                imagePreviewModal.style.display = 'flex';
+            } else {
                 const link = document.createElement('a');
                 link.download = '装備構成.png';
                 link.href = imageDataUrl;
                 link.click();
             }
-        });
+        } catch (error) {
+            console.error("Image generation error:", error);
+            alert("画像の生成に失敗しました。コンソールログを確認してください。");
+        }
+    }
+
+    if (saveImageButton) {
+        saveImageButton.addEventListener('click', () => generateAndPreviewImage(false));
     }
 
     if (previewImageButton) {
-        previewImageButton.addEventListener('click', async () => {
-            const imageDataUrl = await generateAndPreviewImage();
-            if (imageDataUrl) {
-                generatedImagePreview.src = imageDataUrl;
-                imagePreviewModal.style.display = 'flex';
-            } else {
-                // エラーメッセージは generateAndPreviewImage 内で表示される
-            }
-        });
+        previewImageButton.addEventListener('click', () => generateAndPreviewImage(true));
     }
 
 
@@ -832,6 +862,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modal === imagePreviewModal) {
                 generatedImagePreview.src = "#";
             }
+             if (modal === itemDetailModal) { // 個別表示モーダルを閉じたときの処理
+                 itemDetailContent.innerHTML = ''; // 内容をクリア
+             }
         }
     });
 
@@ -843,6 +876,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (event.target === imagePreviewModal) {
                 generatedImagePreview.src = "#";
+            }
+            if (event.target === itemDetailModal) {
+                itemDetailContent.innerHTML = '';
             }
         }
         if (sideNav.classList.contains('open') && !sideNav.contains(event.target) && event.target !== hamburgerButton) {
