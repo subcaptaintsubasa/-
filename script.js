@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeNavButton = document.getElementById('closeNavButton');
     const openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
 
-    // Item Detail Modal Elements
     const itemDetailModal = document.getElementById('itemDetailModal');
     const itemDetailContent = document.getElementById('itemDetailContent');
 
@@ -286,16 +285,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         itemsToRenderOnPage.forEach(item => {
-            // 一覧表示用カード (item-card-compact)
             const itemCardCompact = document.createElement('div');
             itemCardCompact.classList.add('item-card-compact');
-            if (isSelectingForSimulator) { // シミュレーター選択モードでもタップ可能にする
+            if (isSelectingForSimulator) {
                 itemCardCompact.classList.add('selectable');
                 if (temporarilySelectedItem === item.docId) {
                     itemCardCompact.classList.add('selected-for-simulator');
                 }
             }
-            itemCardCompact.dataset.itemId = item.docId; // 個別表示モーダル用にIDを保持
+            itemCardCompact.dataset.itemId = item.docId;
 
             const imageContainer = document.createElement('div');
             imageContainer.classList.add('item-image-container');
@@ -307,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageElement.onerror = function() { this.onerror=null; this.src='./images/placeholder_item.png'; this.alt='画像読込エラー'; };
             } else {
                 imageElement = document.createElement('div');
-                imageElement.classList.add('item-image-text-placeholder'); // CSSで定義したプレースホルダークラス
+                imageElement.classList.add('item-image-text-placeholder');
                 imageElement.textContent = 'NoImg';
             }
             imageContainer.appendChild(imageElement);
@@ -329,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const typeName = effectType ? effectType.name : `不明`;
                     const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
                     return `${typeName}: ${eff.value}${unitText}`;
-                }).slice(0, 2).join('; ') + (item.structured_effects.length > 2 ? '...' : ''); // 2つまで表示
+                }).slice(0, 2).join('; ') + (item.structured_effects.length > 2 ? '...' : '');
             } else {
                 effectsSummary.textContent = '効果: Coming Soon';
             }
@@ -338,9 +336,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             itemCardCompact.addEventListener('click', () => {
                 if (isSelectingForSimulator) {
-                    handleItemCardClick({ currentTarget: itemCardCompact }); // 選択処理
+                    handleItemCardClick({ currentTarget: itemCardCompact });
                 } else {
-                    openItemDetailModal(item.docId); // 個別表示モーダルを開く
+                    openItemDetailModal(item.docId);
                 }
             });
             itemList.appendChild(itemCardCompact);
@@ -349,15 +347,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openItemDetailModal(itemId) {
         const item = allItems.find(i => i.docId === itemId);
-        if (!item) {
-            console.error("Item not found for detail view:", itemId);
+        if (!item || !itemDetailContent || !itemDetailModal) {
+            console.error("Item not found or modal elements missing for detail view:", itemId);
             return;
         }
 
-        itemDetailContent.innerHTML = ''; // Clear previous content
+        itemDetailContent.innerHTML = '';
 
         const cardFull = document.createElement('div');
-        cardFull.classList.add('item-card-full'); // 個別表示用スタイル
+        cardFull.classList.add('item-card-full');
 
         let imageElementHTML;
         if (item.image && item.image.trim() !== "") {
@@ -409,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isSelectingForSimulator) return;
         const clickedCard = event.currentTarget;
         const itemId = clickedCard.dataset.itemId;
-        itemList.querySelectorAll('.item-card-compact.selected-for-simulator').forEach(card => { // クラス名変更
+        itemList.querySelectorAll('.item-card-compact.selected-for-simulator').forEach(card => {
             card.classList.remove('selected-for-simulator');
         });
         clickedCard.classList.add('selected-for-simulator');
@@ -862,8 +860,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modal === imagePreviewModal) {
                 generatedImagePreview.src = "#";
             }
-             if (modal === itemDetailModal) { // 個別表示モーダルを閉じたときの処理
-                 itemDetailContent.innerHTML = ''; // 内容をクリア
+             if (modal === itemDetailModal) {
+                 itemDetailContent.innerHTML = '';
              }
         }
     });
