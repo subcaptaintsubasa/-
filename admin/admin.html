@@ -100,18 +100,13 @@
                          <label for="newCalcMethodMax">最大値</label>
                      </div>
                  </div>
-                 {/* ★加算上限値の入力欄 */}
-                 <div class="form-group" id="newEffectTypeSumCapGroup">
-                    <label for="newEffectTypeSumCap">加算上限値 (空欄で上限なし):</label>
-                    <input type="number" id="newEffectTypeSumCap" placeholder="例: 100" min="0" step="any">
-                 </div>
                  <button id="addEffectTypeButton">効果種類を追加</button>
                  <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
                  <div id="effectTypeListContainer" class="list-container"></div>
             </section>
             <hr>
 
-            <!-- キャラクター基礎情報管理 -->
+            <!-- ★キャラクター基礎情報管理 -->
             <section id="character-base-management">
                 <h2><span class="icon">👤</span> キャラクター基礎情報管理</h2>
                 <div class="form-group">
@@ -126,6 +121,7 @@
                 <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button>
                 <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
                 <div id="charBaseOptionListContainer" class="list-container">
+                    {/* ここに選択された種類の基礎情報オプションが表示される */}
                 </div>
             </section>
             <hr>
@@ -272,11 +268,6 @@
                      <label for="editCalcMethodMax">最大値</label>
                  </div>
              </div>
-             {/* ★加算上限値の入力欄 (編集時) */}
-             <div class="form-group" id="editingEffectTypeSumCapGroup">
-                <label for="editingEffectTypeSumCap">加算上限値 (空欄で上限なし):</label>
-                <input type="number" id="editingEffectTypeSumCap" placeholder="例: 100" min="0" step="any">
-             </div>
             <button id="saveEffectTypeEditButton">変更を保存</button>
         </div>
     </div>
@@ -295,7 +286,7 @@
         </div>
     </div>
 
-    <!-- キャラクター基礎情報オプション編集モーダル -->
+    <!-- ★キャラクター基礎情報オプション編集モーダル -->
     <div id="editCharBaseOptionModal" class="modal" style="display:none;">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
