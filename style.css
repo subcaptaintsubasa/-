@@ -499,30 +499,30 @@ body {
 #resetFiltersButton:hover { background-color: #5a6268; }
 #itemCount { margin-bottom: 15px; font-weight: bold; color: #555; }
 
-/* アイテムリストのスタイル変更 (一覧表示用) */
 .item-list {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* アイテム間の少しの間隔 */
+    gap: 8px;
 }
 
-.item-card-compact { /* 一覧表示用のアイテムカード */
+.item-card-compact {
     background-color: #fff;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     padding: 8px 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     display: flex;
-    align-items: center; /* 画像とテキストを垂直中央揃え */
+    align-items: center;
     gap: 10px;
-    cursor: pointer; /* クリック可能であることを示す */
+    cursor: pointer;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    min-height: 40px; /* 画像の高さに合わせるか、もう少し余裕を持たせる */
 }
 .item-card-compact:hover {
     border-color: #c0c0c0;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-.item-card-compact.selectable { /* シミュレーター選択モード時（一覧表示でも適用されるように） */
+.item-card-compact.selectable {
     border-color: #80bdff !important;
 }
 .item-card-compact.selectable:hover {
@@ -537,11 +537,16 @@ body {
 
 .item-card-compact .item-image-container {
     flex-shrink: 0;
+    display: flex; /* For vertical centering of image if needed */
+    align-items: center;
+    height: 100%; /* 親の高さに合わせる試み */
 }
 .item-card-compact img, .item-card-compact .item-image-text-placeholder {
-    width: 30px; /* 一覧表示ではさらに小さく */
-    height: 30px;
-    object-fit: cover;
+    width: auto; /* 幅は自動 */
+    height: calc(100% - 4px); /* パディングとボーダーを考慮して高さを調整。親のpaddingも考慮 */
+    max-height: 38px; /* 例: カードのパディング8px*2=16px, ボーダー1px*2=2px。min-height 40px - padding 2px = 38px */
+    min-height: 30px; /* あまり小さくなりすぎないように */
+    object-fit: contain; /* アスペクト比を保ちつつフィット */
     border-radius: 3px;
     background-color: #eee;
     border: 1px solid #ddd;
@@ -556,9 +561,10 @@ body {
 
 .item-card-compact .item-info-compact {
     display: flex;
-    flex-direction: column; /* 名前と効果を縦に */
+    flex-direction: column;
     flex-grow: 1;
     min-width: 0;
+    justify-content: center; /* 名前と効果を垂直中央に */
 }
 .item-card-compact .item-name-compact {
     font-weight: bold;
@@ -579,17 +585,17 @@ body {
 
 /* 個別表示モーダルのためのスタイル */
 .item-detail-modal .modal-content {
-    max-width: 500px; /* 正方形に近い表示のための幅調整 */
+    max-width: 500px;
 }
-#itemDetailContent .item-card-full { /* 個別表示用のスタイル */
+#itemDetailContent .item-card-full {
     display: flex;
-    flex-direction: column; /* 縦積み */
-    align-items: center; /* 中央揃え */
+    flex-direction: column;
+    align-items: center;
     padding: 20px;
 }
 #itemDetailContent .item-card-full img,
 #itemDetailContent .item-card-full .item-image-text-placeholder {
-    width: 120px; /* 大きめの画像 */
+    width: 120px;
     height: 120px;
     margin-bottom: 15px;
     object-fit: cover;
@@ -606,7 +612,7 @@ body {
     font-size: 1.1em;
     font-weight: bold;
 }
-#itemDetailContent .item-card-full h3 { /* 名前 */
+#itemDetailContent .item-card-full h3 {
     font-size: 1.4em;
     color: #0056b3;
     margin-top: 0;
@@ -618,7 +624,7 @@ body {
     line-height: 1.6;
     color: #444;
     margin-bottom: 10px;
-    width: 100%; /* 横幅いっぱい使う */
+    width: 100%;
 }
 #itemDetailContent .item-card-full p strong {
     color: #333;
@@ -644,7 +650,7 @@ body {
     font-size: 0.9em;
     color: #555;
     width: 100%;
-    text-align: center; /* タグは中央寄せも良いかも */
+    text-align: center;
 }
 #itemDetailContent .item-card-full .tags span {
     background-color: #f0f0f0;
@@ -716,25 +722,26 @@ body {
 
     .simulator-modal .modal-content {
         max-height: 85vh;
-        width: 95%; /* スマホで幅を少し広げる */
+        width: 95%;
     }
     .equipment-slots {
-        grid-template-columns: 1fr; /* スマホではスロットを1列に */
+        grid-template-columns: 1fr;
         gap: 10px;
     }
     .calculation-result-area {
-        min-height: 80px; /* スマホでは高さを少し抑える */
+        min-height: 80px;
     }
     .simulator-actions {
-        flex-direction: row; /* ボタンを横並びに戻すか、必要ならcolumn */
+        flex-direction: row;
         flex-wrap: wrap;
         justify-content: space-around;
     }
     .simulator-actions button, .simulator-actions .button-like-secondary {
-        flex-basis: calc(50% - 5px); /* 2列に収まるように */
+        flex-basis: calc(50% - 10px); /* 間隔を考慮して調整 */
         margin-bottom: 10px;
         padding: 8px 10px;
         font-size: 0.9em;
+        box-sizing: border-box; /* パディングとボーダーを幅に含める */
     }
 
 
@@ -743,7 +750,17 @@ body {
     .tag-filters-inline { gap: 6px; }
     .tag-filter { padding: 5px 8px; font-size: 0.8em; }
 
-    /* アイテムカード(一覧表示)のスマホ表示調整 */
+    .item-card-compact {
+        /* スマホではよりシンプルな表示も検討 */
+    }
+    .item-card-compact .item-image-container {
+        margin-right: 8px;
+    }
+    .item-card-compact img, .item-card-compact .item-image-text-placeholder {
+        width: 30px; /* スマホでも一覧の画像は小さめ */
+        height: 30px;
+        max-height: 30px; /* 高さを固定 */
+    }
     .item-card-compact .item-name-compact {
         font-size: 0.9em;
     }
