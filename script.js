@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmSelectionButton = document.getElementById('confirmSelectionButton');
     const searchToolMessage = document.getElementById('searchToolMessage');
     const searchControlsElement = document.querySelector('.search-controls');
+    const paginationControls = document.getElementById('paginationControls'); // ★ページネーション
 
     const hamburgerButton = document.getElementById('hamburgerButton');
     const sideNav = document.getElementById('sideNav');
@@ -56,6 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedParentCategoryIds = [];
     let selectedTagIds = [];
     let isSelectingForSimulator = false;
+
+    // ★ページネーション用状態
+    let currentPage = 1;
+    const itemsPerPage = 10; // 1ページあたりのアイテム数
+    let currentFilteredItems = []; // 現在のフィルター条件での全アイテムリスト
 
     const equipmentSlots = ["服", "顔", "首", "腕", "背中", "足"];
     let selectedEquipment = {};
@@ -85,24 +91,16 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
 
             effectTypesCache = effectTypesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("Effect Types loaded:", effectTypesCache.length);
-
             allCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("All Categories loaded:", allCategories.length);
-
             allTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("All Tags loaded:", allTags.length);
-
             allItems = itemsSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-            console.log("Items loaded:", allItems.length);
 
             buildEquipmentSlotTagMap();
-
             initializeSimulatorSlots();
             initializeSimulatorDisplay();
             renderParentCategoryFilters();
             renderChildCategoriesAndTags();
-            filterAndRenderItems();
+            filterAndRenderItems(); // This will also handle initial pagination
             console.log("Data loading and initial setup complete.");
 
         } catch (error) {
@@ -117,18 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
         EQUIPMENT_SLOT_TAG_IDS = {};
         if (!allTags || allTags.length === 0) {
             console.error("Tags data is not loaded or empty. Cannot build equipment slot tag map.");
-            equipmentSlots.forEach(slotName => {
-                EQUIPMENT_SLOT_TAG_IDS[slotName] = null;
-            });
+            equipmentSlots.forEach(slotName => EQUIPMENT_SLOT_TAG_IDS[slotName] = null);
             return;
         }
         equipmentSlots.forEach(slotName => {
             const foundTag = allTags.find(tag => tag.name === slotName);
-            if (foundTag) {
-                EQUIPMENT_SLOT_TAG_IDS[slotName] = foundTag.id;
-            } else {
-                console.warn(`部位タグ「${slotName}」がFirestoreのtagsコレクションに見つかりません。この部位のアイテム選択が正しく機能しない可能性があります。`);
-                EQUIPMENT_SLOT_TAG_IDS[slotName] = null;
+            EQUIPMENT_SLOT_TAG_IDS[slotName] = foundTag ? foundTag.id : null;
+            if (!foundTag) {
+                console.warn(`部位タグ「${slotName}」がFirestoreのtagsコレクションに見つかりません。`);
             }
         });
         console.log("Dynamically built EQUIPMENT_SLOT_TAG_IDS:", EQUIPMENT_SLOT_TAG_IDS);
@@ -148,10 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const button = document.createElement('div');
             button.classList.add('category-filter-button');
             let isDisabledForSimulator = false;
-            if (isSelectingForSimulator) {
-                if (category.name !== SIMULATOR_PARENT_CATEGORY_NAME) {
-                    isDisabledForSimulator = true;
-                }
+            if (isSelectingForSimulator && category.name !== SIMULATOR_PARENT_CATEGORY_NAME) {
+                isDisabledForSimulator = true;
             }
             button.classList.toggle('disabled', isDisabledForSimulator);
             button.textContent = category.name;
@@ -159,9 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.toggle('active', selectedParentCategoryIds.includes(category.id));
 
             button.addEventListener('click', () => {
-                if (!isDisabledForSimulator) {
-                    toggleParentCategory(button, category.id);
-                }
+                if (!isDisabledForSimulator) toggleParentCategory(button, category.id);
             });
             parentCategoryFiltersContainer.appendChild(button);
         });
@@ -171,15 +161,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isSelectingForSimulator && allCategories.find(c => c.id === categoryId)?.name === SIMULATOR_PARENT_CATEGORY_NAME) {
             return;
         }
-
         button.classList.toggle('active');
         const index = selectedParentCategoryIds.indexOf(categoryId);
-        if (index > -1) {
-            selectedParentCategoryIds.splice(index, 1);
-        } else {
-            selectedParentCategoryIds.push(categoryId);
-        }
-        selectedTagIds = [];
+        if (index > -1) selectedParentCategoryIds.splice(index, 1);
+        else selectedParentCategoryIds.push(categoryId);
+
+        selectedTagIds = []; // Reset tags when parent category changes
+        currentPage = 1; // Reset to first page
         if (isSelectingForSimulator && currentSelectingSlot) {
             const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
             if (slotTagId) selectedTagIds.push(slotTagId);
@@ -212,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         childCategoriesAndTagsContainer.style.display = 'block';
 
-
         let hasContentToShow = false;
         const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null);
 
@@ -221,24 +208,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!parentCat) return;
 
             const childCategoriesOfParent = allCategories.filter(cat => cat.parentId === parentId);
-
             if (childCategoriesOfParent.length > 0) {
                 childCategoriesOfParent.forEach(childCat => {
                     if (isSelectingForSimulator && parentCat.name === SIMULATOR_PARENT_CATEGORY_NAME && childCat.name !== SIMULATOR_EFFECT_CHILD_CATEGORY_NAME) {
                         return;
                     }
                     hasContentToShow = true;
-
                     const childCatSection = document.createElement('div');
                     childCatSection.classList.add('child-category-section');
-
                     const childCatHeader = document.createElement('h4');
                     const searchModeText = childCat.tagSearchMode === 'OR' ? '(OR検索)' : '(AND検索)';
                     childCatHeader.innerHTML = `${childCat.name} <span class="search-mode">${searchModeText}</span>`;
                     childCatSection.appendChild(childCatHeader);
 
                     const tagsForThisChild = allTags.filter(tag => tag.categoryIds && tag.categoryIds.includes(childCat.id));
-
                     if (tagsForThisChild.length > 0) {
                         const tagsContainer = document.createElement('div');
                         tagsContainer.classList.add('tag-filters-inline');
@@ -248,38 +231,25 @@ document.addEventListener('DOMContentLoaded', () => {
                             tagButton.textContent = tag.name;
                             tagButton.dataset.tagId = tag.id;
                             const isSlotTag = validSlotTagIds.includes(tag.id);
-
                             let isDisabledTag = false;
                             if (isSelectingForSimulator) {
-                                // 「効果」カテゴリ以外のタグ、かつ、現在選択中の部位タグでもない場合は無効
                                 if (childCat.name !== SIMULATOR_EFFECT_CHILD_CATEGORY_NAME && tag.id !== EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
                                      isDisabledTag = true;
                                 }
                             }
-
                             tagButton.classList.toggle('disabled', isDisabledTag);
                             tagButton.classList.toggle('active', selectedTagIds.includes(tag.id) && !isDisabledTag);
-
-
-                            tagButton.addEventListener('click', () => {
-                                if (!isDisabledTag) {
-                                    toggleTag(tagButton, tag.id);
-                                }
-                            });
+                            tagButton.addEventListener('click', () => { if (!isDisabledTag) toggleTag(tagButton, tag.id); });
                             tagsContainer.appendChild(tagButton);
                         });
                         childCatSection.appendChild(tagsContainer);
                     } else {
-                        childCatSection.appendChild(Object.assign(document.createElement('p'), {
-                            className: 'no-tags-message',
-                            textContent: 'この子カテゴリに属するタグはありません。'
-                        }));
+                        childCatSection.appendChild(Object.assign(document.createElement('p'), { className: 'no-tags-message', textContent: 'この子カテゴリに属するタグはありません。'}));
                     }
                     childCategoriesAndTagsContainer.appendChild(childCatSection);
                 });
             }
         });
-
         if (!hasContentToShow && selectedParentCategoryIds.length > 0) {
             childCategoriesAndTagsContainer.innerHTML = '<p style="color: #777; margin-top: 10px;">選択された親カテゴリには表示可能な子カテゴリがありません。</p>';
         }
@@ -289,34 +259,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isSelectingForSimulator && currentSelectingSlot && tagId === EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
             return;
         }
-
         button.classList.toggle('active');
         const index = selectedTagIds.indexOf(tagId);
-        if (index > -1) {
-            selectedTagIds.splice(index, 1);
-        } else {
-            selectedTagIds.push(tagId);
-        }
+        if (index > -1) selectedTagIds.splice(index, 1);
+        else selectedTagIds.push(tagId);
+        currentPage = 1; // Reset to first page on tag change
         filterAndRenderItems();
     }
 
-    function renderItems(itemsToRender) {
+    function renderItems(itemsToRenderOnPage) { // 名前変更: itemsToRender -> itemsToRenderOnPage
         if (!itemList) return;
         itemList.innerHTML = '';
 
-        if (itemCountDisplay) {
-            const countText = isSelectingForSimulator ?
-                `該当部位のアイテム: ${itemsToRender.length} 件` :
-                `${itemsToRender.length} 件のアイテムが見つかりました。`;
-            itemCountDisplay.textContent = countText;
-        }
+        // itemCountDisplay は filterAndRenderItems で更新するのでここでは不要
 
-        if (itemsToRender.length === 0) {
+        if (itemsToRenderOnPage.length === 0 && currentFilteredItems.length > 0) { // フィルター結果はあるが、このページにアイテムがない場合
+            itemList.innerHTML = '<p>このページに表示するアイテムはありません。</p>';
+            return;
+        }
+         if (itemsToRenderOnPage.length === 0 && currentFilteredItems.length === 0) { // フィルター結果自体がない場合
             itemList.innerHTML = '<p>該当するアイテムは見つかりませんでした。</p>';
             return;
         }
 
-        itemsToRender.forEach(item => {
+
+        itemsToRenderOnPage.forEach(item => {
             const itemCard = document.createElement('div');
             itemCard.classList.add('item-card');
             itemCard.classList.toggle('selectable', isSelectingForSimulator);
@@ -405,157 +372,183 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isSelectingForSimulator) return;
         const clickedCard = event.currentTarget;
         const itemId = clickedCard.dataset.itemId;
-
         itemList.querySelectorAll('.item-card.selected-for-simulator').forEach(card => {
             card.classList.remove('selected-for-simulator');
         });
-
         clickedCard.classList.add('selected-for-simulator');
         temporarilySelectedItem = itemId;
     }
 
     function filterAndRenderItems() {
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
-        // const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null); // filterAndRenderItems内では直接使われなくなった
-
-        let filteredItems = allItems.filter(item => {
+        currentFilteredItems = allItems.filter(item => { // Store all filtered items
             if (isSelectingForSimulator && currentSelectingSlot) {
                 const requiredSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
                 if (requiredSlotTagId && (!item.tags || !item.tags.includes(requiredSlotTagId))) {
                     return false;
                 }
             }
-
-            if (searchTerm && !isSelectingForSimulator) { // 通常検索時のみ検索語で絞り込み（シミュレーター時はUIから制御）
-                const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
-                const sourceMatch = item.入手手段 && item.入手手段.toLowerCase().includes(searchTerm);
-                const priceMatch = typeof item.price === 'number' && String(item.price).includes(searchTerm);
-                const effectMatch = item.structured_effects && item.structured_effects.some(eff => {
-                    const typeInfo = effectTypesCache.find(et => et.id === eff.type);
-                    const typeName = typeInfo ? typeInfo.name.toLowerCase() : '';
-                    const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit.toLowerCase() : '';
-                    const valueText = String(eff.value).toLowerCase();
-                    return `${typeName}${valueText}${unitText}`.includes(searchTerm) ||
-                           typeName.includes(searchTerm) ||
-                           `${valueText}${unitText}`.includes(searchTerm);
-                });
-                if (!nameMatch && !sourceMatch && !effectMatch && !priceMatch) return false;
-            } else if (searchTerm && isSelectingForSimulator) { // シミュレーター選択時も検索バーを有効にする
+            if (searchTerm) {
                  const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
-                 // シミュレーター選択時は名前でのみ検索（シンプル化のため。必要なら他も追加）
-                 if (!nameMatch) return false;
+                 const sourceMatch = item.入手手段 && item.入手手段.toLowerCase().includes(searchTerm);
+                 const priceMatch = typeof item.price === 'number' && String(item.price).includes(searchTerm);
+                 const effectMatch = item.structured_effects && item.structured_effects.some(eff => {
+                     const typeInfo = effectTypesCache.find(et => et.id === eff.type);
+                     const typeName = typeInfo ? typeInfo.name.toLowerCase() : '';
+                     const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit.toLowerCase() : '';
+                     const valueText = String(eff.value).toLowerCase();
+                     return `${typeName}${valueText}${unitText}`.includes(searchTerm) ||
+                            typeName.includes(searchTerm) ||
+                            `${valueText}${unitText}`.includes(searchTerm);
+                 });
+                 if (!nameMatch && !sourceMatch && !effectMatch && !priceMatch) return false;
             }
-
 
             if (selectedParentCategoryIds.length > 0) {
                 let matchesSelectedParent = true;
                 if (isSelectingForSimulator) {
                     const equipmentParent = allCategories.find(c => c.name === SIMULATOR_PARENT_CATEGORY_NAME && (!c.parentId || c.parentId === ""));
                     if (!equipmentParent || !selectedParentCategoryIds.includes(equipmentParent.id)) {
-                        matchesSelectedParent = false; // 「装備」親カテゴリが選択されていなければ不一致
+                        matchesSelectedParent = false;
                     }
-                } else { // 通常検索
+                } else {
                     const itemChildCategoryIds = (item.tags || []).reduce((acc, tagId) => {
                         const tag = allTags.find(t => t.id === tagId);
                         if (tag && tag.categoryIds) {
                             tag.categoryIds.forEach(catId => {
                                 const category = allCategories.find(c => c.id === catId);
-                                if (category && category.parentId) {
-                                    acc.add(catId);
-                                }
+                                if (category && category.parentId) acc.add(catId);
                             });
                         }
                         return acc;
                     }, new Set());
-
-                    matchesSelectedParent = selectedParentCategoryIds.some(selectedParentId => {
-                        return Array.from(itemChildCategoryIds).some(itemCatId => {
+                    matchesSelectedParent = selectedParentCategoryIds.some(selectedParentId =>
+                        Array.from(itemChildCategoryIds).some(itemCatId => {
                             const category = allCategories.find(c => c.id === itemCatId);
                             return category && category.parentId === selectedParentId;
-                        });
-                    });
+                        })
+                    );
                 }
                  if (!matchesSelectedParent) return false;
             }
 
-
             if (selectedTagIds.length > 0) {
-                let tagsToActuallyFilterBy = [...selectedTagIds];
+                let tagsToFilterByEffective = [...selectedTagIds];
                 if (isSelectingForSimulator && currentSelectingSlot) {
-                     // 部位タグは既にチェック済みなので、ここではそれ以外のタグ（効果カテゴリのタグなど）で絞る
                     const currentSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
-                    tagsToActuallyFilterBy = selectedTagIds.filter(tid => tid !== currentSlotTagId);
+                    tagsToFilterByEffective = selectedTagIds.filter(tid => tid !== currentSlotTagId);
                 }
-
-                if (tagsToActuallyFilterBy.length > 0) {
+                if (tagsToFilterByEffective.length > 0) {
                     let effectiveSearchMode = 'AND';
                     const categoriesOfSelectedTags = new Map();
-
-                    tagsToActuallyFilterBy.forEach(tagId => {
+                    tagsToFilterByEffective.forEach(tagId => {
                         const tag = allTags.find(t => t.id === tagId);
                         if (tag && tag.categoryIds) {
                             tag.categoryIds.forEach(catId => {
                                 const category = allCategories.find(c => c.id === catId);
                                 if (category && category.parentId) {
                                     if (!categoriesOfSelectedTags.has(catId)) {
-                                        categoriesOfSelectedTags.set(catId, {
-                                            mode: category.tagSearchMode || 'AND',
-                                            tags: []
-                                        });
+                                        categoriesOfSelectedTags.set(catId, { mode: category.tagSearchMode || 'AND', tags: [] });
                                     }
                                     categoriesOfSelectedTags.get(catId).tags.push(tagId);
                                 }
                             });
                         }
                     });
-
                     if (categoriesOfSelectedTags.size === 1) {
                         const [catData] = categoriesOfSelectedTags.values();
-                        if (catData.mode === 'OR' && catData.tags.length === tagsToActuallyFilterBy.length) {
+                        if (catData.mode === 'OR' && catData.tags.length === tagsToFilterByEffective.length) {
                             effectiveSearchMode = 'OR';
                         }
                     }
-
                     if (effectiveSearchMode === 'OR') {
-                        if (!tagsToActuallyFilterBy.some(tagId => item.tags && item.tags.includes(tagId))) {
-                            return false;
-                        }
+                        if (!tagsToFilterByEffective.some(tagId => item.tags && item.tags.includes(tagId))) return false;
                     } else {
-                        if (!tagsToActuallyFilterBy.every(tagId => item.tags && item.tags.includes(tagId))) {
-                            return false;
-                        }
+                        if (!tagsToFilterByEffective.every(tagId => item.tags && item.tags.includes(tagId))) return false;
                     }
                 }
             }
             return true;
         });
-        renderItems(filteredItems);
+
+        if (itemCountDisplay) {
+            const countText = isSelectingForSimulator ? `該当部位のアイテム: ${currentFilteredItems.length} 件` : `${currentFilteredItems.length} 件のアイテムが見つかりました。`;
+            itemCountDisplay.textContent = countText;
+        }
+
+        renderPaginationControls(); // ページネーションUIを更新
+        // 現在のページに表示するアイテムをスライス
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const itemsToRenderOnPage = currentFilteredItems.slice(startIndex, endIndex);
+        renderItems(itemsToRenderOnPage); // スライスされたアイテムのみを描画
+    }
+
+    function renderPaginationControls() {
+        if (!paginationControls) return;
+        paginationControls.innerHTML = '';
+        const totalPages = Math.ceil(currentFilteredItems.length / itemsPerPage);
+
+        if (totalPages <= 1) return; // 1ページ以下ならコントロール不要
+
+        // Previous Button
+        const prevButton = document.createElement('button');
+        prevButton.classList.add('pagination-button');
+        prevButton.textContent = '前へ';
+        prevButton.disabled = currentPage === 1;
+        prevButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                filterAndRenderItems(); // フィルターは再実行せず、表示範囲だけ変えるのが理想だが、簡略化
+                window.scrollTo({ top: itemList.offsetTop - 80, behavior: 'smooth' });
+            }
+        });
+        paginationControls.appendChild(prevButton);
+
+        // Page Info
+        const pageInfo = document.createElement('span');
+        pageInfo.classList.add('page-info');
+        pageInfo.textContent = `${currentPage} / ${totalPages} ページ`;
+        paginationControls.appendChild(pageInfo);
+
+        // Next Button
+        const nextButton = document.createElement('button');
+        nextButton.classList.add('pagination-button');
+        nextButton.textContent = '次へ';
+        nextButton.disabled = currentPage === totalPages;
+        nextButton.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                filterAndRenderItems();
+                window.scrollTo({ top: itemList.offsetTop - 80, behavior: 'smooth' });
+            }
+        });
+        paginationControls.appendChild(nextButton);
     }
 
 
-    if (resetFiltersButton) resetFiltersButton.addEventListener('click', resetFilters);
-    if (searchInput) searchInput.addEventListener('input', () => {
-        filterAndRenderItems();
-    });
-
-
-    function resetFilters() {
+    if (resetFiltersButton) resetFiltersButton.addEventListener('click', () => {
         if (searchInput) searchInput.value = '';
         selectedParentCategoryIds = [];
         selectedTagIds = [];
+        currentPage = 1; // リセット時に1ページ目に戻る
 
         if (isSelectingForSimulator && currentSelectingSlot) {
             const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
             if (slotTagId) selectedTagIds.push(slotTagId);
-
             const equipmentParentCategory = allCategories.find(c => c.name === SIMULATOR_PARENT_CATEGORY_NAME && (!c.parentId || c.parentId === ""));
             if (equipmentParentCategory) selectedParentCategoryIds.push(equipmentParentCategory.id);
         }
-
         renderParentCategoryFilters();
         renderChildCategoriesAndTags();
         filterAndRenderItems();
-    }
+    });
+
+    if (searchInput) searchInput.addEventListener('input', () => {
+        currentPage = 1; // 検索語変更時も1ページ目に戻る
+        filterAndRenderItems();
+    });
+
 
     function initializeSimulatorSlots() {
         equipmentSlotsContainer.querySelectorAll('.select-item-button').forEach(button => {
@@ -580,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         isSelectingForSimulator = true;
         temporarilySelectedItem = selectedEquipment[currentSelectingSlot] || null;
+        currentPage = 1; // シミュレーター選択開始時も1ページ目
 
         if (simulatorModal) simulatorModal.style.display = 'none';
 
@@ -592,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         selectedTagIds = [slotTagId];
 
-        if (searchInput) searchInput.disabled = false; // 検索バーは常に有効
+        if (searchInput) searchInput.disabled = false;
 
 
         renderParentCategoryFilters();
@@ -626,6 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isSelectingForSimulator = false;
             currentSelectingSlot = null;
             temporarilySelectedItem = null;
+            currentPage = 1;
 
             if (searchToolMessage) searchToolMessage.style.display = 'none';
             if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
@@ -844,6 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedParentCategoryIds = [];
         selectedTagIds = [];
         if (searchInput) searchInput.value = '';
+        currentPage = 1; // キャンセル時も1ページ目に戻す
 
         renderParentCategoryFilters();
         renderChildCategoriesAndTags();
