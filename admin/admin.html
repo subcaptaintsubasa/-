@@ -26,7 +26,7 @@
 
         <div class="container">
             <p class="info-message" style="text-align: center; margin-bottom: 20px;">
-                変更は、保存ボタンを押すとFirebaseに直接保存されます。
+                カテゴリ、タグ、効果種類、アイテムの変更は、保存ボタンを押すとFirebaseに直接保存されます。
             </p>
 
             <!-- カテゴリ管理 -->
@@ -110,44 +110,18 @@
             <section id="character-base-management">
                 <h2><span class="icon">👤</span> キャラクター基礎情報管理</h2>
                 <div class="form-group">
-                    <label for="characterBaseTypeSelect">基礎情報の種類:</label>
-                    <select id="characterBaseTypeSelect">
+                    <label for="charBaseTypeSelect">基礎情報の種類:</label>
+                    <select id="charBaseTypeSelect">
                         <option value="headShape">頭の形</option>
                         <option value="correction">補正</option>
                         <option value="color">色</option>
                         <option value="pattern">柄</option>
                     </select>
                 </div>
-
-                <div id="characterBaseOptionsContainer">
-                    {/* ここに選択された種類のオプション管理UIが動的に生成される */}
-                    <form id="characterBaseOptionForm" style="margin-bottom: 15px;">
-                        <input type="hidden" id="editingCharacterBaseOptionDocId">
-                        <div class="form-group">
-                            <label for="characterBaseOptionName">オプション名:</label>
-                            <input type="text" id="characterBaseOptionName" placeholder="例: 丸型ヘッド">
-                        </div>
-                        <div class="form-group">
-                            <label>このオプションの効果:</label>
-                            <div class="effect-input-area">
-                                 <div class="effect-input-row">
-                                     <select id="charBaseEffectTypeSelect" class="form-control-short">
-                                         <option value="">効果種類を選択...</option>
-                                     </select>
-                                     <input type="number" id="charBaseEffectValueInput" placeholder="値" step="any" class="form-control-short">
-                                     <span id="charBaseEffectUnitDisplay" class="unit-display"></span>
-                                     <button type="button" id="addCharBaseEffectToListButton">効果を追加</button>
-                                 </div>
-                                 <div id="currentCharBaseEffectsList" class="effects-list-container">
-                                    <p>効果が追加されていません。</p>
-                                 </div>
-                            </div>
-                        </div>
-                        <button type="submit" id="saveCharacterBaseOptionButton">オプション保存</button>
-                        <button type="button" id="clearCharacterBaseOptionFormButton">フォームクリア</button>
-                    </form>
-                    <h3>既存オプション一覧 (<span id="selectedCharacterBaseTypeName">頭の形</span>)</h3>
-                    <div id="characterBaseOptionListContainer" class="list-container"></div>
+                <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button>
+                <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
+                <div id="charBaseOptionListContainer" class="list-container">
+                    {/* ここに選択された種類の基礎情報オプションが表示される */}
                 </div>
             </section>
             <hr>
@@ -220,7 +194,7 @@
         </div>
     </div>
 
-    <!-- モーダル各種 -->
+    <!-- カテゴリ編集モーダル -->
     <div id="editCategoryModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
@@ -250,6 +224,7 @@
         </div>
     </div>
 
+    <!-- タグ編集モーダル -->
     <div id="editTagModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
@@ -267,6 +242,7 @@
         </div>
     </div>
 
+    <!-- 効果種類編集モーダル -->
     <div id="editEffectTypeModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
@@ -296,6 +272,7 @@
         </div>
     </div>
 
+    <!-- 効果単位編集モーダル -->
     <div id="editEffectUnitModal" class="modal" style="display:none;">
         <div class="modal-content" style="max-width: 400px;">
             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
@@ -308,6 +285,38 @@
             <button id="saveEffectUnitEditButton">単位を保存</button>
         </div>
     </div>
+
+    <!-- ★キャラクター基礎情報オプション編集モーダル -->
+    <div id="editCharBaseOptionModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+            <h3 id="editCharBaseOptionModalTitle">基礎情報オプション編集</h3>
+            <input type="hidden" id="editingCharBaseType">
+            <input type="hidden" id="editingCharBaseOptionDocId">
+            <div class="form-group">
+                <label for="editingCharBaseOptionName">選択肢の名前:</label>
+                <input type="text" id="editingCharBaseOptionName" placeholder="例: 丸型ヘッド">
+            </div>
+            <div class="form-group">
+                <label>この選択肢の効果:</label>
+                <div class="effect-input-area" id="charBaseOptionEffectInputArea">
+                     <div class="effect-input-row">
+                         <select id="charBaseOptionEffectTypeSelect" class="form-control-short">
+                             <option value="">効果種類を選択...</option>
+                         </select>
+                         <input type="number" id="charBaseOptionEffectValueInput" placeholder="値" step="any" class="form-control-short">
+                         <span id="charBaseOptionEffectUnitDisplay" class="unit-display"></span>
+                         <button type="button" id="addCharBaseOptionEffectButton">効果を追加</button>
+                     </div>
+                     <div id="currentCharBaseOptionEffectsList" class="effects-list-container">
+                        <p>効果が追加されていません。</p>
+                     </div>
+                </div>
+            </div>
+            <button id="saveCharBaseOptionButton">オプションを保存</button>
+        </div>
+    </div>
+
 
     <script type="module" src="admin.script.js"></script>
 </body>
