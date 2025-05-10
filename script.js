@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
-    getFirestore, collection, getDocs, query, orderBy, where, doc // doc を追加
+    getFirestore, collection, getDocs, query, orderBy, where, doc
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
 let EQUIPMENT_SLOT_TAG_IDS = {};
@@ -21,9 +21,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ★キャラクター基礎情報の種類 (管理側と一致させる)
 const characterBaseTypes = ["headShape", "correction", "color", "pattern"];
-let characterBasesCache = {}; // { headShape: [...], correction: [...], ... }
+let characterBasesCache = {};
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -48,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemDetailModal = document.getElementById('itemDetailModal');
     const itemDetailContent = document.getElementById('itemDetailContent');
 
-    // Character Base Selectors
     const charBaseHeadShapeSelect = document.getElementById('charBaseHeadShape');
     const charBaseCorrectionSelect = document.getElementById('charBaseCorrection');
     const charBaseColorSelect = document.getElementById('charBaseColor');
@@ -105,18 +103,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadCharacterBasesFromFirestore() {
         console.log("[Character Bases] Loading from Firestore...");
-        characterBasesCache = {}; // Reset cache
+        characterBasesCache = {};
         try {
             for (const baseType of characterBaseTypes) {
                 const optionsCollectionRef = collection(db, `character_bases/${baseType}/options`);
-                const q = query(optionsCollectionRef, orderBy("name")); // 'name' フィールドでソート
+                const q = query(optionsCollectionRef, orderBy("name"));
                 const snapshot = await getDocs(q);
                 characterBasesCache[baseType] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
             }
             console.log("[Character Bases] Loaded from Firestore:", characterBasesCache);
         } catch (error) {
             console.error("[Character Bases] Error loading from Firestore:", error);
-            // モックデータもクリアしておくか、エラー時のフォールバックを検討
             characterBasesCache = {};
         }
     }
@@ -125,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadData() {
         console.log("Loading data...");
         try {
-            await loadCharacterBasesFromFirestore(); // ★Firestoreから基礎情報をロード
+            await loadCharacterBasesFromFirestore();
 
             const [effectTypesSnapshot, categoriesSnapshot, tagsSnapshot, itemsSnapshot] = await Promise.all([
                 getDocs(query(collection(db, 'effect_types'), orderBy('name'))),
@@ -170,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectElement.innerHTML = '<option value="">選択なし</option>';
                 characterBasesCache[baseType].forEach(option => {
                     const opt = document.createElement('option');
-                    opt.value = option.id; // FirestoreのドキュメントIDをvalueに
+                    opt.value = option.id;
                     opt.textContent = option.name;
                     selectElement.appendChild(opt);
                 });
@@ -184,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleCharacterBaseChange(event) {
         const baseType = event.target.dataset.baseType;
-        const selectedOptionId = event.target.value; // これは option.id になる
+        const selectedOptionId = event.target.value;
         if (baseType && selectedCharacterBase.hasOwnProperty(baseType)) {
             if (selectedOptionId && characterBasesCache[baseType]) {
                 const selectedOptionData = characterBasesCache[baseType].find(opt => opt.id === selectedOptionId);
@@ -807,14 +804,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedOption.effects.forEach(effect => {
                     const { type: effectTypeId, value, unit } = effect;
                     if (!effectTypeId || typeof value !== 'number') return;
+
                     const effectTypeInfo = effectTypesCache.find(et => et.id === effectTypeId);
-                    if (!effectTypeInfo) return;
+                    if (!effectTypeInfo) { console.warn(`Char Base: Unknown effect type ID: ${effectTypeId}`); return; }
+
                     const calculationMethod = effectTypeInfo.calculationMethod || 'sum';
+                    const sumCap = typeof effectTypeInfo.sumCap === 'number' ? effectTypeInfo.sumCap : null; // ★上限値を取得
                     const currentUnit = unit || 'none';
                     const effectKey = `${effectTypeId}_${currentUnit}`;
 
                     if (!totalEffectsMap.has(effectKey)) {
-                        totalEffectsMap.set(effectKey, { typeId: effectTypeId, typeName: effectTypeInfo.name, value: 0, unit: currentUnit, calculationMethod: calculationMethod, valuesForMax: [] });
+                        totalEffectsMap.set(effectKey, { typeId: effectTypeId, typeName: effectTypeInfo.name, value: 0, unit: currentUnit, calculationMethod: calculationMethod, sumCap: sumCap, valuesForMax: [] });
                     }
                     const currentEffectData = totalEffectsMap.get(effectKey);
                     if (calculationMethod === 'max') currentEffectData.valuesForMax.push(value);
@@ -833,13 +833,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { type: effectTypeId, value, unit } = effect;
                 if (!effectTypeId || typeof value !== 'number') return;
                 const effectTypeInfo = effectTypesCache.find(et => et.id === effectTypeId);
-                if (!effectTypeInfo) return;
+                if (!effectTypeInfo) { console.warn(`Item: Unknown effect type ID: ${effectTypeId} for item ID: ${itemId}`); return; }
+
                 const calculationMethod = effectTypeInfo.calculationMethod || 'sum';
+                const sumCap = typeof effectTypeInfo.sumCap === 'number' ? effectTypeInfo.sumCap : null; // ★上限値を取得
                 const currentUnit = unit || 'none';
                 const effectKey = `${effectTypeId}_${currentUnit}`;
 
                 if (!totalEffectsMap.has(effectKey)) {
-                    totalEffectsMap.set(effectKey, { typeId: effectTypeId, typeName: effectTypeInfo.name, value: 0, unit: currentUnit, calculationMethod: calculationMethod, valuesForMax: [] });
+                    totalEffectsMap.set(effectKey, { typeId: effectTypeId, typeName: effectTypeInfo.name, value: 0, unit: currentUnit, calculationMethod: calculationMethod, sumCap: sumCap, valuesForMax: [] });
                 }
                 const currentEffectData = totalEffectsMap.get(effectKey);
                 if (calculationMethod === 'max') currentEffectData.valuesForMax.push(value);
@@ -850,6 +852,8 @@ document.addEventListener('DOMContentLoaded', () => {
         totalEffectsMap.forEach(effectData => {
             if (effectData.calculationMethod === 'max' && effectData.valuesForMax.length > 0) {
                 effectData.value = Math.max(...effectData.valuesForMax);
+            } else if (effectData.calculationMethod === 'sum' && effectData.sumCap !== null && effectData.value > effectData.sumCap) {
+                effectData.value = effectData.sumCap; // ★上限値を適用
             }
         });
 
@@ -903,7 +907,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedOption = selectedCharacterBase[baseTypeKey];
                 if (selectedOption && selectedOption.name) {
                     let label = '';
-                    // このマッピングは baseTypeMappings を使うべき
                     if (baseTypeKey === 'headShape') label = '頭の形';
                     else if (baseTypeKey === 'correction') label = '補正';
                     else if (baseTypeKey === 'color') label = '色';
@@ -915,7 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-            if (!hasBaseInfo && exportCharBase.innerHTML === '<h4>基礎情報:</h4>') { // Check if only title is there
+            if (!hasBaseInfo && exportCharBase.innerHTML === '<h4>基礎情報:</h4>') {
                  exportCharBase.innerHTML += '<div>選択なし</div>';
             }
         }
