@@ -6,18 +6,26 @@ body {
 .site-header {
     background-color: #343a40;
     color: white;
-    padding: 10px 20px;
+    padding: 0 20px; /* 上下パディングを0に、左右は維持 */
+    height: 60px; /* ヘッダーの高さを固定 */
+    display: flex; /* header-content を直接 flex コンテナにする */
+    justify-content: space-between; /* タイトルとボタンを両端に */
+    align-items: center; /* 垂直方向中央揃え */
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.header-content { /* このクラスは実質不要になるかも */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: sticky; /* スクロール追従 */
-    top: 0;
-    z-index: 1000; /* 他の要素より手前に */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    width: 100%; /* ヘッダー全体に広がるように */
 }
 .site-title {
     margin: 0;
     font-size: 1.5em;
+    /* flex-grow: 1; */ /* タイトルが中央に来るようにする場合は不要 */
 }
 .hamburger-button {
     font-size: 1.8em;
@@ -25,25 +33,27 @@ body {
     border: none;
     color: white;
     cursor: pointer;
-    padding: 5px 10px;
+    padding: 10px; /* クリック範囲を確保 */
+    line-height: 1; /* ボタンの高さを行の高さに合わせる */
+    margin-left: auto; /* ★ 右寄せにするために追加 */
 }
 
 /* サイドナビゲーションパネル */
 .side-navigation {
     height: 100%;
-    width: 0; /* 初期状態では非表示 */
+    width: 0;
     position: fixed;
-    z-index: 10002; /* ヘッダーより手前、モーダルよりは奥でも良い */
+    z-index: 10002;
     top: 0;
     right: 0;
-    background-color: #222; /* 少し濃いめの背景 */
+    background-color: #222;
     overflow-x: hidden;
-    transition: 0.3s ease-in-out; /* スムーズな開閉 */
-    padding-top: 60px; /* ヘッダーとかぶらないように */
+    transition: 0.3s ease-in-out;
+    padding-top: 60px;
     box-shadow: -3px 0 8px rgba(0,0,0,0.3);
 }
 .side-navigation.open {
-    width: 250px; /* 開いたときの幅 */
+    width: 250px;
 }
 .side-navigation ul {
     list-style: none;
@@ -84,31 +94,9 @@ body {
 .container {
     width: 90%; max-width: 1200px; margin: 20px auto; padding: 20px;
     background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px;
-    margin-top: 80px; /* ヘッダーの高さ分マージン */
+    margin-top: 80px; /* ヘッダーの高さ(60px) + 少しの余白(20px) */
 }
-/* h1 は .site-title に移動したので削除またはコメントアウト
-h1 { text-align: center; color: #333; margin-bottom: 30px; }
-*/
 
-/* メインコントロールエリアはナビゲーションに移動したため不要なら削除
-.main-controls {
-    text-align: center;
-    margin-bottom: 20px;
-}
-#openSimulatorButton {
-    padding: 12px 25px;
-    font-size: 1.1em;
-    background-color: #17a2b8;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-#openSimulatorButton:hover {
-    background-color: #138496;
-}
-*/
 .section-divider {
     border: 0;
     height: 1px;
@@ -352,7 +340,6 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     border-radius: 5px; background-color: #f9f9f9;
     transition: opacity 0.3s ease-in-out;
 }
-/* .search-controls.selecting-mode は不要になった可能性 */
 .search-tool-message {
     background-color: #d1ecf1;
     color: #0c5460;
@@ -485,22 +472,21 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 #resetFiltersButton:hover { background-color: #5a6268; }
 #itemCount { margin-bottom: 15px; font-weight: bold; color: #555; }
 
-/* アイテムリストのスタイル変更 */
 .item-list {
-    display: flex; /* Flexboxコンテナに変更 */
-    flex-direction: column; /* アイテムを縦に並べる */
-    gap: 10px; /* アイテム間の間隔 */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .item-card {
     background-color: #fff;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 10px 15px; /* 少しパディング調整 */
+    padding: 10px 15px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.07);
-    display: flex; /* アイテムカード内もFlexbox */
-    align-items: center; /* 垂直方向中央揃え */
-    gap: 15px; /* カード内要素の間隔 */
+    display: flex;
+    align-items: center;
+    gap: 15px;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
@@ -517,51 +503,51 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     background-color: #e7f3ff;
 }
 
-.item-card .item-image-container { /* 画像コンテナ */
-    flex-shrink: 0; /* 画像が縮まないように */
+.item-card .item-image-container {
+    flex-shrink: 0;
 }
 .item-card img, .item-image-text-placeholder {
-    width: 40px; /* 画像サイズを小さく */
-    height: 40px; /* 画像サイズを小さく */
+    width: 40px;
+    height: 40px;
     object-fit: cover;
     border-radius: 4px;
     background-color: #eee;
-    border: 1px solid #ddd; /* プレースホルダーにも枠線 */
-    box-sizing: border-box; /* 枠線を含めたサイズ */
-    display: flex; /* プレースホルダー用 */
-    justify-content: center; /* プレースホルダー用 */
-    align-items: center; /* プレースホルダー用 */
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .item-image-text-placeholder {
     color: #888;
-    font-size: 0.8em; /* プレースホルダー内テキスト調整 */
+    font-size: 0.8em;
     font-weight: bold;
 }
 
-.item-card .item-details { /* 画像以外の詳細情報コンテナ */
+.item-card .item-details {
     display: flex;
-    flex-direction: column; /* 名前、効果などを縦に並べる */
-    flex-grow: 1; /* 残りのスペースを埋める */
-    min-width: 0; /* flexアイテムが縮むのを許可 */
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
 }
-.item-card h3 { /* 名前 */
+.item-card h3 {
     margin: 0 0 5px 0;
-    font-size: 1.1em; /* 少し調整 */
+    font-size: 1.1em;
     color: #0056b3;
     word-break: break-word;
     line-height: 1.3;
 }
-.item-card .item-info-row { /* 効果、入手手段、売値などを横に並べるための行 */
+.item-card .item-info-row {
     display: flex;
-    flex-wrap: wrap; /* 折り返し可 */
-    gap: 5px 15px; /* 縦横の間隔 */
+    flex-wrap: wrap;
+    gap: 5px 15px;
     font-size: 0.9em;
     color: #444;
     line-height: 1.4;
 }
 .item-card .item-info-row > div,
-.item-card .item-info-row > p { /* 各情報ブロック */
-    margin: 0; /* pタグのデフォルトマージンリセット */
+.item-card .item-info-row > p {
+    margin: 0;
     word-break: break-word;
 }
 .item-card .item-info-row strong {
@@ -570,14 +556,14 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 }
 
 .item-card .structured-effects,
-.item-card .tags { /* 効果詳細とタグは少し下に配置 */
+.item-card .tags {
     margin-top: 8px;
     font-size: 0.85em;
     color: #555;
 }
 .item-card .structured-effects ul {
     list-style: disc;
-    padding-left: 18px; /* 少し調整 */
+    padding-left: 18px;
     margin: 3px 0 0 0;
 }
 .item-card .structured-effects li {
@@ -585,8 +571,8 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 }
 .item-card .tags span {
     background-color: #f0f0f0;
-    padding: 3px 7px; /* 少し調整 */
-    border-radius: 10px; /* 少し調整 */
+    padding: 3px 7px;
+    border-radius: 10px;
     margin-right: 5px;
     margin-bottom: 4px;
     display: inline-block;
@@ -615,11 +601,11 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
 
 
 @media (max-width: 768px) {
-    .site-header { padding: 8px 15px; }
-    .site-title { font-size: 1.3em; }
-    .hamburger-button { font-size: 1.6em; }
-    .side-navigation.open { width: 200px; } /* スマホでは少し細く */
-    .container { margin-top: 60px; }
+    .site-header { padding: 8px 15px; height: 50px; }
+    .site-title { font-size: 1.2em; }
+    .hamburger-button { font-size: 1.5em; }
+    .side-navigation.open { width: 200px; }
+    .container { margin-top: 70px; } /* ヘッダー高さ + 余白 */
 
 
     .equipment-slots {
@@ -637,19 +623,19 @@ h1 { text-align: center; color: #333; margin-bottom: 30px; }
     .tag-filters-inline { gap: 6px; }
     .tag-filter { padding: 5px 8px; font-size: 0.8em; }
 
-    /* アイテムカードのスマホ表示調整 */
     .item-card {
-        flex-direction: column; /* スマホでは縦積みに戻すことも検討 */
-        align-items: flex-start; /* 左揃えに */
+        /* スマホでは縦積みに戻すか、内容を調整 */
+        /* flex-direction: column;
+        align-items: flex-start; */
     }
     .item-card img, .item-image-text-placeholder {
-        align-self: center; /* 画像は中央に */
-        margin-bottom: 10px; /* 画像と詳細の間隔 */
+        /* align-self: center; */
+        /* margin-bottom: 10px; */
     }
     .item-card .item-info-row {
-        flex-direction: column; /* 情報も縦積みに */
+        /* flex-direction: column;
         align-items: flex-start;
-        gap: 3px; /* 間隔を詰める */
+        gap: 3px; */
     }
 
 
