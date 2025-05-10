@@ -36,13 +36,24 @@
             </div>
              <div id="searchToolMessage" class="search-tool-message" style="display: none;"></div>
             <div id="itemCount"></div>
-            <div id="itemList" class="item-list"></div>
+            <div id="itemList" class="item-list"></div> {/* ここに一覧表示アイテムがレンダリングされる */}
             <div id="paginationControls" class="pagination-controls"></div>
         </section>
 
          <button id="confirmSelectionButton" class="confirm-selection-button" style="display: none;">このアイテムに決定</button>
 
     </div>
+
+     <!-- アイテム個別表示モーダル -->
+     <div id="itemDetailModal" class="modal item-detail-modal" style="display: none;">
+         <div class="modal-content">
+             <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
+             <div id="itemDetailContent">
+                 <!--ここにアイテム詳細が動的に挿入される -->
+             </div>
+         </div>
+     </div>
+
 
      <!-- 装備構成シミュレーターモーダル -->
      <div id="simulatorModal" class="modal simulator-modal" style="display: none;">
