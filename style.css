@@ -6,26 +6,25 @@ body {
 .site-header {
     background-color: #343a40;
     color: white;
-    padding: 0 20px; /* 上下パディングを0に、左右は維持 */
-    height: 60px; /* ヘッダーの高さを固定 */
-    display: flex; /* header-content を直接 flex コンテナにする */
-    justify-content: space-between; /* タイトルとボタンを両端に */
-    align-items: center; /* 垂直方向中央揃え */
+    padding: 0 20px;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     position: sticky;
     top: 0;
     z-index: 1000;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
-.header-content { /* このクラスは実質不要になるかも */
+.header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%; /* ヘッダー全体に広がるように */
+    width: 100%;
 }
 .site-title {
     margin: 0;
     font-size: 1.5em;
-    /* flex-grow: 1; */ /* タイトルが中央に来るようにする場合は不要 */
 }
 .hamburger-button {
     font-size: 1.8em;
@@ -33,9 +32,9 @@ body {
     border: none;
     color: white;
     cursor: pointer;
-    padding: 10px; /* クリック範囲を確保 */
-    line-height: 1; /* ボタンの高さを行の高さに合わせる */
-    margin-left: auto; /* ★ 右寄せにするために追加 */
+    padding: 10px;
+    line-height: 1;
+    margin-left: auto;
 }
 
 /* サイドナビゲーションパネル */
@@ -94,7 +93,7 @@ body {
 .container {
     width: 90%; max-width: 1200px; margin: 20px auto; padding: 20px;
     background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px;
-    margin-top: 80px; /* ヘッダーの高さ(60px) + 少しの余白(20px) */
+    margin-top: 80px;
 }
 
 .section-divider {
@@ -578,6 +577,37 @@ body {
     display: inline-block;
 }
 
+/* ★ページネーションコントロールのスタイル */
+.pagination-controls {
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+.pagination-button {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.pagination-button:hover:not(:disabled) {
+    background-color: #e0e0e0;
+}
+.pagination-button:disabled {
+    background-color: #f9f9f9;
+    color: #aaa;
+    cursor: not-allowed;
+    border-color: #eee;
+}
+.page-info {
+    font-size: 0.95em;
+    color: #555;
+}
+
 
 .confirm-selection-button {
     position: fixed;
@@ -605,7 +635,7 @@ body {
     .site-title { font-size: 1.2em; }
     .hamburger-button { font-size: 1.5em; }
     .side-navigation.open { width: 200px; }
-    .container { margin-top: 70px; } /* ヘッダー高さ + 余白 */
+    .container { margin-top: 70px; }
 
 
     .equipment-slots {
@@ -624,18 +654,25 @@ body {
     .tag-filter { padding: 5px 8px; font-size: 0.8em; }
 
     .item-card {
-        /* スマホでは縦積みに戻すか、内容を調整 */
-        /* flex-direction: column;
-        align-items: flex-start; */
+        /* スマホでは各情報ブロックを縦積みに戻す */
+        flex-direction: column;
+        align-items: flex-start;
     }
-    .item-card img, .item-image-text-placeholder {
-        /* align-self: center; */
-        /* margin-bottom: 10px; */
+    .item-card .item-image-container {
+        align-self: center; /* 画像は中央に */
+        margin-bottom: 10px;
+    }
+    .item-card .item-details {
+        width: 100%; /* 詳細部分の幅を100%に */
     }
     .item-card .item-info-row {
-        /* flex-direction: column;
+        flex-direction: column;
         align-items: flex-start;
-        gap: 3px; */
+        gap: 3px;
+    }
+    .item-card .item-info-row > div,
+    .item-card .item-info-row > p {
+        width: 100%; /* 各情報ブロックも幅100% */
     }
 
 
