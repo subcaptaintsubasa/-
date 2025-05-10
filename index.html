@@ -36,7 +36,7 @@
             </div>
              <div id="searchToolMessage" class="search-tool-message" style="display: none;"></div>
             <div id="itemCount"></div>
-            <div id="itemList" class="item-list"></div> {/* ここに一覧表示アイテムがレンダリングされる */}
+            <div id="itemList" class="item-list"></div>
             <div id="paginationControls" class="pagination-controls"></div>
         </section>
 
@@ -60,7 +60,43 @@
          <div class="modal-content simulator-modal-content">
              <span class="close-button" onclick="this.closest('.modal').style.display='none'">×</span>
              <h2>装備構成シミュレーター</h2>
+
+             <!-- ★キャラクター基礎情報選択セクション -->
+             <div class="character-base-selection">
+                 <h3>キャラクター基礎情報</h3>
+                 <div class="base-selectors">
+                     <div class="base-selector-group">
+                         <label for="charBaseHeadShape">頭の形:</label>
+                         <select id="charBaseHeadShape" data-base-type="headShape">
+                             <option value="">選択なし</option>
+                             {/* オプションはJSで動的に追加 */}
+                         </select>
+                     </div>
+                     <div class="base-selector-group">
+                         <label for="charBaseCorrection">補正:</label>
+                         <select id="charBaseCorrection" data-base-type="correction">
+                             <option value="">選択なし</option>
+                         </select>
+                     </div>
+                     <div class="base-selector-group">
+                         <label for="charBaseColor">色:</label>
+                         <select id="charBaseColor" data-base-type="color">
+                             <option value="">選択なし</option>
+                         </select>
+                     </div>
+                     <div class="base-selector-group">
+                         <label for="charBasePattern">柄:</label>
+                         <select id="charBasePattern" data-base-type="pattern">
+                             <option value="">選択なし</option>
+                         </select>
+                     </div>
+                 </div>
+             </div>
+             <hr class="sub-divider"> {/* 区切り線 */}
+
+
              <div class="equipment-slots">
+                 {/* ... 既存の装備スロット ... */}
                  <div class="slot" id="slot-服" data-slot-name="服">
                      <label>服:</label>
                      <div class="selected-item-display">
@@ -132,6 +168,7 @@
 
               <div id="imageExportArea" class="image-export-container">
                  <h2>装備構成</h2>
+                 <div id="exportCharBase" class="export-char-base"></div> {/* ★基礎情報エクスポート用 */}
                  <div id="exportSlots" class="export-slots-grid"></div>
                  <h3>発動効果 合計:</h3>
                  <div id="exportEffects"></div>
