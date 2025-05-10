@@ -8,14 +8,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>ゲームアイテム検索 ＆ 装備シミュレーター</h1>
+    <header class="site-header">
+        <div class="header-content">
+            <h1 class="site-title">ゲームアイテム検索</h1>
+            <button id="hamburgerButton" class="hamburger-button">☰</button>
+        </div>
+        <nav id="sideNav" class="side-navigation">
+            <button id="closeNavButton" class="close-nav-button">×</button>
+            <ul>
+                <li><button id="openSimulatorButtonNav" class="nav-button">装備シミュレーター</button></li>
+                <!-- 他のメニュー項目があればここに追加 -->
+            </ul>
+        </nav>
+    </header>
 
+    <div class="container">
+        <!-- 装備シミュレーター起動ボタンはヘッダーのナビゲーションに移動
         <div class="main-controls">
             <button id="openSimulatorButton">装備シミュレーターを開く</button>
         </div>
-
         <hr class="section-divider">
+        -->
 
         <section class="search-tool-section">
             <h2>アイテム検索</h2>
@@ -30,7 +43,7 @@
             </div>
              <div id="searchToolMessage" class="search-tool-message" style="display: none;"></div>
             <div id="itemCount"></div>
-            <div id="itemList" class="item-list"></div>
+            <div id="itemList" class="item-list"></div> {/* 表示形式変更のためクラス名注意 */}
         </section>
 
          <button id="confirmSelectionButton" class="confirm-selection-button" style="display: none;">このアイテムに決定</button>
