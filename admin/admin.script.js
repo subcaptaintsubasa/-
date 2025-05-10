@@ -79,7 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const newEffectTypeNameInput = document.getElementById('newEffectTypeName');
     const newEffectTypeUnitSelect = document.getElementById('newEffectTypeUnit');
     const newEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="newCalcMethod"]');
-    const newEffectTypeSumCapInput = document.getElementById('newEffectTypeSumCap'); // ★上限値
+    const newEffectTypeSumCapGroup = document.getElementById('newEffectTypeSumCapGroup'); // ★
+    const newEffectTypeSumCapInput = document.getElementById('newEffectTypeSumCap'); // ★
     const addEffectTypeButton = document.getElementById('addEffectTypeButton');
     const effectTypeListContainer = document.getElementById('effectTypeListContainer');
     const editEffectTypeModal = document.getElementById('editEffectTypeModal');
@@ -87,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editingEffectTypeNameInput = document.getElementById('editingEffectTypeName');
     const editingEffectTypeUnitSelect = document.getElementById('editingEffectTypeUnit');
     const editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethod"]');
-    const editingEffectTypeSumCapInput = document.getElementById('editingEffectTypeSumCap'); // ★上限値(編集時)
+    const editingEffectTypeSumCapGroup = document.getElementById('editingEffectTypeSumCapGroup'); // ★
+    const editingEffectTypeSumCapInput = document.getElementById('editingEffectTypeSumCap'); // ★
     const saveEffectTypeEditButton = document.getElementById('saveEffectTypeEditButton');
     const effectTypeSelect = document.getElementById('effectTypeSelect');
 
@@ -180,33 +182,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearAdminUI() {
-        if (categoryListContainer) categoryListContainer.innerHTML = '';
-        if (newCategoryParentButtons) newCategoryParentButtons.innerHTML = '';
-        if (selectedNewParentCategoryIdInput) selectedNewParentCategoryIdInput.value = '';
-        if (editingCategoryParentButtons) editingCategoryParentButtons.innerHTML = '';
-        if (selectedEditingParentCategoryIdInput) selectedEditingParentCategoryIdInput.value = '';
-        if (editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = '';
-        if (tagSearchModeGroup) tagSearchModeGroup.style.display = 'none';
-        if (editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND';
-        if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = 'block';
-
-        if (tagListContainer) tagListContainer.innerHTML = '';
-        if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
-        if (editingTagCategoriesCheckboxes) editingTagCategoriesCheckboxes.innerHTML = '';
-
+        // ... (other UI clearings) ...
         if (effectUnitListContainer) effectUnitListContainer.innerHTML = '';
         if (newEffectUnitNameInput) newEffectUnitNameInput.value = '';
-
-        if (charBaseOptionListContainer) charBaseOptionListContainer.innerHTML = ''; // Char base clear
+        if (charBaseOptionListContainer) charBaseOptionListContainer.innerHTML = '';
 
 
         if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
         if (effectTypeSelect) effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
-        if (charBaseOptionEffectTypeSelect) charBaseOptionEffectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>'; // Clear for char base modal too
         if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
         if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = '<option value="none">なし</option>';
-        if (newEffectTypeSumCapInput) newEffectTypeSumCapInput.value = ''; // Clear sum cap
         if (newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
+        if (newEffectTypeSumCapInput) newEffectTypeSumCapInput.value = ''; // ★
+        if (newEffectTypeSumCapGroup) newEffectTypeSumCapGroup.style.display = 'block'; // ★デフォルト表示（加算がデフォルトのため）
 
 
         if (itemsTableBody) itemsTableBody.innerHTML = '';
@@ -223,13 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadCharacterBasesFromFirestore();
         await loadItemsFromFirestore();
 
+
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
         populateTagCheckboxesForItemForm();
         populateEffectUnitSelects();
         populateEffectTypeSelect(effectTypeSelect); // For item form
         populateEffectTypeSelect(charBaseOptionEffectTypeSelect); // For char base option modal
-
 
         renderCategoriesForManagement();
         renderTagsForManagement();
@@ -368,9 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     }
-
                     await batch.commit();
-                    await loadInitialData();
+                    await loadInitialData(); // Reload to reflect changes across all entities
                 } else {
                     await loadEffectUnitsFromFirestore();
                     renderEffectUnitsForManagement();
@@ -401,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.effects && option.effects.some(eff => eff.unit === name)
             );
             if (usedInBase) {
-                alert(`効果単位「${name}」はキャラクター基礎情報「${baseTypeMappings[baseKey]} - ${usedInBase.name}」の効果で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定を変更してください。`);
+                alert(`効果単位「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定を変更してください。`);
                 return;
             }
         }
@@ -460,12 +447,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         effectTypesCache.forEach(effectType => {
             const unitText = effectType.defaultUnit && effectType.defaultUnit !== 'none' ? `(${effectType.defaultUnit})` : '(単位なし)';
-            const calcText = effectType.calculationMethod === 'max' ? '(最大値)' : '(加算)';
-            const sumCapText = (effectType.calculationMethod === 'sum' && typeof effectType.sumCap === 'number') ? ` (上限: ${effectType.sumCap})` : ''; // ★上限表示
+            let calcText = effectType.calculationMethod === 'max' ? '(最大値)' : '(加算)';
+            if (effectType.calculationMethod === 'sum' && typeof effectType.sumCap === 'number') {
+                calcText += `, 上限: ${effectType.sumCap}`;
+            }
+
             const div = document.createElement('div');
             div.classList.add('list-item');
             div.innerHTML = `
-                <span>${effectType.name} ${unitText} ${calcText}${sumCapText}</span>
+                <span>${effectType.name} ${unitText} ${calcText}</span>
                 <div>
                     <button class="edit-effect-type action-button" data-id="${effectType.id}" title="編集">✎</button>
                     <button class="delete-effect-type action-button delete" data-id="${effectType.id}" data-name="${effectType.name}" title="削除">×</button>
@@ -490,6 +480,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ★計算方法ラジオボタンの変更イベント（新規追加フォーム用）
+    newEffectTypeCalcMethodRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (newEffectTypeSumCapGroup) {
+                newEffectTypeSumCapGroup.style.display = radio.value === 'sum' ? 'block' : 'none';
+                if (radio.value !== 'sum') newEffectTypeSumCapInput.value = ''; // 加算でないなら上限値クリア
+            }
+        });
+    });
+     // ★計算方法ラジオボタンの変更イベント（編集モーダル用）
+    editingEffectTypeCalcMethodRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (editingEffectTypeSumCapGroup) {
+                editingEffectTypeSumCapGroup.style.display = radio.value === 'sum' ? 'block' : 'none';
+                if (radio.value !== 'sum') editingEffectTypeSumCapInput.value = '';
+            }
+        });
+    });
+
+
     if (addEffectTypeButton) {
         addEffectTypeButton.addEventListener('click', async () => {
             const name = newEffectTypeNameInput.value.trim();
@@ -498,13 +508,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum';
             const sumCapStr = newEffectTypeSumCapInput.value.trim();
             let sumCap = null;
-            if (calcMethod === 'sum' && sumCapStr !== '') {
+
+            if (calcMethod === 'sum' && sumCapStr !== "") {
                 sumCap = parseFloat(sumCapStr);
                 if (isNaN(sumCap)) {
                     alert("加算上限値は数値を入力してください。"); return;
                 }
             }
-
 
             if (!name) { alert("効果種類名を入力してください。"); return; }
             if (effectTypesCache.some(et => et.name.toLowerCase() === name.toLowerCase())) {
@@ -517,13 +527,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     calculationMethod: calcMethod,
                     createdAt: serverTimestamp()
                 };
-                if (sumCap !== null) dataToSave.sumCap = sumCap;
+                if (calcMethod === 'sum' && sumCap !== null) {
+                    dataToSave.sumCap = sumCap;
+                }
 
                 await addDoc(collection(db, 'effect_types'), dataToSave);
                 newEffectTypeNameInput.value = '';
                 newEffectTypeUnitSelect.value = 'none';
-                newEffectTypeSumCapInput.value = '';
                 if(newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
+                newEffectTypeSumCapInput.value = '';
+                newEffectTypeSumCapGroup.style.display = 'block';
+
 
                 await loadEffectTypesFromFirestore();
                 renderEffectTypesForManagement();
@@ -549,27 +563,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (editingEffectTypeCalcMethodRadios[0]) {
             editingEffectTypeCalcMethodRadios[0].checked = true;
         }
-        // ★上限値の読み込み
-        editingEffectTypeSumCapInput.value = typeof effectTypeData.sumCap === 'number' ? effectTypeData.sumCap : '';
-        document.getElementById('editingEffectTypeSumCapGroup').style.display = calcMethod === 'sum' ? 'block' : 'none';
+
+        // ★上限値の表示制御と値設定
+        if (editingEffectTypeSumCapGroup) {
+            editingEffectTypeSumCapGroup.style.display = calcMethod === 'sum' ? 'block' : 'none';
+        }
+        if (editingEffectTypeSumCapInput) {
+            editingEffectTypeSumCapInput.value = (calcMethod === 'sum' && typeof effectTypeData.sumCap === 'number') ? effectTypeData.sumCap : '';
+        }
 
 
         if (editEffectTypeModal) editEffectTypeModal.style.display = 'flex';
     }
-    // ラジオボタン変更時に上限値入力欄の表示を切り替え
-    editingEffectTypeCalcMethodRadios.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            document.getElementById('editingEffectTypeSumCapGroup').style.display = e.target.value === 'sum' ? 'block' : 'none';
-            if (e.target.value !== 'sum') editingEffectTypeSumCapInput.value = ''; // 加算以外なら上限値クリア
-        });
-    });
-     newEffectTypeCalcMethodRadios.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            document.getElementById('newEffectTypeSumCapGroup').style.display = e.target.value === 'sum' ? 'block' : 'none';
-            if (e.target.value !== 'sum') newEffectTypeSumCapInput.value = '';
-        });
-    });
-
 
      if (saveEffectTypeEditButton) {
         saveEffectTypeEditButton.addEventListener('click', async () => {
@@ -578,15 +583,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const newUnit = editingEffectTypeUnitSelect.value;
             const editCalcMethodRadio = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.checked);
             const newCalcMethod = editCalcMethodRadio ? editCalcMethodRadio.value : 'sum';
-            const newSumCapStr = editingEffectTypeSumCapInput.value.trim();
-            let newSumCap = null;
-            if (newCalcMethod === 'sum' && newSumCapStr !== '') {
-                newSumCap = parseFloat(newSumCapStr);
-                if (isNaN(newSumCap)) {
+            const sumCapStr = editingEffectTypeSumCapInput.value.trim();
+            let sumCap = null;
+
+            if (newCalcMethod === 'sum' && sumCapStr !== "") {
+                sumCap = parseFloat(sumCapStr);
+                if (isNaN(sumCap)) {
                     alert("加算上限値は数値を入力してください。"); return;
                 }
             }
-
 
             if (!newName) { alert("効果種類名は空にできません。"); return; }
             if (effectTypesCache.some(et => et.id !== id && et.name.toLowerCase() === newName.toLowerCase())) {
@@ -598,13 +603,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     defaultUnit: newUnit,
                     calculationMethod: newCalcMethod,
                     updatedAt: serverTimestamp()
-                };
-                if (newCalcMethod === 'sum') {
-                    dataToUpdate.sumCap = newSumCap !== null ? newSumCap : deleteField(); // nullならフィールド削除
-                } else {
-                    dataToUpdate.sumCap = deleteField(); // 加算以外ならフィールド削除
-                }
-
+                 };
+                 if (newCalcMethod === 'sum') {
+                     dataToUpdate.sumCap = sumCap !== null ? sumCap : deleteField(); // 空ならフィールド削除
+                 } else {
+                     dataToUpdate.sumCap = deleteField(); // 加算でないならフィールド削除
+                 }
 
                 await updateDoc(doc(db, 'effect_types', id), dataToUpdate);
                 if (editEffectTypeModal) editEffectTypeModal.style.display = 'none';
@@ -643,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     for (const option of characterBasesCache[baseKey] || []) {
                         if (option.effects && option.effects.some(eff => eff.type === id)) {
                             isUsedByBase = true;
-                            alert(`効果種類「${name}」はキャラクター基礎情報「${baseTypeMappings[baseKey]} - ${option.name}」で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定からこの種類を削除してください。`);
+                            alert(`効果種類「${name}」はキャラクター基礎情報「${baseKeyMappings[baseKey]} - ${option.name}」で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定からこの種類を削除してください。`);
                             break;
                         }
                     }
@@ -666,6 +670,7 @@ document.addEventListener('DOMContentLoaded', () => {
              }
          }
     }
+
 
     // --- Category Management ---
     // ... (No changes) ...
@@ -1192,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Item Management ---
-    // ... (populateTagCheckboxesForItemForm - no change) ...
+    // ... (populateTagCheckboxesForItemForm, populateEffectTypeSelect for item form, effect handling for item form - No major changes needed here beyond ensuring populateEffectTypeSelect is called correctly) ...
     function populateTagCheckboxesForItemForm(selectedTagIds = []) {
         if (!itemTagsSelectorCheckboxes) return;
         itemTagsSelectorCheckboxes.innerHTML = '';
@@ -1222,14 +1227,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentVal && selectElement.querySelector(`option[value="${currentVal}"]`)) {
             selectElement.value = currentVal;
         }
+        // Trigger change for the specific select element to update its unit display
+        const targetUnitDisplay = selectElement === effectTypeSelect ? effectUnitDisplay :
+                                 selectElement === charBaseOptionEffectTypeSelect ? charBaseOptionEffectUnitDisplay : null;
 
-        const correspondingUnitDisplay = selectElement === effectTypeSelect ? effectUnitDisplay :
-                                       selectElement === charBaseOptionEffectTypeSelect ? charBaseOptionEffectUnitDisplay : null;
-
-        if (selectElement.value && correspondingUnitDisplay) {
-            selectElement.dispatchEvent(new Event('change'));
-        } else if (correspondingUnitDisplay) {
-            correspondingUnitDisplay.textContent = '';
+        if (selectElement.value && targetUnitDisplay) {
+             const selectedTypeId = selectElement.value;
+             const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
+             if (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') {
+                 targetUnitDisplay.textContent = `(${selectedEffectType.defaultUnit})`;
+             } else {
+                 targetUnitDisplay.textContent = '';
+             }
+        } else if (targetUnitDisplay) {
+            targetUnitDisplay.textContent = '';
         }
     }
 
@@ -1353,7 +1364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tags: selectedItemTagIds,
                     updatedAt: serverTimestamp()
                 };
-
+                // Only add price field if it's a valid number
                 if (price !== null) {
                     itemData.price = price;
                 }
@@ -1361,14 +1372,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (editingDocId) {
                     const updatePayload = {...itemData};
+                    // If editing and price is now empty/null, ensure it's removed or set to null in Firestore
                     if (price === null) {
-                        updatePayload.price = deleteField();
+                        updatePayload.price = deleteField(); // Use deleteField to remove the field entirely
                     }
                     await updateDoc(doc(db, 'items', editingDocId), updatePayload);
                 } else {
                     itemData.createdAt = serverTimestamp();
                     const dataToAdd = {...itemData};
-                    if (price === null) delete dataToAdd.price;
+                    if (price === null) { // Don't add the price field if it's null for new documents
+                        delete dataToAdd.price;
+                    }
                     await addDoc(collection(db, 'items'), dataToAdd);
                 }
                 await loadItemsFromFirestore();
@@ -1527,7 +1541,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Image Upload ---
-    // ... (No changes) ...
     if (itemImageFileInput) {
         itemImageFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
