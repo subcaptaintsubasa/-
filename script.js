@@ -29,11 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemList = document.getElementById('itemList');
     const itemCountDisplay = document.getElementById('itemCount');
     const resetFiltersButton = document.getElementById('resetFiltersButton');
-    const openSimulatorButton = document.getElementById('openSimulatorButton');
+    // const openSimulatorButton = document.getElementById('openSimulatorButton'); // ナビゲーションへ移動
     const simulatorModal = document.getElementById('simulatorModal');
     const confirmSelectionButton = document.getElementById('confirmSelectionButton');
     const searchToolMessage = document.getElementById('searchToolMessage');
     const searchControlsElement = document.querySelector('.search-controls');
+
+    // Hamburger Menu Elements
+    const hamburgerButton = document.getElementById('hamburgerButton');
+    const sideNav = document.getElementById('sideNav');
+    const closeNavButton = document.getElementById('closeNavButton');
+    const openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
+
 
     // Simulator DOM
     const equipmentSlotsContainer = document.querySelector('.equipment-slots');
@@ -60,6 +67,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedEquipment = {};
     let currentSelectingSlot = null;
     let temporarilySelectedItem = null;
+
+    // --- Hamburger Menu Logic ---
+    if (hamburgerButton) {
+        hamburgerButton.addEventListener('click', () => {
+            sideNav.classList.add('open');
+        });
+    }
+    if (closeNavButton) {
+        closeNavButton.addEventListener('click', () => {
+            sideNav.classList.remove('open');
+        });
+    }
+    // Close nav if clicking outside of it (optional)
+    // document.addEventListener('click', (event) => {
+    //     if (sideNav.classList.contains('open') && !sideNav.contains(event.target) && event.target !== hamburgerButton) {
+    //         sideNav.classList.remove('open');
+    //     }
+    // });
+
 
     // --- Initial Data Load ---
     async function loadData() {
@@ -153,13 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             parentCategoryFiltersContainer.appendChild(button);
         });
-
-        if (searchControlsElement) {
-             // selecting-mode クラスは、検索バー以外のコントロールを無効化するために使う想定だったが、
-             // 今回の要件で検索バーは有効にするので、このクラスの付け外しは一旦コメントアウト。
-             // 個別要素の disabled 属性やイベントリスナーで制御する。
-            // searchControlsElement.classList.toggle('selecting-mode', isSelectingForSimulator);
-        }
     }
 
     function toggleParentCategory(button, categoryId) {
@@ -193,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (isSelectingForSimulator) {
             const equipmentParent = allCategories.find(c => c.name === SIMULATOR_PARENT_CATEGORY_NAME && (!c.parentId || c.parentId === ""));
             if (equipmentParent && selectedParentCategoryIds.includes(equipmentParent.id)) {
-                displayChildCategories = true; // 「装備」親カテゴリが選択されていれば子カテゴリセクション自体は表示
+                displayChildCategories = true;
             }
         }
 
@@ -246,10 +265,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             let isDisabledTag = false;
                             if (isSelectingForSimulator) {
-                                if (childCat.name !== SIMULATOR_EFFECT_CHILD_CATEGORY_NAME) { // 「効果」カテゴリ以外のタグは操作不可
+                                if (childCat.name !== SIMULATOR_EFFECT_CHILD_CATEGORY_NAME) {
                                      isDisabledTag = true;
                                      if (isSlotTag && tag.id === EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
-                                         isDisabledTag = false; // ただし現在選択中の部位タグは有効（見た目上アクティブにするため）
+                                         isDisabledTag = false;
                                      }
                                 }
                             }
@@ -284,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleTag(button, tagId) {
         if (isSelectingForSimulator && currentSelectingSlot && tagId === EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
-            return; // 現在選択中の部位タグは変更不可
+            return;
         }
 
         button.classList.toggle('active');
@@ -313,8 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null);
-
         itemsToRender.forEach(item => {
             const itemCard = document.createElement('div');
             itemCard.classList.add('item-card');
@@ -324,19 +341,66 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             itemCard.dataset.itemId = item.docId;
 
-            const nameDisplay = item.name || '名称未設定';
-            const sourceDisplay = item.入手手段 || 'Coming Soon';
-            const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `売値: ${item.price}G` : '売値: Coming Soon';
-
-
-            let imageElementHTML;
+            // Image Part
+            const imageContainer = document.createElement('div');
+            imageContainer.classList.add('item-image-container');
+            let imageElement;
             if (item.image && item.image.trim() !== "") {
-                imageElementHTML = `<img src="${item.image}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/placeholder_item.png'; this.alt='画像読み込みエラー';">`;
+                imageElement = document.createElement('img');
+                imageElement.src = item.image;
+                imageElement.alt = item.name || 'アイテム画像';
+                imageElement.onerror = function() { this.onerror=null; this.src='./images/placeholder_item.png'; this.alt='画像読込エラー'; };
             } else {
-                imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
+                imageElement = document.createElement('div');
+                imageElement.classList.add('item-image-text-placeholder');
+                imageElement.textContent = 'NoImg';
+            }
+            imageContainer.appendChild(imageElement);
+            itemCard.appendChild(imageContainer);
+
+            // Details Part
+            const detailsContainer = document.createElement('div');
+            detailsContainer.classList.add('item-details');
+
+            const nameElement = document.createElement('h3');
+            nameElement.textContent = item.name || '名称未設定';
+            detailsContainer.appendChild(nameElement);
+
+            const infoRow = document.createElement('div');
+            infoRow.classList.add('item-info-row');
+
+            // Effects
+            if (item.structured_effects && item.structured_effects.length > 0) {
+                const effectsDiv = document.createElement('div');
+                effectsDiv.innerHTML = '<strong>効果:</strong> ';
+                item.structured_effects.forEach((eff, index) => {
+                    const effectType = effectTypesCache.find(et => et.id === eff.type);
+                    const typeName = effectType ? effectType.name : `不明(${eff.type})`;
+                    const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
+                    effectsDiv.innerHTML += `${typeName}: ${eff.value}${unitText}${index < item.structured_effects.length - 1 ? '; ' : ''}`;
+                });
+                infoRow.appendChild(effectsDiv);
+            } else {
+                const noEffects = document.createElement('div');
+                noEffects.innerHTML = '<strong>効果:</strong> Coming Soon';
+                infoRow.appendChild(noEffects);
             }
 
-            let tagsHtml = '';
+            // Source
+            const sourceP = document.createElement('div');
+            sourceP.innerHTML = `<strong>入手:</strong> ${item.入手手段 || 'Coming Soon'}`;
+            infoRow.appendChild(sourceP);
+
+            // Price
+            const priceP = document.createElement('div');
+            priceP.innerHTML = `<strong>売値:</strong> ${(typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : 'Coming Soon'}`;
+            infoRow.appendChild(priceP);
+
+            detailsContainer.appendChild(infoRow);
+
+
+            // Tags (non-slot tags)
+            const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS).filter(id => id !== null);
             if (item.tags && item.tags.length > 0) {
                 const displayableTags = item.tags.map(tagId => {
                     const tagObj = allTags.find(t => t.id === tagId);
@@ -345,32 +409,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).filter(Boolean);
 
                 if (displayableTags.length > 0) {
-                    tagsHtml = `<div class="tags">タグ: ${displayableTags.join(' ')}</div>`;
+                    const tagsDiv = document.createElement('div');
+                    tagsDiv.classList.add('tags');
+                    tagsDiv.innerHTML = `タグ: ${displayableTags.join(' ')}`;
+                    detailsContainer.appendChild(tagsDiv);
                 }
             }
-
-            let structuredEffectsHtml = '';
-            if (item.structured_effects && item.structured_effects.length > 0) {
-                structuredEffectsHtml = `<div class="structured-effects"><strong>効果詳細:</strong><ul>`;
-                item.structured_effects.forEach(eff => {
-                    const effectType = effectTypesCache.find(et => et.id === eff.type);
-                    const typeName = effectType ? effectType.name : `不明(${eff.type})`;
-                    const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
-                    structuredEffectsHtml += `<li>${typeName}: ${eff.value}${unitText}</li>`;
-                });
-                structuredEffectsHtml += `</ul></div>`;
-            } else {
-                structuredEffectsHtml = `<p><strong>効果:</strong> Coming Soon</p>`;
-            }
-
-            itemCard.innerHTML = `
-                ${imageElementHTML}
-                <h3>${nameDisplay}</h3>
-                ${structuredEffectsHtml}
-                <p><strong>入手手段:</strong> ${sourceDisplay}</p>
-                <p><strong>${priceDisplay}</strong></p>
-                ${tagsHtml}
-            `;
+            itemCard.appendChild(detailsContainer);
 
             if (isSelectingForSimulator) {
                 itemCard.addEventListener('click', handleItemCardClick);
@@ -449,7 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 let tagsToFilterByEffective = [...selectedTagIds];
                 if (isSelectingForSimulator && currentSelectingSlot) {
                     const currentSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
-                    // 部位タグ自体は必須条件として上で処理済み。ここではそれ以外のタグ（効果カテゴリのタグなど）でフィルタリング。
                     tagsToFilterByEffective = selectedTagIds.filter(tid => tid !== currentSlotTagId);
                 }
 
@@ -507,12 +551,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     function resetFilters() {
-        // if (isSelectingForSimulator) return; // 通常検索時もシミュレーター選択時もリセットボタンはフィルターをクリアする
         if (searchInput) searchInput.value = '';
         selectedParentCategoryIds = [];
         selectedTagIds = [];
 
-        // シミュレーター選択モードの場合、部位タグと「装備」親カテゴリは維持
         if (isSelectingForSimulator && currentSelectingSlot) {
             const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
             if (slotTagId) selectedTagIds.push(slotTagId);
@@ -559,10 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedParentCategoryIds = [];
             console.warn(`親カテゴリ「${SIMULATOR_PARENT_CATEGORY_NAME}」が見つかりません。`);
         }
-        selectedTagIds = [slotTagId]; // 部位タグは必須
-
-        // 検索入力は維持
-        // if (searchInput) searchInput.value = '';
+        selectedTagIds = [slotTagId];
 
         renderParentCategoryFilters();
         renderChildCategoriesAndTags();
@@ -582,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if(searchInput) searchInput.disabled = false;
-        if(searchControlsElement) searchControlsElement.classList.remove('selecting-mode');
+        // searchControlsElement の selecting-mode は使わない方針
     }
 
 
@@ -773,11 +812,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (openSimulatorButton) {
-        openSimulatorButton.addEventListener('click', () => {
+    // Changed to openSimulatorButtonNav for the button inside the nav
+    if (openSimulatorButtonNav) {
+        openSimulatorButtonNav.addEventListener('click', () => {
             if (isSelectingForSimulator) return;
             if (simulatorModal) simulatorModal.style.display = 'flex';
             initializeSimulatorDisplay();
+            if (sideNav) sideNav.classList.remove('open'); // Close nav after clicking
         });
     }
 
@@ -798,6 +839,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 cancelItemSelection();
             }
         }
+        // Close nav if clicking outside of it and it's open
+        if (sideNav.classList.contains('open') && !sideNav.contains(event.target) && event.target !== hamburgerButton) {
+            sideNav.classList.remove('open');
+        }
     }
 
     function cancelItemSelection() {
@@ -808,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchToolMessage) searchToolMessage.style.display = 'none';
         if (confirmSelectionButton) confirmSelectionButton.style.display = 'none';
         if(searchInput) searchInput.disabled = false;
-        if(searchControlsElement) searchControlsElement.classList.remove('selecting-mode');
+        // if(searchControlsElement) searchControlsElement.classList.remove('selecting-mode');
 
 
         selectedParentCategoryIds = [];
