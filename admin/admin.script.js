@@ -79,17 +79,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const newEffectTypeNameInput = document.getElementById('newEffectTypeName');
     const newEffectTypeUnitSelect = document.getElementById('newEffectTypeUnit');
     const newEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="newCalcMethod"]');
-    const newEffectTypeMaxValueInput = document.getElementById('newEffectTypeMaxValue'); // ★New
-    const newEffectTypeMaxValueGroup = document.getElementById('newEffectTypeMaxValueGroup'); // ★New
+    const newEffectTypeMaxValueInput = document.getElementById('newEffectTypeMaxValue');
+    const newEffectTypeMaxValueGroup = document.getElementById('newEffectTypeMaxValueGroup');
     const addEffectTypeButton = document.getElementById('addEffectTypeButton');
     const effectTypeListContainer = document.getElementById('effectTypeListContainer');
     const editEffectTypeModal = document.getElementById('editEffectTypeModal');
     const editingEffectTypeDocIdInput = document.getElementById('editingEffectTypeDocId');
     const editingEffectTypeNameInput = document.getElementById('editingEffectTypeName');
     const editingEffectTypeUnitSelect = document.getElementById('editingEffectTypeUnit');
-    const editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethodModal"]'); // ★name変更
-    const editingEffectTypeMaxValueInput = document.getElementById('editingEffectTypeMaxValue'); // ★New
-    const editingEffectTypeMaxValueGroup = document.getElementById('editingEffectTypeMaxValueGroup'); // ★New
+    const editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethodModal"]');
+    const editingEffectTypeMaxValueInput = document.getElementById('editingEffectTypeMaxValue');
+    const editingEffectTypeMaxValueGroup = document.getElementById('editingEffectTypeMaxValueGroup');
     const saveEffectTypeEditButton = document.getElementById('saveEffectTypeEditButton');
     const effectTypeSelect = document.getElementById('effectTypeSelect');
 
@@ -182,6 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearAdminUI() {
+        // Clear Category UI
+        if (newCategoryNameInput) newCategoryNameInput.value = '';
         if (categoryListContainer) categoryListContainer.innerHTML = '';
         if (newCategoryParentButtons) newCategoryParentButtons.innerHTML = '';
         if (selectedNewParentCategoryIdInput) selectedNewParentCategoryIdInput.value = '';
@@ -192,44 +194,65 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND';
         if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = 'block';
 
+        // Clear Tag UI
+        if (newTagNameInput) newTagNameInput.value = '';
         if (tagListContainer) tagListContainer.innerHTML = '';
         if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
         if (editingTagCategoriesCheckboxes) editingTagCategoriesCheckboxes.innerHTML = '';
 
+        // Clear Effect Unit UI
         if (effectUnitListContainer) effectUnitListContainer.innerHTML = '';
         if (newEffectUnitNameInput) newEffectUnitNameInput.value = '';
 
+        // Clear Effect Type UI
         if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
-        if (effectTypeSelect) effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
-        if (charBaseOptionEffectTypeSelect) charBaseOptionEffectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
         if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
         if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = '<option value="none">なし</option>';
         if (newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
         if (newEffectTypeMaxValueInput) newEffectTypeMaxValueInput.value = '';
-        if (newEffectTypeMaxValueGroup) newEffectTypeMaxValueGroup.style.display = 'block'; // Default for 'sum'
+        if (newEffectTypeMaxValueGroup) newEffectTypeMaxValueGroup.style.display = 'block';
 
-
+        // Clear Character Base UI
         if (charBaseOptionListContainer) charBaseOptionListContainer.innerHTML = '';
+        if (selectedCharBaseTypeDisplay && charBaseTypeSelect) {
+            selectedCharBaseTypeDisplay.textContent = charBaseTypeSelect.options[charBaseTypeSelect.selectedIndex]?.text || "頭の形";
+        }
 
 
+        // Clear Item UI
         if (itemsTableBody) itemsTableBody.innerHTML = '';
         if (itemTagsSelectorCheckboxes) itemTagsSelectorCheckboxes.innerHTML = '';
+        if (effectTypeSelect) populateEffectTypeSelect(effectTypeSelect); // Repopulate with empty options initially
+        if (charBaseOptionEffectTypeSelect) populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
+
         clearItemForm();
+
+        // Clear caches
+        allCategoriesCache = [];
+        allTagsCache = [];
+        itemsCache = [];
+        effectTypesCache = [];
+        effectUnitsCache = [];
+        characterBasesCache = {};
+        currentItemEffects = [];
+        currentCharBaseOptionEffects = [];
     }
 
     async function loadInitialData() {
         console.log("[Initial Load] Starting...");
+        // Load in order of dependency
         await loadEffectUnitsFromFirestore();
-        await loadEffectTypesFromFirestore();
-        await loadCategoriesFromFirestore();
-        await loadTagsFromFirestore();
-        await loadCharacterBasesFromFirestore();
-        await loadItemsFromFirestore();
+        await loadEffectTypesFromFirestore(); // Depends on units for dropdown population
+        await loadCategoriesFromFirestore();  // Needed by tags & items (indirectly)
+        await loadTagsFromFirestore();        // Needed by items & categories edit
+        await loadCharacterBasesFromFirestore(); // Load character base data
+        await loadItemsFromFirestore();       // Main data
 
+        // Populate UI elements that depend on the loaded data
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
         populateTagCheckboxesForItemForm();
-        populateEffectUnitSelects();
+        populateEffectUnitSelects(); // For effect type forms
         populateEffectTypeSelect(effectTypeSelect); // For item form
         populateEffectTypeSelect(charBaseOptionEffectTypeSelect); // For char base option modal
 
@@ -237,13 +260,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTagsForManagement();
         renderEffectUnitsForManagement();
         renderEffectTypesForManagement();
-        renderCharacterBaseOptions();
+        renderCharacterBaseOptions(); // Initial render for default selected base type
         renderItemsAdminTable();
         console.log("[Initial Load] Completed.");
     }
 
     // --- Effect Unit Management ---
-    // ... (No changes from previous version) ...
+    // ... (No changes, assumed correct from previous) ...
     async function loadEffectUnitsFromFirestore() {
         console.log("[Effect Units] Loading effect units...");
         try {
@@ -373,8 +396,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     await batch.commit();
-                    await loadInitialData();
-                } else {
+                    await loadInitialData(); // Full reload to ensure consistency
+                } else { // If name didn't change or no old name, just reload units and repopulate selects
                     await loadEffectUnitsFromFirestore();
                     renderEffectUnitsForManagement();
                     populateEffectUnitSelects();
@@ -440,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- Effect Type Management (Adjusted for maxValue) ---
+    // --- Effect Type Management ---
     async function loadEffectTypesFromFirestore() {
         console.log("[Effect Types] Loading effect types...");
         try {
@@ -464,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
         effectTypesCache.forEach(effectType => {
             const unitText = effectType.defaultUnit && effectType.defaultUnit !== 'none' ? `(${effectType.defaultUnit})` : '(単位なし)';
             let calcText = effectType.calculationMethod === 'max' ? '(最大値)' : '(加算)';
-            if (effectType.calculationMethod === 'sum' && typeof effectType.maxValue === 'number') {
+            if (effectType.calculationMethod === 'sum' && typeof effectType.maxValue === 'number' && !isNaN(effectType.maxValue) ) {
                 calcText += `, 最大: ${effectType.maxValue}`;
             }
 
@@ -495,27 +518,21 @@ document.addEventListener('DOMContentLoaded', () => {
              btn.addEventListener('click', (e) => deleteEffectType(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
         });
     }
-    // ★計算方法ラジオボタンの変更イベント (新規追加フォーム)
+
+    function toggleMaxValueInput(groupElement, inputElement, calcMethodValue) {
+        if (groupElement) {
+            groupElement.style.display = calcMethodValue === 'sum' ? 'block' : 'none';
+            if (calcMethodValue !== 'sum' && inputElement) {
+                inputElement.value = '';
+            }
+        }
+    }
+
     newEffectTypeCalcMethodRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (newEffectTypeMaxValueGroup) {
-                newEffectTypeMaxValueGroup.style.display = this.value === 'sum' ? 'block' : 'none';
-                if (this.value !== 'sum' && newEffectTypeMaxValueInput) {
-                    newEffectTypeMaxValueInput.value = ''; // 加算以外なら最大値クリア
-                }
-            }
-        });
+        radio.addEventListener('change', () => toggleMaxValueInput(newEffectTypeMaxValueGroup, newEffectTypeMaxValueInput, radio.value));
     });
-    // ★計算方法ラジオボタンの変更イベント (編集モーダル)
     editingEffectTypeCalcMethodRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (editingEffectTypeMaxValueGroup) {
-                editingEffectTypeMaxValueGroup.style.display = this.value === 'sum' ? 'block' : 'none';
-                if (this.value !== 'sum' && editingEffectTypeMaxValueInput) {
-                    editingEffectTypeMaxValueInput.value = ''; // 加算以外なら最大値クリア
-                }
-            }
-        });
+        radio.addEventListener('change', () => toggleMaxValueInput(editingEffectTypeMaxValueGroup, editingEffectTypeMaxValueInput, radio.value));
     });
 
 
@@ -555,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 newEffectTypeUnitSelect.value = 'none';
                 if(newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
                 if(newEffectTypeMaxValueInput) newEffectTypeMaxValueInput.value = '';
-                if(newEffectTypeMaxValueGroup) newEffectTypeMaxValueGroup.style.display = 'block';
+                toggleMaxValueInput(newEffectTypeMaxValueGroup, newEffectTypeMaxValueInput, 'sum'); // Reset display for sum
 
 
                 await loadEffectTypesFromFirestore();
@@ -582,15 +599,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (editingEffectTypeCalcMethodRadios[0]) {
             editingEffectTypeCalcMethodRadios[0].checked = true;
         }
-
-        // ★加算時の最大値を設定し、表示を制御
-        if (calcMethod === 'sum') {
-            editingEffectTypeMaxValueInput.value = typeof effectTypeData.maxValue === 'number' ? effectTypeData.maxValue : '';
-            editingEffectTypeMaxValueGroup.style.display = 'block';
-        } else {
-            editingEffectTypeMaxValueInput.value = '';
-            editingEffectTypeMaxValueGroup.style.display = 'none';
-        }
+        toggleMaxValueInput(editingEffectTypeMaxValueGroup, editingEffectTypeMaxValueInput, calcMethod);
+        editingEffectTypeMaxValueInput.value = (calcMethod === 'sum' && typeof effectTypeData.maxValue === 'number') ? effectTypeData.maxValue : '';
 
 
         if (editEffectTypeModal) editEffectTypeModal.style.display = 'flex';
@@ -613,7 +623,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-
             if (!newName) { alert("効果種類名は空にできません。"); return; }
             if (effectTypesCache.some(et => et.id !== id && et.name.toLowerCase() === newName.toLowerCase())) {
                  alert("編集後の名前が他の効果種類と重複します。"); return;
@@ -629,10 +638,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (newMaxValue !== null) {
                         updateData.maxValue = newMaxValue;
                     } else {
-                        updateData.maxValue = deleteField(); // 未入力の場合はフィールドを削除
+                        updateData.maxValue = deleteField();
                     }
                 } else {
-                    updateData.maxValue = deleteField(); // 加算以外ならフィールド削除
+                    updateData.maxValue = deleteField();
                 }
 
 
@@ -697,8 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
          }
     }
 
+
     // --- Category Management ---
-    // ... (No changes) ...
+    // ... (No changes from previous version)
     async function loadCategoriesFromFirestore() {
         console.log("[Categories] Loading all categories...");
         try {
@@ -1223,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Item Management ---
-    // ... (No changes from previous version for these item form related functions) ...
+    // ... (No changes)
     function populateTagCheckboxesForItemForm(selectedTagIds = []) {
         if (!itemTagsSelectorCheckboxes) return;
         itemTagsSelectorCheckboxes.innerHTML = '';
@@ -1243,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function populateEffectTypeSelect(selectElement) {
+    function populateEffectTypeSelect(selectElement) { // Generic function for populating effect type dropdowns
         if (!selectElement) return;
         const currentVal = selectElement.value;
         selectElement.innerHTML = '<option value="">効果種類を選択...</option>';
@@ -1255,17 +1265,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Dispatch change only if a specific unit display is associated
-        if (selectElement === effectTypeSelect && effectUnitDisplay) {
+        if (selectElement === effectTypeSelect && effectUnitDisplay) { // Item form
             if (selectElement.value) effectTypeSelect.dispatchEvent(new Event('change'));
             else effectUnitDisplay.textContent = '';
-        } else if (selectElement === charBaseOptionEffectTypeSelect && charBaseOptionEffectUnitDisplay) {
+        } else if (selectElement === charBaseOptionEffectTypeSelect && charBaseOptionEffectUnitDisplay) { // Char base modal
             if (selectElement.value) charBaseOptionEffectTypeSelect.dispatchEvent(new Event('change'));
             else charBaseOptionEffectUnitDisplay.textContent = '';
         }
     }
 
 
-    if (effectTypeSelect) {
+    if (effectTypeSelect) { // For item form effects
         effectTypeSelect.addEventListener('change', () => {
             const selectedTypeId = effectTypeSelect.value;
             const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
@@ -1279,7 +1289,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderCurrentItemEffectsList() {
+    function renderCurrentItemEffectsList() { // For item form
         if (!currentEffectsList) return;
         currentEffectsList.innerHTML = '';
         if (currentItemEffects.length === 0) {
@@ -1308,7 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (addEffectToListButton) {
+    if (addEffectToListButton) { // For item form
         addEffectToListButton.addEventListener('click', () => {
             const typeId = effectTypeSelect.value;
             const valueStr = effectValueInput.value;
@@ -1385,7 +1395,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     updatedAt: serverTimestamp()
                 };
 
-                if (price !== null) {
+                if (price !== null) { // price が数値として有効な場合のみフィールドを追加
                     itemData.price = price;
                 }
 
@@ -1393,12 +1403,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (editingDocId) {
                     const updatePayload = {...itemData};
                     if (price === null) {
+                        // 編集時に price がクリアされた場合、フィールドを削除
                         updatePayload.price = deleteField();
                     }
                     await updateDoc(doc(db, 'items', editingDocId), updatePayload);
                 } else {
                     itemData.createdAt = serverTimestamp();
                     const dataToAdd = {...itemData};
+                     // 新規追加時、price が null ならフィールド自体を含めない
                     if (price === null) delete dataToAdd.price;
                     await addDoc(collection(db, 'items'), dataToAdd);
                 }
