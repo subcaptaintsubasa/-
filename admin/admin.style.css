@@ -137,8 +137,8 @@ button:hover, .button-like:hover { background-color: #0056b3; }
 button:last-child { margin-right: 0; }
 
 
-button[type="button"], #clearFormButton, #clearCharacterBaseOptionFormButton { background-color: #6c757d; }
-button[type="button"]:hover, #clearFormButton:hover, #clearCharacterBaseOptionFormButton:hover { background-color: #545b62; }
+button[type="button"], #clearFormButton { background-color: #6c757d; }
+button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62; }
 
 .action-button {
     padding: 5px 10px;
@@ -264,7 +264,6 @@ button[type="button"]:hover, #clearFormButton:hover, #clearCharacterBaseOptionFo
     border-color: #1e7e34;
 }
 
-/* アイテムフォームとキャラクター基礎情報フォームの効果入力エリア共通化 */
 .effect-input-area {
     border: 1px solid #e0e0e0;
     padding: 15px;
@@ -295,6 +294,7 @@ button[type="button"]:hover, #clearFormButton:hover, #clearCharacterBaseOptionFo
     margin-left: -4px;
     margin-right: 8px;
 }
+
 
 .effects-list-container {
     margin-top: 10px;
@@ -378,13 +378,22 @@ button[type="button"]:hover, #clearFormButton:hover, #clearCharacterBaseOptionFo
 
 .icon { margin-right: 7px; font-size: 1.1em; }
 
-/* キャラクター基礎情報管理セクションのスタイル */
-#character-base-options-container {
-    margin-top: 15px;
-    padding: 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    background-color: #f9f9f9;
+/* ★キャラクター基礎情報管理セクションのスタイル調整 */
+#character-base-management .form-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+#character-base-management label {
+    margin-bottom: 0; /* form-group のラベル調整 */
+    flex-shrink: 0;
+}
+#charBaseTypeSelect {
+    flex-grow: 1;
+    max-width: 300px;
+}
+#addNewCharBaseOptionButton {
+    margin-left: auto; /* 右寄せ */
 }
 
 
@@ -411,4 +420,21 @@ button[type="button"]:hover, #clearFormButton:hover, #clearCharacterBaseOptionFo
     }
      .effect-input-row button { margin-left: 0; margin-top: 5px; }
      .unit-display { display: block; text-align: left; margin-left: 0; margin-bottom: 5px; }
+
+    /* ★キャラクター基礎情報管理セクションのスマホ調整 */
+    #character-base-management .form-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #character-base-management label {
+        margin-bottom: 6px;
+    }
+    #charBaseTypeSelect {
+        max-width: none;
+    }
+    #addNewCharBaseOptionButton {
+        margin-left: 0;
+        margin-top: 10px;
+        width: 100%;
+    }
 }
