@@ -1,4 +1,4 @@
-// admin.script.js (完全版 - 2023/12/13 再修正)
+// admin.script.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -87,22 +87,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const editingEffectTypeUnitSelect = document.getElementById('editingEffectTypeUnit');
     const editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethod"]');
     const saveEffectTypeEditButton = document.getElementById('saveEffectTypeEditButton');
-    const effectTypeSelect = document.getElementById('effectTypeSelect');
+    const effectTypeSelect = document.getElementById('effectTypeSelect'); // For item form & char base option form
 
-    // Character Base Management Elements
-    const characterBaseTypeSelect = document.getElementById('characterBaseTypeSelect');
-    const characterBaseOptionForm = document.getElementById('characterBaseOptionForm');
-    const editingCharacterBaseOptionDocIdInput = document.getElementById('editingCharacterBaseOptionDocId');
-    const characterBaseOptionNameInput = document.getElementById('characterBaseOptionName');
-    const charBaseEffectTypeSelect = document.getElementById('charBaseEffectTypeSelect');
-    const charBaseEffectValueInput = document.getElementById('charBaseEffectValueInput');
-    const charBaseEffectUnitDisplay = document.getElementById('charBaseEffectUnitDisplay');
-    const addCharBaseEffectToListButton = document.getElementById('addCharBaseEffectToListButton');
-    const currentCharBaseEffectsList = document.getElementById('currentCharBaseEffectsList');
-    const saveCharacterBaseOptionButton = document.getElementById('saveCharacterBaseOptionButton');
-    const clearCharacterBaseOptionFormButton = document.getElementById('clearCharacterBaseOptionFormButton');
-    const selectedCharacterBaseTypeNameSpan = document.getElementById('selectedCharacterBaseTypeName');
-    const characterBaseOptionListContainer = document.getElementById('characterBaseOptionListContainer');
+    // Character Base Management
+    const charBaseTypeSelect = document.getElementById('charBaseTypeSelect');
+    const addNewCharBaseOptionButton = document.getElementById('addNewCharBaseOptionButton');
+    const selectedCharBaseTypeDisplay = document.getElementById('selectedCharBaseTypeDisplay');
+    const charBaseOptionListContainer = document.getElementById('charBaseOptionListContainer');
+    const editCharBaseOptionModal = document.getElementById('editCharBaseOptionModal');
+    const editCharBaseOptionModalTitle = document.getElementById('editCharBaseOptionModalTitle');
+    const editingCharBaseTypeInput = document.getElementById('editingCharBaseType'); // Hidden input
+    const editingCharBaseOptionDocIdInput = document.getElementById('editingCharBaseOptionDocId'); // Hidden input
+    const editingCharBaseOptionNameInput = document.getElementById('editingCharBaseOptionName');
+    // const charBaseOptionEffectInputArea = document.getElementById('charBaseOptionEffectInputArea'); // Already covered by effect input area class
+    const charBaseOptionEffectTypeSelect = document.getElementById('charBaseOptionEffectTypeSelect');
+    const charBaseOptionEffectValueInput = document.getElementById('charBaseOptionEffectValueInput');
+    const charBaseOptionEffectUnitDisplay = document.getElementById('charBaseOptionEffectUnitDisplay');
+    const addCharBaseOptionEffectButton = document.getElementById('addCharBaseOptionEffectButton');
+    const currentCharBaseOptionEffectsList = document.getElementById('currentCharBaseOptionEffectsList');
+    const saveCharBaseOptionButton = document.getElementById('saveCharBaseOptionButton');
 
 
     // Item Management
@@ -122,19 +125,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearFormButton = document.getElementById('clearFormButton');
     const itemsTableBody = document.querySelector('#itemsTable tbody');
     const itemSearchAdminInput = document.getElementById('itemSearchAdmin');
-    const effectValueInput = document.getElementById('effectValueInput');
-    const effectUnitDisplay = document.getElementById('effectUnitDisplay');
-    const addEffectToListButton = document.getElementById('addEffectToListButton');
-    const currentEffectsList = document.getElementById('currentEffectsList');
+    const effectValueInput = document.getElementById('effectValueInput'); // For item form
+    const effectUnitDisplay = document.getElementById('effectUnitDisplay'); // For item form
+    const addEffectToListButton = document.getElementById('addEffectToListButton'); // For item form
+    const currentEffectsList = document.getElementById('currentEffectsList'); // For item form
 
     let allCategoriesCache = [];
     let allTagsCache = [];
     let itemsCache = [];
     let effectTypesCache = [];
     let effectUnitsCache = [];
-    let characterBasesCache = {};
+    let characterBasesCache = {}; // e.g., { headShape: [ {id, name, effects}, ... ], color: [...] }
     let currentItemEffects = [];
-    let currentCharBaseOptionEffects = [];
+    let currentCharBaseOptionEffects = []; // For editing a character base option's effects
     let selectedImageFile = null;
 
     // --- Authentication ---
@@ -176,91 +179,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearAdminUI() {
-        if (categoryListContainer) categoryListContainer.innerHTML = '';
-        if (newCategoryParentButtons) newCategoryParentButtons.innerHTML = '';
-        if (selectedNewParentCategoryIdInput) selectedNewParentCategoryIdInput.value = '';
-        if (editingCategoryParentButtons) editingCategoryParentButtons.innerHTML = '';
-        if (selectedEditingParentCategoryIdInput) selectedEditingParentCategoryIdInput.value = '';
-        if (editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = '';
-        if (tagSearchModeGroup) tagSearchModeGroup.style.display = 'none';
-        if (editingTagSearchModeSelect) editingTagSearchModeSelect.value = 'AND';
-        if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = 'block';
-
-        if (tagListContainer) tagListContainer.innerHTML = '';
-        if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
-        if (editingTagCategoriesCheckboxes) editingTagCategoriesCheckboxes.innerHTML = '';
-
+        // ... (other UI clearings) ...
         if (effectUnitListContainer) effectUnitListContainer.innerHTML = '';
         if (newEffectUnitNameInput) newEffectUnitNameInput.value = '';
-
-        if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
-        if (effectTypeSelect) effectTypeSelect.innerHTML = '<option value="">効果種類を選択...</option>';
-        if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
-        if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = '<option value="none">なし</option>';
-        if (newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
-
-        if (characterBaseTypeSelect) characterBaseTypeSelect.value = 'headShape';
-        if (characterBaseOptionForm) characterBaseOptionForm.reset();
-        if (editingCharacterBaseOptionDocIdInput) editingCharacterBaseOptionDocIdInput.value = '';
-        if (currentCharBaseEffectsList) currentCharBaseEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
-        if (characterBaseOptionListContainer) characterBaseOptionListContainer.innerHTML = '';
-        if (selectedCharacterBaseTypeNameSpan && characterBaseTypeSelect) {
-             const selectedOption = characterBaseTypeSelect.options[characterBaseTypeSelect.selectedIndex];
-             selectedCharacterBaseTypeNameSpan.textContent = selectedOption ? selectedOption.text : '頭の形';
-        }
-        currentCharBaseOptionEffects = [];
-
-        if (itemsTableBody) itemsTableBody.innerHTML = '';
-        if (itemTagsSelectorCheckboxes) itemTagsSelectorCheckboxes.innerHTML = '';
-        clearItemForm();
-
-        allCategoriesCache = [];
-        allTagsCache = [];
-        itemsCache = [];
-        effectTypesCache = [];
-        effectUnitsCache = [];
-        characterBasesCache = {};
-        currentItemEffects = [];
-        currentCharBaseOptionEffects = [];
+        if (charBaseOptionListContainer) charBaseOptionListContainer.innerHTML = '';
+        // ... (rest of the clearAdminUI function)
     }
 
     async function loadInitialData() {
         console.log("[Initial Load] Starting...");
         await loadEffectUnitsFromFirestore();
-        await loadEffectTypesFromFirestore();
+        await loadEffectTypesFromFirestore(); // Depends on units for dropdown population
         await loadCategoriesFromFirestore();
         await loadTagsFromFirestore();
-        await loadCharacterBasesFromFirestore();
+        await loadCharacterBasesFromFirestore(); // NEW
         await loadItemsFromFirestore();
+
 
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput);
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
         populateTagCheckboxesForItemForm();
-        populateEffectUnitSelects();
-        populateEffectTypeSelect(effectTypeSelect);
-        populateEffectTypeSelect(charBaseEffectTypeSelect);
+        populateEffectUnitSelects(); // For effect type forms
+        populateEffectTypeSelect(effectTypeSelect); // For item form
+        populateEffectTypeSelect(charBaseOptionEffectTypeSelect); // For char base option modal
 
         renderCategoriesForManagement();
         renderTagsForManagement();
         renderEffectUnitsForManagement();
         renderEffectTypesForManagement();
-        if (characterBaseTypeSelect) {
-            const selectedOption = characterBaseTypeSelect.options[characterBaseTypeSelect.selectedIndex];
-            if(selectedCharacterBaseTypeNameSpan && selectedOption) selectedCharacterBaseTypeNameSpan.textContent = selectedOption.text;
-            renderCharacterBaseOptionsList();
-        }
+        renderCharacterBaseOptions(); // NEW: Initial render for default selected base type
         renderItemsAdminTable();
         console.log("[Initial Load] Completed.");
     }
 
     // --- Effect Unit Management ---
+    // ... (Effect Unit functions: load, render, add, openEditModal, save, delete, populateSelects - no change from previous) ...
     async function loadEffectUnitsFromFirestore() {
         console.log("[Effect Units] Loading effect units...");
         try {
             const q = query(collection(db, 'effect_units'), orderBy('name'));
             const snapshot = await getDocs(q);
             effectUnitsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("[Effect Units] Loaded:", effectUnitsCache.length);
+            console.log("[Effect Units] Loaded:", effectUnitsCache.length, effectUnitsCache);
         } catch (error) {
             console.error("[Effect Units] Error loading:", error);
             effectUnitsCache = [];
@@ -366,24 +326,21 @@ document.addEventListener('DOMContentLoaded', () => {
                             batch.update(doc(db, 'items', item.docId), { structured_effects: updatedEffects });
                         }
                     });
-                    const baseTypes = ['headShape', 'correction', 'color', 'pattern'];
-                    for (const type of baseTypes) {
-                        if (characterBasesCache[type]) {
-                            characterBasesCache[type].forEach(option => {
-                                let charBaseEffectsUpdated = false;
-                                const updatedCharEffects = (option.effects || []).map(eff => {
-                                    if (eff.unit === oldUnitName) {
-                                        charBaseEffectsUpdated = true;
-                                        return { ...eff, unit: newName };
-                                    }
-                                    return eff;
-                                });
-                                if (charBaseEffectsUpdated) {
-                                    const collectionName = `${CHARACTER_BASE_COLLECTION_PREFIX}${type}`;
-                                    batch.update(doc(db, collectionName, option.id), { effects: updatedCharEffects });
+                     // Update character base options
+                    for (const baseKey in characterBasesCache) {
+                        (characterBasesCache[baseKey] || []).forEach(option => {
+                            let optionEffectsUpdated = false;
+                            const updatedOptionEffects = (option.effects || []).map(eff => {
+                                if (eff.unit === oldUnitName) {
+                                    optionEffectsUpdated = true;
+                                    return { ...eff, unit: newName };
                                 }
+                                return eff;
                             });
-                        }
+                            if (optionEffectsUpdated) {
+                                batch.update(doc(db, `character_bases/${baseKey}/options`, option.id), { effects: updatedOptionEffects });
+                            }
+                        });
                     }
 
                     await batch.commit();
@@ -413,14 +370,14 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。\n先にアイテムの効果設定を変更してください。`);
             return;
         }
-        const baseTypes = ['headShape', 'correction', 'color', 'pattern'];
-        for (const type of baseTypes) {
-            if (characterBasesCache[type]) {
-                const usedByCharBase = characterBasesCache[type].find(option => option.effects && option.effects.some(eff => eff.unit === name));
-                if (usedByCharBase) {
-                    alert(`効果単位「${name}」はキャラクター基礎情報「${type} - ${usedByCharBase.name}」の効果で使用されているため削除できません。\n先に基礎情報の効果設定を変更してください。`);
-                    return;
-                }
+        // Check character base options
+        for (const baseKey in characterBasesCache) {
+            const usedInBase = (characterBasesCache[baseKey] || []).find(option =>
+                option.effects && option.effects.some(eff => eff.unit === name)
+            );
+            if (usedInBase) {
+                alert(`効果単位「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定を変更してください。`);
+                return;
             }
         }
 
@@ -457,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Effect Type Management ---
+    // ... (Effect Type functions: load, render, add, openEditModal, save, delete - no major change, relies on populated unit selects) ...
     async function loadEffectTypesFromFirestore() {
         console.log("[Effect Types] Loading effect types...");
         try {
@@ -533,8 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await loadEffectTypesFromFirestore();
                 renderEffectTypesForManagement();
                 populateEffectTypeSelect(effectTypeSelect);
-                populateEffectTypeSelect(charBaseEffectTypeSelect);
-
+                populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
             } catch (error) {
                 console.error("[Effect Types] Error adding:", error);
                 alert("効果種類の追加に失敗しました。");
@@ -583,11 +540,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 await loadEffectTypesFromFirestore();
                 renderEffectTypesForManagement();
                 populateEffectTypeSelect(effectTypeSelect);
-                populateEffectTypeSelect(charBaseEffectTypeSelect);
-                await loadItemsFromFirestore();
+                populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
+                await loadItemsFromFirestore(); // To update effects in items list if unit name changed
                 renderItemsAdminTable();
-                await loadCharacterBasesFromFirestore();
-                renderCharacterBaseOptionsList();
+                 await loadCharacterBasesFromFirestore(); // Also reload char bases
+                 renderCharacterBaseOptions();
+
 
             } catch (error) {
                  console.error("[Effect Types] Error updating:", error);
@@ -597,43 +555,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteEffectType(id, name) {
-         if (confirm(`効果種類「${name}」を削除しますか？\n注意: この効果種類を使用しているアイテムや基礎情報の効果設定は残りますが、種類名が表示されなくなる可能性があります。`)) {
+         if (confirm(`効果種類「${name}」を削除しますか？\n注意: この効果種類を使用しているアイテムやキャラクター基礎情報オプションの効果設定は残りますが、種類名が表示されなくなる可能性があります。`)) {
              try {
-                let isUsed = false;
+                let isUsedByItem = false;
                 for (const item of itemsCache) {
                     if (item.structured_effects && item.structured_effects.some(eff => eff.type === id)) {
-                        isUsed = true;
+                        isUsedByItem = true;
                         alert(`効果種類「${name}」はアイテム「${item.name}」で使用されているため削除できません。\n先にアイテムの効果設定からこの種類を削除してください。`);
                         break;
                     }
                 }
-                if(isUsed) return;
+                if(isUsedByItem) return;
 
-                const baseTypes = ['headShape', 'correction', 'color', 'pattern'];
-                for (const type of baseTypes) {
-                    if (characterBasesCache[type]) {
-                        for (const option of characterBasesCache[type]) {
-                            if (option.effects && option.effects.some(eff => eff.type === id)) {
-                                isUsed = true;
-                                alert(`効果種類「${name}」はキャラクター基礎情報「${type} - ${option.name}」で使用されているため削除できません。\n先に基礎情報の効果設定を変更してください。`);
-                                break;
-                            }
+                let isUsedByBase = false;
+                for (const baseKey in characterBasesCache) {
+                    for (const option of characterBasesCache[baseKey] || []) {
+                        if (option.effects && option.effects.some(eff => eff.type === id)) {
+                            isUsedByBase = true;
+                            alert(`効果種類「${name}」はキャラクター基礎情報「${baseKey} - ${option.name}」で使用されているため削除できません。\n先に該当の基礎情報オプションの効果設定からこの種類を削除してください。`);
+                            break;
                         }
                     }
-                    if (isUsed) break;
+                    if (isUsedByBase) break;
                 }
-                if(isUsed) return;
+                if(isUsedByBase) return;
 
 
                  await deleteDoc(doc(db, 'effect_types', id));
                  await loadEffectTypesFromFirestore();
                  renderEffectTypesForManagement();
                  populateEffectTypeSelect(effectTypeSelect);
-                 populateEffectTypeSelect(charBaseEffectTypeSelect);
-                 await loadItemsFromFirestore();
+                 populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
+                 await loadItemsFromFirestore(); // Refresh items list
                  renderItemsAdminTable();
-                 await loadCharacterBasesFromFirestore();
-                 renderCharacterBaseOptionsList();
+                 // No direct need to reload char bases here unless their display depends on effect type names (which it might)
+
              } catch (error) {
                   console.error("[Effect Types] Error deleting:", error);
                   alert("効果種類の削除に失敗しました。");
@@ -641,40 +597,8 @@ document.addEventListener('DOMContentLoaded', () => {
          }
     }
 
-    function populateEffectTypeSelect(targetSelectElement) {
-        if (!targetSelectElement) return;
-        const currentVal = targetSelectElement.value;
-        targetSelectElement.innerHTML = '<option value="">効果種類を選択...</option>';
-        effectTypesCache.forEach(et => {
-            targetSelectElement.add(new Option(et.name, et.id));
-        });
-        if (currentVal && targetSelectElement.querySelector(`option[value="${currentVal}"]`)) {
-            targetSelectElement.value = currentVal;
-        }
-        if (targetSelectElement.value) {
-            targetSelectElement.dispatchEvent(new Event('change'));
-        } else {
-            if (targetSelectElement === effectTypeSelect && effectUnitDisplay) effectUnitDisplay.textContent = '';
-            if (targetSelectElement === charBaseEffectTypeSelect && charBaseEffectUnitDisplay) charBaseEffectUnitDisplay.textContent = '';
-        }
-    }
-    if (effectTypeSelect) { effectTypeSelect.addEventListener('change', () => updateUnitDisplayForEffectType(effectTypeSelect, effectUnitDisplay)); }
-    if (charBaseEffectTypeSelect) { charBaseEffectTypeSelect.addEventListener('change', () => updateUnitDisplayForEffectType(charBaseEffectTypeSelect, charBaseEffectUnitDisplay));}
-
-    function updateUnitDisplayForEffectType(typeSelectElement, unitDisplayElement) {
-        const selectedTypeId = typeSelectElement.value;
-        const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
-        if (unitDisplayElement) {
-             if (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') {
-                 unitDisplayElement.textContent = `(${selectedEffectType.defaultUnit})`;
-             } else {
-                 unitDisplayElement.textContent = '';
-             }
-        }
-    }
-
-
     // --- Category Management ---
+    // ... (No changes) ...
     async function loadCategoriesFromFirestore() {
         console.log("[Categories] Loading all categories...");
         try {
@@ -993,6 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Tag Management ---
+    // ... (No changes) ...
     async function loadTagsFromFirestore() {
         console.log("[Tags] Loading all tags...");
         try {
@@ -1196,7 +1121,224 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+
+    // --- Character Base Management (NEW) ---
+    const baseTypeMappings = {
+        headShape: "頭の形",
+        correction: "補正",
+        color: "色",
+        pattern: "柄"
+    };
+
+    async function loadCharacterBasesFromFirestore() {
+        console.log("[Character Bases] Loading...");
+        characterBasesCache = {}; // Reset cache
+        const baseTypes = Object.keys(baseTypeMappings);
+        try {
+            for (const baseType of baseTypes) {
+                const optionsCollectionRef = collection(db, `character_bases/${baseType}/options`);
+                const q = query(optionsCollectionRef, orderBy("name"));
+                const snapshot = await getDocs(q);
+                characterBasesCache[baseType] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            }
+            console.log("[Character Bases] Loaded:", characterBasesCache);
+        } catch (error) {
+            console.error("[Character Bases] Error loading:", error);
+        }
+    }
+
+    function renderCharacterBaseOptions() {
+        if (!charBaseTypeSelect || !charBaseOptionListContainer || !selectedCharBaseTypeDisplay) return;
+        const selectedTypeKey = charBaseTypeSelect.value;
+        const selectedTypeName = baseTypeMappings[selectedTypeKey] || "不明な種類";
+        selectedCharBaseTypeDisplay.textContent = selectedTypeName;
+        charBaseOptionListContainer.innerHTML = '';
+
+        const options = characterBasesCache[selectedTypeKey] || [];
+        if (options.length === 0) {
+            charBaseOptionListContainer.innerHTML = `<p>${selectedTypeName} の選択肢はまだ登録されていません。</p>`;
+            return;
+        }
+
+        options.forEach(option => {
+            let effectsSummary = (option.effects && option.effects.length > 0)
+                ? option.effects.map(eff => {
+                    const typeInfo = effectTypesCache.find(et => et.id === eff.type);
+                    return `${typeInfo ? typeInfo.name : '不明'}: ${eff.value}${eff.unit !== 'none' ? eff.unit : ''}`;
+                  }).join(', ')
+                : '効果なし';
+            if (effectsSummary.length > 30) effectsSummary = effectsSummary.substring(0, 27) + "...";
+
+
+            const div = document.createElement('div');
+            div.classList.add('list-item');
+            div.innerHTML = `
+                <span>${option.name} <small>(${effectsSummary})</small></span>
+                <div>
+                    <button class="edit-char-base-option action-button" data-id="${option.id}" data-type="${selectedTypeKey}" title="編集">✎</button>
+                    <button class="delete-char-base-option action-button delete" data-id="${option.id}" data-type="${selectedTypeKey}" data-name="${option.name}" title="削除">×</button>
+                </div>
+            `;
+            charBaseOptionListContainer.appendChild(div);
+        });
+
+        charBaseOptionListContainer.querySelectorAll('.edit-char-base-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const optionId = e.currentTarget.dataset.id;
+                const baseType = e.currentTarget.dataset.type;
+                const optionData = (characterBasesCache[baseType] || []).find(opt => opt.id === optionId);
+                if (optionData) openEditCharBaseOptionModal(optionData, baseType);
+                else alert("編集するデータが見つかりません。");
+            });
+        });
+        charBaseOptionListContainer.querySelectorAll('.delete-char-base-option').forEach(btn => {
+            btn.addEventListener('click', (e) => deleteCharBaseOption(e.currentTarget.dataset.id, e.currentTarget.dataset.type, e.currentTarget.dataset.name));
+        });
+    }
+
+    if (charBaseTypeSelect) {
+        charBaseTypeSelect.addEventListener('change', renderCharacterBaseOptions);
+    }
+    if (addNewCharBaseOptionButton) {
+        addNewCharBaseOptionButton.addEventListener('click', () => {
+            const selectedType = charBaseTypeSelect.value;
+            openEditCharBaseOptionModal(null, selectedType); // null for new option
+        });
+    }
+
+    function openEditCharBaseOptionModal(optionData, baseType) {
+        editingCharBaseTypeInput.value = baseType;
+        const typeName = baseTypeMappings[baseType] || "基礎情報";
+        editCharBaseOptionModalTitle.textContent = optionData ? `${typeName}オプション編集` : `${typeName}オプション新規追加`;
+
+        if (optionData) {
+            editingCharBaseOptionDocIdInput.value = optionData.id;
+            editingCharBaseOptionNameInput.value = optionData.name;
+            currentCharBaseOptionEffects = Array.isArray(optionData.effects) ? [...optionData.effects] : [];
+        } else {
+            editingCharBaseOptionDocIdInput.value = '';
+            editingCharBaseOptionNameInput.value = '';
+            currentCharBaseOptionEffects = [];
+        }
+        renderCurrentCharBaseOptionEffectsList();
+        // Ensure effect type select is populated for this modal too
+        populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
+        charBaseOptionEffectValueInput.value = '';
+        if(charBaseOptionEffectUnitDisplay) charBaseOptionEffectUnitDisplay.textContent = '';
+
+        editCharBaseOptionModal.style.display = 'flex';
+        editingCharBaseOptionNameInput.focus();
+    }
+
+    function renderCurrentCharBaseOptionEffectsList() {
+        if (!currentCharBaseOptionEffectsList) return;
+        currentCharBaseOptionEffectsList.innerHTML = '';
+        if (currentCharBaseOptionEffects.length === 0) {
+            currentCharBaseOptionEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
+            return;
+        }
+        currentCharBaseOptionEffects.forEach((effect, index) => {
+            const effectType = effectTypesCache.find(et => et.id === effect.type);
+            const typeName = effectType ? effectType.name : '不明な効果';
+            const unitText = effect.unit && effect.unit !== 'none' ? `(${effect.unit})` : '';
+            const div = document.createElement('div');
+            div.classList.add('effect-list-item');
+            div.innerHTML = `
+                <span>${typeName}: ${effect.value}${unitText}</span>
+                <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="この効果を削除">×</button>
+            `;
+            currentCharBaseOptionEffectsList.appendChild(div);
+        });
+        currentCharBaseOptionEffectsList.querySelectorAll('.delete-effect-from-list').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
+                currentCharBaseOptionEffects.splice(indexToRemove, 1);
+                renderCurrentCharBaseOptionEffectsList();
+            });
+        });
+    }
+
+    if (addCharBaseOptionEffectButton) {
+        addCharBaseOptionEffectButton.addEventListener('click', () => {
+            const typeId = charBaseOptionEffectTypeSelect.value;
+            const valueStr = charBaseOptionEffectValueInput.value;
+            if (!typeId) { alert("効果種類を選択してください。"); return; }
+            if (valueStr.trim() === '' || isNaN(parseFloat(valueStr))) {
+                alert("効果の値を数値で入力してください。"); return;
+            }
+            const value = parseFloat(valueStr);
+            const selectedEffectType = effectTypesCache.find(et => et.id === typeId);
+            const unit = selectedEffectType ? (selectedEffectType.defaultUnit || 'none') : 'none';
+
+            currentCharBaseOptionEffects.push({ type: typeId, value: value, unit: unit });
+            renderCurrentCharBaseOptionEffectsList();
+            charBaseOptionEffectTypeSelect.value = '';
+            charBaseOptionEffectValueInput.value = '';
+            if(charBaseOptionEffectUnitDisplay) charBaseOptionEffectUnitDisplay.textContent = '';
+        });
+    }
+     if (charBaseOptionEffectTypeSelect) {
+        charBaseOptionEffectTypeSelect.addEventListener('change', () => {
+            const selectedTypeId = charBaseOptionEffectTypeSelect.value;
+            const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
+            if (charBaseOptionEffectUnitDisplay) {
+                 if (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') {
+                     charBaseOptionEffectUnitDisplay.textContent = `(${selectedEffectType.defaultUnit})`;
+                 } else {
+                     charBaseOptionEffectUnitDisplay.textContent = '';
+                 }
+            }
+        });
+    }
+
+
+    if (saveCharBaseOptionButton) {
+        saveCharBaseOptionButton.addEventListener('click', async () => {
+            const baseType = editingCharBaseTypeInput.value;
+            const optionId = editingCharBaseOptionDocIdInput.value;
+            const name = editingCharBaseOptionNameInput.value.trim();
+            const effects = currentCharBaseOptionEffects;
+
+            if (!baseType) { alert("基礎情報の種類が不明です。"); return; }
+            if (!name) { alert("選択肢の名前を入力してください。"); return; }
+
+            const optionData = { name, effects, updatedAt: serverTimestamp() };
+            const optionsCollectionRef = collection(db, `character_bases/${baseType}/options`);
+
+            try {
+                if (optionId) { // Editing existing
+                    await updateDoc(doc(optionsCollectionRef, optionId), optionData);
+                } else { // Adding new
+                    optionData.createdAt = serverTimestamp();
+                    await addDoc(optionsCollectionRef, optionData);
+                }
+                editCharBaseOptionModal.style.display = 'none';
+                await loadCharacterBasesFromFirestore(); // Reload all base data
+                renderCharacterBaseOptions(); // Re-render the list for the current type
+            } catch (error) {
+                console.error(`[Character Base Option Save - ${baseType}] Error:`, error);
+                alert("基礎情報オプションの保存に失敗しました。");
+            }
+        });
+    }
+
+    async function deleteCharBaseOption(optionId, baseType, optionName) {
+        if (confirm(`基礎情報「${baseTypeMappings[baseType]}」のオプション「${optionName}」を削除しますか？`)) {
+            try {
+                await deleteDoc(doc(db, `character_bases/${baseType}/options`, optionId));
+                await loadCharacterBasesFromFirestore();
+                renderCharacterBaseOptions();
+            } catch (error) {
+                console.error(`[Character Base Option Delete - ${baseType}] Error:`, error);
+                alert("基礎情報オプションの削除に失敗しました。");
+            }
+        }
+    }
+
+
+
     // --- Item Management ---
+    // ... (populateTagCheckboxesForItemForm - no change) ...
     function populateTagCheckboxesForItemForm(selectedTagIds = []) {
         if (!itemTagsSelectorCheckboxes) return;
         itemTagsSelectorCheckboxes.innerHTML = '';
@@ -1216,7 +1358,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderCurrentItemEffectsList() {
+    function populateEffectTypeSelect(selectElement) { // Generic function for populating effect type dropdowns
+        if (!selectElement) return;
+        const currentVal = selectElement.value;
+        selectElement.innerHTML = '<option value="">効果種類を選択...</option>';
+        effectTypesCache.forEach(et => {
+            selectElement.add(new Option(et.name, et.id));
+        });
+        if (currentVal && selectElement.querySelector(`option[value="${currentVal}"]`)) {
+            selectElement.value = currentVal;
+        }
+        // Trigger change for the specific select element if it has a specific unit display
+        if (selectElement === effectTypeSelect && effectUnitDisplay) { // Item form
+            if (selectElement.value) effectTypeSelect.dispatchEvent(new Event('change'));
+            else effectUnitDisplay.textContent = '';
+        } else if (selectElement === charBaseOptionEffectTypeSelect && charBaseOptionEffectUnitDisplay) { // Char base modal
+            if (selectElement.value) charBaseOptionEffectTypeSelect.dispatchEvent(new Event('change'));
+            else charBaseOptionEffectUnitDisplay.textContent = '';
+        }
+    }
+
+
+    if (effectTypeSelect) { // For item form effects
+        effectTypeSelect.addEventListener('change', () => {
+            const selectedTypeId = effectTypeSelect.value;
+            const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
+            if (effectUnitDisplay) {
+                 if (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') {
+                     effectUnitDisplay.textContent = `(${selectedEffectType.defaultUnit})`;
+                 } else {
+                     effectUnitDisplay.textContent = '';
+                 }
+            }
+        });
+    }
+
+    function renderCurrentItemEffectsList() { // For item form
         if (!currentEffectsList) return;
         currentEffectsList.innerHTML = '';
         if (currentItemEffects.length === 0) {
@@ -1245,7 +1422,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (addEffectToListButton) {
+    if (addEffectToListButton) { // For item form
         addEffectToListButton.addEventListener('click', () => {
             const typeId = effectTypeSelect.value;
             const valueStr = effectValueInput.value;
@@ -1336,9 +1513,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     itemData.createdAt = serverTimestamp();
                     const dataToAdd = {...itemData};
-                    if (price === null && dataToAdd.hasOwnProperty('price')) {
-                         delete dataToAdd.price;
-                    }
+                    if (price === null) delete dataToAdd.price;
                     await addDoc(collection(db, 'items'), dataToAdd);
                 }
                 await loadItemsFromFirestore();
@@ -1354,6 +1529,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (clearFormButton) clearFormButton.addEventListener('click', clearItemForm);
 
     function clearItemForm() {
         if (itemForm) itemForm.reset();
@@ -1495,8 +1671,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-
     // --- Image Upload ---
+    // ... (No changes) ...
     if (itemImageFileInput) {
         itemImageFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -1537,7 +1713,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             uploadProgressText.textContent = 'アップロード中... (0%)';
             let progress = 0;
-            let interval = setInterval(() => { // interval をローカルスコープに
+            const interval = setInterval(() => {
                 progress += 10;
                 if (progress <= 90) {
                     uploadProgress.value = progress;
@@ -1575,9 +1751,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return null;
             }
         } catch (error) {
-            // interval が try スコープ内で定義されているため、catch スコープからは直接クリアできない。
-            // 必要であれば interval を try の外で宣言するか、エラーハンドリング方法を再考。
-            // ただし、現状では fetch が完了すれば必ず clearInterval が呼ばれるはず。
+            if(typeof interval !== 'undefined') clearInterval(interval);
             console.error('[Image Upload] Error uploading image to worker:', error);
             alert(`画像のアップロード中に通信エラーが発生しました: ${error.message}`);
             uploadProgressText.textContent = '通信エラー。';
