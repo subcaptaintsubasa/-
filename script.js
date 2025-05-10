@@ -48,9 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageExportArea = document.getElementById('imageExportArea');
     const exportSlots = document.getElementById('exportSlots');
     const exportEffects = document.getElementById('exportEffects');
-    const previewImageButton = document.getElementById('previewImageButton'); // ★プレビューボタン
-    const imagePreviewModal = document.getElementById('imagePreviewModal'); // ★プレビューモーダル
-    const generatedImagePreview = document.getElementById('generatedImagePreview'); // ★プレビュー用img
+    const previewImageButton = document.getElementById('previewImageButton');
+    const imagePreviewModal = document.getElementById('imagePreviewModal');
+    const generatedImagePreview = document.getElementById('generatedImagePreview');
 
     let allItems = [];
     let allCategories = [];
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const itemsPerPage = 10;
     let currentFilteredItems = [];
-    let lastGeneratedImageDataUrl = null; // ★生成画像データURL保存用
+    // let lastGeneratedImageDataUrl = null; // ★プレビューボタンクリック時に都度生成するため不要に
 
     const equipmentSlots = ["服", "顔", "首", "腕", "背中", "足"];
     let selectedEquipment = {};
@@ -758,49 +758,56 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    async function generateAndPreviewImage() { // ★プレビューと保存で共通化できる画像生成処理
+        exportSlots.innerHTML = '';
+        equipmentSlots.forEach(slotName => {
+            const itemId = selectedEquipment[slotName];
+            let itemHtml = `<div class="export-slot-item"><strong>${slotName}:</strong> `;
+            if (itemId) {
+                const item = allItems.find(i => i.docId === itemId);
+                itemHtml += item ?
+                    `<img src="${item.image || './images/placeholder_item.png'}" alt="" class="export-item-image"> <span>${item.name || '(名称未設定)'}</span>` :
+                    '<span>エラー</span>';
+            } else {
+                itemHtml += '<span>なし</span>';
+            }
+            itemHtml += '</div>';
+            exportSlots.innerHTML += itemHtml;
+        });
+        exportEffects.innerHTML = totalEffectsDisplay.innerHTML;
+
+        try {
+            await new Promise(resolve => setTimeout(resolve, 150));
+            const canvas = await html2canvas(imageExportArea, { useCORS: true, backgroundColor: '#ffffff' });
+            return canvas.toDataURL('image/png');
+        } catch (error) {
+            console.error("Image generation error:", error);
+            alert("画像の生成に失敗しました。コンソールログを確認してください。");
+            return null;
+        }
+    }
+
+
     if (saveImageButton) {
         saveImageButton.addEventListener('click', async () => {
-            exportSlots.innerHTML = '';
-            equipmentSlots.forEach(slotName => {
-                const itemId = selectedEquipment[slotName];
-                let itemHtml = `<div class="export-slot-item"><strong>${slotName}:</strong> `;
-                if (itemId) {
-                    const item = allItems.find(i => i.docId === itemId);
-                    itemHtml += item ?
-                        `<img src="${item.image || './images/placeholder_item.png'}" alt="" class="export-item-image"> <span>${item.name || '(名称未設定)'}</span>` :
-                        '<span>エラー</span>';
-                } else {
-                    itemHtml += '<span>なし</span>';
-                }
-                itemHtml += '</div>';
-                exportSlots.innerHTML += itemHtml;
-            });
-            exportEffects.innerHTML = totalEffectsDisplay.innerHTML;
-
-            try {
-                await new Promise(resolve => setTimeout(resolve, 150));
-                const canvas = await html2canvas(imageExportArea, { useCORS: true, backgroundColor: '#ffffff' });
-                lastGeneratedImageDataUrl = canvas.toDataURL('image/png'); // ★画像データを保存
+            const imageDataUrl = await generateAndPreviewImage();
+            if (imageDataUrl) {
                 const link = document.createElement('a');
                 link.download = '装備構成.png';
-                link.href = lastGeneratedImageDataUrl;
+                link.href = imageDataUrl;
                 link.click();
-            } catch (error) {
-                console.error("Image generation error:", error);
-                alert("画像の生成に失敗しました。コンソールログを確認してください。");
-                lastGeneratedImageDataUrl = null; // ★エラー時はクリア
             }
         });
     }
 
-    // ★プレビューボタンのイベントリスナー
     if (previewImageButton) {
-        previewImageButton.addEventListener('click', () => {
-            if (lastGeneratedImageDataUrl) {
-                generatedImagePreview.src = lastGeneratedImageDataUrl;
+        previewImageButton.addEventListener('click', async () => {
+            const imageDataUrl = await generateAndPreviewImage();
+            if (imageDataUrl) {
+                generatedImagePreview.src = imageDataUrl;
                 imagePreviewModal.style.display = 'flex';
             } else {
-                alert("まだ画像が生成されていません。「構成を画像として保存」を先に実行してください。");
+                // エラーメッセージは generateAndPreviewImage 内で表示される
             }
         });
     }
@@ -822,8 +829,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modal === simulatorModal && isSelectingForSimulator) {
                 cancelItemSelection();
             }
-            if (modal === imagePreviewModal) { // ★プレビューモーダルを閉じたときの処理
-                generatedImagePreview.src = "#"; // 画像ソースをクリア
+            if (modal === imagePreviewModal) {
+                generatedImagePreview.src = "#";
             }
         }
     });
