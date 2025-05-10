@@ -378,14 +378,13 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
 
 .icon { margin-right: 7px; font-size: 1.1em; }
 
-/* ★キャラクター基礎情報管理セクションのスタイル調整 */
 #character-base-management .form-group {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 #character-base-management label {
-    margin-bottom: 0; /* form-group のラベル調整 */
+    margin-bottom: 0;
     flex-shrink: 0;
 }
 #charBaseTypeSelect {
@@ -393,7 +392,7 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
     max-width: 300px;
 }
 #addNewCharBaseOptionButton {
-    margin-left: auto; /* 右寄せ */
+    margin-left: auto;
 }
 
 
@@ -421,7 +420,6 @@ button[type="button"]:hover, #clearFormButton:hover { background-color: #545b62;
      .effect-input-row button { margin-left: 0; margin-top: 5px; }
      .unit-display { display: block; text-align: left; margin-left: 0; margin-bottom: 5px; }
 
-    /* ★キャラクター基礎情報管理セクションのスマホ調整 */
     #character-base-management .form-group {
         flex-direction: column;
         align-items: stretch;
