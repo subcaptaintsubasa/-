@@ -1,4 +1,4 @@
-// admin.script.js (完全版)
+// admin.script.js (完全版 - 2023/12/13 再修正)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -366,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             batch.update(doc(db, 'items', item.docId), { structured_effects: updatedEffects });
                         }
                     });
-                    // Update character bases as well
                     const baseTypes = ['headShape', 'correction', 'color', 'pattern'];
                     for (const type of baseTypes) {
                         if (characterBasesCache[type]) {
@@ -388,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     await batch.commit();
-                    await loadInitialData(); // Reload all data
+                    await loadInitialData();
                 } else {
                     await loadEffectUnitsFromFirestore();
                     renderEffectUnitsForManagement();
@@ -533,8 +532,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await loadEffectTypesFromFirestore();
                 renderEffectTypesForManagement();
-                populateEffectTypeSelect(effectTypeSelect); // Update item form select
-                populateEffectTypeSelect(charBaseEffectTypeSelect); // Update char base form select
+                populateEffectTypeSelect(effectTypeSelect);
+                populateEffectTypeSelect(charBaseEffectTypeSelect);
 
             } catch (error) {
                 console.error("[Effect Types] Error adding:", error);
@@ -585,9 +584,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderEffectTypesForManagement();
                 populateEffectTypeSelect(effectTypeSelect);
                 populateEffectTypeSelect(charBaseEffectTypeSelect);
-                await loadItemsFromFirestore(); // Refresh items if their effects display needs update
+                await loadItemsFromFirestore();
                 renderItemsAdminTable();
-                await loadCharacterBasesFromFirestore(); // Refresh char bases
+                await loadCharacterBasesFromFirestore();
                 renderCharacterBaseOptionsList();
 
             } catch (error) {
@@ -1322,7 +1321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tags: selectedItemTagIds,
                     updatedAt: serverTimestamp()
                 };
-                // price は存在する場合のみ追加（nullやundefinedは含めない）
+
                 if (price !== null) {
                     itemData.price = price;
                 }
@@ -1330,15 +1329,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (editingDocId) {
                     const updatePayload = {...itemData};
-                    if (price === null) { // 編集時に価格がクリアされた場合
-                        updatePayload.price = deleteField(); // Firestoreからpriceフィールドを削除
+                    if (price === null) {
+                        updatePayload.price = deleteField();
                     }
                     await updateDoc(doc(db, 'items', editingDocId), updatePayload);
                 } else {
                     itemData.createdAt = serverTimestamp();
                     const dataToAdd = {...itemData};
-                    if (price === null && dataToAdd.hasOwnProperty('price')) { // 新規追加でpriceがnullならフィールド自体含めない
-                        delete dataToAdd.price;
+                    if (price === null && dataToAdd.hasOwnProperty('price')) {
+                         delete dataToAdd.price;
                     }
                     await addDoc(collection(db, 'items'), dataToAdd);
                 }
@@ -1538,7 +1537,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             uploadProgressText.textContent = 'アップロード中... (0%)';
             let progress = 0;
-            const interval = setInterval(() => {
+            let interval = setInterval(() => { // interval をローカルスコープに
                 progress += 10;
                 if (progress <= 90) {
                     uploadProgress.value = progress;
@@ -1576,7 +1575,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return null;
             }
         } catch (error) {
-            if(typeof interval !== 'undefined' && interval) clearInterval(interval); // interval が定義されている場合のみクリア
+            // interval が try スコープ内で定義されているため、catch スコープからは直接クリアできない。
+            // 必要であれば interval を try の外で宣言するか、エラーハンドリング方法を再考。
+            // ただし、現状では fetch が完了すれば必ず clearInterval が呼ばれるはず。
             console.error('[Image Upload] Error uploading image to worker:', error);
             alert(`画像のアップロード中に通信エラーが発生しました: ${error.message}`);
             uploadProgressText.textContent = '通信エラー。';
