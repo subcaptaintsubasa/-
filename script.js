@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmSelectionButton = document.getElementById('confirmSelectionButton');
     const searchToolMessage = document.getElementById('searchToolMessage');
     const searchControlsElement = document.querySelector('.search-controls');
-    const paginationControls = document.getElementById('paginationControls'); // ★ページネーション
+    const paginationControls = document.getElementById('paginationControls');
 
     const hamburgerButton = document.getElementById('hamburgerButton');
     const sideNav = document.getElementById('sideNav');
@@ -48,6 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageExportArea = document.getElementById('imageExportArea');
     const exportSlots = document.getElementById('exportSlots');
     const exportEffects = document.getElementById('exportEffects');
+    const previewImageButton = document.getElementById('previewImageButton'); // ★プレビューボタン
+    const imagePreviewModal = document.getElementById('imagePreviewModal'); // ★プレビューモーダル
+    const generatedImagePreview = document.getElementById('generatedImagePreview'); // ★プレビュー用img
 
     let allItems = [];
     let allCategories = [];
@@ -58,10 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedTagIds = [];
     let isSelectingForSimulator = false;
 
-    // ★ページネーション用状態
     let currentPage = 1;
-    const itemsPerPage = 10; // 1ページあたりのアイテム数
-    let currentFilteredItems = []; // 現在のフィルター条件での全アイテムリスト
+    const itemsPerPage = 10;
+    let currentFilteredItems = [];
+    let lastGeneratedImageDataUrl = null; // ★生成画像データURL保存用
 
     const equipmentSlots = ["服", "顔", "首", "腕", "背中", "足"];
     let selectedEquipment = {};
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeSimulatorDisplay();
             renderParentCategoryFilters();
             renderChildCategoriesAndTags();
-            filterAndRenderItems(); // This will also handle initial pagination
+            filterAndRenderItems();
             console.log("Data loading and initial setup complete.");
 
         } catch (error) {
@@ -166,8 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (index > -1) selectedParentCategoryIds.splice(index, 1);
         else selectedParentCategoryIds.push(categoryId);
 
-        selectedTagIds = []; // Reset tags when parent category changes
-        currentPage = 1; // Reset to first page
+        selectedTagIds = [];
+        currentPage = 1;
         if (isSelectingForSimulator && currentSelectingSlot) {
             const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
             if (slotTagId) selectedTagIds.push(slotTagId);
@@ -230,7 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             tagButton.classList.add('tag-filter');
                             tagButton.textContent = tag.name;
                             tagButton.dataset.tagId = tag.id;
-                            const isSlotTag = validSlotTagIds.includes(tag.id);
                             let isDisabledTag = false;
                             if (isSelectingForSimulator) {
                                 if (childCat.name !== SIMULATOR_EFFECT_CHILD_CATEGORY_NAME && tag.id !== EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot]) {
@@ -263,25 +265,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const index = selectedTagIds.indexOf(tagId);
         if (index > -1) selectedTagIds.splice(index, 1);
         else selectedTagIds.push(tagId);
-        currentPage = 1; // Reset to first page on tag change
+        currentPage = 1;
         filterAndRenderItems();
     }
 
-    function renderItems(itemsToRenderOnPage) { // 名前変更: itemsToRender -> itemsToRenderOnPage
+    function renderItems(itemsToRenderOnPage) {
         if (!itemList) return;
         itemList.innerHTML = '';
 
-        // itemCountDisplay は filterAndRenderItems で更新するのでここでは不要
-
-        if (itemsToRenderOnPage.length === 0 && currentFilteredItems.length > 0) { // フィルター結果はあるが、このページにアイテムがない場合
+        if (itemsToRenderOnPage.length === 0 && currentFilteredItems.length > 0) {
             itemList.innerHTML = '<p>このページに表示するアイテムはありません。</p>';
             return;
         }
-         if (itemsToRenderOnPage.length === 0 && currentFilteredItems.length === 0) { // フィルター結果自体がない場合
+         if (itemsToRenderOnPage.length === 0 && currentFilteredItems.length === 0) {
             itemList.innerHTML = '<p>該当するアイテムは見つかりませんでした。</p>';
             return;
         }
-
 
         itemsToRenderOnPage.forEach(item => {
             const itemCard = document.createElement('div');
@@ -381,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function filterAndRenderItems() {
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
-        currentFilteredItems = allItems.filter(item => { // Store all filtered items
+        currentFilteredItems = allItems.filter(item => {
             if (isSelectingForSimulator && currentSelectingSlot) {
                 const requiredSlotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
                 if (requiredSlotTagId && (!item.tags || !item.tags.includes(requiredSlotTagId))) {
@@ -476,12 +475,11 @@ document.addEventListener('DOMContentLoaded', () => {
             itemCountDisplay.textContent = countText;
         }
 
-        renderPaginationControls(); // ページネーションUIを更新
-        // 現在のページに表示するアイテムをスライス
+        renderPaginationControls();
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const itemsToRenderOnPage = currentFilteredItems.slice(startIndex, endIndex);
-        renderItems(itemsToRenderOnPage); // スライスされたアイテムのみを描画
+        renderItems(itemsToRenderOnPage);
     }
 
     function renderPaginationControls() {
@@ -489,9 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationControls.innerHTML = '';
         const totalPages = Math.ceil(currentFilteredItems.length / itemsPerPage);
 
-        if (totalPages <= 1) return; // 1ページ以下ならコントロール不要
+        if (totalPages <= 1) return;
 
-        // Previous Button
         const prevButton = document.createElement('button');
         prevButton.classList.add('pagination-button');
         prevButton.textContent = '前へ';
@@ -499,19 +496,17 @@ document.addEventListener('DOMContentLoaded', () => {
         prevButton.addEventListener('click', () => {
             if (currentPage > 1) {
                 currentPage--;
-                filterAndRenderItems(); // フィルターは再実行せず、表示範囲だけ変えるのが理想だが、簡略化
+                filterAndRenderItems();
                 window.scrollTo({ top: itemList.offsetTop - 80, behavior: 'smooth' });
             }
         });
         paginationControls.appendChild(prevButton);
 
-        // Page Info
         const pageInfo = document.createElement('span');
         pageInfo.classList.add('page-info');
         pageInfo.textContent = `${currentPage} / ${totalPages} ページ`;
         paginationControls.appendChild(pageInfo);
 
-        // Next Button
         const nextButton = document.createElement('button');
         nextButton.classList.add('pagination-button');
         nextButton.textContent = '次へ';
@@ -531,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchInput) searchInput.value = '';
         selectedParentCategoryIds = [];
         selectedTagIds = [];
-        currentPage = 1; // リセット時に1ページ目に戻る
+        currentPage = 1;
 
         if (isSelectingForSimulator && currentSelectingSlot) {
             const slotTagId = EQUIPMENT_SLOT_TAG_IDS[currentSelectingSlot];
@@ -545,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (searchInput) searchInput.addEventListener('input', () => {
-        currentPage = 1; // 検索語変更時も1ページ目に戻る
+        currentPage = 1;
         filterAndRenderItems();
     });
 
@@ -573,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         isSelectingForSimulator = true;
         temporarilySelectedItem = selectedEquipment[currentSelectingSlot] || null;
-        currentPage = 1; // シミュレーター選択開始時も1ページ目
+        currentPage = 1;
 
         if (simulatorModal) simulatorModal.style.display = 'none';
 
@@ -785,16 +780,31 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await new Promise(resolve => setTimeout(resolve, 150));
                 const canvas = await html2canvas(imageExportArea, { useCORS: true, backgroundColor: '#ffffff' });
+                lastGeneratedImageDataUrl = canvas.toDataURL('image/png'); // ★画像データを保存
                 const link = document.createElement('a');
                 link.download = '装備構成.png';
-                link.href = canvas.toDataURL('image/png');
+                link.href = lastGeneratedImageDataUrl;
                 link.click();
             } catch (error) {
                 console.error("Image generation error:", error);
                 alert("画像の生成に失敗しました。コンソールログを確認してください。");
+                lastGeneratedImageDataUrl = null; // ★エラー時はクリア
             }
         });
     }
+
+    // ★プレビューボタンのイベントリスナー
+    if (previewImageButton) {
+        previewImageButton.addEventListener('click', () => {
+            if (lastGeneratedImageDataUrl) {
+                generatedImagePreview.src = lastGeneratedImageDataUrl;
+                imagePreviewModal.style.display = 'flex';
+            } else {
+                alert("まだ画像が生成されていません。「構成を画像として保存」を先に実行してください。");
+            }
+        });
+    }
+
 
     if (openSimulatorButtonNav) {
         openSimulatorButtonNav.addEventListener('click', () => {
@@ -812,6 +822,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modal === simulatorModal && isSelectingForSimulator) {
                 cancelItemSelection();
             }
+            if (modal === imagePreviewModal) { // ★プレビューモーダルを閉じたときの処理
+                generatedImagePreview.src = "#"; // 画像ソースをクリア
+            }
         }
     });
 
@@ -820,6 +833,9 @@ document.addEventListener('DOMContentLoaded', () => {
             event.target.style.display = "none";
             if (event.target === simulatorModal && isSelectingForSimulator) {
                 cancelItemSelection();
+            }
+            if (event.target === imagePreviewModal) {
+                generatedImagePreview.src = "#";
             }
         }
         if (sideNav.classList.contains('open') && !sideNav.contains(event.target) && event.target !== hamburgerButton) {
@@ -839,7 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedParentCategoryIds = [];
         selectedTagIds = [];
         if (searchInput) searchInput.value = '';
-        currentPage = 1; // キャンセル時も1ページ目に戻す
+        currentPage = 1;
 
         renderParentCategoryFilters();
         renderChildCategoriesAndTags();
