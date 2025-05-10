@@ -100,11 +100,6 @@
                          <label for="newCalcMethodMax">最大値</label>
                      </div>
                  </div>
-                 {/* ★加算時の最大値入力欄 (新規追加用) */}
-                 <div class="form-group" id="newEffectTypeMaxValueGroup">
-                    <label for="newEffectTypeMaxValue">加算時の最大値 (任意):</label>
-                    <input type="number" id="newEffectTypeMaxValue" placeholder="未設定の場合は上限なし" class="form-control-short">
-                 </div>
                  <button id="addEffectTypeButton">効果種類を追加</button>
                  <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
                  <div id="effectTypeListContainer" class="list-container"></div>
@@ -126,6 +121,7 @@
                 <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button>
                 <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
                 <div id="charBaseOptionListContainer" class="list-container">
+                    {/* ここに選択された種類の基礎情報オプションが表示される */}
                 </div>
             </section>
             <hr>
@@ -266,16 +262,11 @@
              <div class="form-group">
                  <label>計算方法:</label>
                  <div class="radio-group">
-                     <input type="radio" id="editCalcMethodSumModal" name="editCalcMethodModal" value="sum"> {/* name変更 */}
-                     <label for="editCalcMethodSumModal">加算</label>
-                     <input type="radio" id="editCalcMethodMaxModal" name="editCalcMethodModal" value="max"> {/* name変更 */}
-                     <label for="editCalcMethodMaxModal">最大値</label>
+                     <input type="radio" id="editCalcMethodSum" name="editCalcMethod" value="sum">
+                     <label for="editCalcMethodSum">加算</label>
+                     <input type="radio" id="editCalcMethodMax" name="editCalcMethod" value="max">
+                     <label for="editCalcMethodMax">最大値</label>
                  </div>
-             </div>
-             {/* ★加算時の最大値入力欄 (編集モーダル用) */}
-             <div class="form-group" id="editingEffectTypeMaxValueGroup" style="display: none;">
-                <label for="editingEffectTypeMaxValue">加算時の最大値 (任意):</label>
-                <input type="number" id="editingEffectTypeMaxValue" placeholder="未設定の場合は上限なし" class="form-control-short">
              </div>
             <button id="saveEffectTypeEditButton">変更を保存</button>
         </div>
