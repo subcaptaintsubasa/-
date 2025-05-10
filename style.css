@@ -147,6 +147,48 @@ body {
     max-width: 900px;
 }
 
+/* ★キャラクター基礎情報選択セクション */
+.character-base-selection {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 5px;
+}
+.character-base-selection h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    color: #333;
+}
+.base-selectors {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+.base-selector-group {
+    display: flex;
+    flex-direction: column;
+}
+.base-selector-group label {
+    font-size: 0.9em;
+    margin-bottom: 5px;
+    color: #555;
+}
+.base-selector-group select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.95em;
+}
+.sub-divider { /* キャラクター基礎情報と装備スロットの間の区切り線 */
+    border: 0;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 20px 0;
+}
+
+
 .equipment-slots {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -333,6 +375,14 @@ body {
     background-color: #eee;
     border: 1px solid #ddd;
 }
+/* ★基礎情報エクスポート用スタイル */
+.export-char-base {
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+.export-char-base div {
+    margin-bottom: 3px;
+}
 #exportEffects ul {
      list-style: disc;
      padding-left: 20px;
@@ -516,7 +566,7 @@ body {
     gap: 10px;
     cursor: pointer;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
-    min-height: 40px; /* 画像の高さに合わせるか、もう少し余裕を持たせる */
+    min-height: 40px;
 }
 .item-card-compact:hover {
     border-color: #c0c0c0;
@@ -537,16 +587,16 @@ body {
 
 .item-card-compact .item-image-container {
     flex-shrink: 0;
-    display: flex; /* For vertical centering of image if needed */
+    display: flex;
     align-items: center;
-    height: 100%; /* 親の高さに合わせる試み */
+    height: 100%;
 }
 .item-card-compact img, .item-card-compact .item-image-text-placeholder {
-    width: auto; /* 幅は自動 */
-    height: calc(100% - 4px); /* パディングとボーダーを考慮して高さを調整。親のpaddingも考慮 */
-    max-height: 38px; /* 例: カードのパディング8px*2=16px, ボーダー1px*2=2px。min-height 40px - padding 2px = 38px */
-    min-height: 30px; /* あまり小さくなりすぎないように */
-    object-fit: contain; /* アスペクト比を保ちつつフィット */
+    width: auto;
+    height: calc(100% - 4px);
+    max-height: 38px;
+    min-height: 30px;
+    object-fit: contain;
     border-radius: 3px;
     background-color: #eee;
     border: 1px solid #ddd;
@@ -564,7 +614,7 @@ body {
     flex-direction: column;
     flex-grow: 1;
     min-width: 0;
-    justify-content: center; /* 名前と効果を垂直中央に */
+    justify-content: center;
 }
 .item-card-compact .item-name-compact {
     font-weight: bold;
@@ -583,7 +633,6 @@ body {
     text-overflow: ellipsis;
 }
 
-/* 個別表示モーダルのためのスタイル */
 .item-detail-modal .modal-content {
     max-width: 500px;
 }
@@ -724,6 +773,11 @@ body {
         max-height: 85vh;
         width: 95%;
     }
+    /* ★シミュレーター内の基礎情報選択を調整 */
+    .base-selectors {
+        grid-template-columns: 1fr; /* スマホでは1列 */
+        gap: 10px;
+    }
     .equipment-slots {
         grid-template-columns: 1fr;
         gap: 10px;
@@ -737,11 +791,11 @@ body {
         justify-content: space-around;
     }
     .simulator-actions button, .simulator-actions .button-like-secondary {
-        flex-basis: calc(50% - 10px); /* 間隔を考慮して調整 */
+        flex-basis: calc(50% - 10px);
         margin-bottom: 10px;
         padding: 8px 10px;
         font-size: 0.9em;
-        box-sizing: border-box; /* パディングとボーダーを幅に含める */
+        box-sizing: border-box;
     }
 
 
@@ -750,16 +804,13 @@ body {
     .tag-filters-inline { gap: 6px; }
     .tag-filter { padding: 5px 8px; font-size: 0.8em; }
 
-    .item-card-compact {
-        /* スマホではよりシンプルな表示も検討 */
-    }
     .item-card-compact .item-image-container {
         margin-right: 8px;
     }
     .item-card-compact img, .item-card-compact .item-image-text-placeholder {
-        width: 30px; /* スマホでも一覧の画像は小さめ */
+        width: 30px;
         height: 30px;
-        max-height: 30px; /* 高さを固定 */
+        max-height: 30px;
     }
     .item-card-compact .item-name-compact {
         font-size: 0.9em;
