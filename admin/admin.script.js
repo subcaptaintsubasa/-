@@ -1,4 +1,4 @@
-// admin.script.js
+// admin.script.js (分割前 - 全機能込み、最新の修正適用済み)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -79,7 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const newEffectTypeNameInput = document.getElementById('newEffectTypeName');
     const newEffectTypeUnitSelect = document.getElementById('newEffectTypeUnit');
     const newEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="newCalcMethod"]');
-    const newEffectTypeSumCapInput = document.getElementById('newEffectTypeSumCap'); // NEW
+    const newEffectTypeSumCapInput = document.getElementById('newEffectTypeSumCap');
+    const newEffectTypeSumCapGroup = document.getElementById('newEffectTypeSumCapGroup');
     const addEffectTypeButton = document.getElementById('addEffectTypeButton');
     const effectTypeListContainer = document.getElementById('effectTypeListContainer');
     const editEffectTypeModal = document.getElementById('editEffectTypeModal');
@@ -87,9 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const editingEffectTypeNameInput = document.getElementById('editingEffectTypeName');
     const editingEffectTypeUnitSelect = document.getElementById('editingEffectTypeUnit');
     const editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethod"]');
-    const editingEffectTypeSumCapInput = document.getElementById('editingEffectTypeSumCap'); // NEW
+    const editingEffectTypeSumCapInput = document.getElementById('editingEffectTypeSumCap');
+    const editingEffectTypeSumCapGroup = document.getElementById('editingEffectTypeSumCapGroup');
     const saveEffectTypeEditButton = document.getElementById('saveEffectTypeEditButton');
-    const effectTypeSelect = document.getElementById('effectTypeSelect'); // For item form & char base option form
+    const effectTypeSelect = document.getElementById('effectTypeSelect');
 
     // Character Base Management
     const charBaseTypeSelect = document.getElementById('charBaseTypeSelect');
@@ -98,10 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const charBaseOptionListContainer = document.getElementById('charBaseOptionListContainer');
     const editCharBaseOptionModal = document.getElementById('editCharBaseOptionModal');
     const editCharBaseOptionModalTitle = document.getElementById('editCharBaseOptionModalTitle');
-    const editingCharBaseTypeInput = document.getElementById('editingCharBaseType'); // Hidden input
-    const editingCharBaseOptionDocIdInput = document.getElementById('editingCharBaseOptionDocId'); // Hidden input
+    const editingCharBaseTypeInput = document.getElementById('editingCharBaseType');
+    const editingCharBaseOptionDocIdInput = document.getElementById('editingCharBaseOptionDocId');
     const editingCharBaseOptionNameInput = document.getElementById('editingCharBaseOptionName');
-    // const charBaseOptionEffectInputArea = document.getElementById('charBaseOptionEffectInputArea'); // Already covered by effect input area class
     const charBaseOptionEffectTypeSelect = document.getElementById('charBaseOptionEffectTypeSelect');
     const charBaseOptionEffectValueInput = document.getElementById('charBaseOptionEffectValueInput');
     const charBaseOptionEffectUnitDisplay = document.getElementById('charBaseOptionEffectUnitDisplay');
@@ -127,20 +128,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearFormButton = document.getElementById('clearFormButton');
     const itemsTableBody = document.querySelector('#itemsTable tbody');
     const itemSearchAdminInput = document.getElementById('itemSearchAdmin');
-    const effectValueInput = document.getElementById('effectValueInput'); // For item form
-    const effectUnitDisplay = document.getElementById('effectUnitDisplay'); // For item form
-    const addEffectToListButton = document.getElementById('addEffectToListButton'); // For item form
-    const currentEffectsList = document.getElementById('currentEffectsList'); // For item form
+    const effectValueInput = document.getElementById('effectValueInput');
+    const effectUnitDisplay = document.getElementById('effectUnitDisplay');
+    const addEffectToListButton = document.getElementById('addEffectToListButton');
+    const currentEffectsList = document.getElementById('currentEffectsList');
 
     let allCategoriesCache = [];
     let allTagsCache = [];
     let itemsCache = [];
     let effectTypesCache = [];
     let effectUnitsCache = [];
-    let characterBasesCache = {}; // e.g., { headShape: [ {id, name, effects}, ... ], color: [...] }
+    let characterBasesCache = {};
     let currentItemEffects = [];
-    let currentCharBaseOptionEffects = []; // For editing a character base option's effects
+    let currentCharBaseOptionEffects = [];
     let selectedImageFile = null;
+
+    const baseTypeMappings = { // For display text
+        headShape: "頭の形",
+        correction: "補正",
+        color: "色",
+        pattern: "柄"
+    };
 
     // --- Authentication ---
     onAuthStateChanged(auth, (user) => {
@@ -181,40 +189,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearAdminUI() {
-        // Clear Category Management
         if (newCategoryNameInput) newCategoryNameInput.value = '';
         if (newCategoryParentButtons) newCategoryParentButtons.innerHTML = '';
         if (selectedNewParentCategoryIdInput) selectedNewParentCategoryIdInput.value = '';
         if (categoryListContainer) categoryListContainer.innerHTML = '';
-
-        // Clear Tag Management
         if (newTagNameInput) newTagNameInput.value = '';
         if (newTagCategoriesCheckboxes) newTagCategoriesCheckboxes.innerHTML = '';
         if (tagListContainer) tagListContainer.innerHTML = '';
-
-        // Clear Effect Unit Management
         if (newEffectUnitNameInput) newEffectUnitNameInput.value = '';
         if (effectUnitListContainer) effectUnitListContainer.innerHTML = '';
-
-        // Clear Effect Type Management
         if (newEffectTypeNameInput) newEffectTypeNameInput.value = '';
-        if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.value = 'none';
-        if (newEffectTypeCalcMethodRadios && newEffectTypeCalcMethodRadios.length > 0) newEffectTypeCalcMethodRadios[0].checked = true;
-        if (newEffectTypeSumCapInput) newEffectTypeSumCapInput.value = ''; // NEW
+        if (newEffectTypeUnitSelect) newEffectTypeUnitSelect.innerHTML = '<option value="none">なし</option>';
+        if (newEffectTypeCalcMethodRadios && newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
+        if (newEffectTypeSumCapInput) newEffectTypeSumCapInput.value = '';
+        if (newEffectTypeSumCapGroup) newEffectTypeSumCapGroup.style.display = (newEffectTypeCalcMethodRadios && newEffectTypeCalcMethodRadios[0].checked && newEffectTypeCalcMethodRadios[0].value === 'sum') ? 'block' : 'none';
         if (effectTypeListContainer) effectTypeListContainer.innerHTML = '';
-
-        // Clear Character Base Management
-        if (charBaseTypeSelect) charBaseTypeSelect.value = Object.keys(baseTypeMappings)[0];
-        if (selectedCharBaseTypeDisplay && charBaseTypeSelect) selectedCharBaseTypeDisplay.textContent = baseTypeMappings[charBaseTypeSelect.value] || "";
+        if (charBaseTypeSelect) charBaseTypeSelect.value = 'headShape';
+        if (selectedCharBaseTypeDisplay && baseTypeMappings[charBaseTypeSelect.value]) selectedCharBaseTypeDisplay.textContent = baseTypeMappings[charBaseTypeSelect.value];
         if (charBaseOptionListContainer) charBaseOptionListContainer.innerHTML = '';
-
-
-        // Clear Item Management Form
-        clearItemForm(); // Uses its own comprehensive clear function
         if (itemsTableBody) itemsTableBody.innerHTML = '';
+        if (itemTagsSelectorCheckboxes) itemTagsSelectorCheckboxes.innerHTML = '';
         if (itemSearchAdminInput) itemSearchAdminInput.value = '';
+        clearItemForm();
 
-        // Reset Caches (optional, could be done on logout explicitly)
         allCategoriesCache = [];
         allTagsCache = [];
         itemsCache = [];
@@ -224,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentItemEffects = [];
         currentCharBaseOptionEffects = [];
         selectedImageFile = null;
+        console.log("Admin UI and caches cleared.");
     }
 
     async function loadInitialData() {
@@ -235,19 +233,18 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadCharacterBasesFromFirestore();
         await loadItemsFromFirestore();
 
-
         populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput, { selectedParentId: "" });
         populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
         populateTagCheckboxesForItemForm();
         populateEffectUnitSelects();
-        populateEffectTypeSelect(effectTypeSelect);
-        populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
+        populateEffectTypeSelect(effectTypeSelect); // For item form
+        populateEffectTypeSelect(charBaseOptionEffectTypeSelect); // For char base option modal
 
         renderCategoriesForManagement();
         renderTagsForManagement();
         renderEffectUnitsForManagement();
         renderEffectTypesForManagement();
-        renderCharacterBaseOptions(); // Initial render for default selected base type
+        renderCharacterBaseOptions();
         renderItemsAdminTable();
         console.log("[Initial Load] Completed.");
     }
@@ -296,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (openModalForId === "manageUnits") {
-            if(editEffectUnitModal && effectUnitListContainer.offsetParent !== null) { // Check if visible
+            if(editEffectUnitModal && effectUnitListContainer.offsetParent !== null) {
                 effectUnitListContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
@@ -365,7 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             batch.update(doc(db, 'items', item.docId), { structured_effects: updatedEffects });
                         }
                     });
-                     // Update character base options
                     for (const baseKey in characterBasesCache) {
                         (characterBasesCache[baseKey] || []).forEach(option => {
                             let optionEffectsUpdated = false;
@@ -383,8 +379,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     await batch.commit();
-                    await loadInitialData(); // Reload all data as related entities were updated
-                } else { // Only name changed, but no related entities needed updates because oldName was not used or name didn't change.
+                    await loadInitialData();
+                } else {
                     await loadEffectUnitsFromFirestore();
                     renderEffectUnitsForManagement();
                     populateEffectUnitSelects();
@@ -409,7 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。\n先にアイテムの効果設定を変更してください。`);
             return;
         }
-        // Check character base options
         for (const baseKey in characterBasesCache) {
             const usedInBase = (characterBasesCache[baseKey] || []).find(option =>
                 option.effects && option.effects.some(eff => eff.unit === name)
@@ -419,7 +414,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
-
 
         if (confirm(`効果単位「${name}」を削除しますか？`)) {
             try {
@@ -446,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
                 selectElement.value = currentValue;
             } else {
-                selectElement.value = 'none'; // Default if current value no longer exists
+                selectElement.value = 'none';
             }
         });
     }
@@ -459,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const q = query(collection(db, 'effect_types'), orderBy('name'));
             const snapshot = await getDocs(q);
             effectTypesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("[Effect Types] Loaded:", effectTypesCache.length, effectTypesCache);
+            console.log("[Effect Types] Loaded:", effectTypesCache.length);
         } catch (error) {
             console.error("[Effect Types] Error loading:", error);
             effectTypesCache = [];
@@ -509,6 +503,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function toggleSumCapInputVisibility(radios, sumCapGroup, sumCapInput) {
+        const selectedCalcMethod = Array.from(radios).find(r => r.checked)?.value;
+        if (sumCapGroup) { // sumCapGroup が存在するか確認
+            if (selectedCalcMethod === 'sum') {
+                sumCapGroup.style.display = 'block';
+            } else {
+                sumCapGroup.style.display = 'none';
+                if(sumCapInput) sumCapInput.value = '';
+            }
+        }
+    }
+
+    if(newEffectTypeCalcMethodRadios && newEffectTypeSumCapGroup){
+        newEffectTypeCalcMethodRadios.forEach(radio => {
+            radio.addEventListener('change', () => toggleSumCapInputVisibility(newEffectTypeCalcMethodRadios, newEffectTypeSumCapGroup, newEffectTypeSumCapInput));
+        });
+        // 初期表示
+        toggleSumCapInputVisibility(newEffectTypeCalcMethodRadios, newEffectTypeSumCapGroup, newEffectTypeSumCapInput);
+    }
+    if(editingEffectTypeCalcMethodRadios && editingEffectTypeSumCapGroup){
+         editingEffectTypeCalcMethodRadios.forEach(radio => {
+            radio.addEventListener('change', () => toggleSumCapInputVisibility(editingEffectTypeCalcMethodRadios, editingEffectTypeSumCapGroup, editingEffectTypeSumCapInput));
+        });
+        // openEditEffectTypeModalで初期表示制御
+    }
+
+
     if (addEffectTypeButton) {
         addEffectTypeButton.addEventListener('click', async () => {
             const name = newEffectTypeNameInput.value.trim();
@@ -531,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (calcMethod === 'sum' && sumCapStr !== "") {
                 const sumCap = parseFloat(sumCapStr);
-                if (!isNaN(sumCap) && sumCap >= 0) {
+                if (!isNaN(sumCap) && sumCap >= 0) { // 上限値は0以上を許容
                     effectData.sumCap = sumCap;
                 } else {
                     alert("加算時の最大値は0以上の数値を入力してください。");
@@ -545,16 +566,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 newEffectTypeUnitSelect.value = 'none';
                 if(newEffectTypeCalcMethodRadios[0]) newEffectTypeCalcMethodRadios[0].checked = true;
                 newEffectTypeSumCapInput.value = '';
-                // Ensure sumCap input visibility is reset for new form
-                if (newEffectTypeSumCapInput) {
-                    newEffectTypeSumCapInput.closest('.form-group').style.display = (newEffectTypeCalcMethodRadios[0].value === 'sum') ? 'block' : 'none';
-                }
+                if (newEffectTypeSumCapGroup) newEffectTypeSumCapGroup.style.display = 'block'; // Reset visibility
 
 
                 await loadEffectTypesFromFirestore();
                 renderEffectTypesForManagement();
-                populateEffectTypeSelect(effectTypeSelect);
-                populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
+                populateEffectTypeSelect(effectTypeSelect); // アイテムフォーム用
+                populateEffectTypeSelect(charBaseOptionEffectTypeSelect); // キャラ基礎オプション用
             } catch (error) {
                 console.error("[Effect Types] Error adding:", error);
                 alert("効果種類の追加に失敗しました。");
@@ -565,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditEffectTypeModal(effectTypeData) {
         editingEffectTypeDocIdInput.value = effectTypeData.id;
         editingEffectTypeNameInput.value = effectTypeData.name;
-        populateEffectUnitSelects(); // Ensure units are populated before setting value
+        populateEffectUnitSelects(); // Ensure units are up-to-date
         editingEffectTypeUnitSelect.value = effectTypeData.defaultUnit || 'none';
 
 
@@ -573,54 +591,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const radioToCheck = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.value === calcMethod);
         if (radioToCheck) {
             radioToCheck.checked = true;
-        } else if (editingEffectTypeCalcMethodRadios[0]) { // Default to first if no match
+        } else if (editingEffectTypeCalcMethodRadios[0]) {
             editingEffectTypeCalcMethodRadios[0].checked = true;
         }
 
-        // Populate sumCap and manage visibility
         if (typeof effectTypeData.sumCap === 'number' && !isNaN(effectTypeData.sumCap)) {
             editingEffectTypeSumCapInput.value = effectTypeData.sumCap;
         } else {
             editingEffectTypeSumCapInput.value = '';
         }
-        const currentCalcMethodForModal = Array.from(editingEffectTypeCalcMethodRadios).find(r => r.checked)?.value;
-        editingEffectTypeSumCapInput.closest('.form-group').style.display = (currentCalcMethodForModal === 'sum') ? 'block' : 'none';
+        // Update visibility based on the initially checked radio button
+        toggleSumCapInputVisibility(editingEffectTypeCalcMethodRadios, editingEffectTypeSumCapGroup, editingEffectTypeSumCapInput);
 
 
         if (editEffectTypeModal) editEffectTypeModal.style.display = 'flex';
-    }
-
-    if (editingEffectTypeCalcMethodRadios) {
-        editingEffectTypeCalcMethodRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                if (editingEffectTypeSumCapInput) {
-                    const sumCapGroup = editingEffectTypeSumCapInput.closest('.form-group');
-                    if (sumCapGroup) sumCapGroup.style.display = (e.target.value === 'sum') ? 'block' : 'none';
-                    if (e.target.value !== 'sum') {
-                        editingEffectTypeSumCapInput.value = '';
-                    }
-                }
-            });
-        });
-    }
-    if (newEffectTypeCalcMethodRadios) {
-        newEffectTypeCalcMethodRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                if (newEffectTypeSumCapInput) {
-                     const sumCapGroup = newEffectTypeSumCapInput.closest('.form-group');
-                     if (sumCapGroup) sumCapGroup.style.display = (e.target.value === 'sum') ? 'block' : 'none';
-                     if (e.target.value !== 'sum') {
-                        newEffectTypeSumCapInput.value = '';
-                    }
-                }
-            });
-        });
-        // Initial state for new form sumCap visibility
-        if (newEffectTypeSumCapInput && newEffectTypeCalcMethodRadios.length > 0) {
-            const initialCalcMethod = Array.from(newEffectTypeCalcMethodRadios).find(r => r.checked)?.value;
-            const sumCapGroup = newEffectTypeSumCapInput.closest('.form-group');
-            if (sumCapGroup) sumCapGroup.style.display = (initialCalcMethod === 'sum') ? 'block' : 'none';
-        }
     }
 
 
@@ -648,16 +632,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (newCalcMethod === 'sum') {
                 if (newSumCapStr !== "") {
                     const sumCap = parseFloat(newSumCapStr);
-                    if (!isNaN(sumCap) && sumCap >= 0) {
+                    if (!isNaN(sumCap) && sumCap >= 0) { // 0以上許容
                         updateData.sumCap = sumCap;
                     } else {
                         alert("加算時の最大値は0以上の数値を入力してください。");
                         return;
                     }
-                } else { // Empty string means remove sumCap
+                } else { // sumCapが空の場合、フィールドを削除
                     updateData.sumCap = deleteField();
                 }
-            } else { // Not 'sum', so remove sumCap
+            } else { // calculationMethod が 'sum' でない場合もsumCapフィールドを削除
                 updateData.sumCap = deleteField();
             }
 
@@ -665,16 +649,16 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await updateDoc(doc(db, 'effect_types', id), updateData);
                 if (editEffectTypeModal) editEffectTypeModal.style.display = 'none';
+                // Reload necessary data and re-render affected UI parts
                 await loadEffectTypesFromFirestore();
                 renderEffectTypesForManagement();
                 populateEffectTypeSelect(effectTypeSelect);
                 populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
-                // Since sumCap might affect display in some complex ways (though not directly in admin table),
-                // reloading items/bases is safer if their logic depends on it for display.
-                // For now, assuming admin table doesn't show sumCap for items/bases, so not reloading.
-                // If it did:
-                // await loadItemsFromFirestore(); renderItemsAdminTable();
-                // await loadCharacterBasesFromFirestore(); renderCharacterBaseOptions();
+                // Items and char bases might display effect type names or use sumCap, so refresh them
+                await loadItemsFromFirestore();
+                renderItemsAdminTable();
+                await loadCharacterBasesFromFirestore();
+                renderCharacterBaseOptions();
 
             } catch (error) {
                  console.error("[Effect Types] Error updating:", error);
@@ -686,7 +670,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteEffectType(id, name) {
          if (confirm(`効果種類「${name}」を削除しますか？\n注意: この効果種類を使用しているアイテムやキャラクター基礎情報オプションの効果設定は残りますが、種類名が表示されなくなる可能性があります。`)) {
              try {
-                // Check if used by items
                 let isUsedByItem = false;
                 for (const item of itemsCache) {
                     if (item.structured_effects && item.structured_effects.some(eff => eff.type === id)) {
@@ -697,7 +680,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if(isUsedByItem) return;
 
-                // Check if used by character base options
                 let isUsedByBase = false;
                 for (const baseKey in characterBasesCache) {
                     for (const option of characterBasesCache[baseKey] || []) {
@@ -717,10 +699,8 @@ document.addEventListener('DOMContentLoaded', () => {
                  renderEffectTypesForManagement();
                  populateEffectTypeSelect(effectTypeSelect);
                  populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
-                 // Items and bases only store ID, so their data doesn't need reloading unless their display logic depends on effectTypeCache directly for names
-                 // (which it does in renderItemsAdminTable and renderCharacterBaseOptions summaries)
-                 renderItemsAdminTable(); // Re-render to update names if this type was used
-                 renderCharacterBaseOptions(); // Re-render for same reason
+                 renderItemsAdminTable();
+                 renderCharacterBaseOptions();
 
              } catch (error) {
                   console.error("[Effect Types] Error deleting:", error);
@@ -728,6 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
              }
          }
     }
+
 
     // --- Category Management ---
     async function loadCategoriesFromFirestore() {
@@ -789,12 +770,12 @@ document.addEventListener('DOMContentLoaded', () => {
              if (tagSearchModeGroup) tagSearchModeGroup.style.display = isChildCategory ? 'block' : 'none';
              if (editCategoryTagsGroup) editCategoryTagsGroup.style.display = isChildCategory ? 'block' : 'none';
 
-             if (isChildCategory) { // If becoming a child
-                 if (editingTagSearchModeSelect && !editingTagSearchModeSelect.value) editingTagSearchModeSelect.value = 'AND'; // Default if not set
+             if (isChildCategory) {
+                 if (editingTagSearchModeSelect && !editingTagSearchModeSelect.value) editingTagSearchModeSelect.value = 'AND';
                  const categoryBeingEdited = allCategoriesCache.find(c => c.id === editingCategoryDocIdInput.value);
                  if (categoryBeingEdited) populateTagsForCategoryEdit(editingCategoryTagsSelector, categoryBeingEdited.id);
-             } else { // If becoming a parent
-                 if (editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = ''; // Clear tags
+             } else {
+                 if (editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = '';
              }
         }
     }
@@ -862,30 +843,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     parentId: parentId || "",
                     createdAt: serverTimestamp()
                 };
-                if (parentId) { // Only child categories have tagSearchMode initially
-                    categoryData.tagSearchMode = 'AND'; // Default for new child
+                if (parentId) {
+                    categoryData.tagSearchMode = 'AND';
                 }
 
                 await addDoc(collection(db, 'categories'), categoryData);
                 newCategoryNameInput.value = '';
-                populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput, { selectedParentId: "" }); // Reset to "Top Level"
+                populateParentCategoryButtons(newCategoryParentButtons, selectedNewParentCategoryIdInput, { selectedParentId: "" });
 
 
-                await loadCategoriesFromFirestore(); // Reload categories
+                await loadCategoriesFromFirestore();
                 renderCategoriesForManagement();
-                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes); // For tag form
+                populateCategoryCheckboxesForTagAssignment(newTagCategoriesCheckboxes);
 
-                // Refresh UI if modals are open that depend on category list
                 if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
                     const currentlyEditingCatId = editingCategoryDocIdInput.value;
                     const currentlyEditingCat = allCategoriesCache.find(c => c.id === currentlyEditingCatId);
                     if (currentlyEditingCat) {
-                        // Repopulate parent selector in edit modal, excluding the one being edited
                         populateParentCategoryButtons(editingCategoryParentButtons, selectedEditingParentCategoryIdInput, { currentCategoryIdToExclude: currentlyEditingCatId, selectedParentId: currentlyEditingCat.parentId || "" });
                     }
                 }
                 if (editTagModal.style.display === 'flex' && editingTagDocIdInput.value) {
-                    // Repopulate category checkboxes in tag edit modal
                     const tagToRePopulate = allTagsCache.find(t => t.id === editingTagDocIdInput.value);
                     populateCategoryCheckboxesForTagAssignment(editingTagCategoriesCheckboxes, tagToRePopulate ? (tagToRePopulate.categoryIds || []) : []);
                 }
@@ -902,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editingCategoryDocIdInput.value = category.id;
         editingCategoryNameInput.value = category.name;
         const currentParentId = category.parentId || "";
-        const currentTagSearchMode = category.tagSearchMode || 'AND'; // Default if undefined
+        const currentTagSearchMode = category.tagSearchMode || 'AND';
 
         populateParentCategoryButtons(editingCategoryParentButtons, selectedEditingParentCategoryIdInput, { currentCategoryIdToExclude: category.id, selectedParentId: currentParentId });
 
@@ -914,7 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
             populateTagsForCategoryEdit(editingCategoryTagsSelector, category.id);
             if(editingTagSearchModeSelect) editingTagSearchModeSelect.value = currentTagSearchMode;
         } else {
-             if(editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = ''; // Clear tags if it's a parent
+             if(editingCategoryTagsSelector) editingCategoryTagsSelector.innerHTML = '';
         }
 
         editCategoryModal.style.display = 'flex';
@@ -934,7 +912,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.add('tag-filter', 'admin-tag-select');
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
-            // A tag is considered "active" for this category if the categoryId is in the tag's categoryIds array
             if (tag.categoryIds && tag.categoryIds.includes(categoryId)) {
                 button.classList.add('active');
             }
@@ -949,8 +926,8 @@ document.addEventListener('DOMContentLoaded', () => {
         saveCategoryEditButton.addEventListener('click', async () => {
             const docId = editingCategoryDocIdInput.value;
             const newName = editingCategoryNameInput.value.trim();
-            const newParentId = selectedEditingParentCategoryIdInput.value; // Will be "" if "Top Level"
-            const newTagSearchMode = editingTagSearchModeSelect.value; // Only relevant if it's a child
+            const newParentId = selectedEditingParentCategoryIdInput.value;
+            const newTagSearchMode = editingTagSearchModeSelect.value;
             const selectedTagIdsForThisCategory = Array.from(editingCategoryTagsSelector.querySelectorAll('.tag-filter.active'))
                                          .map(btn => btn.dataset.tagId);
 
@@ -958,22 +935,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (docId === newParentId) { alert("自身を親カテゴリに設定することはできません。"); return; }
 
             const originalCategory = allCategoriesCache.find(c => c.id === docId);
-            // Check for name conflict only if name or parentId actually changed
             if (originalCategory && (originalCategory.name !== newName || (originalCategory.parentId || "") !== (newParentId || ""))) {
                 const q = query(collection(db, 'categories'), where('name', '==', newName), where('parentId', '==', newParentId || ""));
                 const existingQuery = await getDocs(q);
                 let conflict = false;
-                existingQuery.forEach(docSnap => { if (docSnap.id !== docId) conflict = true; }); // Check other docs
+                existingQuery.forEach(docSnap => { if (docSnap.id !== docId) conflict = true; });
                 if (conflict) {
                     alert(newParentId ? "同じ親カテゴリ内に同じ名前の子カテゴリが既に存在します。" : "同じ名前の親カテゴリが既に存在します。");
                     return;
                 }
             }
 
-            // Check for circular dependency if setting a new parent
             if (newParentId) {
                 let currentAncestorId = newParentId;
-                const visited = new Set([docId]); // Start with current docId
+                const visited = new Set([docId]);
                 while (currentAncestorId) {
                     if (visited.has(currentAncestorId)) {
                         alert("循環参照です。この親カテゴリ設定はできません。");
@@ -981,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     visited.add(currentAncestorId);
                     const ancestor = allCategoriesCache.find(c => c.id === currentAncestorId);
-                    currentAncestorId = ancestor ? (ancestor.parentId || "") : ""; // Move to grandparent
+                    currentAncestorId = ancestor ? (ancestor.parentId || "") : "";
                 }
             }
 
@@ -989,7 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const batch = writeBatch(db);
                 const categoryUpdateData = {
                     name: newName,
-                    parentId: newParentId || "", // Ensure empty string for top-level
+                    parentId: newParentId || "",
                     updatedAt: serverTimestamp()
                 };
 
@@ -997,26 +972,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (isBecomingChild) {
                     categoryUpdateData.tagSearchMode = newTagSearchMode;
-                } else { // Becoming a parent category (or was parent and name changed)
-                    categoryUpdateData.tagSearchMode = deleteField(); // Remove tagSearchMode
+                } else {
+                    categoryUpdateData.tagSearchMode = deleteField();
                 }
                 batch.update(doc(db, 'categories', docId), categoryUpdateData);
 
-                // Update tag associations based on selected tags in the modal
                 allTagsCache.forEach(tag => {
                     const isCurrentlySelectedForCat = selectedTagIdsForThisCategory.includes(tag.id);
                     const isAlreadyAssociatedWithCat = tag.categoryIds && tag.categoryIds.includes(docId);
 
-                    if (isBecomingChild) { // If the category is (or remains) a child
+                    if (isBecomingChild) {
                         if (isCurrentlySelectedForCat && !isAlreadyAssociatedWithCat) {
-                            // Add this category to the tag's list
                             batch.update(doc(db, 'tags', tag.id), { categoryIds: arrayUnion(docId) });
                         } else if (!isCurrentlySelectedForCat && isAlreadyAssociatedWithCat) {
-                            // Remove this category from the tag's list
                             batch.update(doc(db, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
                         }
-                    } else { // If the category is becoming a parent (or was parent and name changed)
-                        // Disassociate ALL tags from this category, as parent categories don't directly "own" tags this way.
+                    } else {
                         if (isAlreadyAssociatedWithCat) {
                              batch.update(doc(db, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
                         }
@@ -1025,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await batch.commit();
                 editCategoryModal.style.display = 'none';
-                await loadInitialData(); // Reload all data
+                await loadInitialData();
 
             } catch (error) {
                 console.error("[Category Edit] Error:", error);
@@ -1035,7 +1006,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteCategory(docId, categoryName) {
-        // Check if this category is a parent to any other category
         const childCheckQuery = query(collection(db, 'categories'), where('parentId', '==', docId));
         const childSnapshot = await getDocs(childCheckQuery);
         if (!childSnapshot.empty) {
@@ -1043,22 +1013,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (confirm(`カテゴリ「${categoryName}」を削除しますか？\nこのカテゴリに紐づいているタグの関連付けも解除されます (タグの所属カテゴリリストからこのカテゴリIDが削除されます)。`)) {
+        if (confirm(`カテゴリ「${categoryName}」を削除しますか？\nこのカテゴリに紐づいているタグの関連付けも解除されます。`)) {
             try {
                 const batch = writeBatch(db);
-
-                // Remove this categoryId from the `categoryIds` array of all tags that might contain it
                 const tagsToUpdateQuery = query(collection(db, 'tags'), where('categoryIds', 'array-contains', docId));
                 const tagsSnapshot = await getDocs(tagsToUpdateQuery);
                 tagsSnapshot.forEach(tagDoc => {
                     batch.update(tagDoc.ref, { categoryIds: arrayRemove(docId) });
                 });
 
-                // Delete the category itself
                 batch.delete(doc(db, 'categories', docId));
 
                 await batch.commit();
-                await loadInitialData(); // Reload all data
+                await loadInitialData();
             } catch (error) {
                 console.error("[Category Delete] Error:", error);
                 alert("カテゴリの削除または関連タグの更新に失敗しました。");
@@ -1085,7 +1052,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!containerElement) return;
         containerElement.innerHTML = '';
 
-        // Tags can only be assigned to child categories
         const assignableCategories = allCategoriesCache.filter(cat => cat.parentId && cat.parentId !== "");
 
         if (assignableCategories.length === 0) {
@@ -1122,8 +1088,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const belongingCategoriesNames = (tag.categoryIds || [])
                 .map(catId => {
                     const cat = allCategoriesCache.find(c => c.id === catId);
-                    // Ensure we only list valid child categories it's assigned to
-                    if (cat && cat.parentId) { // Check if it's a child category
+                    if (cat && cat.parentId) {
                         let name = cat.name;
                         const parentCat = allCategoriesCache.find(p => p.id === cat.parentId);
                         name += parentCat ? ` (親:${parentCat.name})` : ` (親:不明)`;
@@ -1131,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     return null;
                 })
-                .filter(name => name) // Remove nulls (e.g., if a category was deleted or wasn't a child)
+                .filter(name => name)
                 .join(', ');
             const displayCategories = belongingCategoriesNames || '未分類';
 
@@ -1180,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await addDoc(collection(db, 'tags'), {
                     name: name,
-                    categoryIds: selectedCategoryIdsForTag, // Store selected child category IDs
+                    categoryIds: selectedCategoryIdsForTag,
                     createdAt: serverTimestamp()
                 });
                 newTagNameInput.value = '';
@@ -1188,14 +1153,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
-                populateTagCheckboxesForItemForm(); // For item form
-                // If category edit modal is open and showing tags, refresh its tag list
+                populateTagCheckboxesForItemForm();
                 if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
-                    // Ensure the currently edited category's tag selector is updated if it's a child
-                    const editedCategory = allCategoriesCache.find(c => c.id === editingCategoryDocIdInput.value);
-                    if (editedCategory && editedCategory.parentId) {
-                         populateTagsForCategoryEdit(editingCategoryTagsSelector, editingCategoryDocIdInput.value);
-                    }
+                    populateTagsForCategoryEdit(editingCategoryTagsSelector, editingCategoryDocIdInput.value);
                 }
 
             } catch (error) {
@@ -1208,7 +1168,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditTagModal(docId, currentName, currentCategoryIds) {
         editingTagDocIdInput.value = docId;
         editingTagNameInput.value = currentName;
-        // Filter currentCategoryIds to ensure only valid child category IDs are passed for checkbox state
         const validCurrentCategoryIds = (currentCategoryIds || []).filter(catId => {
             const cat = allCategoriesCache.find(c => c.id === catId);
             return cat && cat.parentId;
@@ -1240,23 +1199,21 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await updateDoc(doc(db, 'tags', docId), {
                     name: newName,
-                    categoryIds: newSelectedCategoryIdsForTag, // Update with new list of child category IDs
+                    categoryIds: newSelectedCategoryIdsForTag,
                     updatedAt: serverTimestamp()
                 });
                 editTagModal.style.display = 'none';
                 await loadTagsFromFirestore();
                 renderTagsForManagement();
                 populateTagCheckboxesForItemForm();
-                // If category edit modal is open and showing tags, refresh its tag list
                 if (editCategoryModal.style.display === 'flex' && editingCategoryDocIdInput.value) {
-                    const editedCategory = allCategoriesCache.find(c => c.id === editingCategoryDocIdInput.value);
-                     if (editedCategory && editedCategory.parentId) { // Only if it's a child category
+                     const editedCategory = allCategoriesCache.find(c => c.id === editingCategoryDocIdInput.value);
+                     if (editedCategory && editedCategory.parentId) {
                         populateTagsForCategoryEdit(editingCategoryTagsSelector, editingCategoryDocIdInput.value);
                      }
                 }
-                await loadItemsFromFirestore(); // Tags are displayed in item list
+                await loadItemsFromFirestore();
                 renderItemsAdminTable();
-                // No direct need to reload categories again unless their display logic changes significantly
 
             } catch (error) {
                 console.error("[Tag Edit] Error:", error);
@@ -1270,21 +1227,16 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const batch = writeBatch(db);
 
-                // Remove tag from items' 'tags' array
                 const itemsToUpdateQuery = query(collection(db, 'items'), where('tags', 'array-contains', docId));
                 const itemsSnapshot = await getDocs(itemsToUpdateQuery);
                 itemsSnapshot.forEach(itemDoc => {
                     batch.update(itemDoc.ref, { tags: arrayRemove(docId) });
                 });
 
-                // Delete the tag document itself
                 batch.delete(doc(db, 'tags', docId));
-                // The tag's association was stored in tag.categoryIds.
-                // When tag is deleted, this association is gone.
-                // The category edit modal (populateTagsForCategoryEdit) will naturally no longer show this tag.
 
                 await batch.commit();
-                await loadInitialData(); // Reload all data to reflect changes across the board
+                await loadInitialData();
 
             } catch (error) {
                 console.error("[Tag Delete] Error:", error);
@@ -1308,14 +1260,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const baseTypes = Object.keys(baseTypeMappings);
         try {
             for (const baseType of baseTypes) {
+                // Firestoreでは、character_bases/{baseType}/options のような構造を想定
                 const optionsCollectionRef = collection(db, `character_bases/${baseType}/options`);
-                const q = query(optionsCollectionRef, orderBy("name"));
+                const q = query(optionsCollectionRef, orderBy("name")); // 名前順で取得するのが一般的
                 const snapshot = await getDocs(q);
                 characterBasesCache[baseType] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
             }
             console.log("[Character Bases] Loaded:", characterBasesCache);
         } catch (error) {
             console.error("[Character Bases] Error loading:", error);
+            // エラー時も空のオブジェクトで初期化しておく
+            baseTypes.forEach(bt => characterBasesCache[bt] = []);
         }
     }
 
@@ -1336,7 +1291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let effectsSummary = (option.effects && option.effects.length > 0)
                 ? option.effects.map(eff => {
                     const typeInfo = effectTypesCache.find(et => et.id === eff.type);
-                    const typeName = typeInfo ? typeInfo.name : `不明(${eff.type.substring(0,6)}...)`;
+                    const typeName = typeInfo ? typeInfo.name : `不明(${eff.type.substring(0,6)}...)`; // IDの一部表示
                     const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
                     return `${typeName}: ${eff.value}${unitText}`;
                   }).join(', ')
@@ -1376,7 +1331,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addNewCharBaseOptionButton) {
         addNewCharBaseOptionButton.addEventListener('click', () => {
             const selectedType = charBaseTypeSelect.value;
-            openEditCharBaseOptionModal(null, selectedType);
+            openEditCharBaseOptionModal(null, selectedType); // null for new option
         });
     }
 
@@ -1388,15 +1343,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (optionData) {
             editingCharBaseOptionDocIdInput.value = optionData.id;
             editingCharBaseOptionNameInput.value = optionData.name;
-            currentCharBaseOptionEffects = Array.isArray(optionData.effects) ? JSON.parse(JSON.stringify(optionData.effects)) : [];
+            currentCharBaseOptionEffects = Array.isArray(optionData.effects) ? JSON.parse(JSON.stringify(optionData.effects)) : []; // Deep copy
         } else {
             editingCharBaseOptionDocIdInput.value = '';
             editingCharBaseOptionNameInput.value = '';
             currentCharBaseOptionEffects = [];
         }
         renderCurrentCharBaseOptionEffectsList();
-        populateEffectTypeSelect(charBaseOptionEffectTypeSelect);
-        if (charBaseOptionEffectTypeSelect.options.length > 0) charBaseOptionEffectTypeSelect.value = '';
+        populateEffectTypeSelect(charBaseOptionEffectTypeSelect); // Populate effect types for this modal
+        if (charBaseOptionEffectTypeSelect.options.length > 0) charBaseOptionEffectTypeSelect.value = ''; // Reset selection
         charBaseOptionEffectValueInput.value = '';
         if(charBaseOptionEffectUnitDisplay) charBaseOptionEffectUnitDisplay.textContent = '';
 
@@ -1451,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(charBaseOptionEffectUnitDisplay) charBaseOptionEffectUnitDisplay.textContent = '';
         });
     }
-     if (charBaseOptionEffectTypeSelect) {
+     if (charBaseOptionEffectTypeSelect) { // Unit display update for char base modal
         charBaseOptionEffectTypeSelect.addEventListener('change', () => {
             const selectedTypeId = charBaseOptionEffectTypeSelect.value;
             const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
@@ -1476,19 +1431,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!baseType) { alert("基礎情報の種類が不明です。"); return; }
             if (!name) { alert("選択肢の名前を入力してください。"); return; }
 
+            // Check for name conflict within the same baseType
+            const existingOptions = characterBasesCache[baseType] || [];
+            if (existingOptions.some(opt => opt.name.toLowerCase() === name.toLowerCase() && opt.id !== optionId)) {
+                alert(`「${baseTypeMappings[baseType]}」に同じ名前の選択肢「${name}」が既に存在します。`);
+                return;
+            }
+
+
             const optionData = { name, effects, updatedAt: serverTimestamp() };
             const optionsCollectionRef = collection(db, `character_bases/${baseType}/options`);
 
             try {
-                if (optionId) {
+                if (optionId) { // Editing existing
                     await updateDoc(doc(optionsCollectionRef, optionId), optionData);
-                } else {
+                } else { // Adding new
                     optionData.createdAt = serverTimestamp();
                     await addDoc(optionsCollectionRef, optionData);
                 }
                 editCharBaseOptionModal.style.display = 'none';
-                await loadCharacterBasesFromFirestore();
-                renderCharacterBaseOptions();
+                await loadCharacterBasesFromFirestore(); // Reload all base data
+                renderCharacterBaseOptions(); // Re-render the list for the current type
             } catch (error) {
                 console.error(`[Character Base Option Save - ${baseType}] Error:`, error);
                 alert("基礎情報オプションの保存に失敗しました。");
@@ -1500,8 +1463,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirm(`基礎情報「${baseTypeMappings[baseType]}」のオプション「${optionName}」を削除しますか？`)) {
             try {
                 await deleteDoc(doc(db, `character_bases/${baseType}/options`, optionId));
-                await loadCharacterBasesFromFirestore();
-                renderCharacterBaseOptions();
+                await loadCharacterBasesFromFirestore(); // Reload data for this base type
+                renderCharacterBaseOptions(); // Re-render the list
             } catch (error) {
                 console.error(`[Character Base Option Delete - ${baseType}] Error:`, error);
                 alert("基礎情報オプションの削除に失敗しました。");
@@ -1512,6 +1475,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Item Management ---
+    // ... (The rest of Item Management functions: load, render, add, edit, delete, image upload) ...
+    // ... (No fundamental changes here, except for ensuring `populateEffectTypeSelect` is called correctly) ...
     function populateTagCheckboxesForItemForm(selectedTagIds = []) {
         if (!itemTagsSelectorCheckboxes) return;
         itemTagsSelectorCheckboxes.innerHTML = '';
@@ -1531,37 +1496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function populateEffectTypeSelect(selectElement) {
-        if (!selectElement) return;
-        const currentVal = selectElement.value;
-        selectElement.innerHTML = '<option value="">効果種類を選択...</option>';
-        effectTypesCache.forEach(et => {
-            selectElement.add(new Option(et.name, et.id));
-        });
-        if (currentVal && Array.from(selectElement.options).some(opt => opt.value === currentVal)) {
-            selectElement.value = currentVal;
-        } else {
-            selectElement.value = ""; // Ensure it's reset if currentVal is no longer valid or was empty
-        }
-
-        // Trigger change for the specific select element if it has a specific unit display
-        if (selectElement === effectTypeSelect && effectUnitDisplay) {
-            if (selectElement.value) {
-                effectTypeSelect.dispatchEvent(new Event('change'));
-            } else {
-                effectUnitDisplay.textContent = '';
-            }
-        } else if (selectElement === charBaseOptionEffectTypeSelect && charBaseOptionEffectUnitDisplay) {
-            if (selectElement.value) {
-                charBaseOptionEffectTypeSelect.dispatchEvent(new Event('change'));
-            } else {
-                charBaseOptionEffectUnitDisplay.textContent = '';
-            }
-        }
-    }
-
-
-    if (effectTypeSelect) {
+    if (effectTypeSelect) { // For item form effects
         effectTypeSelect.addEventListener('change', () => {
             const selectedTypeId = effectTypeSelect.value;
             const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
@@ -1575,7 +1510,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderCurrentItemEffectsList() {
+    function renderCurrentItemEffectsList() { // For item form
         if (!currentEffectsList) return;
         currentEffectsList.innerHTML = '';
         if (currentItemEffects.length === 0) {
@@ -1604,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (addEffectToListButton) {
+    if (addEffectToListButton) { // For item form
         addEffectToListButton.addEventListener('click', () => {
             const typeId = effectTypeSelect.value;
             const valueStr = effectValueInput.value;
@@ -1649,7 +1584,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedItemTagIds = Array.from(itemTagsSelectorCheckboxes.querySelectorAll('input[type="checkbox"][name="itemTag"]:checked'))
                                             .map(cb => cb.value);
             const editingDocId = itemIdToEditInput.value;
-            let finalImageUrl = itemImageUrlInput.value; // Start with existing/manual URL
+            let finalImageUrl = itemImageUrlInput.value;
 
             let price = null;
             if (priceStr !== "") {
@@ -1663,47 +1598,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
             saveItemButton.disabled = true; saveItemButton.textContent = "保存中...";
             try {
-                if (selectedImageFile) { // If a new file was selected, upload it
+                if (selectedImageFile) {
                     const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
                     if (uploadedUrl) {
-                        finalImageUrl = uploadedUrl; // Use the new URL
+                        finalImageUrl = uploadedUrl;
                     } else {
-                        // Image upload failed, decide if we proceed or stop
-                        // For now, let's allow saving data without new image if upload failed
                         alert("画像アップロードに失敗しましたが、他の情報は保存を試みます。画像は後で更新してください。");
-                        // finalImageUrl will remain the one from itemImageUrlInput or be empty if it was also empty
                     }
                 }
 
                 const itemData = {
                     name: name || "",
-                    image: finalImageUrl || "", // Use potentially updated URL
+                    image: finalImageUrl || "",
                     structured_effects: currentItemEffects,
                     入手手段: source || "",
                     tags: selectedItemTagIds,
                     updatedAt: serverTimestamp()
                 };
 
-                if (price !== null) {
+                if (price !== null) { // Only add price field if it has a valid value
                     itemData.price = price;
+                }
+                // If editing and price was cleared, we need to remove it
+                else if (editingDocId && price === null) {
+                    itemData.price = deleteField();
                 }
 
 
                 if (editingDocId) {
-                    const updatePayload = {...itemData};
-                    if (price === null) { // If price field was cleared
-                        updatePayload.price = deleteField();
-                    }
-                    await updateDoc(doc(db, 'items', editingDocId), updatePayload);
-                } else { // Adding new item
+                    await updateDoc(doc(db, 'items', editingDocId), itemData);
+                } else {
                     itemData.createdAt = serverTimestamp();
-                    const dataToAdd = {...itemData};
-                    if (price === null) delete dataToAdd.price; // Don't add price field if it's null
-                    await addDoc(collection(db, 'items'), dataToAdd);
+                    await addDoc(collection(db, 'items'), itemData);
                 }
-                await loadItemsFromFirestore(); // Reload items
+                await loadItemsFromFirestore();
                 renderItemsAdminTable();
-                clearItemForm(); // Clear form after successful save
+                clearItemForm();
             } catch (error) {
                 console.error("[Item Save] Error:", error);
                 alert(`アイテム保存エラー: ${error.message}`);
@@ -1717,26 +1647,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearFormButton) clearFormButton.addEventListener('click', clearItemForm);
 
     function clearItemForm() {
-        if (itemForm) itemForm.reset(); // Resets native form elements
+        if (itemForm) itemForm.reset();
         itemIdToEditInput.value = '';
-        itemImageUrlInput.value = ''; // Clear hidden URL input
+        itemImageUrlInput.value = '';
         if (itemPriceInput) itemPriceInput.value = '';
         if (itemImagePreview) { itemImagePreview.src = '#'; itemImagePreview.style.display = 'none'; }
-        if (itemImageFileInput) itemImageFileInput.value = null; // Important to reset file input
-        selectedImageFile = null; // Clear stored file object
+        if (itemImageFileInput) itemImageFileInput.value = null;
+        selectedImageFile = null;
         uploadProgressContainer.style.display = 'none';
         uploadProgress.value = 0;
         uploadProgressText.textContent = '';
 
-        populateTagCheckboxesForItemForm(); // Reset tags to none selected
+        populateTagCheckboxesForItemForm();
 
-        currentItemEffects = []; // Clear effects array
-        renderCurrentItemEffectsList(); // Update effects display
-        if(effectTypeSelect) effectTypeSelect.value = ''; // Reset effect type dropdown
+        currentItemEffects = [];
+        renderCurrentItemEffectsList();
+        if(effectTypeSelect) effectTypeSelect.value = '';
         if(effectValueInput) effectValueInput.value = '';
         if(effectUnitDisplay) effectUnitDisplay.textContent = '';
 
-        if (saveItemButton) saveItemButton.textContent = "アイテム保存"; // Reset button text
+        if (saveItemButton) saveItemButton.textContent = "アイテム保存";
         itemNameInput.focus();
     }
 
@@ -1749,13 +1679,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchTerm = itemSearchAdminInput ? itemSearchAdminInput.value.toLowerCase() : "";
         const filteredItems = itemsCache.filter(item =>
             (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-            (!searchTerm && (item.name === "" || !item.name)) // Also show unnamed if search is empty
+            (!searchTerm && (item.name === "" || !item.name))
         );
 
         if (filteredItems.length === 0) {
             const tr = itemsTableBody.insertRow();
             const td = tr.insertCell();
-            td.colSpan = 6; // Adjusted to 6 columns
+            td.colSpan = 6;
             td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
             td.style.textAlign = 'center';
             return;
@@ -1769,7 +1699,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .filter(name => name)
                 .join(', ') || 'なし';
 
-            let effectsDisplay = '効果なし';
+            let effectsDisplay = 'Coming Soon';
             if (item.structured_effects && item.structured_effects.length > 0) {
                  effectsDisplay = item.structured_effects.map(eff => {
                      const typeInfo = effectTypesCache.find(et => et.id === eff.type);
@@ -1779,7 +1709,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  }).join('; ');
                  if (effectsDisplay.length > 40) effectsDisplay = effectsDisplay.substring(0, 37) + '...';
             }
-            const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
+            const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : 'Coming Soon';
 
             const nameDisplay = item.name || '(名称未設定)';
             tr.innerHTML = `
@@ -1811,7 +1741,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemIdToEditInput.value = itemSnap.id;
                 itemNameInput.value = itemData.name || "";
                 itemSourceInput.value = itemData.入手手段 || "";
-                itemImageUrlInput.value = itemData.image || ''; // Set this for existing URL
+                itemImageUrlInput.value = itemData.image || '';
                 if (itemPriceInput) itemPriceInput.value = typeof itemData.price === 'number' && !isNaN(itemData.price) ? itemData.price : '';
 
                 if (itemData.image) {
@@ -1819,12 +1749,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     itemImagePreview.src = '#'; itemImagePreview.style.display = 'none';
                 }
-                if (itemImageFileInput) itemImageFileInput.value = null; // Reset file input
-                selectedImageFile = null; // Clear any selected file
+                if (itemImageFileInput) itemImageFileInput.value = null;
+                selectedImageFile = null;
 
                 populateTagCheckboxesForItemForm(itemData.tags || []);
 
-                currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : [];
+                currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : []; // Deep copy
                 renderCurrentItemEffectsList();
                 if(effectTypeSelect) effectTypeSelect.value = '';
                 if(effectValueInput) effectValueInput.value = '';
@@ -1846,7 +1776,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 await loadItemsFromFirestore();
                 renderItemsAdminTable();
-                if (itemIdToEditInput.value === docId) { // If the deleted item was being edited
+                if (itemIdToEditInput.value === docId) {
                     clearItemForm();
                 }
             } catch (error) {
@@ -1879,11 +1809,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemImagePreview.style.display = 'block';
                 }
                 reader.readAsDataURL(selectedImageFile);
-                itemImageUrlInput.value = ''; // Clear manual URL if file is chosen
-                uploadProgressContainer.style.display = 'none'; // Hide progress until actual upload
+                itemImageUrlInput.value = '';
+                uploadProgressContainer.style.display = 'none';
             } else {
                 selectedImageFile = null;
-                // Don't clear preview if user cancels file dialog, keep existing image if any
             }
         });
     }
