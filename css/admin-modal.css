@@ -31,9 +31,14 @@
     animation: fadeInAdminModal 0.3s ease-out; /* Custom animation name if needed */
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 40px); /* Max height considering padding */
-    overflow-y: auto; /* Allow content within modal to scroll */
+    max-height: calc(100vh - 40px); /* Max height considering padding on .modal */
+    /* overflow-y: auto; Let individual sections within modal scroll if needed, or the modal-content itself */
 }
+/* Add overflow-y to modal-content if its direct children cause overflow */
+#admin-content .modal-content.scrollable-content {
+    overflow-y: auto;
+}
+
 
 @keyframes fadeInAdminModal { /* Can be same as user modal or different */
     from { opacity: 0; transform: translateY(-20px); }
@@ -69,35 +74,34 @@
 }
 
 /* Specific Modal Adjustments */
-/* Example: If editEffectUnitModal needs different sizing */
 #editEffectUnitModal .modal-content {
     max-width: 400px; /* Smaller modal for simple edits */
 }
 
-#editCharBaseOptionModal .modal-content {
-    max-width: 600px; /* Wider modal for character base options with effects */
+#editCharBaseOptionModal .modal-content,
+#editItemModal .modal-content { /* Assuming item edit might also be in a modal */
+    max-width: 600px; /* Wider modal for complex forms */
 }
+/* If item form is not in a modal, #editItemModal rules are not needed */
+
 
 /* Ensure form groups within modals have appropriate spacing */
 #admin-content .modal-content .form-group {
     margin-bottom: 15px; /* Standard spacing */
 }
-#admin-content .modal-content .form-group:last-child {
+#admin-content .modal-content .form-group:last-of-type { /* Last form group before buttons */
     margin-bottom: 20px; /* More space before action buttons */
 }
 
-/* Action buttons at the bottom of modals */
-#admin-content .modal-content button,
-#admin-content .modal-content .button-like {
-    /* Uses styles from admin-forms.css */
-    /* Example: Ensure they are block or appropriately sized if needed */
-    /* display: block; width: 100%; margin-top: 10px; */
-}
 
+/* Action buttons at the bottom of modals */
+#admin-content .modal-content button[type="submit"], /* Typically the main save button */
 #admin-content .modal-content #saveCategoryEditButton,
 #admin-content .modal-content #saveTagEditButton,
 #admin-content .modal-content #saveEffectTypeEditButton,
 #admin-content .modal-content #saveEffectUnitEditButton,
 #admin-content .modal-content #saveCharBaseOptionButton {
     margin-top: 10px; /* Space above the main save button */
+    /* Uses styles from admin-forms.css */
+    /* display: block; width: 100%; To make save buttons full width if desired */
 }
