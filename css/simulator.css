@@ -1,7 +1,7 @@
 /* css/simulator.css */
 /* --- 装備構成シミュレーター (モーダル内) --- */
 .simulator-modal .modal-content {
-    max-width: 900px;
+    max-width: 900px; /* Wider modal for simulator */
 }
 
 /* ★キャラクター基礎情報選択セクション */
@@ -20,7 +20,7 @@
 }
 .base-selectors {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
     gap: 15px;
 }
 .base-selector-group {
@@ -37,8 +37,9 @@
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.95em;
+    background-color: white; /* Ensure select background is white */
 }
-.sub-divider { /* キャラクター基礎情報と装備スロットの間の区切り線 */
+.sub-divider { /* Separator line within the simulator modal */
     border: 0;
     height: 1px;
     background-color: #e0e0e0;
@@ -48,13 +49,13 @@
 
 .equipment-slots {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid for slots */
     gap: 20px;
     margin-bottom: 25px;
     flex-shrink: 0; /* Prevent shrinking when result area grows */
 }
 .slot {
-    background-color: #f9f9f9;
+    background-color: #f9f9f9; /* Light background for each slot */
     padding: 15px;
     border: 1px solid #eee;
     border-radius: 5px;
@@ -69,28 +70,29 @@
 .selected-item-display {
     display: flex;
     align-items: center;
-    min-height: 40px;
+    min-height: 40px; /* Consistent height */
     background-color: #fff;
     padding: 8px;
-    border: 1px dashed #ddd;
+    border: 1px dashed #ddd; /* Dashed border for dropzone feel */
     border-radius: 4px;
     flex-grow: 1; /* Take available vertical space */
-    position: relative;
+    position: relative; /* For potential future absolute elements */
 }
 .selected-item-display .slot-image {
     width: 35px;
     height: 35px;
-    object-fit: cover;
+    object-fit: cover; /* Or contain, depending on image types */
     margin-right: 10px;
-    background-color: #f0f0f0; /* Placeholder bg */
+    background-color: #f0f0f0; /* Placeholder background for image */
     border-radius: 3px;
+    border: 1px solid #e0e0e0; /* Subtle border for image */
     flex-shrink: 0;
 }
 .selected-item-display .slot-item-name {
     font-size: 0.95em;
     color: #333;
     flex-grow: 1;
-    margin-right: 5px;
+    margin-right: 5px; /* Space before buttons */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -110,12 +112,12 @@
     background-color: #ddd;
 }
 .clear-item-button {
-    background-color: #f8d7da;
+    background-color: #f8d7da; /* Light red for clear button */
     border-color: #f5c6cb;
     color: #721c24;
 }
 .clear-item-button:hover {
-     background-color: #f5c6cb;
+     background-color: #f5c6cb; /* Darker red on hover */
 }
 
 
@@ -127,7 +129,7 @@
     background-color: #f9f9f9;
     overflow-y: auto; /* Scroll if content overflows */
     flex-grow: 1; /* Take available vertical space */
-    min-height: 100px; /* Minimum height */
+    min-height: 100px; /* Minimum height to maintain layout */
 }
 .calculation-result-area h3 {
     margin-top: 0;
@@ -151,16 +153,17 @@
     display: flex;
     flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
     gap: 10px;
-    justify-content: flex-end;
+    justify-content: flex-end; /* Align buttons to the right */
     flex-shrink: 0; /* Prevent shrinking */
 }
-.button-like-secondary { /* For buttons like "Preview" */
+/* General style for secondary buttons in simulator actions */
+.button-like-secondary {
     padding: 10px 20px;
     font-size: 1em;
     cursor: pointer;
     border-radius: 5px;
     border: 1px solid #6c757d;
-    background-color: #6c757d;
+    background-color: #6c757d; /* Gray for secondary actions */
     color: white;
     transition: background-color 0.2s, border-color 0.2s;
 }
@@ -182,14 +185,14 @@
     color: white;
 }
 #saveImageButton:hover {
-     background-color: #218838;
+     background-color: #218838; /* Darker green */
 }
 #resetSimulatorButton {
      background-color: #dc3545; /* Red for reset/danger */
      color: white;
 }
 #resetSimulatorButton:hover {
-     background-color: #c82333;
+     background-color: #c82333; /* Darker red */
 }
 
 /* Styles for the off-screen container used for image export */
@@ -206,6 +209,7 @@
 }
 .image-export-container h2, .image-export-container h3 {
     color: #333; /* Darker color for headers in export */
+    margin-top: 0; /* Reset margin for h2 */
     margin-bottom: 10px;
     border-bottom: 1px solid #eee;
     padding-bottom: 5px;
@@ -221,23 +225,32 @@
     align-items: center;
     font-size: 0.9em;
 }
-.export-slot-item strong {
+.export-slot-item strong { /* Slot name (e.g., "服:") */
     min-width: 40px; /* Ensure slot names align nicely */
+    margin-right: 5px;
 }
 .export-item-image {
     width: 25px;
     height: 25px;
-    object-fit: cover;
+    object-fit: cover; /* Or contain */
     margin-left: 5px;
     margin-right: 5px;
     vertical-align: middle;
-    background-color: #eee;
+    background-color: #eee; /* Placeholder bg */
     border: 1px solid #ddd;
+    border-radius: 2px;
 }
 /* ★基礎情報エクスポート用スタイル */
 .export-char-base {
     margin-bottom: 15px;
     font-size: 0.9em;
+}
+.export-char-base h4 { /* Added for consistency with other headers */
+    font-size: 1em;
+    margin-bottom: 5px;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
 }
 .export-char-base div {
     margin-bottom: 3px;
@@ -258,7 +271,11 @@
     max-height: 90vh;
     padding: 15px; /* Less padding for more image space */
 }
-.image-preview-modal-content img {
-    display: block; /* Center image if it's smaller than container */
-    margin: 0 auto;
+.image-preview-modal-content img { /* The actual image preview */
+    display: block; /* Remove extra space below image */
+    margin: 0 auto; /* Center image if it's smaller than container */
+    max-width: 100%; /* Ensure image is responsive within modal */
+    max-height: calc(90vh - 100px); /* Max height considering padding and title */
+    object-fit: contain; /* Show entire image */
+    border: 1px solid #ddd; /* Optional border for the preview */
 }
