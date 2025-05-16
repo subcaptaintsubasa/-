@@ -1,1 +1,243 @@
+/* css/admin-forms.css */
+/* Styles for forms and form elements within the admin panel */
 
+.form-group {
+    margin-bottom: 18px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+    color: #495057; /* Dark gray for labels */
+}
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="url"],
+.form-group input[type="file"],
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da; /* Standard Bootstrap-like border */
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box; /* Include padding and border in width/height */
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="url"]:focus,
+.form-group input[type="file"]:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #80bdff; /* Highlight on focus */
+    outline: 0; /* Remove default outline */
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); /* Bootstrap-like focus shadow */
+}
+.form-group textarea {
+    resize: vertical; /* Allow vertical resize */
+    min-height: 80px;
+}
+
+/* For shorter form controls, e.g., value input next to unit select */
+.form-control-short {
+    max-width: 300px; /* Or a specific pixel value */
+    width: auto; /* Allow shrinking to content or max-width */
+    display: inline-block; /* For side-by-side layout */
+    vertical-align: middle;
+    margin-right: 8px; /* Space between inline elements */
+}
+.form-control-short:last-child {
+    margin-right: 0;
+}
+
+/* Category selection buttons (used for parent category selection) */
+.category-button-group.admin {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px; /* Small space below label */
+    margin-bottom: 10px; /* Space below the group */
+}
+.category-select-button { /* Individual button in the group */
+    padding: 6px 12px;
+    background-color: #f8f9fa; /* Very light gray */
+    border: 1px solid #ced4da;
+    border-radius: 15px; /* Pill shape */
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.category-select-button:hover {
+    background-color: #e9ecef; /* Slightly darker on hover */
+}
+.category-select-button.active {
+    background-color: #007bff; /* Primary color for active */
+    color: white;
+    border-color: #0056b3;
+}
+
+/* Radio button groups */
+.radio-group {
+    display: flex;
+    gap: 15px; /* Space between radio options */
+    align-items: center;
+    margin-top: 5px;
+}
+.radio-group input[type="radio"] {
+    width: auto; /* Default size for radio */
+    margin-right: 5px; /* Space between radio and its label */
+    vertical-align: middle;
+}
+.radio-group label {
+    margin-bottom: 0; /* Override default label margin */
+    font-weight: normal; /* Normal weight for radio labels */
+    vertical-align: middle;
+}
+
+/* General Button Styles in Admin Forms */
+#admin-content button,
+#admin-content .button-like { /* For elements styled as buttons */
+    background-color: #007bff; /* Primary action color */
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 8px;
+    font-size: 1em;
+    transition: background-color 0.2s;
+    vertical-align: middle; /* Align with text/inputs if inline */
+}
+#admin-content button:hover,
+#admin-content .button-like:hover {
+    background-color: #0056b3; /* Darker on hover */
+}
+#admin-content button:last-child,
+#admin-content .button-like:last-child {
+    margin-right: 0;
+}
+
+/* Secondary/Utility Buttons */
+#admin-content button[type="button"],
+#admin-content #clearFormButton { /* Example: Clear Form button */
+    background-color: #6c757d; /* Gray for secondary actions */
+}
+#admin-content button[type="button"]:hover,
+#admin-content #clearFormButton:hover {
+    background-color: #545b62; /* Darker gray on hover */
+}
+
+/* Action buttons (Edit, Delete) within lists or forms */
+.action-button {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    margin-left: 5px;
+    color: white !important; /* Ensure text is white */
+    border: none;
+    border-radius: 4px;
+    line-height: 1.2; /* Adjust for small buttons */
+}
+/* Specific colors for edit/delete actions */
+.action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type, .edit-effect-unit, .edit-char-base-option {
+    background-color: #28a745 !important; /* Green for edit/add */
+}
+.action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover, .edit-effect-unit:hover, .edit-char-base-option:hover {
+    background-color: #218838 !important; /* Darker green */
+}
+.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-unit, .delete-char-base-option, .delete-effect-from-list {
+    background-color: #dc3545 !important; /* Red for delete */
+}
+.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-unit:hover, .delete-char-base-option:hover, .delete-effect-from-list:hover {
+    background-color: #c82333 !important; /* Darker red */
+}
+.delete-effect-from-list { /* Smaller delete button for effect lists */
+    padding: 2px 6px;
+    font-size: 0.8em;
+    margin-left: 8px;
+}
+
+/* Informational text below form elements */
+.form-group .info {
+    font-size: 0.85em;
+    color: #6c757d; /* Muted text color */
+    margin-top: 6px;
+    line-height: 1.4;
+    display: block; /* Ensure it takes its own line */
+}
+
+/* Inline form style for simple add forms (e.g., new category name) */
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.inline-form input[type="text"] {
+    flex-grow: 1; /* Input takes available space */
+}
+.inline-form button {
+    flex-shrink: 0; /* Button does not shrink */
+}
+
+
+/* Item Image Preview & Upload Progress */
+#itemImagePreview {
+    display: none; /* Hidden by default */
+    margin-top: 10px;
+    border: 1px solid #ced4da;
+    padding: 5px;
+    background-color: #f8f9fa;
+    max-width: 100px; /* Or adjust as needed */
+    max-height: 100px;
+    object-fit: contain; /* Show entire image */
+}
+#uploadProgressContainer {
+    margin-top: 10px;
+    display: none; /* Hidden by default */
+}
+#uploadProgress {
+    width: 100%;
+    height: 20px;
+    margin-bottom: 5px;
+    border-radius: 4px; /* Rounded progress bar */
+}
+#uploadProgress::-webkit-progress-bar {
+    background-color: #e9ecef;
+    border-radius: 4px;
+}
+#uploadProgress::-webkit-progress-value {
+    background-color: #007bff;
+    border-radius: 4px;
+    transition: width 0.2s ease-in-out;
+}
+#uploadProgress::-moz-progress-bar { /* Firefox */
+    background-color: #007bff;
+    border-radius: 4px;
+    transition: width 0.2s ease-in-out;
+}
+#uploadProgressText {
+    font-size: 0.9em;
+    color: #495057;
+}
+
+/* Character Base Management specific form layout */
+#character-base-management .form-group { /* For type select and add button row */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+}
+#character-base-management .form-group label { /* Label for type select */
+    margin-bottom: 0; /* Remove bottom margin for inline alignment */
+    flex-shrink: 0;
+}
+#charBaseTypeSelect { /* The dropdown for base type */
+    flex-grow: 1;
+    min-width: 150px; /* Ensure it has some base width */
+    max-width: 300px; /* Limit max width */
+}
+#addNewCharBaseOptionButton { /* "Add New Option" button */
+    margin-left: auto; /* Push to the right if space allows */
+    flex-shrink: 0;
+}
