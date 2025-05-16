@@ -1,104 +1,59 @@
-/* css/base.css */
+/* css/admin-base.css */
 body {
-    font-family: sans-serif; margin: 0; background-color: #f4f4f4; color: #333;
+    font-family: sans-serif; margin: 0; background-color: #f4f4f4;
+    color: #333; line-height: 1.6;
 }
-
-/* ヘッダースタイル */
-.site-header {
-    background-color: #343a40;
-    color: white;
-    padding: 0 20px;
-    height: 60px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+#password-prompt {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+    justify-content: center; align-items: center; z-index: 10000;
+    color: white; padding: 20px; box-sizing: border-box;
 }
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+#password-prompt h2 { margin-bottom: 15px; }
+#password-prompt input[type="password"],
+#password-prompt input[type="email"] {
+    padding: 12px; margin-bottom: 15px; font-size: 1.1em;
+    border: 1px solid #ccc; border-radius: 4px; width: 100%;
+    max-width: 300px; box-sizing: border-box;
 }
-.site-title {
-    margin: 0;
-    font-size: 1.5em;
-}
-.hamburger-button {
-    font-size: 1.8em;
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 10px;
-    line-height: 1;
-    margin-left: auto;
-}
-
-/* サイドナビゲーションパネル */
-.side-navigation {
-    height: 100%;
-    width: 0;
-    position: fixed;
-    z-index: 10002;
-    top: 0;
-    right: 0;
-    background-color: #222;
-    overflow-x: hidden;
-    transition: 0.3s ease-in-out;
-    padding-top: 60px;
-    box-shadow: -3px 0 8px rgba(0,0,0,0.3);
-}
-.side-navigation.open {
-    width: 250px;
-}
-.side-navigation ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.side-navigation li .nav-button {
-    padding: 15px 20px;
-    text-decoration: none;
-    font-size: 1.1em;
-    color: #f1f1f1;
-    display: block;
-    background: none;
-    border: none;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
+#password-prompt button {
+    padding: 12px 20px; font-size: 1.1em; background-color: #007bff;
+    color: white; border: none; border-radius: 4px; cursor: pointer;
     transition: background-color 0.2s;
 }
-.side-navigation li .nav-button:hover {
-    background-color: #444;
+#password-prompt button:hover { background-color: #0056b3; }
+.error-message { color: #ff4d4d; font-weight: bold; margin-top: 10px; }
+
+header {
+    background-color: #343a40; color: white; padding: 1em 1.5em;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.close-nav-button {
-    position: absolute;
-    top: 15px;
-    right: 25px;
-    font-size: 2em;
-    background: none;
-    border: none;
-    color: #aaa;
-    cursor: pointer;
+header h1 { margin: 0; font-size: 1.8em; }
+#logoutButton {
+    background-color: #6c757d; color: white; padding: 0.6em 1em;
+    border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;
 }
-.close-nav-button:hover {
-    color: white;
+#logoutButton:hover { background-color: #5a6268; }
+
+.container { /* Admin container might be different */
+    max-width: 1100px; margin: 25px auto; padding: 25px;
+    background-color: #fff; box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+    border-radius: 8px;
 }
 
-.container {
-    width: 90%; max-width: 1200px; margin: 20px auto; padding: 20px;
-    background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px;
-    margin-top: 80px; /* ヘッダーの高さを考慮 */
+section {
+    margin-bottom: 30px; padding-bottom: 30px;
+    border-bottom: 1px solid #e9ecef;
 }
+section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 10px; }
 
-.section-divider {
-    border: 0;
-    height: 1px;
-    background-color: #e0e0e0;
-    margin: 40px 0;
+h2, h3 { color: #343a40; margin-top: 0; margin-bottom: 20px; }
+h2 { font-size: 1.6em; }
+h3 { font-size: 1.3em; }
+.info-message { /* General info message style */
+    font-size: 0.9em; color: #0c5460; background-color: #d1ecf1;
+    border: 1px solid #bee5eb; padding: 10px 15px;
+    border-radius: 4px; margin-top:10px;
 }
+.icon { margin-right: 7px; font-size: 1.1em; }
