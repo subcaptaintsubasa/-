@@ -1,1 +1,118 @@
+/* css/base.css */
+/* General body and page structure for user-facing pages */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6; /* Added for better readability */
+}
 
+/* Header Styles */
+.site-header {
+    background-color: #343a40; /* Dark background */
+    color: white;
+    padding: 0 20px; /* Horizontal padding */
+    height: 60px; /* Fixed height */
+    display: flex;
+    justify-content: space-between; /* Title on left, hamburger on right */
+    align-items: center;
+    position: sticky; /* Sticky header */
+    top: 0;
+    z-index: 1000; /* Ensure header is above other content */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Subtle shadow */
+}
+.header-content { /* Inner container for header elements if needed */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+.site-title {
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: bold; /* Added for emphasis */
+}
+.hamburger-button {
+    font-size: 1.8em;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 10px; /* Clickable area */
+    line-height: 1; /* Ensure icon is vertically centered */
+    margin-left: auto; /* Push to the right if header-content is used */
+}
+
+/* Side Navigation Panel */
+.side-navigation {
+    height: 100%; /* Full height */
+    width: 0; /* Initially hidden */
+    position: fixed;
+    z-index: 10002; /* Above overlay, below modals if any separate overlay exists */
+    top: 0;
+    right: 0;
+    background-color: #222; /* Darker than header */
+    overflow-x: hidden; /* Disable horizontal scroll */
+    transition: 0.3s ease-in-out; /* Smooth open/close animation */
+    padding-top: 60px; /* Space for header or close button */
+    box-shadow: -3px 0 8px rgba(0,0,0,0.3); /* Shadow on the left side */
+}
+.side-navigation.open {
+    width: 250px; /* Width when open */
+}
+.side-navigation ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.side-navigation li .nav-button {
+    padding: 15px 20px;
+    text-decoration: none;
+    font-size: 1.1em;
+    color: #f1f1f1; /* Light text color for readability */
+    display: block;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.side-navigation li .nav-button:hover {
+    background-color: #444; /* Hover effect */
+}
+.close-nav-button { /* Button to close side navigation */
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 2em;
+    background: none;
+    border: none;
+    color: #aaa; /* Muted color */
+    cursor: pointer;
+    transition: color 0.2s; /* Smooth hover for color */
+}
+.close-nav-button:hover {
+    color: white; /* Brighter on hover */
+}
+
+/* Main Content Container for user-facing pages */
+.container {
+    width: 90%; /* Responsive width */
+    max-width: 1200px; /* Max width for large screens */
+    margin: 20px auto; /* Centered with space top/bottom */
+    padding: 20px;
+    background-color: #fff; /* White background for content area */
+    box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Subtle shadow */
+    border-radius: 8px; /* Rounded corners */
+    margin-top: 80px; /* Account for sticky header height + some space */
+}
+
+/* General Section Divider */
+.section-divider {
+    border: 0;
+    height: 1px;
+    background-color: #e0e0e0; /* Light gray divider */
+    margin: 40px 0; /* Spacing around divider */
+}
