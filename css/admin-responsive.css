@@ -4,8 +4,8 @@
 @media (max-width: 768px) {
     /* General Admin Layout */
     #admin-content .container {
-        margin: 15px;
-        padding: 15px;
+        margin: 15px; /* Smaller margins */
+        padding: 15px; /* Smaller padding */
         width: auto; /* Allow full width within body padding */
     }
     #admin-content header {
@@ -22,6 +22,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        margin-top: 5px; /* Space if header items stack */
     }
     #logoutButton {
         padding: 0.5em 0.8em;
@@ -45,8 +46,8 @@
         font-size: 0.95em;
         padding: 8px 10px;
     }
-    .form-control-short {
-        max-width: none; /* Allow full width if needed */
+    .form-control-short { /* Make short controls full width on mobile */
+        max-width: none;
         width: 100%;
         margin-right: 0;
         margin-bottom: 8px; /* Stacked inline controls */
@@ -59,6 +60,9 @@
        flex-direction: column;
        align-items: stretch; /* Make elements full width */
     }
+    .inline-form label { /* If label is part of inline form */
+        margin-bottom: 5px;
+    }
     .inline-form input[type="text"],
     .inline-form select {
        width: 100%; /* Full width */
@@ -67,12 +71,18 @@
     .inline-form button {
        width: 100%;
        margin-top: 5px;
-       margin-right: 0;
+       margin-right: 0; /* Reset right margin */
     }
 
     .category-button-group.admin {
         justify-content: flex-start; /* Align to start on mobile */
     }
+    .radio-group {
+        flex-direction: column; /* Stack radio buttons */
+        align-items: flex-start;
+        gap: 8px;
+    }
+
 
     /* Effect Input Rows (Item form, Char base option form) */
     .effect-input-row {
@@ -102,46 +112,77 @@
 
 
     /* Admin Lists and Tables */
+    .list-container {
+        padding: 8px;
+        max-height: 250px; /* Slightly less height */
+    }
     .list-item {
         flex-direction: column; /* Stack item content and buttons */
         align-items: flex-start;
+        padding: 8px;
     }
-    .list-item span {
+    .list-item > span {
         margin-bottom: 8px; /* Space between text and buttons */
+        font-size: 0.9em;
     }
     .list-item div { /* Button container */
         width: 100%;
         display: flex;
         justify-content: flex-end; /* Align buttons to right */
+        gap: 8px; /* More gap if buttons are larger */
+    }
+    .action-button {
+        padding: 6px 8px; /* Slightly larger buttons if they are stacked */
+        font-size: 0.85em;
     }
 
+
+    #itemsTable {
+        font-size: 0.85em; /* Smaller font for dense table on mobile */
+    }
     #itemsTable th,
     #itemsTable td {
-        padding: 8px 6px;
-        font-size: 0.9em; /* Smaller font in table */
+        padding: 6px 4px; /* Tighter padding */
+        /* Consider word-break: break-all; for td if content overflows badly */
+    }
+     #itemsTable th {
+        white-space: normal; /* Allow headers to wrap */
     }
     #itemsTable img {
-        max-width: 40px;
-        max-height: 40px;
+        max-width: 35px; /* Smaller images in table */
+        max-height: 35px;
     }
     #itemsTable td .action-button {
         padding: 4px 6px;
         font-size: 0.8em;
+        margin-right: 3px;
     }
     #itemSearchAdmin {
         width: 100% !important; /* Ensure full width */
         max-width: none;
+        font-size: 0.9em;
     }
 
     /* Admin Modals */
     #admin-content .modal-content {
         width: 95%; /* Wider modals on mobile */
-        padding: 20px;
+        padding: 15px 20px; /* Adjusted padding */
         max-height: 90vh; /* Ensure visibility on small screens */
     }
     #admin-content .modal-content h3 {
         font-size: 1.3em;
     }
+    #admin-content .modal-content button[type="submit"],
+    #admin-content .modal-content #saveCategoryEditButton,
+    #admin-content .modal-content #saveTagEditButton,
+    #admin-content .modal-content #saveEffectTypeEditButton,
+    #admin-content .modal-content #saveEffectUnitEditButton,
+    #admin-content .modal-content #saveCharBaseOptionButton {
+        width: 100%; /* Make save buttons full width in modals */
+        padding: 12px;
+        font-size: 1em;
+    }
+
 
     /* Character Base Management specific responsive */
     #character-base-management .form-group {
@@ -159,4 +200,37 @@
         margin-top: 10px; /* Space above */
         width: 100%; /* Full width button */
     }
+}
+
+@media (max-width: 480px) {
+    #admin-content header h1 {
+        font-size: 1.3em;
+    }
+    #admin-content .container {
+        padding: 10px;
+    }
+    #admin-content h2 { font-size: 1.4em; }
+    #admin-content h3 { font-size: 1.2em; }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="url"],
+    .form-group input[type="file"],
+    .form-group textarea,
+    .form-group select {
+        font-size: 0.9em;
+    }
+    .list-item > span {
+        font-size: 0.85em;
+    }
+    #itemsTable {
+        font-size: 0.75em; /* Even smaller for very small screens */
+    }
+     #itemsTable td:last-child { /* Action column */
+        min-width: 70px; /* Ensure buttons have some space */
+    }
+    .action-button {
+        font-size: 0.8em;
+    }
+
 }
