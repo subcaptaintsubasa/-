@@ -1,1 +1,69 @@
+/* css/responsive.css */
+@media (max-width: 768px) {
+    .site-header { padding: 8px 15px; height: 50px; }
+    .site-title { font-size: 1.2em; }
+    .hamburger-button { font-size: 1.5em; }
+    .side-navigation.open { width: 200px; }
+    .container { margin-top: 70px; width: 95%; padding: 15px; }
 
+    /* Simulator Modal on Mobile */
+    .simulator-modal .modal-content {
+        max-height: 85vh; /* Slightly less height on mobile */
+        width: 95%; /* More width on mobile */
+    }
+    /* ★シミュレーター内の基礎情報選択を調整 */
+    .base-selectors {
+        grid-template-columns: 1fr; /* スマホでは1列 */
+        gap: 10px;
+    }
+    .equipment-slots {
+        grid-template-columns: 1fr; /* Single column for slots */
+        gap: 10px;
+    }
+    .calculation-result-area {
+        min-height: 80px; /* Smaller min-height */
+    }
+    .simulator-actions {
+        flex-direction: row; /* Keep as row if space allows, but wrap */
+        flex-wrap: wrap;
+        justify-content: space-around; /* Distribute buttons */
+    }
+    .simulator-actions button, .simulator-actions .button-like-secondary {
+        flex-basis: calc(50% - 10px); /* Two buttons per row roughly */
+        margin-bottom: 10px; /* Space if they wrap */
+        padding: 8px 10px; /* Smaller padding */
+        font-size: 0.9em;
+        box-sizing: border-box;
+    }
+
+
+    /* Search Tool on Mobile */
+    .category-button-group { justify-content: center; } /* Center category buttons */
+    .child-category-section { padding: 8px; }
+    .tag-filters-inline { gap: 6px; }
+    .tag-filter { padding: 5px 8px; font-size: 0.8em; }
+
+    /* Item Cards on Mobile */
+    .item-card-compact .item-image-container {
+        margin-right: 8px; /* Less space */
+    }
+    .item-card-compact img, .item-card-compact .item-image-text-placeholder {
+        width: 30px; /* Smaller images */
+        height: 30px;
+        max-height: 30px;
+    }
+    .item-card-compact .item-name-compact {
+        font-size: 0.9em;
+    }
+    .item-card-compact .item-effects-summary-compact {
+        font-size: 0.8em;
+    }
+
+
+     .confirm-selection-button {
+        padding: 10px 20px; /* Smaller button */
+        font-size: 1em;
+        right: 10px; /* Closer to edge */
+        bottom: 10px;
+    }
+}
