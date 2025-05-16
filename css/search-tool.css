@@ -170,7 +170,6 @@
 }
 /* Special states for simulator selection */
 .item-card-compact.selectable { /* Indicates items can be chosen for simulator */
-    /* border-left: 3px solid #007bff; */
     border-color: #80bdff !important; /* Light blue highlight */
 }
 .item-card-compact.selectable:hover {
