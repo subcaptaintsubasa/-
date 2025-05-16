@@ -83,16 +83,18 @@
     gap: 15px; /* Space between radio options */
     align-items: center;
     margin-top: 5px;
+    flex-wrap: wrap; /* Allow radios to wrap */
 }
 .radio-group input[type="radio"] {
     width: auto; /* Default size for radio */
     margin-right: 5px; /* Space between radio and its label */
     vertical-align: middle;
 }
-.radio-group label {
+.radio-group label { /* Label associated with a radio button */
     margin-bottom: 0; /* Override default label margin */
     font-weight: normal; /* Normal weight for radio labels */
     vertical-align: middle;
+    cursor: pointer;
 }
 
 /* General Button Styles in Admin Forms */
@@ -108,6 +110,8 @@
     font-size: 1em;
     transition: background-color 0.2s;
     vertical-align: middle; /* Align with text/inputs if inline */
+    text-decoration: none; /* For .button-like if it's an <a> tag */
+    display: inline-block; /* Ensure proper padding and margin */
 }
 #admin-content button:hover,
 #admin-content .button-like:hover {
@@ -117,14 +121,23 @@
 #admin-content .button-like:last-child {
     margin-right: 0;
 }
+#admin-content button:disabled,
+#admin-content .button-like.disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
 
 /* Secondary/Utility Buttons */
 #admin-content button[type="button"],
-#admin-content #clearFormButton { /* Example: Clear Form button */
+#admin-content #clearFormButton,
+.button-like.secondary { /* Added .secondary for specific secondary styled buttons */
     background-color: #6c757d; /* Gray for secondary actions */
 }
 #admin-content button[type="button"]:hover,
-#admin-content #clearFormButton:hover {
+#admin-content #clearFormButton:hover,
+.button-like.secondary:hover {
     background-color: #545b62; /* Darker gray on hover */
 }
 
@@ -137,6 +150,8 @@
     border: none;
     border-radius: 4px;
     line-height: 1.2; /* Adjust for small buttons */
+    text-decoration: none;
+    display: inline-block;
 }
 /* Specific colors for edit/delete actions */
 .action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type, .edit-effect-unit, .edit-char-base-option {
@@ -169,12 +184,19 @@
 /* Inline form style for simple add forms (e.g., new category name) */
 .inline-form {
     display: flex;
-    align-items: center;
+    align-items: center; /* Align items vertically */
     gap: 10px;
     margin-bottom: 15px;
+    flex-wrap: wrap; /* Allow wrapping */
 }
-.inline-form input[type="text"] {
+.inline-form label {
+    margin-bottom: 0; /* Remove bottom margin for inline label */
+    flex-shrink: 0;
+}
+.inline-form input[type="text"],
+.inline-form select { /* Added select for completeness */
     flex-grow: 1; /* Input takes available space */
+    min-width: 150px; /* Minimum width before wrapping/shrinking */
 }
 .inline-form button {
     flex-shrink: 0; /* Button does not shrink */
@@ -191,6 +213,7 @@
     max-width: 100px; /* Or adjust as needed */
     max-height: 100px;
     object-fit: contain; /* Show entire image */
+    border-radius: 3px;
 }
 #uploadProgressContainer {
     margin-top: 10px;
@@ -201,6 +224,8 @@
     height: 20px;
     margin-bottom: 5px;
     border-radius: 4px; /* Rounded progress bar */
+    -webkit-appearance: none;
+    appearance: none;
 }
 #uploadProgress::-webkit-progress-bar {
     background-color: #e9ecef;
