@@ -25,16 +25,20 @@
 .list-item:hover {
     background-color: #f9f9f9; /* Slight background change on hover */
 }
-.list-item span { /* Text content of the list item */
+.list-item > span { /* Text content of the list item, direct child span */
     flex-grow: 1;
     margin-right: 10px;
     word-break: break-word; /* Prevent long text from breaking layout */
     font-size: 0.95em;
 }
+.list-item > span small { /* For extra info like parent category, units etc. */
+    color: #555;
+    font-size: 0.9em;
+}
 .list-item div { /* Container for action buttons */
     flex-shrink: 0; /* Prevent button container from shrinking */
     display: flex;
-    gap: 5px;
+    gap: 5px; /* Space between buttons */
 }
 /* Action buttons are styled in admin-forms.css */
 
@@ -62,10 +66,9 @@
     border: initial; /* Reset inherited border */
     box-shadow: none; /* Remove inherited shadow */
     vertical-align: middle;
+    flex-shrink: 0; /* Prevent checkbox from shrinking */
 }
 .checkbox-item input[type="checkbox"]:focus {
-    /* Standard focus style from admin-forms.css should apply if needed,
-       but typically simple checkboxes don't need elaborate focus styles */
     outline: 1px dotted #007bff; /* Simple focus outline */
 }
 .checkbox-item label {
@@ -75,6 +78,7 @@
     color: #333;
     vertical-align: middle;
     cursor: pointer; /* Make label clickable */
+    line-height: 1.4;
 }
 
 /* Tag selection buttons within category edit modal */
@@ -142,6 +146,7 @@
     margin-left: -4px; /* Slight adjustment for alignment */
     margin-right: 8px; /* Space before add button */
     font-size: 0.9em;
+    white-space: nowrap;
 }
 
 .effects-list-container { /* Container for currently added effects */
@@ -164,6 +169,7 @@
 }
 .effect-list-item span { /* Effect text */
     flex-grow: 1;
+    margin-right: 5px; /* Space before delete button */
 }
 /* .delete-effect-from-list button is styled in admin-forms.css */
 
@@ -187,11 +193,14 @@
     background-color: #f8f9fa; /* Light background for headers */
     font-weight: bold;
     color: #495057;
+    white-space: nowrap; /* Prevent headers from wrapping unnecessarily */
 }
 #itemsTable img { /* Images in the item table */
     max-width: 60px;
     max-height: 60px;
-    object-fit: cover; /* Or contain, depending on preference */
+    width: auto;
+    height: auto;
+    object-fit: contain; /* Use contain to see full image */
     background-color: #e9ecef; /* Placeholder background */
     border-radius: 3px;
     border: 1px solid #ddd;
@@ -199,19 +208,30 @@
 }
 #itemsTable td .action-button { /* Buttons within table cells */
     margin-right: 5px;
+    margin-bottom: 3px; /* Spacing if buttons wrap */
 }
 #itemsTable td .action-button:last-child {
     margin-right: 0;
 }
+#itemsTable td:last-child { /* Action column */
+    white-space: nowrap; /* Prevent action buttons from wrapping too early */
+    width: 1%; /* Try to make it as narrow as content allows */
+}
+
 
 /* Search input for admin item list */
 #itemSearchAdmin {
-    width: calc(100% - 22px); /* Full width with padding considerations */
-    max-width: 400px; /* Limit width for aesthetics */
+    /* width: calc(100% - 22px); Full width with padding considerations */
+    /* max-width: 400px; Limit width for aesthetics */
+    /* Uses .form-group input styling from admin-forms.css by default if wrapped in .form-group */
+    /* If standalone, apply similar styles: */
     padding: 8px 10px;
     margin-bottom: 15px;
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 0.95em;
     box-sizing: border-box;
+    display: block; /* Make it take full width of its container */
+    width: 100%;
+    max-width: 400px; /* Or remove if full width is preferred */
 }
