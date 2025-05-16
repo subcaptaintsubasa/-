@@ -1,59 +1,156 @@
 /* css/admin-base.css */
-body {
-    font-family: sans-serif; margin: 0; background-color: #f4f4f4;
-    color: #333; line-height: 1.6;
+/* Base styles specifically for the admin panel */
+body#admin-page { /* Assuming admin.html has <body id="admin-page"> or similar */
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
 }
+
+/* Password Prompt Overlay */
 #password-prompt {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.85); display: flex; flex-direction: column;
-    justify-content: center; align-items: center; z-index: 10000;
-    color: white; padding: 20px; box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.85); /* Darker overlay */
+    display: flex; /* Default, will be changed by JS */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000; /* Very high z-index */
+    color: white;
+    padding: 20px;
+    box-sizing: border-box;
 }
-#password-prompt h2 { margin-bottom: 15px; }
+#password-prompt h2 {
+    margin-bottom: 15px;
+    color: white; /* Ensure text is visible on dark background */
+}
 #password-prompt input[type="password"],
 #password-prompt input[type="email"] {
-    padding: 12px; margin-bottom: 15px; font-size: 1.1em;
-    border: 1px solid #ccc; border-radius: 4px; width: 100%;
-    max-width: 300px; box-sizing: border-box;
+    padding: 12px;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 300px;
+    box-sizing: border-box;
 }
 #password-prompt button {
-    padding: 12px 20px; font-size: 1.1em; background-color: #007bff;
-    color: white; border: none; border-radius: 4px; cursor: pointer;
+    padding: 12px 20px;
+    font-size: 1.1em;
+    background-color: #007bff; /* Primary button color */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
     transition: background-color 0.2s;
 }
-#password-prompt button:hover { background-color: #0056b3; }
-.error-message { color: #ff4d4d; font-weight: bold; margin-top: 10px; }
+#password-prompt button:hover {
+    background-color: #0056b3; /* Darker on hover */
+}
+.error-message { /* For login errors */
+    color: #ff4d4d; /* Bright red for errors */
+    font-weight: bold;
+    margin-top: 10px;
+}
 
-header {
-    background-color: #343a40; color: white; padding: 1em 1.5em;
-    display: flex; justify-content: space-between; align-items: center;
+/* Admin Header */
+#admin-content header {
+    background-color: #343a40; /* Consistent with user header */
+    color: white;
+    padding: 1em 1.5em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-header h1 { margin: 0; font-size: 1.8em; }
-#logoutButton {
-    background-color: #6c757d; color: white; padding: 0.6em 1em;
-    border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;
+#admin-content header h1 {
+    margin: 0;
+    font-size: 1.8em;
 }
-#logoutButton:hover { background-color: #5a6268; }
+#logoutButton {
+    background-color: #6c757d; /* Secondary button color */
+    color: white;
+    padding: 0.6em 1em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+#logoutButton:hover {
+    background-color: #5a6268; /* Darker on hover */
+}
+#currentUserEmail {
+    margin-right: 15px;
+    font-size: 0.9em;
+}
 
-.container { /* Admin container might be different */
-    max-width: 1100px; margin: 25px auto; padding: 25px;
-    background-color: #fff; box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+
+/* Admin Main Container */
+#admin-content .container {
+    max-width: 1100px;
+    margin: 25px auto;
+    padding: 25px;
+    background-color: #fff;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.08);
     border-radius: 8px;
 }
 
-section {
-    margin-bottom: 30px; padding-bottom: 30px;
-    border-bottom: 1px solid #e9ecef;
+/* Admin Sections */
+#admin-content section {
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #e9ecef; /* Light separator */
 }
-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 10px; }
+#admin-content section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 10px;
+}
 
-h2, h3 { color: #343a40; margin-top: 0; margin-bottom: 20px; }
-h2 { font-size: 1.6em; }
-h3 { font-size: 1.3em; }
-.info-message { /* General info message style */
-    font-size: 0.9em; color: #0c5460; background-color: #d1ecf1;
-    border: 1px solid #bee5eb; padding: 10px 15px;
-    border-radius: 4px; margin-top:10px;
+/* Admin Headings */
+#admin-content h2,
+#admin-content h3 {
+    color: #343a40;
+    margin-top: 0;
+    margin-bottom: 20px;
 }
-.icon { margin-right: 7px; font-size: 1.1em; }
+#admin-content h2 {
+    font-size: 1.6em;
+    display: flex; /* For icon alignment */
+    align-items: center;
+}
+#admin-content h3 {
+    font-size: 1.3em;
+    margin-top: 20px; /* Space above sub-headings */
+}
+
+/* General Info Message for Admin */
+.info-message.admin { /* More specific if needed, or use generic .info-message */
+    font-size: 0.9em;
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-top: 10px; /* Space above message */
+    margin-bottom: 20px; /* Space below message */
+}
+
+/* Helper for icons in headings */
+.icon {
+    margin-right: 8px; /* Space between icon and text */
+    font-size: 1.1em; /* Slightly larger icon */
+    /* Ensure FontAwesome or similar icon font is loaded if these are class-based icons */
+}
+
+/* General utility classes (can also be in a utils.css) */
+.hidden {
+    display: none !important;
+}
