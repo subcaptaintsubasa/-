@@ -1,1 +1,103 @@
+/* css/admin-modal.css */
+/* Styles for modals used within the admin panel */
 
+/* General Admin Modal Structure */
+#admin-content .modal { /* Target modals within admin content specifically */
+    position: fixed;
+    z-index: 10001; /* High z-index */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll for overlay if modal is too tall */
+    background-color: rgba(0,0,0,0.6); /* Semi-transparent background */
+    display: none; /* Hidden by default, shown by JS */
+    align-items: center; /* Vertical centering */
+    justify-content: center; /* Horizontal centering */
+    padding: 15px; /* Padding for small screens, modal won't touch edges */
+    box-sizing: border-box;
+}
+
+#admin-content .modal-content {
+    background-color: #fff;
+    margin: auto; /* For centering */
+    padding: 25px 30px;
+    border: none;
+    width: 90%; /* Responsive width */
+    max-width: 550px; /* Default max-width, can be overridden */
+    border-radius: 8px;
+    position: relative; /* For close button positioning */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    animation: fadeInAdminModal 0.3s ease-out; /* Custom animation name if needed */
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 40px); /* Max height considering padding */
+    overflow-y: auto; /* Allow content within modal to scroll */
+}
+
+@keyframes fadeInAdminModal { /* Can be same as user modal or different */
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#admin-content .modal-content h3 { /* Modal title */
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.5em; /* Prominent title */
+    color: #343a40;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    flex-shrink: 0; /* Prevent title from shrinking */
+}
+
+#admin-content .modal .close-button { /* Close button specific to admin modals */
+    color: #6c757d;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10; /* Above modal content */
+    transition: color 0.2s;
+}
+#admin-content .modal .close-button:hover,
+#admin-content .modal .close-button:focus {
+    color: #343a40;
+    text-decoration: none;
+}
+
+/* Specific Modal Adjustments */
+/* Example: If editEffectUnitModal needs different sizing */
+#editEffectUnitModal .modal-content {
+    max-width: 400px; /* Smaller modal for simple edits */
+}
+
+#editCharBaseOptionModal .modal-content {
+    max-width: 600px; /* Wider modal for character base options with effects */
+}
+
+/* Ensure form groups within modals have appropriate spacing */
+#admin-content .modal-content .form-group {
+    margin-bottom: 15px; /* Standard spacing */
+}
+#admin-content .modal-content .form-group:last-child {
+    margin-bottom: 20px; /* More space before action buttons */
+}
+
+/* Action buttons at the bottom of modals */
+#admin-content .modal-content button,
+#admin-content .modal-content .button-like {
+    /* Uses styles from admin-forms.css */
+    /* Example: Ensure they are block or appropriately sized if needed */
+    /* display: block; width: 100%; margin-top: 10px; */
+}
+
+#admin-content .modal-content #saveCategoryEditButton,
+#admin-content .modal-content #saveTagEditButton,
+#admin-content .modal-content #saveEffectTypeEditButton,
+#admin-content .modal-content #saveEffectUnitEditButton,
+#admin-content .modal-content #saveCharBaseOptionButton {
+    margin-top: 10px; /* Space above the main save button */
+}
