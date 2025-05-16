@@ -26,8 +26,10 @@ body#admin-page { /* Assuming admin.html has <body id="admin-page"> or similar *
     box-sizing: border-box;
 }
 #password-prompt h2 {
+    margin-top: 0; /* Reset margin */
     margin-bottom: 15px;
     color: white; /* Ensure text is visible on dark background */
+    text-align: center;
 }
 #password-prompt input[type="password"],
 #password-prompt input[type="email"] {
@@ -57,6 +59,7 @@ body#admin-page { /* Assuming admin.html has <body id="admin-page"> or similar *
     color: #ff4d4d; /* Bright red for errors */
     font-weight: bold;
     margin-top: 10px;
+    text-align: center;
 }
 
 /* Admin Header */
@@ -72,6 +75,10 @@ body#admin-page { /* Assuming admin.html has <body id="admin-page"> or similar *
 #admin-content header h1 {
     margin: 0;
     font-size: 1.8em;
+}
+#admin-content header div { /* Container for user email and logout */
+    display: flex;
+    align-items: center;
 }
 #logoutButton {
     background-color: #6c757d; /* Secondary button color */
@@ -128,11 +135,11 @@ body#admin-page { /* Assuming admin.html has <body id="admin-page"> or similar *
 }
 #admin-content h3 {
     font-size: 1.3em;
-    margin-top: 20px; /* Space above sub-headings */
+    margin-top: 20px; /* Space above sub-headings (like "カテゴリ一覧") */
 }
 
 /* General Info Message for Admin */
-.info-message.admin { /* More specific if needed, or use generic .info-message */
+.info-message { /* Removed .admin class to make it more general if reused */
     font-size: 0.9em;
     color: #0c5460;
     background-color: #d1ecf1;
@@ -148,9 +155,16 @@ body#admin-page { /* Assuming admin.html has <body id="admin-page"> or similar *
     margin-right: 8px; /* Space between icon and text */
     font-size: 1.1em; /* Slightly larger icon */
     /* Ensure FontAwesome or similar icon font is loaded if these are class-based icons */
+    /* Example: font-family: 'Font Awesome 5 Free'; font-weight: 900; */
 }
 
-/* General utility classes (can also be in a utils.css) */
+/* General utility classes (can also be in a utils.css if preferred for both sides) */
 .hidden {
     display: none !important;
+}
+hr { /* Default hr styling for admin sections */
+    border: 0;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 30px 0; /* Consistent spacing for hr dividers */
 }
