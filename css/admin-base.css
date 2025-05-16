@@ -1,1 +1,104 @@
+/* css/base.css */
+body {
+    font-family: sans-serif; margin: 0; background-color: #f4f4f4; color: #333;
+}
 
+/* ヘッダースタイル */
+.site-header {
+    background-color: #343a40;
+    color: white;
+    padding: 0 20px;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+.site-title {
+    margin: 0;
+    font-size: 1.5em;
+}
+.hamburger-button {
+    font-size: 1.8em;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 10px;
+    line-height: 1;
+    margin-left: auto;
+}
+
+/* サイドナビゲーションパネル */
+.side-navigation {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 10002;
+    top: 0;
+    right: 0;
+    background-color: #222;
+    overflow-x: hidden;
+    transition: 0.3s ease-in-out;
+    padding-top: 60px;
+    box-shadow: -3px 0 8px rgba(0,0,0,0.3);
+}
+.side-navigation.open {
+    width: 250px;
+}
+.side-navigation ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.side-navigation li .nav-button {
+    padding: 15px 20px;
+    text-decoration: none;
+    font-size: 1.1em;
+    color: #f1f1f1;
+    display: block;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.side-navigation li .nav-button:hover {
+    background-color: #444;
+}
+.close-nav-button {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 2em;
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+}
+.close-nav-button:hover {
+    color: white;
+}
+
+.container {
+    width: 90%; max-width: 1200px; margin: 20px auto; padding: 20px;
+    background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px;
+    margin-top: 80px; /* ヘッダーの高さを考慮 */
+}
+
+.section-divider {
+    border: 0;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 40px 0;
+}
