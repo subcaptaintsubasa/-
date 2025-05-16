@@ -1,1 +1,162 @@
+/* css/admin-responsive.css */
+/* Responsive adjustments for the admin panel */
 
+@media (max-width: 768px) {
+    /* General Admin Layout */
+    #admin-content .container {
+        margin: 15px;
+        padding: 15px;
+        width: auto; /* Allow full width within body padding */
+    }
+    #admin-content header {
+        padding: 0.8em 1em;
+        flex-direction: column; /* Stack header items on small screens */
+        align-items: flex-start;
+    }
+    #admin-content header h1 {
+        font-size: 1.5em;
+        margin-bottom: 8px;
+    }
+    #admin-content header div { /* Container for user email and logout */
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    #logoutButton {
+        padding: 0.5em 0.8em;
+        font-size: 0.85em;
+    }
+    #currentUserEmail {
+        font-size: 0.85em;
+    }
+
+
+    /* Admin Forms */
+    .form-group label {
+        font-size: 0.95em;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="url"],
+    .form-group input[type="file"],
+    .form-group textarea,
+    .form-group select {
+        font-size: 0.95em;
+        padding: 8px 10px;
+    }
+    .form-control-short {
+        max-width: none; /* Allow full width if needed */
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 8px; /* Stacked inline controls */
+    }
+    .form-control-short:last-child {
+        margin-bottom: 0;
+    }
+
+    .inline-form { /* For simple add forms */
+       flex-direction: column;
+       align-items: stretch; /* Make elements full width */
+    }
+    .inline-form input[type="text"],
+    .inline-form select {
+       width: 100%; /* Full width */
+       margin-bottom: 8px;
+    }
+    .inline-form button {
+       width: 100%;
+       margin-top: 5px;
+       margin-right: 0;
+    }
+
+    .category-button-group.admin {
+        justify-content: flex-start; /* Align to start on mobile */
+    }
+
+    /* Effect Input Rows (Item form, Char base option form) */
+    .effect-input-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch; /* Make all elements full width */
+    }
+    .effect-input-row select,
+    .effect-input-row input[type="number"],
+    .effect-input-row button {
+        width: 100%;
+        margin-right: 0;
+        max-width: none; /* Override .form-control-short max-width */
+        flex-basis: auto; /* Reset flex basis */
+    }
+     .effect-input-row button {
+         margin-left: 0; /* Reset margin */
+         margin-top: 5px; /* Space if it was not the last element */
+     }
+     .unit-display {
+         display: block; /* Take full line */
+         text-align: left;
+         margin-left: 0; /* Reset margin */
+         margin-bottom: 5px; /* Space below unit display */
+         width: 100%;
+     }
+
+
+    /* Admin Lists and Tables */
+    .list-item {
+        flex-direction: column; /* Stack item content and buttons */
+        align-items: flex-start;
+    }
+    .list-item span {
+        margin-bottom: 8px; /* Space between text and buttons */
+    }
+    .list-item div { /* Button container */
+        width: 100%;
+        display: flex;
+        justify-content: flex-end; /* Align buttons to right */
+    }
+
+    #itemsTable th,
+    #itemsTable td {
+        padding: 8px 6px;
+        font-size: 0.9em; /* Smaller font in table */
+    }
+    #itemsTable img {
+        max-width: 40px;
+        max-height: 40px;
+    }
+    #itemsTable td .action-button {
+        padding: 4px 6px;
+        font-size: 0.8em;
+    }
+    #itemSearchAdmin {
+        width: 100% !important; /* Ensure full width */
+        max-width: none;
+    }
+
+    /* Admin Modals */
+    #admin-content .modal-content {
+        width: 95%; /* Wider modals on mobile */
+        padding: 20px;
+        max-height: 90vh; /* Ensure visibility on small screens */
+    }
+    #admin-content .modal-content h3 {
+        font-size: 1.3em;
+    }
+
+    /* Character Base Management specific responsive */
+    #character-base-management .form-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #character-base-management .form-group label {
+        margin-bottom: 6px;
+    }
+    #charBaseTypeSelect {
+        max-width: none; /* Full width */
+    }
+    #addNewCharBaseOptionButton {
+        margin-left: 0; /* No auto margin */
+        margin-top: 10px; /* Space above */
+        width: 100%; /* Full width button */
+    }
+}
