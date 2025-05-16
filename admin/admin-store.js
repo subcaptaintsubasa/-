@@ -1,28 +1,22 @@
 // admin-store.js
 // アプリケーション全体で共有されるキャッシュデータを管理します。
 
-// 各キャッシュをエクスポートして、他のモジュールから直接参照・更新できるようにします。
-// より厳密な状態管理（例: Reduxのようなパターン）も可能ですが、
-// まずはシンプルなエクスポートで実現します。
-
 export let allCategoriesCache = [];
 export let allTagsCache = [];
 export let itemsCache = [];
 export let effectTypesCache = [];
 export let effectUnitsCache = [];
-export let characterBasesCache = {}; // { headShape: [], correction: [], ... }
+export let characterBasesCache = {}; // e.g., { headShape: [ {id, name, effects}, ... ], color: [...] }
 
-// 必要に応じて、キャッシュを更新するためのセッター関数をここに定義することもできます。
-// 例:
-// export function setAllCategoriesCache(data) {
-//     allCategoriesCache = data;
-// }
-// export function setItemsCache(data) {
-//     itemsCache = data;
-// }
-// ...など、各キャッシュに対応するセッター
+// キャッシュ更新用のセッター関数 (必要に応じて)
+export function setAllCategoriesCache(data) { allCategoriesCache = data; }
+export function setAllTagsCache(data) { allTagsCache = data; }
+export function setItemsCache(data) { itemsCache = data; }
+export function setEffectTypesCache(data) { effectTypesCache = data; }
+export function setEffectUnitsCache(data) { effectUnitsCache = data; }
+export function setCharacterBasesCache(data) { characterBasesCache = data; }
 
-// キャッシュをクリアする関数
+
 export function clearAllCaches() {
     allCategoriesCache = [];
     allTagsCache = [];
