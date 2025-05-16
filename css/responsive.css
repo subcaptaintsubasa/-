@@ -1,56 +1,121 @@
 /* css/responsive.css */
+/* Media queries for responsive design on user-facing pages */
+
 @media (max-width: 768px) {
-    .site-header { padding: 8px 15px; height: 50px; }
-    .site-title { font-size: 1.2em; }
-    .hamburger-button { font-size: 1.5em; }
-    .side-navigation.open { width: 200px; }
-    .container { margin-top: 70px; width: 95%; padding: 15px; }
+    /* Header and Navigation */
+    .site-header {
+        padding: 8px 15px; /* Smaller padding */
+        height: 50px; /* Smaller height */
+    }
+    .site-title {
+        font-size: 1.2em; /* Smaller title */
+    }
+    .hamburger-button {
+        font-size: 1.5em; /* Smaller hamburger */
+        padding: 8px;
+    }
+    .side-navigation.open {
+        width: 200px; /* Narrower side nav */
+    }
+    .container {
+        margin-top: 70px; /* Adjusted for smaller header */
+        width: 95%; /* More width on small screens */
+        padding: 15px;
+    }
 
     /* Simulator Modal on Mobile */
     .simulator-modal .modal-content {
         max-height: 85vh; /* Slightly less height on mobile */
         width: 95%; /* More width on mobile */
+        padding: 15px 20px;
     }
     /* ★シミュレーター内の基礎情報選択を調整 */
     .base-selectors {
-        grid-template-columns: 1fr; /* スマホでは1列 */
+        grid-template-columns: 1fr; /* Single column for base selectors */
         gap: 10px;
     }
     .equipment-slots {
-        grid-template-columns: 1fr; /* Single column for slots */
+        grid-template-columns: 1fr; /* Single column for equipment slots */
         gap: 10px;
+    }
+    .slot {
+        padding: 12px;
+    }
+    .selected-item-display .slot-item-name {
+        font-size: 0.9em;
     }
     .calculation-result-area {
         min-height: 80px; /* Smaller min-height */
+        padding: 10px;
     }
     .simulator-actions {
-        flex-direction: row; /* Keep as row if space allows, but wrap */
+        flex-direction: row; /* Keep as row if space allows, but wrap earlier */
         flex-wrap: wrap;
         justify-content: space-around; /* Distribute buttons */
     }
-    .simulator-actions button, .simulator-actions .button-like-secondary {
-        flex-basis: calc(50% - 10px); /* Two buttons per row roughly */
+    .simulator-actions button,
+    .simulator-actions .button-like-secondary {
+        flex-basis: calc(50% - 10px); /* Two buttons per row roughly, considering gap */
         margin-bottom: 10px; /* Space if they wrap */
         padding: 8px 10px; /* Smaller padding */
         font-size: 0.9em;
-        box-sizing: border-box;
+        box-sizing: border-box; /* Ensure padding doesn't break layout */
+        text-align: center; /* Center text in buttons */
     }
 
 
     /* Search Tool on Mobile */
-    .category-button-group { justify-content: center; } /* Center category buttons */
-    .child-category-section { padding: 8px; }
-    .tag-filters-inline { gap: 6px; }
-    .tag-filter { padding: 5px 8px; font-size: 0.8em; }
+    .search-controls {
+        padding: 10px;
+    }
+    #searchInput {
+        font-size: 0.95em;
+        padding: 8px;
+    }
+    .parent-category-filters h2 {
+        font-size: 1em;
+    }
+    .category-button-group {
+        justify-content: center; /* Center category buttons if they wrap */
+        gap: 8px;
+    }
+    .category-filter-button {
+        padding: 7px 12px;
+        font-size: 0.9em;
+    }
+    .child-category-section {
+        padding: 8px;
+    }
+    .child-category-section h4 {
+        font-size: 0.95em;
+    }
+    .tag-filters-inline {
+        gap: 6px;
+    }
+    .tag-filter {
+        padding: 5px 8px;
+        font-size: 0.8em;
+    }
+    #resetFiltersButton {
+        padding: 8px 12px;
+        font-size: 0.9em;
+        width: 100%; /* Full width reset button on mobile */
+    }
 
     /* Item Cards on Mobile */
+    .item-card-compact {
+        padding: 6px 10px;
+        gap: 8px;
+    }
     .item-card-compact .item-image-container {
         margin-right: 8px; /* Less space */
     }
-    .item-card-compact img, .item-card-compact .item-image-text-placeholder {
+    .item-card-compact img,
+    .item-card-compact .item-image-text-placeholder {
         width: 30px; /* Smaller images */
         height: 30px;
         max-height: 30px;
+        min-height: 25px;
     }
     .item-card-compact .item-name-compact {
         font-size: 0.9em;
@@ -59,11 +124,80 @@
         font-size: 0.8em;
     }
 
+    /* Item Detail Modal on Mobile */
+    .item-detail-modal .modal-content {
+        max-width: 95%;
+        padding: 15px;
+    }
+    #itemDetailContent .item-card-full img,
+    #itemDetailContent .item-card-full .item-image-text-placeholder {
+        width: 100px;
+        height: 100px;
+    }
+    #itemDetailContent .item-card-full h3 {
+        font-size: 1.2em;
+    }
+    #itemDetailContent .item-card-full p {
+        font-size: 0.9em;
+    }
 
+    /* Pagination on Mobile */
+    .pagination-button {
+        padding: 6px 10px;
+        font-size: 0.9em;
+    }
+    .page-info {
+        font-size: 0.9em;
+    }
+
+     /* Confirm Selection Button on Mobile */
      .confirm-selection-button {
         padding: 10px 20px; /* Smaller button */
         font-size: 1em;
         right: 10px; /* Closer to edge */
         bottom: 10px;
+        width: calc(100% - 20px); /* More prominent on mobile */
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Further adjustments for very small screens */
+    .site-title {
+        font-size: 1em;
+    }
+    .side-navigation.open {
+        width: 180px;
+    }
+    .container {
+        padding: 10px;
+        margin-top: 60px;
+    }
+    .base-selectors {
+        gap: 8px; /* Even smaller gap */
+    }
+    .slot label {
+        font-size: 0.9em;
+    }
+    .selected-item-display .slot-image {
+        width: 30px;
+        height: 30px;
+    }
+    .simulator-actions button,
+    .simulator-actions .button-like-secondary {
+        flex-basis: 100%; /* Stack buttons fully */
+        font-size: 0.85em;
+    }
+    .category-filter-button {
+        font-size: 0.85em;
+        padding: 6px 10px;
+    }
+    .tag-filter {
+        font-size: 0.75em;
+        padding: 4px 7px;
+    }
+     .confirm-selection-button {
+        font-size: 0.9em;
+        padding: 8px 15px;
     }
 }
