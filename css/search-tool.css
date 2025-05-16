@@ -1,1 +1,363 @@
+/* css/search-tool.css */
+/* --- アイテム検索ツール --- */
+.search-tool-section h2 {
+     font-size: 1.4em;
+     color: #333;
+     margin-bottom: 20px;
+     border-bottom: 2px solid #6c757d; /* Distinctive border for section title */
+     padding-bottom: 5px;
+}
+.search-controls {
+    margin-bottom: 20px; padding: 15px; border: 1px solid #ddd;
+    border-radius: 5px; background-color: #f9f9f9;
+    transition: opacity 0.3s ease-in-out; /* For simulator selection mode */
+}
+.search-tool-message { /* Message for simulator selection mode */
+    background-color: #d1ecf1; /* Light blue info */
+    color: #0c5460;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border: 1px solid #bee5eb;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9em;
+}
+#searchInput {
+    width: calc(100% - 22px); /* Full width with padding adjustment */
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box;
+}
 
+
+.parent-category-filters {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+.parent-category-filters h2 { /* Sub-heading for parent categories */
+    font-size: 1.1em;
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #444;
+}
+.category-button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.category-filter-button {
+    padding: 8px 15px;
+    background-color: #e9ecef; /* Light gray */
+    border: 1px solid #ced4da;
+    border-radius: 20px; /* Pill shape */
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.category-filter-button.disabled { /* For simulator selection mode */
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.category-filter-button:hover:not(.disabled) {
+    background-color: #dee2e6;
+    border-color: #adb5bd;
+}
+.category-filter-button.active {
+    background-color: #007bff; /* Blue for active */
+    color: white;
+    border-color: #0056b3;
+}
+#childCategoriesAndTagsContainer { /* Container for child cats and their tags */
+    margin-top: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px; /* Space before reset button */
+    transition: opacity 0.2s; /* Smooth appearance */
+}
+.child-category-section {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #f0f0f0;
+    border-radius: 5px;
+    background-color: #fdfdfd; /* Slightly off-white */
+}
+.child-category-section h4 { /* Child category name */
+    font-size: 1em;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Ensure search mode wraps if needed */
+}
+.child-category-section h4 .search-mode {
+    font-size: 0.8em;
+    font-weight: normal;
+    color: #6c757d;
+    margin-left: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.tag-filters-inline { /* Container for tags within a child category */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.tag-filter {
+    padding: 6px 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 15px; /* Smaller pill shape for tags */
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: background-color 0.2s, color 0.2s, opacity 0.2s;
+}
+.tag-filter.disabled {
+     opacity: 0.5;
+     cursor: not-allowed;
+}
+.tag-filter:hover:not(.disabled) {
+     background-color: #e0e0e0;
+}
+.tag-filter.active {
+    background-color: #28a745; /* Green for active tags */
+    color: white;
+    border-color: #1e7e34;
+}
+.no-tags-message { /* If a child category has no tags */
+    font-size: 0.85em;
+    color: #888;
+    font-style: italic;
+}
+#resetFiltersButton {
+    padding: 10px 15px; background-color: #6c757d; color: white;
+    border: none; border-radius: 4px; cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 10px; /* Space above the button */
+}
+#resetFiltersButton:hover { background-color: #5a6268; }
+#itemCount { margin-bottom: 15px; font-weight: bold; color: #555; }
+
+/* Item List and Cards */
+.item-list {
+    display: flex;
+    flex-direction: column; /* Stack item cards vertically */
+    gap: 8px; /* Space between item cards */
+}
+
+.item-card-compact {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 12px; /* Compact padding */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    min-height: 40px; /* Ensure consistent height */
+}
+.item-card-compact:hover {
+    border-color: #c0c0c0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+/* Special states for simulator selection */
+.item-card-compact.selectable { /* Indicates items can be chosen for simulator */
+    /* border-left: 3px solid #007bff; */
+    border-color: #80bdff !important; /* Light blue highlight */
+}
+.item-card-compact.selectable:hover {
+     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2) !important; /* More prominent shadow on hover */
+}
+.item-card-compact.selected-for-simulator { /* The currently highlighted item for simulator */
+    border-color: #007bff !important; /* Strong blue border */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5) !important; /* Outer glow */
+    background-color: #e7f3ff !important; /* Light blue background */
+}
+
+
+.item-card-compact .item-image-container {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    height: 100%; /* Match card height for vertical centering */
+}
+.item-card-compact img, .item-card-compact .item-image-text-placeholder {
+    width: auto; /* Maintain aspect ratio */
+    height: calc(100% - 4px); /* Fit within padding */
+    max-height: 38px; /* Max image height */
+    min-height: 30px; /* Min image height for small cards */
+    object-fit: contain; /* Ensure whole image is visible */
+    border-radius: 3px;
+    background-color: #eee;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    display: flex; /* For text placeholder centering */
+    justify-content: center;
+    align-items: center;
+}
+.item-card-compact .item-image-text-placeholder {
+    font-size: 0.7em; /* Smaller text for placeholder */
+}
+
+.item-card-compact .item-info-compact {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0; /* Prevent overflow issues with flex children */
+    justify-content: center; /* Vertically center text if card has extra height */
+}
+.item-card-compact .item-name-compact {
+    font-weight: bold;
+    font-size: 0.95em;
+    color: #0056b3; /* Link-like color */
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.item-card-compact .item-effects-summary-compact {
+    font-size: 0.85em;
+    color: #555;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Item Detail Modal (when clicking an item card normally) */
+.item-detail-modal .modal-content {
+    max-width: 500px; /* Specific width for item detail */
+}
+#itemDetailContent .item-card-full { /* Content inside the item detail modal */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center image and title */
+    padding: 20px; /* Padding for the content area */
+}
+#itemDetailContent .item-card-full img,
+#itemDetailContent .item-card-full .item-image-text-placeholder {
+    width: 120px; /* Larger image for detail view */
+    height: 120px;
+    margin-bottom: 15px;
+    object-fit: cover;
+    border-radius: 4px;
+    background-color: #eee;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    display: flex; /* For text placeholder */
+    justify-content: center;
+    align-items: center;
+}
+#itemDetailContent .item-card-full .item-image-text-placeholder {
+    color: #888;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+#itemDetailContent .item-card-full h3 { /* Item name in detail view */
+    font-size: 1.4em;
+    color: #0056b3;
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+}
+#itemDetailContent .item-card-full p { /* Paragraphs for source, price etc. */
+    font-size: 1em;
+    line-height: 1.6;
+    color: #444;
+    margin-bottom: 10px;
+    width: 100%; /* Full width for text blocks */
+}
+#itemDetailContent .item-card-full p strong {
+    color: #333;
+}
+#itemDetailContent .item-card-full .structured-effects { /* Effects list */
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #555;
+    width: 100%;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+#itemDetailContent .item-card-full .structured-effects ul {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 5px 0 0 0;
+}
+#itemDetailContent .item-card-full .structured-effects li {
+    margin-bottom: 4px;
+}
+#itemDetailContent .item-card-full .tags { /* Tags display in detail view */
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #555;
+    width: 100%;
+    text-align: center; /* Center tags */
+}
+#itemDetailContent .item-card-full .tags span {
+    background-color: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 12px; /* Pill shape for tags */
+    margin: 0 4px 4px 0; /* Spacing for multiple tags */
+    display: inline-block;
+}
+
+
+/* Pagination Controls */
+.pagination-controls {
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+.pagination-button {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.pagination-button:hover:not(:disabled) {
+    background-color: #e0e0e0;
+}
+.pagination-button:disabled {
+    background-color: #f9f9f9;
+    color: #aaa;
+    cursor: not-allowed;
+    border-color: #eee;
+}
+.page-info {
+    font-size: 0.95em;
+    color: #555;
+}
+
+
+/* Confirm Selection Button (for simulator) */
+.confirm-selection-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 25px;
+    font-size: 1.1em;
+    background-color: #28a745; /* Green for confirm */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 1000; /* Above most content */
+    transition: opacity 0.3s, transform 0.3s;
+}
+.confirm-selection-button:hover {
+    background-color: #218838;
+    transform: translateY(-2px); /* Slight lift on hover */
+}
