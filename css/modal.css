@@ -28,8 +28,7 @@
     display: flex; /* Use flex for easier internal layout */
     flex-direction: column;
     max-height: 90vh; /* Max height to prevent overflow on small screens */
-    /* overflow-y: auto; -> This is now handled by the modal itself if its content is too tall. */
-                       /* If modal-content itself needs to scroll, add it here. */
+    overflow-y: auto; /* Allow content itself to scroll if it overflows */
 }
 
 @keyframes fadeInModal {
