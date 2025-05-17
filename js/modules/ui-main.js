@@ -2,12 +2,10 @@
 // Handles general UI interactions like hamburger menu, modal closing, etc.
 // for the user-facing side.
 
-// Callbacks to be set by the main script
 let getIsSelectingForSimulatorCb = () => false;
 let cancelItemSelectionCb = () => {};
 let initializeSimulatorDisplayCb = () => {};
 
-// Cache for frequently accessed DOM elements
 const DOM = {
     sideNav: null,
     hamburgerButton: null,
@@ -21,88 +19,91 @@ const DOM = {
     generatedImagePreview: null,
 };
 
-/**
- * Initializes main UI elements and event listeners.
- * @param {Function} getIsSelectingForSimulator - Callback to check simulator selection mode.
- * @param {Function} cancelItemSelection - Callback to cancel item selection for simulator.
- * @param {Function} initializeSimulatorDisplay - Callback to initialize/reset simulator display.
- */
 export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, initializeSimulatorDisplay) {
+    console.log("[ui-main] initUIMain called"); // ★追加
     getIsSelectingForSimulatorCb = getIsSelectingForSimulator;
     cancelItemSelectionCb = cancelItemSelection;
     initializeSimulatorDisplayCb = initializeSimulatorDisplay;
 
-    // Query DOM elements once
     DOM.sideNav = document.getElementById('sideNav');
     DOM.hamburgerButton = document.getElementById('hamburgerButton');
     DOM.closeNavButton = document.getElementById('closeNavButton');
     DOM.openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
-    DOM.modals = document.querySelectorAll('.modal'); // Get all elements with class 'modal'
+    DOM.modals = document.querySelectorAll('.modal'); // Select all modals for generic handling
     DOM.itemDetailModal = document.getElementById('itemDetailModal');
     DOM.itemDetailContent = document.getElementById('itemDetailContent');
     DOM.simulatorModal = document.getElementById('simulatorModal');
     DOM.imagePreviewModal = document.getElementById('imagePreviewModal');
     DOM.generatedImagePreview = document.getElementById('generatedImagePreview');
 
-    // Setup event listeners
+    console.log("[ui-main] hamburgerButton:", DOM.hamburgerButton); // ★追加
+    console.log("[ui-main] closeNavButton:", DOM.closeNavButton); // ★追加
+    console.log("[ui-main] sideNav:", DOM.sideNav); // ★追加
+
     if (DOM.hamburgerButton && DOM.sideNav) {
         DOM.hamburgerButton.addEventListener('click', () => {
+            console.log("[ui-main] Hamburger button clicked"); // ★追加
             DOM.sideNav.classList.add('open');
         });
+        console.log("[ui-main] Added listener to hamburgerButton"); // ★追加
+    } else {
+        console.warn("[ui-main] Hamburger button or sideNav not found."); // ★追加
     }
 
     if (DOM.closeNavButton && DOM.sideNav) {
         DOM.closeNavButton.addEventListener('click', () => {
+            console.log("[ui-main] Close nav button clicked"); // ★追加
             DOM.sideNav.classList.remove('open');
         });
+        console.log("[ui-main] Added listener to closeNavButton"); // ★追加
+    } else {
+        console.warn("[ui-main] Close nav button or sideNav not found."); // ★追加
     }
 
     if (DOM.openSimulatorButtonNav && DOM.simulatorModal) {
         DOM.openSimulatorButtonNav.addEventListener('click', () => {
+            console.log("[ui-main] Open simulator button (nav) clicked"); // ★追加
             if (getIsSelectingForSimulatorCb()) {
-                // If already in item selection mode for simulator, perhaps do nothing or show a message
-                console.log("Already selecting an item for the simulator.");
+                console.log("[ui-main] Simulator selection in progress, not opening simulator modal."); // ★追加
                 return;
             }
             DOM.simulatorModal.style.display = 'flex';
-            if (initializeSimulatorDisplayCb) initializeSimulatorDisplayCb(); // Ensure simulator UI is fresh
-            if (DOM.sideNav) DOM.sideNav.classList.remove('open'); // Close nav if open
+            if(initializeSimulatorDisplayCb) initializeSimulatorDisplayCb();
+            if (DOM.sideNav) DOM.sideNav.classList.remove('open');
         });
+        console.log("[ui-main] Added listener to openSimulatorButtonNav"); // ★追加
+    } else {
+        console.warn("[ui-main] openSimulatorButtonNav or simulatorModal not found."); // ★追加
     }
 
-    // Attach close handlers to all modal close buttons
+    // Modal close buttons (generic for all modals on user side)
     DOM.modals.forEach(modal => {
         const closeButton = modal.querySelector('.close-button');
         if (closeButton) {
-            // Pass the modal itself to the handler
-            closeButton.addEventListener('click', () => handleModalClose(modal));
+            closeButton.addEventListener('click', () => {
+                console.log(`[ui-main] Close button clicked for modal: ${modal.id || 'unknown'}`); // ★追加
+                handleCloseButtonClick(modal);
+            });
         }
     });
 
-    // Global click listener for closing side nav or modals on overlay click
+    // Close modal on overlay click (generic for all modals on user side)
     window.addEventListener('click', handleGlobalClick);
-    console.log("UI Main Initialized.");
+    console.log("[ui-main] UI Main Initialized."); // ★追加
 }
 
-/**
- * Opens the item detail modal and populates it with item data.
- * @param {Object} item - The item object to display.
- * @param {Array} effectTypesCache - Cache of effect types for display.
- * @param {Array} allTags - Cache of all tags for display.
- * @param {Object} equipmentSlotTagIds - Map of slot names to tag IDs (to optionally filter slot tags from display).
- */
-export function openItemDetailModal(item, effectTypesCache, allTags, equipmentSlotTagIds = {}) {
+export function openItemDetailModal(item, effectTypesCache, allTags) {
     if (!item || !DOM.itemDetailContent || !DOM.itemDetailModal) {
-        console.error("Item data, detail content, or modal element missing for detail view:", item ? item.docId : 'unknown item');
+        console.error("[ui-main] Item data, detail content, or modal element missing for detail view:", item ? item.docId : 'unknown item');
         return;
     }
+    console.log("[ui-main] Opening item detail modal for:", item.name); // ★追加
 
     DOM.itemDetailContent.innerHTML = ''; // Clear previous content
 
     const cardFull = document.createElement('div');
     cardFull.classList.add('item-card-full');
 
-    // Image
     let imageElementHTML;
     if (item.image && item.image.trim() !== "") {
         imageElementHTML = `<img src="${item.image}" alt="${item.name || 'アイテム画像'}" onerror="this.onerror=null; this.src='./images/placeholder_item.png'; this.alt='画像読み込みエラー';">`;
@@ -110,47 +111,42 @@ export function openItemDetailModal(item, effectTypesCache, allTags, equipmentSl
         imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
     }
 
-    // Effects
     let effectsHtml = '<p><strong>効果:</strong> Coming Soon</p>';
-    if (item.structured_effects && item.structured_effects.length > 0 && Array.isArray(effectTypesCache)) {
+    if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache) {
         effectsHtml = `<div class="structured-effects"><strong>効果詳細:</strong><ul>`;
         item.structured_effects.forEach(eff => {
             const effectType = effectTypesCache.find(et => et.id === eff.type);
-            const typeName = effectType ? effectType.name : `不明 (${eff.type.substring(0,6)}...)`;
+            const typeName = effectType ? effectType.name : `不明(${eff.type})`;
             const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
             effectsHtml += `<li>${typeName}: ${eff.value}${unitText}</li>`;
         });
         effectsHtml += `</ul></div>`;
     }
 
-    // Tags (excluding slot tags)
     let tagsHtml = '';
-    const validSlotTagIds = Object.values(equipmentSlotTagIds || {}).filter(id => id !== null);
-    if (item.tags && item.tags.length > 0 && Array.isArray(allTags)) {
-        const displayableTags = item.tags
-            .map(tagId => {
-                const tagObj = allTags.find(t => t.id === tagId);
-                // Only display if it's a valid tag and NOT a slot-defining tag
-                if (tagObj && !validSlotTagIds.includes(tagId)) {
-                    return `<span>${tagObj.name}</span>`;
-                }
-                return null;
-            })
-            .filter(Boolean); // Remove nulls
+    if (item.tags && item.tags.length > 0 && allTags) {
+        // Assuming EQUIPMENT_SLOT_TAG_IDS is available globally or passed if needed for filtering
+        // For this example, it's simplified to show all tags.
+        // const validSlotTagIds = Object.values(EQUIPMENT_SLOT_TAG_IDS || {}).filter(id => id !== null);
+        const displayableTags = item.tags.map(tagId => {
+            const tagObj = allTags.find(t => t.id === tagId);
+            // if (tagObj && !validSlotTagIds.includes(tagId)) return `<span>${tagObj.name}</span>`;
+            if (tagObj) return `<span>${tagObj.name}</span>`;
+            return null;
+        }).filter(Boolean);
 
         if (displayableTags.length > 0) {
             tagsHtml = `<div class="tags">タグ: ${displayableTags.join(' ')}</div>`;
         }
     }
 
-    // Price and Source
     const priceText = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : 'Coming Soon';
-    const sourceText = item.入手手段 || 'Coming Soon'; // Ensure empty string if null/undefined
+    const sourceText = item.入手手段 || 'Coming Soon';
 
-    // Assemble card content
+
     cardFull.innerHTML = `
         ${imageElementHTML}
-        <h3 id="itemDetailModalTitle">${item.name || '名称未設定'}</h3> {/* Added id for aria-labelledby */}
+        <h3>${item.name || '名称未設定'}</h3>
         ${effectsHtml}
         <p><strong>入手手段:</strong> ${sourceText}</p>
         <p><strong>売値:</strong> ${priceText}</p>
@@ -160,48 +156,37 @@ export function openItemDetailModal(item, effectTypesCache, allTags, equipmentSl
     DOM.itemDetailModal.style.display = 'flex';
 }
 
-/**
- * Handles closing a specific modal and performing cleanup.
- * @param {HTMLElement} modalElement - The modal element to close.
- */
-function handleModalClose(modalElement) {
+export function handleCloseButtonClick(modalElement) {
+    console.log(`[ui-main] handleCloseButtonClick for modal:`, modalElement ? (modalElement.id || 'unknown') : 'null element'); // ★追加
     if (!modalElement) return;
     modalElement.style.display = "none";
 
-    // Specific cleanup based on which modal is closing
     if (modalElement === DOM.simulatorModal && getIsSelectingForSimulatorCb()) {
-        if (cancelItemSelectionCb) cancelItemSelectionCb(); // Notify to cancel item selection mode
+        console.log("[ui-main] Simulator modal closed during item selection, cancelling selection."); // ★追加
+        if(cancelItemSelectionCb) cancelItemSelectionCb();
     }
     if (modalElement === DOM.imagePreviewModal && DOM.generatedImagePreview) {
-        DOM.generatedImagePreview.src = "#"; // Clear preview image to free memory
+        DOM.generatedImagePreview.src = "#"; // Clear preview image
     }
     if (modalElement === DOM.itemDetailModal && DOM.itemDetailContent) {
         DOM.itemDetailContent.innerHTML = ''; // Clear detail content
     }
 }
 
-/**
- * Handles global click events, e.g., for closing UI elements.
- * @param {Event} event - The click event.
- */
-function handleGlobalClick(event) {
-    // Close side nav if open and click is outside its area and not on the hamburger button
-    if (DOM.sideNav && DOM.sideNav.classList.contains('open') &&
-        !DOM.sideNav.contains(event.target) && event.target !== DOM.hamburgerButton) {
+export function handleGlobalClick(event) {
+    // Close side nav if open and click is outside
+    if (DOM.sideNav && DOM.sideNav.classList.contains('open') && !DOM.sideNav.contains(event.target) && event.target !== DOM.hamburgerButton) {
+        console.log("[ui-main] Global click detected outside open sideNav, closing nav."); // ★追加
         DOM.sideNav.classList.remove('open');
     }
 
-    // Close modal if click is directly on the modal overlay (not its content)
+    // Close modal if click is on overlay
     if (event.target.classList.contains('modal')) {
-        handleModalClose(event.target);
+        console.log("[ui-main] Global click detected on modal overlay:", event.target.id || 'unknown modal'); // ★追加
+        handleCloseButtonClick(event.target);
     }
 }
 
-/**
- * Displays or hides the search tool message (used for simulator item selection).
- * @param {string} message - The message to display. If empty/null, hides the message.
- * @param {boolean} [show=true] - Whether to show or hide the message.
- */
 export function displaySearchToolMessage(message, show = true) {
     const searchToolMessageEl = document.getElementById('searchToolMessage');
     if (searchToolMessageEl) {
@@ -214,10 +199,6 @@ export function displaySearchToolMessage(message, show = true) {
     }
 }
 
-/**
- * Shows or hides the "Confirm Selection" button for the simulator.
- * @param {boolean} [show=true] - Whether to show or hide the button.
- */
 export function showConfirmSelectionButton(show = true) {
     const confirmButton = document.getElementById('confirmSelectionButton');
     if (confirmButton) {
@@ -225,16 +206,11 @@ export function showConfirmSelectionButton(show = true) {
     }
 }
 
-/**
- * Closes all known modals.
- */
 export function closeAllModals() {
-    if (DOM.modals) {
-        DOM.modals.forEach(modal => {
-            // Use the specific handler to ensure cleanup logic is run
-            handleModalClose(modal);
-        });
-    }
-    // Additional global cleanup if necessary
-    console.log("All modals closed.");
+    console.log("[ui-main] closeAllModals called"); // ★追加
+    DOM.modals.forEach(modal => {
+        modal.style.display = 'none';
+    });
+    if (DOM.generatedImagePreview) DOM.generatedImagePreview.src = "#";
+    if (DOM.itemDetailContent) DOM.itemDetailContent.innerHTML = '';
 }
