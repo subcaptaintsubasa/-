@@ -4,6 +4,9 @@
 
 const adminModals = {}; // Cache for admin modal elements: { modalId: element }
 
+// Admin Navigation specific elements
+let adminSideNavEl, adminHamburgerButtonEl, adminCloseNavButtonEl;
+
 /**
  * Initializes common UI helper functionalities.
  * Focuses on generic modal close behavior.
@@ -11,7 +14,7 @@ const adminModals = {}; // Cache for admin modal elements: { modalId: element }
 export function initUIHelpers() {
     console.log("[ui-helpers] initUIHelpers called");
 
-    // ★修正: セレクタから #admin-content を削除
+    // Generic modal close button handler
     const closeButtons = document.querySelectorAll('body#admin-page .modal .close-button');
     console.log("[ui-helpers] Close buttons found by querySelectorAll('body#admin-page .modal .close-button'):", closeButtons.length, closeButtons);
     closeButtons.forEach((btn, index) => {
@@ -25,7 +28,6 @@ export function initUIHelpers() {
                 const clickedButton = event.currentTarget;
                 const parentModal = clickedButton.closest('.modal');
                 console.log("[ui-helpers] Close button CLICKED:", clickedButton);
-                console.log("[ui-helpers] Parent modal found for click:", parentModal);
                 if (parentModal && parentModal.id) {
                     closeModal(parentModal.id);
                 } else {
@@ -38,7 +40,7 @@ export function initUIHelpers() {
         }
     });
 
-    // ★修正: セレクタから #admin-content を削除
+    // Generic modal overlay click handler
     const allModalsForOverlay = document.querySelectorAll('body#admin-page .modal');
     console.log("[ui-helpers] Modals found for overlay click by querySelectorAll('body#admin-page .modal'):", allModalsForOverlay.length, allModalsForOverlay);
     allModalsForOverlay.forEach((modal, index) => {
@@ -60,6 +62,64 @@ export function initUIHelpers() {
     });
     console.log("Admin UI Helpers Initialized with corrected selectors.");
 }
+
+/**
+ * Initializes Admin Panel Navigation (Hamburger Menu, Side Nav).
+ */
+export function initAdminNavigation() {
+    console.log("[ui-helpers] initAdminNavigation called");
+    adminSideNavEl = document.getElementById('adminSideNav');
+    adminHamburgerButtonEl = document.getElementById('adminHamburgerButton');
+    adminCloseNavButtonEl = document.getElementById('adminCloseNavButton');
+
+    if (adminHamburgerButtonEl && adminSideNavEl) {
+        adminHamburgerButtonEl.addEventListener('click', () => {
+            console.log("[ui-helpers] Admin hamburger clicked");
+            adminSideNavEl.classList.add('open');
+        });
+        console.log("[ui-helpers] Added listener to adminHamburgerButton");
+    } else {
+        console.warn("[ui-helpers] Admin hamburger button or side nav not found for initAdminNavigation.");
+    }
+
+    if (adminCloseNavButtonEl && adminSideNavEl) {
+        adminCloseNavButtonEl.addEventListener('click', () => {
+            console.log("[ui-helpers] Admin close nav clicked");
+            adminSideNavEl.classList.remove('open');
+        });
+        console.log("[ui-helpers] Added listener to adminCloseNavButton");
+    } else {
+        console.warn("[ui-helpers] Admin close nav button or side nav not found for initAdminNavigation.");
+    }
+
+    // Event listeners for nav buttons opening modals
+    if (adminSideNavEl) {
+        const navButtons = adminSideNavEl.querySelectorAll('.admin-nav-button');
+        console.log(`[ui-helpers] Found ${navButtons.length} admin-nav-buttons for modal targeting.`);
+        navButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const targetModalId = event.currentTarget.dataset.modalTarget;
+                if (targetModalId) {
+                    console.log(`[ui-helpers] Admin nav button clicked for modal: ${targetModalId}`);
+                    // Optional: Close all other admin-management-modals first for a single view experience
+                    document.querySelectorAll('.modal.admin-management-modal.active-modal').forEach(m => {
+                        if (m.id !== targetModalId) {
+                            console.log(`[ui-helpers] Closing other active management modal: ${m.id}`);
+                            closeModal(m.id);
+                        }
+                    });
+                    openModal(targetModalId); // openModal from this ui-helpers.js
+                    if (adminSideNavEl) adminSideNavEl.classList.remove('open'); // Close nav after selection
+                } else {
+                    console.warn("[ui-helpers] Admin nav button clicked, but no data-modal-target found:", event.currentTarget);
+                }
+            });
+        });
+    } else {
+        console.warn("[ui-helpers] Admin side nav not found, cannot attach listeners to nav buttons.");
+    }
+}
+
 
 /**
  * Opens a specific admin modal.
