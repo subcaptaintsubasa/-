@@ -1,150 +1,136 @@
-// js/script-main.js
-import { db } from '../firebase-config.js'; // Firebase設定をインポート
-import { loadData, getAllItems, getAllCategories, getAllTags, getEffectTypesCache, getCharacterBasesCache, EQUIPMENT_SLOT_TAG_IDS, SIMULATOR_PARENT_CATEGORY_NAME, SIMULATOR_EFFECT_CHILD_CATEGORY_NAME } from './modules/data-loader.js';
-import { initUIMain, openItemDetailModal, closeAllModals, handleGlobalClick, handleCloseButtonClick, cancelItemSelection } from './modules/ui-main.js';
-import { initSearchFilters, filterAndRenderItems, getSelectedParentCategoryIds, getSelectedTagIds, getCurrentPage, setItemsPerPage, setCurrentPage, getTemporarilySelectedItem, setTemporarilySelectedItem, isSelectingForSimulator, getCurrentSelectingSlot, setCurrentSelectingSlot } from './modules/search-filters.js';
-import { initSimulatorUI, updateSimulatorSlotDisplay, calculateAndDisplayTotalEffects, initializeSimulatorDisplay, getSelectedEquipment, getSelectedCharacterBase, setSelectedCharacterBaseValue } from './modules/simulator-ui.js';
-import { initSimulatorLogic } from './modules/simulator-logic.js'; // handleCharacterBaseChange を含む
-import { initSimulatorImage } from './modules/simulator-image.js';
+// js/script-main.js (修正案・全文)
+import { db } from '../firebase-config.js';
+import {
+    loadData,
+    getAllItems, getAllCategories, getAllTags, getEffectTypesCache, getCharacterBasesCache,
+    EQUIPMENT_SLOT_TAG_IDS, SIMULATOR_PARENT_CATEGORY_NAME, SIMULATOR_EFFECT_CHILD_CATEGORY_NAME
+} from './modules/data-loader.js';
+import {
+    initUIMain,
+    displaySearchToolMessage, showConfirmSelectionButton
+} from './modules/ui-main.js';
+import {
+    initSearchFilters, applyFiltersAndRender,
+    activateSimulatorSelectionMode, deactivateSimulatorSelectionMode, cancelItemSelection,
+    setTemporarilySelectedItemExport, // ★静的インポートで持ってくる
+    isSelectingForSimulatorState as getIsSelectingForSimulator,
+    getCurrentSelectingSlotState as getCurrentSelectingSlot
+} from './modules/search-filters.js'; // ★search-filters.js から必要なものをインポート
+import {
+    initSearchRender
+} from './modules/search-render.js';
+import {
+    initSimulatorUI, updateSimulatorSlotDisplay, calculateAndDisplayTotalEffects, initializeSimulatorDisplay,
+    getSelectedEquipment, getSelectedCharacterBase, setSelectedCharacterBaseValue, updateSelectedEquipment
+} from './modules/simulator-ui.js';
+import { initSimulatorLogic } from './modules/simulator-logic.js';
+import { initSimulatorImage, getSimulatorDOMS as getSimulatorImageDOMS } from './modules/simulator-image.js';
+
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // --- DOM Elements ---
-    // 主要なDOM要素はこちらで取得し、各モジュールに渡すか、各モジュール内で取得します。
-    // 例: const searchInput = document.getElementById('searchInput');
+    console.log("[script-main] DOMContentLoaded, starting app init...");
+
     const simulatorModal = document.getElementById('simulatorModal');
-    const itemDetailModal = document.getElementById('itemDetailModal');
 
-    // --- Global State (example, can be managed within modules too) ---
-    // let currentFilteredItems = []; // search-filters.js or search-render.jsへ移動検討
-
-    // Initialize main UI elements (hamburger, nav, modal closing logic)
     initUIMain(
-        () => isSelectingForSimulator(), // getIsSelectingForSimulator
-        cancelItemSelection,             // pass cancelItemSelection from search-filters
-        initializeSimulatorDisplay       // pass initializeSimulatorDisplay from simulator-ui
+        getIsSelectingForSimulator,
+        cancelItemSelection,
+        initializeSimulatorDisplay
     );
 
-
-    // Load all necessary data from Firestore
     try {
-        await loadData(db); // dbを渡す
+        console.log("[script-main] Calling loadData...");
+        await loadData(db);
+        console.log("[script-main] loadData finished successfully.");
 
-        // Initialize Search Tool
-        initSearchFilters(db, {
-            onFilterChange: filterAndRenderItems, // filterAndRenderItems needs access to all data from data-loader
-            onItemSelectForSimulator: (itemId) => {
-                // This function would be called from search-render when an item is clicked in simulator mode
-                // It might need to update a temporary selection state.
-                 setTemporarilySelectedItem(itemId);
-            },
-            getSlotTagId: (slotName) => EQUIPMENT_SLOT_TAG_IDS[slotName], // Pass the map
-            simulatorParentCategoryName: SIMULATOR_PARENT_CATEGORY_NAME,
-            simulatorEffectChildCategoryName: SIMULATOR_EFFECT_CHILD_CATEGORY_NAME
+        initSearchRender({
+            getAllItems: getAllItems,
+            getEffectTypesCache: getEffectTypesCache,
+            getAllTags: getAllTags,
+            onItemTempSelect: (itemId) => {
+                // ★修正点: 静的インポートした関数を直接呼び出す
+                setTemporarilySelectedItemExport(itemId);
+            }
         });
 
-
-        // Initialize Simulator
-        initSimulatorUI(db, {
-            onSlotSelectStart: (slotName) => {
-                // Logic from original startItemSelectionForSlot
-                // This will interact with search-filters to set mode and pre-filter
-                setCurrentSelectingSlot(slotName); // simulator-ui or main state
-
-                const slotTagId = EQUIPMENT_SLOT_TAG_IDS[slotName];
-                if (slotTagId === undefined || slotTagId === null) {
-                    alert(`部位「${slotName}」に対応するタグIDが設定されていません。`);
-                    return;
-                }
-                // isSelectingForSimulator = true; // Managed by search-filters
-                // temporarilySelectedItem = selectedEquipment[slotName] || null; // Managed by search-filters
-                // currentPage = 1; // Managed by search-filters
-
-                simulatorModal.style.display = 'none';
-
-                // Trigger filter setup in search-filters.js
-                // This requires search-filters.js to expose a function to set simulator mode
-                // e.g., setSearchModeForSimulator(true, slotName, slotTagId);
-                // For now, let's assume direct state manipulation or callbacks
-                const searchFiltersModule = await import('./modules/search-filters.js');
-                searchFiltersModule.activateSimulatorSelectionMode(slotName, slotTagId, getSelectedEquipment()[slotName] || null);
-                filterAndRenderItems(); // Re-filter based on new mode
-
-                const searchToolMessage = document.getElementById('searchToolMessage');
-                if (searchToolMessage) {
-                    searchToolMessage.textContent = `「${slotName}」のアイテムを選択し、「決定」ボタンを押してください。`;
-                    searchToolMessage.style.display = 'block';
-                }
-                document.getElementById('confirmSelectionButton').style.display = 'block';
-                // Scroll logic...
-            },
+        initSearchFilters(db, {
+            getAllItems: getAllItems,
+            getAllCategories: getAllCategories,
+            getAllTags: getAllTags,
+            getEffectTypesCache: getEffectTypesCache,
+            getSlotTagId: (slotName) => EQUIPMENT_SLOT_TAG_IDS[slotName],
+            simulatorParentCategoryName: SIMULATOR_PARENT_CATEGORY_NAME,
+            simulatorEffectChildCategoryName: SIMULATOR_EFFECT_CHILD_CATEGORY_NAME,
+            onFilterChange: applyFiltersAndRender,
             onSelectionConfirmed: (slotName, selectedItemId) => {
-                // Logic from original confirmSelectionButton click
-                const simUI = await import('./modules/simulator-ui.js');
-                simUI.updateSelectedEquipment(slotName, selectedItemId); // Update state in simulator-ui
-                // isSelectingForSimulator = false; // Managed by search-filters
-                // currentSelectingSlot = null; // Managed by search-filters
-                // temporarilySelectedItem = null; // Managed by search-filters
-                // currentPage = 1; // Managed by search-filters
-
-                document.getElementById('searchToolMessage').style.display = 'none';
-                document.getElementById('confirmSelectionButton').style.display = 'none';
-
-                // Reset search filters to normal mode
-                const searchFiltersModule = await import('./modules/search-filters.js');
-                searchFiltersModule.deactivateSimulatorSelectionMode();
-                filterAndRenderItems(); // Re-filter
-
-                simulatorModal.style.display = 'flex';
+                console.log(`[script-main] Simulator selection confirmed for slot '${slotName}', item ID: '${selectedItemId}'`);
+                updateSelectedEquipment(slotName, selectedItemId);
+                deactivateSimulatorSelectionMode();
+                if (simulatorModal) simulatorModal.style.display = 'flex';
                 updateSimulatorSlotDisplay(slotName);
                 calculateAndDisplayTotalEffects();
             },
+            displaySearchToolMessage: displaySearchToolMessage,
+            showConfirmSelectionButton: showConfirmSelectionButton,
+        });
+
+        initSimulatorUI(db, {
+            getAllItems: getAllItems,
+            getEffectTypesCache: getEffectTypesCache,
+            getCharacterBasesCache: getCharacterBasesCache,
+            onSlotSelectStart: (slotName) => {
+                console.log(`[script-main] Starting item selection for slot: ${slotName}`);
+                if (simulatorModal) simulatorModal.style.display = 'none';
+                const slotTagId = EQUIPMENT_SLOT_TAG_IDS[slotName];
+                if (slotTagId === undefined || slotTagId === null) {
+                    alert(`部位「${slotName}」に対応するタグIDが設定されていません。管理画面で設定を確認してください。`);
+                    if (simulatorModal) simulatorModal.style.display = 'flex';
+                    return;
+                }
+                activateSimulatorSelectionMode(slotName, slotTagId, getSelectedEquipment()[slotName] || null);
+            },
             onSlotClear: (slotName) => {
-                 const simUI = await import('./modules/simulator-ui.js');
-                 simUI.updateSelectedEquipment(slotName, null);
-                 updateSimulatorSlotDisplay(slotName);
-                 calculateAndDisplayTotalEffects();
+                console.log(`[script-main] Clearing slot: ${slotName}`);
+                updateSelectedEquipment(slotName, null);
+                updateSimulatorSlotDisplay(slotName);
+                calculateAndDisplayTotalEffects();
             },
             getCharacterBaseOptionData: (baseType, optionId) => {
                 const bases = getCharacterBasesCache();
-                if (bases[baseType]) {
-                    return bases[baseType].find(opt => opt.id === optionId) || null;
-                }
-                return null;
-            },
-            getAllItems: getAllItems, // Pass item data access
-            getEffectTypes: getEffectTypesCache // Pass effect type data access
+                return bases[baseType] ? (bases[baseType].find(opt => opt.id === optionId) || null) : null;
+            }
         });
 
-        initSimulatorLogic({ // Pass dependencies to simulator-logic
+        initSimulatorLogic({
             getSelectedCharacterBase: getSelectedCharacterBase,
             setSelectedCharacterBaseValue: setSelectedCharacterBaseValue,
             calculateAndDisplayTotalEffects: calculateAndDisplayTotalEffects,
             getCharacterBasesCache: getCharacterBasesCache,
         });
 
-
-        initSimulatorImage({ // Pass dependencies to simulator-image
+        initSimulatorImage({
             getSelectedCharacterBase: getSelectedCharacterBase,
             getCharacterBasesCache: getCharacterBasesCache,
             getSelectedEquipment: getSelectedEquipment,
             getAllItems: getAllItems,
-            getTotalEffectsDisplayHTML: () => document.getElementById('totalEffectsDisplay').innerHTML, // Example
+            getTotalEffectsDisplayHTML: () => document.getElementById('totalEffectsDisplay').innerHTML,
+            getSimulatorDOMS: getSimulatorImageDOMS
         });
 
+        console.log("[script-main] Performing initial item list render...");
+        applyFiltersAndRender();
+        console.log("[script-main] Performing initial simulator display setup...");
+        initializeSimulatorDisplay();
 
-        // Initial render of items (all items, page 1)
-        filterAndRenderItems();
-        initializeSimulatorDisplay(); // Initialize simulator with default/empty state
-
-        console.log("Data loading and initial setup complete via script-main.js.");
+        console.log("[script-main] All data loading and initial setup complete.");
 
     } catch (error) {
-        console.error("Error during initial data load or setup:", error);
-        document.getElementById('itemList').innerHTML = `<p style="color: red;">データの読み込みまたは初期化に失敗しました。</p>`;
+        console.error("[script-main] CRITICAL ERROR during app initialization:", error);
+        const itemListEl = document.getElementById('itemList');
+        if (itemListEl) {
+            itemListEl.innerHTML = `<p style="color: red; text-align: center; padding: 20px;">アプリケーションの起動に失敗しました。データの読み込み中にエラーが発生した可能性があります。ページを再読み込みするか、管理者にお問い合わせください。</p>`;
+        }
+        const containerEl = document.querySelector('.container');
+        if(containerEl) containerEl.innerHTML = `<p style="color: red; text-align: center; padding: 20px;">エラーが発生しました。詳細はコンソールを確認してください。</p>`;
     }
 });
-
-// Note: Functions like filterAndRenderItems, updateSimulatorSlotDisplay, calculateAndDisplayTotalEffects, etc.,
-// would either be part of a module and imported, or this main script would orchestrate calls
-// between modules. For simplicity in this example, some direct calls are assumed.
-// A more robust approach might involve custom events or a more formal state management.
