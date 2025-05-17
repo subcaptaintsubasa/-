@@ -37,10 +37,14 @@ export function initUIHelpers() {
 export function openModal(modalId) {
     const modal = adminModals[modalId] || document.getElementById(modalId);
     if (modal) {
-        // Instead of modal.style.display = 'flex';
-        // We will add a class that has display: flex !important;
+        // ★修正点: インラインの display スタイルを直接操作せず、クラスの追加のみに依存する
         modal.classList.add('active-modal');
-        modal.style.display = ''; // Clear any inline display none from HTML
+        // HTMLに style="display:none;" がある場合、それを削除するか、
+        // CSSの .active-modal の display プロパティで上書きできるようにする。
+        // もしHTMLのインラインスタイルが残っているなら、それを削除
+        if (modal.hasAttribute('style') && modal.style.display === 'none') {
+            modal.style.display = ''; // インラインの display:none をクリア
+        }
         if (!adminModals[modalId]) adminModals[modalId] = modal; // Cache if opened directly
     } else {
         console.warn(`Modal with ID "${modalId}" not found.`);
@@ -54,15 +58,16 @@ export function openModal(modalId) {
 export function closeModal(modalId) {
     const modal = adminModals[modalId];
     if (modal) {
-        // Instead of modal.style.display = 'none';
-        // We will remove the class
+        // ★修正点: クラスの削除のみに依存する
         modal.classList.remove('active-modal');
-        // Optionally, to ensure it's hidden if the class removal isn't enough due to other styles:
-        modal.style.display = 'none';
+        // HTMLに style="display:none;" を設定する代わりに、CSSのデフォルト（.modal）で非表示にする
+        // modal.style.display = 'none'; // これは削除またはコメントアウト
     } else {
         console.warn(`Modal with ID "${modalId}" not found or not cached for closing.`);
     }
 }
+
+// ... (populateSelect, populateCheckboxGroup などの他の関数は変更なし) ...
 
 /**
  * Populates a select element with options.
