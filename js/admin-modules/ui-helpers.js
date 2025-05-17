@@ -13,53 +13,56 @@ export function initUIHelpers() {
 
     // Generic modal close button handler
     const closeButtons = document.querySelectorAll('#admin-content .modal .close-button');
-    console.log("[ui-helpers] Close buttons found by querySelectorAll:", closeButtons); // ★デバッグログ
-    closeButtons.forEach(btn => {
+    console.log("[ui-helpers] Close buttons found by querySelectorAll:", closeButtons.length, closeButtons); // ★デバッグログ
+    closeButtons.forEach((btn, index) => {
+        console.log(`[ui-helpers] Processing close button #${index}:`, btn); // ★どのボタンか特定
         const modalElementForListener = btn.closest('.modal');
         if (modalElementForListener && modalElementForListener.id) {
             if (!adminModals[modalElementForListener.id]) {
                 adminModals[modalElementForListener.id] = modalElementForListener;
             }
-            // イベントリスナーを一度削除してから追加（重複防止）
+            // イベントリスナーを一度削除してから追加（重複防止の試みだが、通常はinitUIHelpersが一度しか呼ばれないなら不要）
             // btn.removeEventListener('click', handleModalCloseButtonClick); // 名前付き関数での削除は一旦保留
             btn.addEventListener('click', (event) => { // ★デバッグのため一時的に匿名関数に戻す
                 const clickedButton = event.currentTarget;
                 const parentModal = clickedButton.closest('.modal');
-                console.log("[ui-helpers] Close button clicked:", clickedButton); // ★デバッグログ
-                console.log("[ui-helpers] Parent modal found by closest:", parentModal); // ★デバッグログ
+                console.log("[ui-helpers] Close button CLICKED:", clickedButton); // ★デバッグログ
+                console.log("[ui-helpers] Parent modal found for click:", parentModal); // ★デバッグログ
                 if (parentModal && parentModal.id) {
                     closeModal(parentModal.id);
                 } else {
-                    console.error("[ui-helpers] Could not find parent .modal for close button:", clickedButton);
+                    console.error("[ui-helpers] Could not find parent .modal for clicked close button:", clickedButton);
                 }
             });
-            console.log("[ui-helpers] Added click listener to close button for modal:", modalElementForListener.id, btn); // ★デバッグログ
+            console.log(`[ui-helpers] SUCCESSFULLY Added click listener to close button for modal '${modalElementForListener.id}'. Button:`, btn); // ★デバッグログ
         } else {
-            console.warn("[ui-helpers] Close button found without a valid parent .modal or modal ID:", btn, modalElementForListener); // ★デバッグログ
+            console.warn("[ui-helpers] Close button SKIPPED (no valid parent .modal with ID, or button not in modal). Button:", btn, "Found parent modal:", modalElementForListener); // ★デバッグログ
         }
     });
 
     // Generic modal overlay click handler
     const allModalsForOverlay = document.querySelectorAll('#admin-content .modal');
-    console.log("[ui-helpers] Modals found for overlay click:", allModalsForOverlay); // ★デバッグログ
-    allModalsForOverlay.forEach(modal => {
+    console.log("[ui-helpers] Modals found for overlay click:", allModalsForOverlay.length, allModalsForOverlay); // ★デバッグログ
+    allModalsForOverlay.forEach((modal, index) => {
+        console.log(`[ui-helpers] Processing modal #${index} for overlay click:`, modal); // ★どのモーダルか特定
         if (modal.id) {
             if (!adminModals[modal.id]) {
                 adminModals[modal.id] = modal;
             }
             // modal.removeEventListener('click', handleModalOverlayClick); // 名前付き関数での削除は一旦保留
             modal.addEventListener('click', function(event) { // ★デバッグのため一時的に匿名関数に戻す (this を使うため function キーワード)
-                console.log("[ui-helpers] Modal overlay clicked. Target:", event.target, "CurrentTarget (this):", this); // ★デバッグログ
+                // console.log("[ui-helpers] Modal overlay area clicked. Target:", event.target, "CurrentTarget (this):", this); // より詳細なログが必要な場合
                 if (event.target === this && this.id) { // Check if the click is directly on the modal overlay and it has an ID
+                    console.log(`[ui-helpers] Overlay click detected for modal '${this.id}'. Closing.`); // ★デバッグログ
                     closeModal(this.id);
                 }
             });
-            console.log("[ui-helpers] Added click listener to modal overlay for:", modal.id); // ★デバッグログ
+            console.log(`[ui-helpers] SUCCESSFULLY Added overlay click listener for modal '${modal.id}'.`); // ★デバッグログ
         } else {
-            console.warn("[ui-helpers] Modal element found without an ID, cannot attach overlay click:", modal); // ★デバッグログ
+            console.warn("[ui-helpers] Modal element found without an ID, cannot attach overlay click listener:", modal); // ★デバッグログ
         }
     });
-    console.log("Admin UI Helpers Initialized with debug logs.");
+    console.log("Admin UI Helpers Initialized with enhanced debug logs.");
 }
 
 /**
@@ -321,6 +324,6 @@ export function clearForm(formElement) {
  * @param {string} [prefix='uid-'] - Optional prefix for the ID.
  * @returns {string}
  */
-function simpleUID(prefix = 'uid-') {
+function simpleUID(prefix = 'uid-') { // This was added here temporarily, ideally from utils.js
     return prefix + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
 }
