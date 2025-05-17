@@ -37,13 +37,11 @@ export function initUIHelpers() {
 export function openModal(modalId) {
     const modal = adminModals[modalId] || document.getElementById(modalId);
     if (modal) {
-        // ★修正点: インラインの display スタイルを直接操作せず、クラスの追加のみに依存する
         modal.classList.add('active-modal');
-        // HTMLに style="display:none;" がある場合、それを削除するか、
-        // CSSの .active-modal の display プロパティで上書きできるようにする。
-        // もしHTMLのインラインスタイルが残っているなら、それを削除
+        // If the HTML has an inline style="display:none;", this will clear it
+        // so the class-based display:flex can take effect.
         if (modal.hasAttribute('style') && modal.style.display === 'none') {
-            modal.style.display = ''; // インラインの display:none をクリア
+            modal.style.display = '';
         }
         if (!adminModals[modalId]) adminModals[modalId] = modal; // Cache if opened directly
     } else {
@@ -58,30 +56,32 @@ export function openModal(modalId) {
 export function closeModal(modalId) {
     const modal = adminModals[modalId];
     if (modal) {
-        // ★修正点: クラスの削除のみに依存する
         modal.classList.remove('active-modal');
-        // HTMLに style="display:none;" を設定する代わりに、CSSのデフォルト（.modal）で非表示にする
-        // modal.style.display = 'none'; // これは削除またはコメントアウト
+        // The .modal class itself should have display: none by default in CSS.
+        // Setting style.display = 'none' here can be a fallback if CSS isn't working as expected.
+        // However, relying on class toggling is generally cleaner.
+        // modal.style.display = 'none'; // Can be added if class removal alone isn't hiding it.
     } else {
         console.warn(`Modal with ID "${modalId}" not found or not cached for closing.`);
     }
 }
 
-// ... (populateSelect, populateCheckboxGroup などの他の関数は変更なし) ...
-
 /**
  * Populates a select element with options.
  * @param {HTMLSelectElement} selectElement - The select DOM element.
  * @param {Array<Object>} optionsArray - Array of { value: string, text: string } objects.
- * @param {string} [defaultText='Select...'] - Text for the default empty option.
+ * @param {string} [defaultText='Select...'] - Text for the default empty option. If null, no default empty option is added.
  * @param {string} [selectedValue=''] - The value to pre-select.
  */
 export function populateSelect(selectElement, optionsArray, defaultText = '選択してください...', selectedValue = '') {
-    if (!selectElement) return;
+    if (!selectElement) {
+        console.warn("populateSelect: selectElement is null or undefined.");
+        return;
+    }
     const currentValue = selectElement.value || selectedValue; // Preserve current value if exists
 
     selectElement.innerHTML = ''; // Clear existing options
-    if (defaultText) {
+    if (defaultText !== null) { // Allow disabling the default empty option by passing null
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = defaultText;
@@ -98,8 +98,10 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
     // Try to re-select the previous or specified value
     if (Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
         selectElement.value = currentValue;
-    } else if (defaultText) {
-        selectElement.value = ''; // Fallback to default empty option
+    } else if (defaultText !== null) {
+        selectElement.value = ''; // Fallback to default empty option if it exists
+    } else if (optionsArray.length > 0) {
+        selectElement.value = optionsArray[0].value; // Select first actual option if no default and options exist
     }
 }
 
@@ -113,16 +115,21 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
  * @param {string} idPrefix - A prefix for generating unique checkbox IDs.
  */
 export function populateCheckboxGroup(containerElement, items, selectedIds = [], checkboxName, idPrefix = 'cb-') {
-    if (!containerElement) return;
+    if (!containerElement) {
+        console.warn("populateCheckboxGroup: containerElement is null or undefined.");
+        return;
+    }
     containerElement.innerHTML = '';
 
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
         containerElement.innerHTML = '<p>利用可能な選択肢がありません。</p>';
         return;
     }
 
     items.forEach(item => {
-        const checkboxId = `${idPrefix}${item.id}-${containerElement.id.replace(/\W/g, '')}`;
+        // Ensure containerElement.id is valid for constructing checkboxId
+        const safeContainerId = containerElement.id ? containerElement.id.replace(/\W/g, '') : simpleUID('container');
+        const checkboxId = `${idPrefix}${item.id}-${safeContainerId}`;
         const checkboxWrapper = document.createElement('div');
         checkboxWrapper.classList.add('checkbox-item');
 
@@ -157,18 +164,20 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
  * @param {Array<string>} activeTagIds - Array of tag IDs that should be marked active.
  */
 export function populateTagButtonSelector(containerElement, tags, activeTagIds = []) {
-    if (!containerElement) return;
+    if (!containerElement) {
+        console.warn("populateTagButtonSelector: containerElement is null or undefined.");
+        return;
+    }
     containerElement.innerHTML = '';
 
-    if (tags.length === 0) {
+    if (!tags || tags.length === 0) {
         containerElement.innerHTML = '<p>利用可能なタグがありません。</p>';
         return;
     }
 
     tags.forEach(tag => {
         const button = document.createElement('div');
-        // Assuming styles for '.tag-filter.admin-tag-select' exist from admin-lists.css
-        button.className = 'tag-filter admin-tag-select';
+        button.className = 'tag-filter admin-tag-select'; // Ensure these classes are defined in CSS
         button.textContent = tag.name;
         button.dataset.tagId = tag.id;
         if (activeTagIds.includes(tag.id)) {
@@ -176,7 +185,6 @@ export function populateTagButtonSelector(containerElement, tags, activeTagIds =
         }
         button.addEventListener('click', () => {
             button.classList.toggle('active');
-            // The calling manager module will read the active state when saving.
         });
         containerElement.appendChild(button);
     });
@@ -212,24 +220,53 @@ export function getSelectedTagButtonValues(containerElement) {
  * @param {HTMLElement} formElement - The form or container element.
  */
 export function clearForm(formElement) {
-    if (!formElement) return;
+    if (!formElement) {
+        console.warn("clearForm: formElement is null or undefined.");
+        return;
+    }
 
-    // Native form reset for <form> elements
     if (formElement.tagName === 'FORM') {
-        formElement.reset();
+        formElement.reset(); // Native form reset
     } else { // For other containers, manually clear inputs
         const inputs = formElement.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
-            if (input.type === 'checkbox' || input.type === 'radio') {
-                input.checked = false;
-            } else if (input.type === 'file') {
-                input.value = null;
-            } else {
-                input.value = '';
+            const type = input.type ? input.type.toLowerCase() : input.tagName.toLowerCase();
+            switch (type) {
+                case 'text':
+                case 'password':
+                case 'textarea':
+                case 'hidden':
+                case 'number':
+                case 'email':
+                case 'url':
+                case 'search':
+                case 'tel':
+                    input.value = '';
+                    break;
+                case 'checkbox':
+                case 'radio':
+                    input.checked = false;
+                    break;
+                case 'select-one':
+                case 'select-multiple':
+                case 'select': // Fallback for select elements
+                    input.selectedIndex = -1; // Deselect all options
+                    if (input.options.length > 0 && input.options[0].value === "") {
+                        input.selectedIndex = 0; // Select the default empty option if it exists
+                    }
+                    break;
+                case 'file':
+                    input.value = null; // For file inputs
+                    break;
+                default:
+                    // For other input types, a general value clear might work or need specific handling
+                    // console.log("Clearing unknown input type:", type, input);
+                    // input.value = ''; // Tentative clear
+                    break;
             }
             // Trigger change event for selects if needed for dependent UI updates
             if (input.tagName === 'SELECT') {
-                input.dispatchEvent(new Event('change'));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
     }
@@ -237,4 +274,13 @@ export function clearForm(formElement) {
     formElement.querySelectorAll('.active[data-tag-id], .active[data-parent-id]').forEach(activeEl => {
         activeEl.classList.remove('active');
     });
+}
+
+/**
+ * Generates a simple unique ID. Not for cryptographic purposes.
+ * @param {string} [prefix='uid-'] - Optional prefix for the ID.
+ * @returns {string}
+ */
+function simpleUID(prefix = 'uid-') {
+    return prefix + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
 }
