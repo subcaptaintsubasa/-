@@ -11,7 +11,8 @@
     height: 100%;
     overflow: auto; /* Enable scroll for overlay if modal is too tall */
     background-color: rgba(0,0,0,0.6); /* Semi-transparent background */
-    display: none; /* Hidden by default, shown by JS */
+    /* display: none; /* Initially hidden, shown by JS - this is critical */
+    /* JavaScript will toggle this to 'flex' */
     align-items: center; /* Vertical centering */
     justify-content: center; /* Horizontal centering */
     padding: 15px; /* Padding for small screens, modal won't touch edges */
@@ -32,7 +33,7 @@
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 40px); /* Max height considering padding on .modal */
-    /* overflow-y: auto; Let individual sections within modal scroll if needed, or the modal-content itself */
+    /* overflow-y: auto; /* Let individual sections within modal scroll if needed, or the modal-content itself */
 }
 /* Add overflow-y to modal-content if its direct children cause overflow */
 #admin-content .modal-content.scrollable-content {
@@ -66,6 +67,9 @@
     cursor: pointer;
     z-index: 10; /* Above modal content */
     transition: color 0.2s;
+    background: none; /* Ensure no background from other button styles */
+    border: none; /* Ensure no border from other button styles */
+    padding: 0; /* Reset padding if inherited */
 }
 #admin-content .modal .close-button:hover,
 #admin-content .modal .close-button:focus {
@@ -79,10 +83,12 @@
 }
 
 #editCharBaseOptionModal .modal-content,
-#editItemModal .modal-content { /* Assuming item edit might also be in a modal */
+/* #editItemModal .modal-content { Item form is not in a modal in this setup */
+#editCategoryModal .modal-content, /* Making category edit modal potentially wider */
+#editTagModal .modal-content,
+#editEffectTypeModal .modal-content {
     max-width: 600px; /* Wider modal for complex forms */
 }
-/* If item form is not in a modal, #editItemModal rules are not needed */
 
 
 /* Ensure form groups within modals have appropriate spacing */
@@ -103,5 +109,4 @@
 #admin-content .modal-content #saveCharBaseOptionButton {
     margin-top: 10px; /* Space above the main save button */
     /* Uses styles from admin-forms.css */
-    /* display: block; width: 100%; To make save buttons full width if desired */
 }
