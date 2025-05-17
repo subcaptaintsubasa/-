@@ -3,37 +3,39 @@
 
 /* General Admin Modal Structure */
 body#admin-page div#admin-content div.modal {
-    position: fixed;
-    z-index: 10001;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.6);
-    display: none; /* ★ Default state: hidden */
-    align-items: center;
-    justify-content: center;
-    padding: 15px;
-    box-sizing: border-box;
+    position: fixed !important; /* 強制的に固定配置 */
+    z-index: 10001 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: auto !important;
+    background-color: rgba(0,0,0,0.6) !important;
+    display: none !important; /* ★ Default state: hidden, strongly enforced */
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 15px !important;
+    box-sizing: border-box !important;
 }
 
 body#admin-page div#admin-content div.modal.active-modal {
-    display: flex; /* ★ State when active: visible and centered */
+    display: flex !important; /* ★ State when active: visible and centered, strongly enforced */
 }
 
-
+/* modal-content とその子要素のスタイルは前回提示のままで良い可能性が高いですが、念のため !important を検討する余地はあります */
 body#admin-page div#admin-content div.modal div.modal-content {
-    background-color: #fff;
+    background-color: #fff; /* !important はここでは避けてみる */
     margin: auto;
     padding: 25px 30px;
     border: none;
     width: 90%;
     max-width: 550px; /* Default max-width, can be overridden */
     border-radius: 8px;
-    position: relative;
+    position: relative; /* modal-content 自体の position は relative のままが通常 */
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     animation: fadeInAdminModal 0.3s ease-out;
+    /* display: flex; flex-direction: column; は modal-content の子要素のレイアウトのためなので、
+       modal 自体の表示問題とは直接関係ない可能性が高い */
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 40px);
@@ -82,7 +84,7 @@ body#admin-page div#admin-content div.modal#editEffectUnitModal div.modal-conten
 }
 
 body#admin-page div#admin-content div.modal#editCharBaseOptionModal div.modal-content,
-body#admin-page div#admin-content div.modal#editItemModal div.modal-content { /* Assuming item edit might also be in a modal */
+body#admin-page div#admin-content div.modal#editItemModal div.modal-content {
     max-width: 600px;
 }
 
