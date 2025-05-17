@@ -2,111 +2,109 @@
 /* Styles for modals used within the admin panel */
 
 /* General Admin Modal Structure */
-#admin-content .modal { /* Target modals within admin content specifically */
-    position: fixed;
-    z-index: 10001; /* High z-index */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto; /* Enable scroll for overlay if modal is too tall */
-    background-color: rgba(0,0,0,0.6); /* Semi-transparent background */
-    /* display: none; /* Initially hidden, shown by JS - this is critical */
-    /* JavaScript will toggle this to 'flex' */
-    align-items: center; /* Vertical centering */
-    justify-content: center; /* Horizontal centering */
-    padding: 15px; /* Padding for small screens, modal won't touch edges */
-    box-sizing: border-box;
+/* Increased specificity by adding body#admin-page and div prefixes */
+body#admin-page div#admin-content div.modal {
+    position: fixed !important; /* Added !important as a strong override, use cautiously */
+    z-index: 10001 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: auto !important;
+    background-color: rgba(0,0,0,0.6) !important;
+    display: none; /* Initially hidden, JS will change to flex */
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 15px !important;
+    box-sizing: border-box !important;
 }
 
-#admin-content .modal-content {
-    background-color: #fff;
-    margin: auto; /* For centering */
-    padding: 25px 30px;
-    border: none;
-    width: 90%; /* Responsive width */
-    max-width: 550px; /* Default max-width, can be overridden */
-    border-radius: 8px;
-    position: relative; /* For close button positioning */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    animation: fadeInAdminModal 0.3s ease-out; /* Custom animation name if needed */
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100vh - 40px); /* Max height considering padding on .modal */
-    /* overflow-y: auto; /* Let individual sections within modal scroll if needed, or the modal-content itself */
+body#admin-page div#admin-content div.modal.active-modal { /* New class to force display */
+    display: flex !important;
+}
+
+
+body#admin-page div#admin-content div.modal div.modal-content {
+    background-color: #fff !important;
+    margin: auto !important;
+    padding: 25px 30px !important;
+    border: none !important;
+    width: 90% !important;
+    max-width: 550px !important; /* Default max-width, can be overridden */
+    border-radius: 8px !important;
+    position: relative !important; /* For close button positioning */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+    animation: fadeInAdminModal 0.3s ease-out !important;
+    display: flex !important; /* Ensure content itself uses flex for direction */
+    flex-direction: column !important;
+    max-height: calc(100vh - 40px) !important; /* Max height considering padding on .modal */
+    /* overflow-y: auto; Let individual sections within modal scroll if needed */
 }
 /* Add overflow-y to modal-content if its direct children cause overflow */
-#admin-content .modal-content.scrollable-content {
-    overflow-y: auto;
+body#admin-page div#admin-content div.modal div.modal-content.scrollable-content {
+    overflow-y: auto !important;
 }
 
 
-@keyframes fadeInAdminModal { /* Can be same as user modal or different */
+@keyframes fadeInAdminModal {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-#admin-content .modal-content h3 { /* Modal title */
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 1.5em; /* Prominent title */
-    color: #343a40;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    flex-shrink: 0; /* Prevent title from shrinking */
+body#admin-page div#admin-content div.modal div.modal-content h3 { /* Modal title */
+    margin-top: 0 !important;
+    margin-bottom: 20px !important;
+    font-size: 1.5em !important;
+    color: #343a40 !important;
+    border-bottom: 1px solid #eee !important;
+    padding-bottom: 10px !important;
+    flex-shrink: 0 !important;
 }
 
-#admin-content .modal .close-button { /* Close button specific to admin modals */
-    color: #6c757d;
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    line-height: 1;
-    cursor: pointer;
-    z-index: 10; /* Above modal content */
-    transition: color 0.2s;
-    background: none; /* Ensure no background from other button styles */
-    border: none; /* Ensure no border from other button styles */
-    padding: 0; /* Reset padding if inherited */
+body#admin-page div#admin-content div.modal span.close-button { /* Close button specific to admin modals */
+    color: #6c757d !important;
+    position: absolute !important;
+    top: 15px !important;
+    right: 20px !important;
+    font-size: 28px !important;
+    font-weight: bold !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    z-index: 10 !important; /* Above modal content */
+    transition: color 0.2s !important;
 }
-#admin-content .modal .close-button:hover,
-#admin-content .modal .close-button:focus {
-    color: #343a40;
-    text-decoration: none;
+body#admin-page div#admin-content div.modal span.close-button:hover,
+body#admin-page div#admin-content div.modal span.close-button:focus {
+    color: #343a40 !important;
+    text-decoration: none !important;
 }
 
-/* Specific Modal Adjustments */
-#editEffectUnitModal .modal-content {
-    max-width: 400px; /* Smaller modal for simple edits */
+/* Specific Modal Adjustments - ensuring higher specificity */
+body#admin-page div#admin-content div.modal#editEffectUnitModal div.modal-content {
+    max-width: 400px !important;
 }
 
-#editCharBaseOptionModal .modal-content,
-/* #editItemModal .modal-content { Item form is not in a modal in this setup */
-#editCategoryModal .modal-content, /* Making category edit modal potentially wider */
-#editTagModal .modal-content,
-#editEffectTypeModal .modal-content {
-    max-width: 600px; /* Wider modal for complex forms */
+body#admin-page div#admin-content div.modal#editCharBaseOptionModal div.modal-content,
+body#admin-page div#admin-content div.modal#editItemModal div.modal-content { /* Assuming item edit might also be in a modal */
+    max-width: 600px !important;
 }
 
 
 /* Ensure form groups within modals have appropriate spacing */
-#admin-content .modal-content .form-group {
-    margin-bottom: 15px; /* Standard spacing */
+body#admin-page div#admin-content div.modal div.modal-content .form-group {
+    margin-bottom: 15px !important;
 }
-#admin-content .modal-content .form-group:last-of-type { /* Last form group before buttons */
-    margin-bottom: 20px; /* More space before action buttons */
+body#admin-page div#admin-content div.modal div.modal-content .form-group:last-of-type { /* Last form group before buttons */
+    margin-bottom: 20px !important;
 }
 
 
 /* Action buttons at the bottom of modals */
-#admin-content .modal-content button[type="submit"], /* Typically the main save button */
-#admin-content .modal-content #saveCategoryEditButton,
-#admin-content .modal-content #saveTagEditButton,
-#admin-content .modal-content #saveEffectTypeEditButton,
-#admin-content .modal-content #saveEffectUnitEditButton,
-#admin-content .modal-content #saveCharBaseOptionButton {
-    margin-top: 10px; /* Space above the main save button */
-    /* Uses styles from admin-forms.css */
+body#admin-page div#admin-content div.modal div.modal-content button[type="submit"],
+body#admin-page div#admin-content div.modal div.modal-content #saveCategoryEditButton,
+body#admin-page div#admin-content div.modal div.modal-content #saveTagEditButton,
+body#admin-page div#admin-content div.modal div.modal-content #saveEffectTypeEditButton,
+body#admin-page div#admin-content div.modal div.modal-content #saveEffectUnitEditButton,
+body#admin-page div#admin-content div.modal div.modal-content #saveCharBaseOptionButton {
+    margin-top: 10px !important;
 }
