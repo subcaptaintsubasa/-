@@ -2,13 +2,14 @@
 /* Styles for forms and form elements within the admin panel */
 
 .form-group {
-    margin-bottom: 18px;
+    margin-bottom: 1.25rem; /* Use rem */
 }
 .form-group label {
     display: block;
-    margin-bottom: 6px;
-    font-weight: bold;
-    color: #495057; /* Dark gray for labels */
+    margin-bottom: 0.5rem; /* Use rem */
+    font-weight: 500; /* Medium weight */
+    color: #343a40; /* Darker label text */
+    font-size: 0.95rem;
 }
 .form-group input[type="text"],
 .form-group input[type="number"],
@@ -17,12 +18,14 @@
 .form-group textarea,
 .form-group select {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ced4da; /* Standard Bootstrap-like border */
-    border-radius: 4px;
-    font-size: 1em;
-    box-sizing: border-box; /* Include padding and border in width/height */
+    padding: 0.5rem 0.75rem; /* Use rem */
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    font-size: 0.95rem; /* Consistent font size */
+    line-height: 1.5; /* Improved line height */
+    box-sizing: border-box;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    background-color: #fff; /* Ensure white background */
 }
 .form-group input[type="text"]:focus,
 .form-group input[type="number"]:focus,
@@ -30,92 +33,106 @@
 .form-group input[type="file"]:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-    border-color: #80bdff; /* Highlight on focus */
-    outline: 0; /* Remove default outline */
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); /* Bootstrap-like focus shadow */
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 .form-group textarea {
-    resize: vertical; /* Allow vertical resize */
-    min-height: 80px;
+    resize: vertical;
+    min-height: 100px; /* Slightly taller min-height */
 }
 
-/* For shorter form controls, e.g., value input next to unit select */
+/* For shorter form controls */
 .form-control-short {
-    max-width: 300px; /* Or a specific pixel value */
-    width: auto; /* Allow shrinking to content or max-width */
-    display: inline-block; /* For side-by-side layout */
+    max-width: 320px; /* Slightly wider */
+    width: auto;
+    display: inline-block;
     vertical-align: middle;
-    margin-right: 8px; /* Space between inline elements */
+    margin-right: 0.5rem;
 }
 .form-control-short:last-child {
     margin-right: 0;
 }
 
-/* Category selection buttons (used for parent category selection) */
+/* Category selection buttons */
 .category-button-group.admin {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 5px; /* Small space below label */
-    margin-bottom: 10px; /* Space below the group */
+    gap: 0.5rem; /* Use rem */
+    margin-top: 0.25rem;
+    margin-bottom: 0.75rem;
 }
-.category-select-button { /* Individual button in the group */
-    padding: 6px 12px;
-    background-color: #f8f9fa; /* Very light gray */
+.category-select-button {
+    padding: 0.4rem 0.9rem; /* Adjusted padding */
+    background-color: #f8f9fa;
     border: 1px solid #ced4da;
-    border-radius: 15px; /* Pill shape */
+    border-radius: 50px; /* More pill-like */
     cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    font-size: 0.875rem; /* Slightly smaller */
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
 }
 .category-select-button:hover {
-    background-color: #e9ecef; /* Slightly darker on hover */
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 .category-select-button.active {
-    background-color: #007bff; /* Primary color for active */
+    background-color: #007bff;
     color: white;
-    border-color: #0056b3;
+    border-color: #007bff; /* Match background */
+    box-shadow: 0 2px 4px rgba(0,123,255,0.2);
 }
 
 /* Radio button groups */
 .radio-group {
     display: flex;
-    gap: 15px; /* Space between radio options */
+    gap: 1.25rem; /* Increased gap */
     align-items: center;
-    margin-top: 5px;
-    flex-wrap: wrap; /* Allow radios to wrap */
+    margin-top: 0.3rem;
+    flex-wrap: wrap;
 }
 .radio-group input[type="radio"] {
-    width: auto; /* Default size for radio */
-    margin-right: 5px; /* Space between radio and its label */
+    width: auto;
+    margin-right: 0.3rem;
     vertical-align: middle;
+    transform: scale(1.1); /* Slightly larger radio buttons */
 }
-.radio-group label { /* Label associated with a radio button */
-    margin-bottom: 0; /* Override default label margin */
-    font-weight: normal; /* Normal weight for radio labels */
+.radio-group label {
+    margin-bottom: 0;
+    font-weight: normal;
     vertical-align: middle;
     cursor: pointer;
+    font-size: 0.95rem;
+    color: #495057;
 }
 
 /* General Button Styles in Admin Forms */
 #admin-content button,
-#admin-content .button-like { /* For elements styled as buttons */
-    background-color: #007bff; /* Primary action color */
+#admin-content .button-like {
+    background-color: #007bff;
     color: white;
-    padding: 10px 18px;
+    padding: 0.6rem 1.1rem; /* Adjusted padding */
     border: none;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     cursor: pointer;
-    margin-right: 8px;
-    font-size: 1em;
-    transition: background-color 0.2s;
-    vertical-align: middle; /* Align with text/inputs if inline */
-    text-decoration: none; /* For .button-like if it's an <a> tag */
-    display: inline-block; /* Ensure proper padding and margin */
+    margin-right: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500; /* Medium weight for buttons */
+    letter-spacing: 0.5px;
+    transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    vertical-align: middle;
+    text-decoration: none;
+    display: inline-block;
+    line-height: 1.5; /* Ensure text is centered vertically */
 }
 #admin-content button:hover,
 #admin-content .button-like:hover {
-    background-color: #0056b3; /* Darker on hover */
+    background-color: #0069d9; /* Slightly darker hover */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+#admin-content button:active,
+#admin-content .button-like:active {
+    background-color: #005cbf; /* Active state */
 }
 #admin-content button:last-child,
 #admin-content .button-like:last-child {
@@ -126,143 +143,156 @@
     background-color: #6c757d;
     cursor: not-allowed;
     opacity: 0.65;
+    box-shadow: none;
 }
 
 
 /* Secondary/Utility Buttons */
-#admin-content button[type="button"],
+#admin-content button[type="button"], /* Generic type="button" */
 #admin-content #clearFormButton,
-.button-like.secondary { /* Added .secondary for specific secondary styled buttons */
-    background-color: #6c757d; /* Gray for secondary actions */
+.button-like.secondary {
+    background-color: #6c757d;
 }
 #admin-content button[type="button"]:hover,
 #admin-content #clearFormButton:hover,
 .button-like.secondary:hover {
-    background-color: #545b62; /* Darker gray on hover */
+    background-color: #5a6268;
+}
+#admin-content button[type="button"]:active,
+#admin-content #clearFormButton:active,
+.button-like.secondary:active {
+    background-color: #545b62;
 }
 
-/* Action buttons (Edit, Delete) within lists or forms */
+
+/* Action buttons (Edit, Delete) */
 .action-button {
-    padding: 5px 10px;
-    font-size: 0.9em;
-    margin-left: 5px;
-    color: white !important; /* Ensure text is white */
+    padding: 0.3rem 0.7rem; /* Adjusted padding */
+    font-size: 0.85rem;
+    margin-left: 0.3rem;
+    color: white !important;
     border: none;
-    border-radius: 4px;
-    line-height: 1.2; /* Adjust for small buttons */
+    border-radius: 0.2rem; /* Slightly smaller radius */
+    line-height: 1.4;
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex; /* For icon alignment if used inside */
+    align-items: center;
+    justify-content: center;
 }
-/* Specific colors for edit/delete actions */
+.action-button .icon { /* If icons are used inside action buttons */
+    margin-right: 0.3em;
+    font-size: 0.9em;
+}
+
 .action-button.edit, .edit-item, .edit-category, .edit-tag, .edit-effect-type, .edit-effect-unit, .edit-char-base-option {
-    background-color: #28a745 !important; /* Green for edit/add */
+    background-color: #28a745 !important;
 }
 .action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover, .edit-effect-unit:hover, .edit-char-base-option:hover {
-    background-color: #218838 !important; /* Darker green */
+    background-color: #218838 !important;
 }
 .action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-unit, .delete-char-base-option, .delete-effect-from-list {
-    background-color: #dc3545 !important; /* Red for delete */
+    background-color: #dc3545 !important;
 }
 .action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-unit:hover, .delete-char-base-option:hover, .delete-effect-from-list:hover {
-    background-color: #c82333 !important; /* Darker red */
+    background-color: #c82333 !important;
 }
-.delete-effect-from-list { /* Smaller delete button for effect lists */
-    padding: 2px 6px;
-    font-size: 0.8em;
-    margin-left: 8px;
+.delete-effect-from-list {
+    padding: 0.2rem 0.5rem; /* Smaller padding */
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
 }
 
 /* Informational text below form elements */
 .form-group .info {
-    font-size: 0.85em;
-    color: #6c757d; /* Muted text color */
-    margin-top: 6px;
-    line-height: 1.4;
-    display: block; /* Ensure it takes its own line */
+    font-size: 0.8rem; /* Use rem */
+    color: #5a6268; /* Muted but readable */
+    margin-top: 0.25rem;
+    line-height: 1.5; /* Improved line height */
+    display: block;
 }
 
-/* Inline form style for simple add forms (e.g., new category name) */
+/* Inline form style */
 .inline-form {
     display: flex;
-    align-items: center; /* Align items vertically */
-    gap: 10px;
-    margin-bottom: 15px;
-    flex-wrap: wrap; /* Allow wrapping */
+    align-items: center;
+    gap: 0.75rem; /* Use rem */
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
 }
 .inline-form label {
-    margin-bottom: 0; /* Remove bottom margin for inline label */
+    margin-bottom: 0;
     flex-shrink: 0;
 }
 .inline-form input[type="text"],
-.inline-form select { /* Added select for completeness */
-    flex-grow: 1; /* Input takes available space */
-    min-width: 150px; /* Minimum width before wrapping/shrinking */
+.inline-form select {
+    flex-grow: 1;
+    min-width: 180px; /* Adjusted min-width */
 }
 .inline-form button {
-    flex-shrink: 0; /* Button does not shrink */
+    flex-shrink: 0;
 }
 
 
 /* Item Image Preview & Upload Progress */
 #itemImagePreview {
-    display: none; /* Hidden by default */
-    margin-top: 10px;
-    border: 1px solid #ced4da;
-    padding: 5px;
+    display: none;
+    margin-top: 0.75rem;
+    border: 1px solid #dee2e6; /* Lighter border */
+    padding: 0.3rem;
     background-color: #f8f9fa;
-    max-width: 100px; /* Or adjust as needed */
-    max-height: 100px;
-    object-fit: contain; /* Show entire image */
-    border-radius: 3px;
+    max-width: 120px; /* Slightly larger preview */
+    max-height: 120px;
+    object-fit: contain;
+    border-radius: 0.25rem;
 }
 #uploadProgressContainer {
-    margin-top: 10px;
-    display: none; /* Hidden by default */
+    margin-top: 0.75rem;
+    display: none;
 }
 #uploadProgress {
     width: 100%;
-    height: 20px;
-    margin-bottom: 5px;
-    border-radius: 4px; /* Rounded progress bar */
+    height: 1.25rem; /* Slightly taller */
+    margin-bottom: 0.3rem;
+    border-radius: 0.25rem;
     -webkit-appearance: none;
     appearance: none;
 }
 #uploadProgress::-webkit-progress-bar {
     background-color: #e9ecef;
-    border-radius: 4px;
+    border-radius: 0.25rem;
 }
 #uploadProgress::-webkit-progress-value {
     background-color: #007bff;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     transition: width 0.2s ease-in-out;
 }
-#uploadProgress::-moz-progress-bar { /* Firefox */
+#uploadProgress::-moz-progress-bar {
     background-color: #007bff;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     transition: width 0.2s ease-in-out;
 }
 #uploadProgressText {
-    font-size: 0.9em;
+    font-size: 0.875rem; /* Use rem */
     color: #495057;
 }
 
 /* Character Base Management specific form layout */
-#character-base-management .form-group { /* For type select and add button row */
+#character-base-management .form-group {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap; /* Allow wrapping on small screens */
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }
-#character-base-management .form-group label { /* Label for type select */
-    margin-bottom: 0; /* Remove bottom margin for inline alignment */
+#character-base-management .form-group label {
+    margin-bottom: 0;
     flex-shrink: 0;
 }
-#charBaseTypeSelect { /* The dropdown for base type */
+#charBaseTypeSelect {
     flex-grow: 1;
-    min-width: 150px; /* Ensure it has some base width */
-    max-width: 300px; /* Limit max width */
+    min-width: 180px; /* Adjusted */
+    max-width: 320px; /* Adjusted */
 }
-#addNewCharBaseOptionButton { /* "Add New Option" button */
-    margin-left: auto; /* Push to the right if space allows */
+#addNewCharBaseOptionButton {
+    margin-left: auto;
     flex-shrink: 0;
 }
