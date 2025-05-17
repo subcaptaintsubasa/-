@@ -2,8 +2,9 @@
 /* Styles for modals used within the admin panel */
 
 /* General Admin Modal Structure */
-body#admin-page div#admin-content div.modal {
-    position: fixed !important; /* 強制的に固定配置 */
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal {
+    position: fixed !important;
     z-index: 10001 !important;
     left: 0 !important;
     top: 0 !important;
@@ -11,36 +12,36 @@ body#admin-page div#admin-content div.modal {
     height: 100% !important;
     overflow: auto !important;
     background-color: rgba(0,0,0,0.6) !important;
-    display: none !important; /* ★ Default state: hidden, strongly enforced */
+    display: none !important; /* Default state: hidden, strongly enforced */
     align-items: center !important;
     justify-content: center !important;
     padding: 15px !important;
     box-sizing: border-box !important;
 }
 
-body#admin-page div#admin-content div.modal.active-modal {
-    display: flex !important; /* ★ State when active: visible and centered, strongly enforced */
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal.active-modal {
+    display: flex !important; /* State when active: visible and centered */
 }
 
-/* modal-content とその子要素のスタイルは前回提示のままで良い可能性が高いですが、念のため !important を検討する余地はあります */
-body#admin-page div#admin-content div.modal div.modal-content {
-    background-color: #fff; /* !important はここでは避けてみる */
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal div.modal-content {
+    background-color: #fff;
     margin: auto;
     padding: 25px 30px;
     border: none;
     width: 90%;
     max-width: 550px; /* Default max-width, can be overridden */
     border-radius: 8px;
-    position: relative; /* modal-content 自体の position は relative のままが通常 */
+    position: relative;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     animation: fadeInAdminModal 0.3s ease-out;
-    /* display: flex; flex-direction: column; は modal-content の子要素のレイアウトのためなので、
-       modal 自体の表示問題とは直接関係ない可能性が高い */
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 40px);
 }
-body#admin-page div#admin-content div.modal div.modal-content.scrollable-content {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal div.modal-content.scrollable-content {
     overflow-y: auto;
 }
 
@@ -50,7 +51,8 @@ body#admin-page div#admin-content div.modal div.modal-content.scrollable-content
     to { opacity: 1; transform: translateY(0); }
 }
 
-body#admin-page div#admin-content div.modal div.modal-content h3 {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal div.modal-content h3 {
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 1.5em;
@@ -60,7 +62,8 @@ body#admin-page div#admin-content div.modal div.modal-content h3 {
     flex-shrink: 0;
 }
 
-body#admin-page div#admin-content div.modal span.close-button {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal span.close-button {
     color: #6c757d;
     position: absolute;
     top: 15px;
@@ -72,38 +75,44 @@ body#admin-page div#admin-content div.modal span.close-button {
     z-index: 10;
     transition: color 0.2s;
 }
-body#admin-page div#admin-content div.modal span.close-button:hover,
-body#admin-page div#admin-content div.modal span.close-button:focus {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal span.close-button:hover,
+body#admin-page div.modal span.close-button:focus {
     color: #343a40;
     text-decoration: none;
 }
 
 /* Specific Modal Adjustments - ensuring higher specificity */
-body#admin-page div#admin-content div.modal#editEffectUnitModal div.modal-content {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal#editEffectUnitModal div.modal-content {
     max-width: 400px;
 }
 
-body#admin-page div#admin-content div.modal#editCharBaseOptionModal div.modal-content,
-body#admin-page div#admin-content div.modal#editItemModal div.modal-content {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal#editCharBaseOptionModal div.modal-content,
+body#admin-page div.modal#editItemModal div.modal-content { /* Assuming #editItemModal exists */
     max-width: 600px;
 }
 
 
 /* Ensure form groups within modals have appropriate spacing */
-body#admin-page div#admin-content div.modal div.modal-content .form-group {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal div.modal-content .form-group {
     margin-bottom: 15px;
 }
-body#admin-page div#admin-content div.modal div.modal-content .form-group:last-of-type {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal div.modal-content .form-group:last-of-type {
     margin-bottom: 20px;
 }
 
 
 /* Action buttons at the bottom of modals */
-body#admin-page div#admin-content div.modal div.modal-content button[type="submit"],
-body#admin-page div#admin-content div.modal div.modal-content #saveCategoryEditButton,
-body#admin-page div#admin-content div.modal div.modal-content #saveTagEditButton,
-body#admin-page div#admin-content div.modal div.modal-content #saveEffectTypeEditButton,
-body#admin-page div#admin-content div.modal div.modal-content #saveEffectUnitEditButton,
-body#admin-page div#admin-content div.modal div.modal-content #saveCharBaseOptionButton {
+/* ★修正: #admin-content をセレクタから削除 */
+body#admin-page div.modal div.modal-content button[type="submit"],
+body#admin-page div.modal div.modal-content #saveCategoryEditButton,
+body#admin-page div.modal div.modal-content #saveTagEditButton,
+body#admin-page div.modal div.modal-content #saveEffectTypeEditButton,
+body#admin-page div.modal div.modal-content #saveEffectUnitEditButton,
+body#admin-page div.modal div.modal-content #saveCharBaseOptionButton {
     margin-top: 10px;
 }
