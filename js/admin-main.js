@@ -1,11 +1,10 @@
 // js/admin-main.js
-import { auth, db } from '../firebase-config.js'; // プロジェクトルートのfirebase-config.jsをインポート
+import { auth, db } from '../firebase-config.js';
 import { initAuth, getCurrentUser } from './admin-modules/auth.js';
 import {
     loadInitialData,
     clearAdminDataCache,
     IMAGE_UPLOAD_WORKER_URL,
-    // Cache Getters
     getAllCategoriesCache,
     getAllTagsCache,
     getItemsCache,
@@ -13,7 +12,7 @@ import {
     getEffectUnitsCache,
     getCharacterBasesCache
 } from './admin-modules/data-loader-admin.js';
-import { initUIHelpers } from './admin-modules/ui-helpers.js';
+import { initUIHelpers, initAdminNavigation, openModal, closeModal } from './admin-modules/ui-helpers.js'; // ★ initAdminNavigation をインポート
 import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI } from './admin-modules/category-manager.js';
 import { initTagManager, _renderTagsForManagementInternal as renderTagsUI } from './admin-modules/tag-manager.js';
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI } from './admin-modules/effect-unit-manager.js';
@@ -24,10 +23,11 @@ import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, 
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("[admin-main] DOMContentLoaded, initializing admin panel...");
-    initUIHelpers(); // Initialize generic UI things like modal closing
+    initUIHelpers();
+    initAdminNavigation(); // ★ 管理画面ナビゲーション初期化を呼び出し
 
     initAuth(auth,
-        (user) => { // onLogin callback
+        (user) => {
             console.log("[admin-main] User logged in, displaying admin content.");
             document.getElementById('password-prompt').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
@@ -35,15 +35,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (user && currentUserEmailSpan) {
                 currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
             }
-            loadAndInitializeAdminModules(); // Load data and init manager modules
+            loadAndInitializeAdminModules();
         },
-        () => { // onLogout callback
+        () => {
             console.log("[admin-main] User logged out, hiding admin content.");
             document.getElementById('password-prompt').style.display = 'flex';
             document.getElementById('admin-content').style.display = 'none';
             const currentUserEmailSpan = document.getElementById('currentUserEmail');
             if (currentUserEmailSpan) currentUserEmailSpan.textContent = '';
-            clearAdminUIAndData(); // Clear UI elements and cached data
+            clearAdminUIAndData();
         }
     );
 });
@@ -65,13 +65,6 @@ function clearAdminUIAndData() {
             form.reset();
         }
     });
-    // Specific clear functions for forms if `form.reset()` isn't enough
-    const itemForm = document.getElementById('itemForm');
-    if (itemForm && typeof window.clearItemFormInternal === 'function') { // Assuming clearItemFormInternal is globally available or imported
-        // This part needs careful management if clearItemFormInternal is inside item-manager.js
-        // For now, let's assume form.reset() is the primary mechanism.
-    }
-
 
     clearAdminDataCache();
     console.log("[admin-main] Admin UI cleared and data cache flushed.");
@@ -99,19 +92,20 @@ async function loadAndInitializeAdminModules() {
             }
         };
 
+        // ★HTML直接編集方式を採用する場合、moveSectionsToModalsは不要
+        // initItemManager より先に、他の依存される可能性のあるマネージャを初期化
         initEffectUnitManager(commonDependencies);
         initEffectTypeManager(commonDependencies);
         initCategoryManager(commonDependencies);
         initTagManager(commonDependencies);
 
-        const charBaseManagerDeps = { ...commonDependencies, baseTypeMappings }; // baseTypeMappings from char-base-manager itself
+        const charBaseManagerDeps = { ...commonDependencies, baseTypeMappings };
         initCharBaseManager(charBaseManagerDeps);
 
         const itemManagerDeps = { ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL };
-        initItemManager(itemManagerDeps);
+        initItemManager(itemManagerDeps); // アイテム管理は最後に（多くのデータに依存するため）
 
-        // Ensure all necessary UI population calls happen after data is loaded and managers are ready
-        renderAllAdminUISections(); // This calls the individual render functions
+        renderAllAdminUISections();
 
         console.log("[admin-main] Admin modules initialized successfully.");
 
@@ -127,8 +121,6 @@ async function loadAndInitializeAdminModules() {
 
 function renderAllAdminUISections() {
     console.log("[admin-main] Rendering all admin UI sections...");
-    // These functions are imported from their respective manager modules
-    // and should handle fetching their data using the getters from commonDependencies
     if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
     if (typeof renderTagsUI === 'function') renderTagsUI();
     if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
@@ -136,7 +128,6 @@ function renderAllAdminUISections() {
     if (typeof renderCharBaseOptionsUI === 'function') renderCharBaseOptionsUI();
     if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
 
-    // Re-populate select dropdowns that depend on dynamic data in other forms
     if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
     if (typeof populateCharBaseEffectTypeSelectInModal === 'function') populateCharBaseEffectTypeSelectInModal();
     if (typeof populateItemFormTags === 'function') populateItemFormTags();
