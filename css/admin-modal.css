@@ -2,8 +2,7 @@
 /* Styles for modals used within the admin panel */
 
 /* General Admin Modal Structure */
-/* ★修正: #admin-content をセレクタから削除 */
-body#admin-page div.modal {
+body#admin-page div.modal { /* Removed #admin-content from selector based on HTML structure */
     position: fixed !important;
     z-index: 10001 !important;
     left: 0 !important;
@@ -11,108 +10,114 @@ body#admin-page div.modal {
     width: 100% !important;
     height: 100% !important;
     overflow: auto !important;
-    background-color: rgba(0,0,0,0.6) !important;
+    background-color: rgba(33, 37, 41, 0.75) !important; /* Slightly darker overlay */
     display: none !important; /* Default state: hidden, strongly enforced */
     align-items: center !important;
     justify-content: center !important;
-    padding: 15px !important;
+    padding: 20px !important; /* Increased padding for better spacing from viewport edges */
     box-sizing: border-box !important;
 }
 
-/* ★修正: #admin-content をセレクタから削除 */
 body#admin-page div.modal.active-modal {
     display: flex !important; /* State when active: visible and centered */
 }
 
-/* ★修正: #admin-content をセレクタから削除 */
 body#admin-page div.modal div.modal-content {
     background-color: #fff;
     margin: auto;
-    padding: 25px 30px;
+    padding: 30px 35px; /* Increased padding */
     border: none;
     width: 90%;
-    max-width: 550px; /* Default max-width, can be overridden */
-    border-radius: 8px;
+    max-width: 580px; /* Slightly increased default max-width */
+    border-radius: 6px; /* Consistent radius */
     position: relative;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    animation: fadeInAdminModal 0.3s ease-out;
+    box-shadow: 0 7px 20px rgba(0,0,0,0.2); /* More pronounced shadow */
+    animation: fadeInAdminModal 0.25s ease-out;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 40px);
+    max-height: calc(100vh - 60px); /* Adjusted max-height for more padding */
 }
-/* ★修正: #admin-content をセレクタから削除 */
-body#admin-page div.modal div.modal-content.scrollable-content {
+body#admin-page div.modal div.modal-content.scrollable-content { /* If content needs to scroll internally */
     overflow-y: auto;
 }
 
 
 @keyframes fadeInAdminModal {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(-25px) scale(0.98); } /* Added scale effect */
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ★修正: #admin-content をセレクタから削除 */
-body#admin-page div.modal div.modal-content h3 {
+body#admin-page div.modal div.modal-content h3 { /* Modal title */
     margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 1.5em;
-    color: #343a40;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+    margin-bottom: 25px; /* Increased margin */
+    font-size: 1.6rem; /* Use rem, adjusted size */
+    color: #212529; /* Darker title */
+    border-bottom: 1px solid #dee2e6; /* Consistent border */
+    padding-bottom: 15px; /* Increased padding */
     flex-shrink: 0;
+    font-weight: 500; /* Medium weight */
+    text-align: left; /* Ensure title is left-aligned */
 }
 
-/* ★修正: #admin-content をセレクタから削除 */
-body#admin-page div.modal span.close-button {
+body#admin-page div.modal span.close-button { /* Close button */
     color: #6c757d;
     position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 28px;
+    top: 20px; /* Adjusted position */
+    right: 20px; /* Adjusted position */
+    font-size: 32px; /* Slightly larger */
     font-weight: bold;
-    line-height: 1;
+    line-height: 0.8; /* Adjust for better vertical centering of '×' */
     cursor: pointer;
     z-index: 10;
-    transition: color 0.2s;
+    transition: color 0.2s ease-in-out, transform 0.15s ease-in-out;
+    padding: 5px; /* Make clickable area slightly larger */
 }
-/* ★修正: #admin-content をセレクタから削除 */
 body#admin-page div.modal span.close-button:hover,
 body#admin-page div.modal span.close-button:focus {
     color: #343a40;
     text-decoration: none;
+    transform: scale(1.1); /* Slight scale effect on hover */
 }
 
-/* Specific Modal Adjustments - ensuring higher specificity */
-/* ★修正: #admin-content をセレクタから削除 */
+/* Specific Modal Adjustments */
 body#admin-page div.modal#editEffectUnitModal div.modal-content {
-    max-width: 400px;
+    max-width: 420px; /* Adjusted */
 }
 
-/* ★修正: #admin-content をセレクタから削除 */
 body#admin-page div.modal#editCharBaseOptionModal div.modal-content,
 body#admin-page div.modal#editItemModal div.modal-content { /* Assuming #editItemModal exists */
-    max-width: 600px;
+    max-width: 620px; /* Adjusted */
 }
 
 
-/* Ensure form groups within modals have appropriate spacing */
-/* ★修正: #admin-content をセレクタから削除 */
+/* Form groups within modals */
 body#admin-page div.modal div.modal-content .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 1.1rem; /* Adjusted */
 }
-/* ★修正: #admin-content をセレクタから削除 */
-body#admin-page div.modal div.modal-content .form-group:last-of-type {
-    margin-bottom: 20px;
+body#admin-page div.modal div.modal-content .form-group:last-of-type { /* If it's the last before action buttons */
+    margin-bottom: 1.5rem; /* Adjusted */
 }
 
 
 /* Action buttons at the bottom of modals */
-/* ★修正: #admin-content をセレクタから削除 */
 body#admin-page div.modal div.modal-content button[type="submit"],
 body#admin-page div.modal div.modal-content #saveCategoryEditButton,
 body#admin-page div.modal div.modal-content #saveTagEditButton,
 body#admin-page div.modal div.modal-content #saveEffectTypeEditButton,
 body#admin-page div.modal div.modal-content #saveEffectUnitEditButton,
 body#admin-page div.modal div.modal-content #saveCharBaseOptionButton {
-    margin-top: 10px;
+    margin-top: 1.25rem; /* Increased margin top */
+    width: 100%; /* Make main action button full width */
+    padding: 0.7rem 1rem; /* Adjusted padding */
+    font-size: 1rem;
+}
+/* If there are multiple buttons, e.g., Save and Cancel in a row */
+body#admin-page div.modal div.modal-content .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end; /* Or center, space-between */
+    margin-top: 1.5rem;
+}
+body#admin-page div.modal div.modal-content .modal-actions button {
+    width: auto; /* Reset width if in .modal-actions */
 }
