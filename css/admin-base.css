@@ -1,11 +1,12 @@
 /* css/admin-base.css */
 /* Base styles specifically for the admin panel */
-body#admin-page { /* Assuming admin.html has <body id="admin-page"> or similar */
-    font-family: sans-serif;
+body#admin-page {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     margin: 0;
-    background-color: #f4f4f4;
-    color: #333;
+    background-color: #f8f9fa;
+    color: #212529;
     line-height: 1.6;
+    font-size: 16px;
 }
 
 /* Password Prompt Overlay */
@@ -15,156 +16,274 @@ body#admin-page { /* Assuming admin.html has <body id="admin-page"> or similar *
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.85); /* Darker overlay */
-    display: flex; /* Default, will be changed by JS */
+    background-color: rgba(33, 37, 41, 0.9);
+    display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 10000; /* Very high z-index */
+    z-index: 10000;
     color: white;
     padding: 20px;
     box-sizing: border-box;
 }
 #password-prompt h2 {
-    margin-top: 0; /* Reset margin */
-    margin-bottom: 15px;
-    color: white; /* Ensure text is visible on dark background */
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: white;
     text-align: center;
+    font-weight: 500;
 }
 #password-prompt input[type="password"],
 #password-prompt input[type="email"] {
-    padding: 12px;
+    padding: 12px 15px;
     margin-bottom: 15px;
-    font-size: 1.1em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
     width: 100%;
-    max-width: 300px;
+    max-width: 320px;
     box-sizing: border-box;
 }
 #password-prompt button {
-    padding: 12px 20px;
-    font-size: 1.1em;
-    background-color: #007bff; /* Primary button color */
+    padding: 12px 25px;
+    font-size: 1rem;
+    background-color: #007bff;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease-in-out;
 }
 #password-prompt button:hover {
-    background-color: #0056b3; /* Darker on hover */
+    background-color: #0056b3;
 }
-.error-message { /* For login errors */
-    color: #ff4d4d; /* Bright red for errors */
-    font-weight: bold;
-    margin-top: 10px;
+.error-message {
+    color: #f8d7da;
+    background-color: #721c24;
+    padding: 8px 12px;
+    border-radius: 0.25rem;
+    font-weight: 500;
+    margin-top: 15px;
     text-align: center;
+    max-width: 320px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Admin Header */
-#admin-content header {
-    background-color: #343a40; /* Consistent with user header */
-    color: white;
-    padding: 1em 1.5em;
+.admin-header { /* Renamed from #admin-content header for clarity if needed */
+    background-color: #ffffff;
+    color: #343a40;
+    padding: 0.8rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-bottom: 1px solid #dee2e6;
+    position: sticky; /* Make header sticky */
+    top: 0;
+    z-index: 1000; /* Ensure header is on top */
+    height: 60px; /* Fixed height for consistency */
+    box-sizing: border-box;
 }
-#admin-content header h1 {
+.admin-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+.admin-site-title {
     margin: 0;
-    font-size: 1.8em;
+    font-size: 1.6rem;
+    font-weight: 600;
 }
-#admin-content header div { /* Container for user email and logout */
+.admin-hamburger-button {
+    font-size: 1.7rem;
+    background: transparent;
+    border: none;
+    color: #343a40;
+    cursor: pointer;
+    padding: 10px 12px;
+    line-height: 1;
+    /* margin-left: auto; Removed as it's now a primary control */
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out;
+}
+.admin-hamburger-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+#admin-content header div { /* Original container for user email and logout */
     display: flex;
     align-items: center;
+    margin-left: auto; /* Push this group to the right */
 }
 #logoutButton {
-    background-color: #6c757d; /* Secondary button color */
+    background-color: #6c757d;
     color: white;
-    padding: 0.6em 1em;
+    padding: 0.5rem 0.9rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease-in-out;
 }
 #logoutButton:hover {
-    background-color: #5a6268; /* Darker on hover */
+    background-color: #5a6268;
 }
 #currentUserEmail {
-    margin-right: 15px;
-    font-size: 0.9em;
+    margin-right: 1rem;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+/* Admin Side Navigation Panel */
+.admin-side-navigation {
+    height: 100%;
+    width: 0; /* Initially hidden */
+    position: fixed;
+    z-index: 10002; /* High z-index */
+    top: 0;
+    left: 0; /* On the left side */
+    background-color: #343a40; /* Dark background */
+    color: #f8f9fa;
+    overflow-x: hidden;
+    transition: width 0.25s ease-in-out; /* Slightly faster transition */
+    padding-top: 60px; /* Match header height */
+    box-shadow: 2px 0 8px rgba(0,0,0,0.15); /* Shadow on the right */
+}
+.admin-side-navigation.open {
+    width: 280px;
+}
+.admin-side-navigation ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.admin-side-navigation li .admin-nav-button {
+    padding: 14px 22px; /* Adjusted padding */
+    text-decoration: none;
+    font-size: 0.95rem; /* Adjusted font size */
+    color: #dee2e6; /* Lighter text */
+    display: block;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #454a4f; /* Slightly lighter separator */
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+.admin-side-navigation li:last-child .admin-nav-button {
+    border-bottom: none;
+}
+.admin-side-navigation li .admin-nav-button:hover,
+.admin-side-navigation li .admin-nav-button.active { /* Style for active nav item */
+    background-color: #007bff;
+    color: white;
+}
+.admin-close-nav-button {
+    position: absolute;
+    top: 12px; /* Adjusted for header height */
+    right: 15px;
+    font-size: 2rem; /* Adjusted */
+    background: none;
+    border: none;
+    color: #adb5bd;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+    transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+.admin-close-nav-button:hover {
+    color: white;
+    transform: rotate(90deg);
 }
 
 
 /* Admin Main Container */
-#admin-content .container {
-    max-width: 1100px;
-    margin: 25px auto;
-    padding: 25px;
+#admin-content .container.admin-main-container { /* Specific class for main content area */
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 25px 35px;
     background-color: #fff;
-    box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+    border-radius: 6px;
+    margin-top: calc(60px + 30px); /* Header height + desired top margin */
 }
 
-/* Admin Sections */
+/* Admin Sections (These are now inside modals, but styles might still be useful if structure is kept) */
 #admin-content section {
-    margin-bottom: 30px;
+    padding-top: 20px;
     padding-bottom: 30px;
-    border-bottom: 1px solid #e9ecef; /* Light separator */
+    margin-bottom: 30px;
+    /* border-bottom: 1px solid #e9ecef; Removed as sections are in modals */
 }
 #admin-content section:last-child {
-    border-bottom: none;
+    /* border-bottom: none; */
     margin-bottom: 0;
-    padding-bottom: 10px;
+    padding-bottom: 15px;
 }
 
 /* Admin Headings */
 #admin-content h2,
-#admin-content h3 {
+#admin-content h3 { /* General h3, specific h3 in modals have different styles */
     color: #343a40;
     margin-top: 0;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    font-weight: 500;
 }
-#admin-content h2 {
-    font-size: 1.6em;
-    display: flex; /* For icon alignment */
+#admin-content h2 { /* Section titles (now modal titles) */
+    font-size: 1.75rem;
+    display: flex;
     align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
 }
-#admin-content h3 {
-    font-size: 1.3em;
-    margin-top: 20px; /* Space above sub-headings (like "カテゴリ一覧") */
+#admin-content h3 { /* Sub-titles like "カテゴリ一覧" */
+    font-size: 1.4rem;
+    margin-top: 25px;
+    color: #495057;
+    font-weight: 500;
 }
 
 /* General Info Message for Admin */
-.info-message { /* Removed .admin class to make it more general if reused */
-    font-size: 0.9em;
-    color: #0c5460;
-    background-color: #d1ecf1;
-    border: 1px solid #bee5eb;
-    padding: 10px 15px;
-    border-radius: 4px;
-    margin-top: 10px; /* Space above message */
-    margin-bottom: 20px; /* Space below message */
+.info-message {
+    font-size: 0.9rem;
+    color: #004085;
+    background-color: #cce5ff;
+    border: 1px solid #b8daff;
+    border-left: 5px solid #007bff;
+    padding: 1rem 1.25rem;
+    border-radius: 0.25rem;
+    margin-top: 15px;
+    margin-bottom: 25px;
 }
 
 /* Helper for icons in headings */
-.icon {
-    margin-right: 8px; /* Space between icon and text */
-    font-size: 1.1em; /* Slightly larger icon */
-    /* Ensure FontAwesome or similar icon font is loaded if these are class-based icons */
-    /* Example: font-family: 'Font Awesome 5 Free'; font-weight: 900; */
+#admin-content h2 .icon {
+    font-size: 1.1em;
+    margin-right: 12px;
+    color: #007bff;
 }
 
-/* General utility classes (can also be in a utils.css if preferred for both sides) */
 .hidden {
     display: none !important;
 }
-hr { /* Default hr styling for admin sections */
+hr {
     border: 0;
     height: 1px;
-    background-color: #e0e0e0;
-    margin: 30px 0; /* Consistent spacing for hr dividers */
+    background-color: #ced4da;
+    margin: 40px 0;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
 }
