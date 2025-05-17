@@ -1,158 +1,135 @@
-// js/admin-main.js
-import { auth, db } from '../firebase-config.js';
-import { initAuth, getCurrentUser } from './admin-modules/auth.js';
-import { loadInitialData, clearAdminDataCache, IMAGE_UPLOAD_WORKER_URL } from './admin-modules/data-loader-admin.js';
-import { initUIHelpers } from './admin-modules/ui-helpers.js';
-import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI } from './admin-modules/category-manager.js';
-import { initTagManager, _renderTagsForManagementInternal as renderTagsUI } from './admin-modules/tag-manager.js';
-import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI } from './admin-modules/effect-unit-manager.js';
-import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms } from './admin-modules/effect-type-manager.js';
-import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings } from './admin-modules/char-base-manager.js';
-import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js';
-
-// For getters that will be passed to manager modules
+// js/script-main.js
+import { db } from '../firebase-config.js'; // ★ 正しい: script-main.js から見て一つ上の階層の firebase-config.js
 import {
-    getAllCategoriesCache,
-    getAllTagsCache,
-    getItemsCache,
-    getEffectTypesCache,
-    getEffectUnitsCache,
-    getCharacterBasesCache
-} from './admin-modules/data-loader-admin.js';
+    loadData,
+    getAllItems, getAllCategories, getAllTags, getEffectTypesCache, getCharacterBasesCache,
+    EQUIPMENT_SLOT_TAG_IDS, SIMULATOR_PARENT_CATEGORY_NAME, SIMULATOR_EFFECT_CHILD_CATEGORY_NAME
+} from './modules/data-loader.js'; // ★ 正しい: 同じ階層の modules フォルダ内の data-loader.js
+import {
+    initUIMain,
+    displaySearchToolMessage, showConfirmSelectionButton
+} from './modules/ui-main.js'; // ★ 正しい
+import {
+    initSearchFilters, applyFiltersAndRender,
+    activateSimulatorSelectionMode, deactivateSimulatorSelectionMode, cancelItemSelection,
+    setTemporarilySelectedItemExport,
+    isSelectingForSimulatorState as getIsSelectingForSimulator,
+    getCurrentSelectingSlotState as getCurrentSelectingSlot
+} from './modules/search-filters.js'; // ★ 正しい
+import {
+    initSearchRender
+} from './modules/search-render.js'; // ★ 正しい
+import {
+    initSimulatorUI, updateSimulatorSlotDisplay, calculateAndDisplayTotalEffects, initializeSimulatorDisplay,
+    getSelectedEquipment, getSelectedCharacterBase, setSelectedCharacterBaseValue, updateSelectedEquipment
+} from './modules/simulator-ui.js'; // ★ 正しい
+import { initSimulatorLogic } from './modules/simulator-logic.js'; // ★ 正しい
+import { initSimulatorImage, getSimulatorDOMS as getSimulatorImageDOMS } from './modules/simulator-image.js'; // ★ 正しい
 
 
-document.addEventListener('DOMContentLoaded', () => {
-    initUIHelpers(); // Initialize generic UI things like modal closing
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("[script-main] DOMContentLoaded, starting app init...");
 
-    initAuth(auth,
-        (user) => { // onLogin callback
-            document.getElementById('password-prompt').style.display = 'none';
-            document.getElementById('admin-content').style.display = 'block';
-            const currentUserEmailSpan = document.getElementById('currentUserEmail');
-            if (user && currentUserEmailSpan) {
-                currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
-            }
-            loadAndInitializeAdminModules(); // Load data and init manager modules
-        },
-        () => { // onLogout callback
-            document.getElementById('password-prompt').style.display = 'flex';
-            document.getElementById('admin-content').style.display = 'none';
-            const currentUserEmailSpan = document.getElementById('currentUserEmail');
-            if (currentUserEmailSpan) currentUserEmailSpan.textContent = '';
-            clearAdminUIAndData(); // Clear UI elements and cached data
-        }
+    const simulatorModal = document.getElementById('simulatorModal');
+
+    initUIMain(
+        getIsSelectingForSimulator,
+        cancelItemSelection,
+        initializeSimulatorDisplay
     );
-});
 
-function clearAdminUIAndData() {
-    // This function should clear out the content of all list containers,
-    // reset forms, etc. Each manager module could expose a `clearUI` function,
-    // or we can do it more directly here if simple enough.
-    const listContainers = [
-        'categoryListContainer', 'tagListContainer', 'effectUnitListContainer',
-        'effectTypeListContainer', 'charBaseOptionListContainer',
-    ];
-    listContainers.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '<p>ログアウトしました。データは表示されません。</p>';
-    });
-    const itemsTableBody = document.querySelector('#itemsTable tbody');
-    if (itemsTableBody) itemsTableBody.innerHTML = '';
-    // Reset forms (more robustly done by calling clear methods from each manager if they exist)
-    document.querySelectorAll('#admin-content form').forEach(form => form.reset());
-
-
-    clearAdminDataCache(); // Clear data from data-loader-admin
-    console.log("Admin UI cleared and data cache flushed.");
-}
-
-
-async function loadAndInitializeAdminModules() {
-    console.log("Admin Main: Starting to load data and initialize modules...");
     try {
-        await loadInitialData(db); // Load all data first
+        console.log("[script-main] Calling loadData...");
+        await loadData(db);
+        console.log("[script-main] loadData finished successfully.");
 
-        // Common dependencies to pass to manager modules
-        const commonDependencies = {
-            db,
-            // Getters for data caches
-            getAllCategories: getAllCategoriesCache,
-            getAllTags: getAllTagsCache,
-            getItems: getItemsCache,
-            getEffectTypes: getEffectTypesCache,
-            getEffectUnits: getEffectUnitsCache,
-            getCharacterBases: getCharacterBasesCache,
-            // Callback to refresh all data and UI (could be more granular)
-            refreshAllData: async () => {
-                console.log("Admin Main: Refreshing all data and UI...");
-                await loadInitialData(db); // Reload data
-                // Re-render all relevant UI sections
-                renderAllAdminUISections();
-                console.log("Admin Main: All data and UI refreshed.");
+        initSearchRender({
+            getAllItems: getAllItems,
+            getEffectTypesCache: getEffectTypesCache,
+            getAllTags: getAllTags,
+            onItemTempSelect: (itemId) => {
+                setTemporarilySelectedItemExport(itemId);
             }
-        };
+        });
 
-        // Initialize managers in an order that respects dependencies if any
-        // (e.g., effect units before effect types if types use units in their forms)
-        initEffectUnitManager(commonDependencies); // Renders its list
-        initEffectTypeManager(commonDependencies); // Renders its list, populates its form selects
+        initSearchFilters(db, {
+            getAllItems: getAllItems,
+            getAllCategories: getAllCategories,
+            getAllTags: getAllTags,
+            getEffectTypesCache: getEffectTypesCache,
+            getSlotTagId: (slotName) => EQUIPMENT_SLOT_TAG_IDS[slotName],
+            simulatorParentCategoryName: SIMULATOR_PARENT_CATEGORY_NAME,
+            simulatorEffectChildCategoryName: SIMULATOR_EFFECT_CHILD_CATEGORY_NAME,
+            onFilterChange: applyFiltersAndRender,
+            onSelectionConfirmed: (slotName, selectedItemId) => {
+                console.log(`[script-main] Simulator selection confirmed for slot '${slotName}', item ID: '${selectedItemId}'`);
+                updateSelectedEquipment(slotName, selectedItemId);
+                deactivateSimulatorSelectionMode();
+                if (simulatorModal) simulatorModal.style.display = 'flex';
+                updateSimulatorSlotDisplay(slotName);
+                calculateAndDisplayTotalEffects();
+            },
+            displaySearchToolMessage: displaySearchToolMessage,
+            showConfirmSelectionButton: showConfirmSelectionButton,
+        });
 
-        initCategoryManager(commonDependencies);   // Renders its list, populates its form selects
-        initTagManager(commonDependencies);        // Renders its list, populates its form selects (needs categories)
+        initSimulatorUI(db, {
+            getAllItems: getAllItems,
+            getEffectTypesCache: getEffectTypesCache,
+            getCharacterBasesCache: getCharacterBasesCache,
+            onSlotSelectStart: (slotName) => {
+                console.log(`[script-main] Starting item selection for slot: ${slotName}`);
+                if (simulatorModal) simulatorModal.style.display = 'none';
+                const slotTagId = EQUIPMENT_SLOT_TAG_IDS[slotName];
+                if (slotTagId === undefined || slotTagId === null) {
+                    alert(`部位「${slotName}」に対応するタグIDが設定されていません。管理画面で設定を確認してください。`);
+                    if (simulatorModal) simulatorModal.style.display = 'flex';
+                    return;
+                }
+                activateSimulatorSelectionMode(slotName, slotTagId, getSelectedEquipment()[slotName] || null);
+            },
+            onSlotClear: (slotName) => {
+                console.log(`[script-main] Clearing slot: ${slotName}`);
+                updateSelectedEquipment(slotName, null);
+                updateSimulatorSlotDisplay(slotName);
+                calculateAndDisplayTotalEffects();
+            },
+            getCharacterBaseOptionData: (baseType, optionId) => {
+                const bases = getCharacterBasesCache();
+                return bases[baseType] ? (bases[baseType].find(opt => opt.id === optionId) || null) : null;
+            }
+        });
 
-        // Character Base Manager dependencies
-        const charBaseManagerDeps = {
-            ...commonDependencies,
-            // baseTypeMappings is imported directly in char-base-manager
-        };
-        initCharBaseManager(charBaseManagerDeps); // Renders options, populates its modal's effect type select
+        initSimulatorLogic({
+            getSelectedCharacterBase: getSelectedCharacterBase,
+            setSelectedCharacterBaseValue: setSelectedCharacterBaseValue,
+            calculateAndDisplayTotalEffects: calculateAndDisplayTotalEffects,
+            getCharacterBasesCache: getCharacterBasesCache,
+        });
 
-        // Item Manager dependencies
-        const itemManagerDeps = {
-            ...commonDependencies,
-            uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL,
-        };
-        initItemManager(itemManagerDeps);         // Renders table, populates its form's tag/effect type selects
+        initSimulatorImage({
+            getSelectedCharacterBase: getSelectedCharacterBase,
+            getCharacterBasesCache: getCharacterBasesCache,
+            getSelectedEquipment: getSelectedEquipment,
+            getAllItems: getAllItems,
+            getTotalEffectsDisplayHTML: () => document.getElementById('totalEffectsDisplay').innerHTML,
+            getSimulatorDOMS: getSimulatorImageDOMS
+        });
 
-        // After all managers are initialized with their own data,
-        // ensure any cross-module UI elements (like select dropdowns) are populated.
-        // Most managers do this internally now via refreshAllData or direct calls.
-        // However, explicit calls after all data is loaded can ensure correctness.
-        // For example, effect type manager populates effect type selects in other forms.
-        populateEffectTypeSelectsInForms(); // From effect-type-manager.js
-        populateCharBaseEffectTypeSelectInModal(); // From char-base-manager.js
-        populateItemFormTags(); // From item-manager.js (populates tags in item form)
+        console.log("[script-main] Performing initial item list render...");
+        applyFiltersAndRender();
+        console.log("[script-main] Performing initial simulator display setup...");
+        initializeSimulatorDisplay();
 
-
-        console.log("Admin modules initialized successfully.");
+        console.log("[script-main] All data loading and initial setup complete.");
 
     } catch (error) {
-        console.error("Admin Main: Error during initial data load or module setup:", error);
-        alert("管理パネルの初期化中にエラーが発生しました。コンソールを確認してください。");
-        // Display a more user-friendly error message in the UI if possible
-        const adminContainer = document.getElementById('admin-content')?.querySelector('.container');
-        if (adminContainer) {
-            adminContainer.innerHTML = `<p class="error-message" style="color:red; text-align:center; padding:20px;">管理データの読み込みまたは表示に失敗しました。ページを再読み込みするか、管理者にお問い合わせください。</p>`;
+        console.error("[script-main] CRITICAL ERROR during app initialization:", error);
+        const itemListEl = document.getElementById('itemList');
+        if (itemListEl) {
+            itemListEl.innerHTML = `<p style="color: red; text-align: center; padding: 20px;">アプリケーションの起動に失敗しました。データの読み込み中にエラーが発生した可能性があります。ページを再読み込みするか、管理者にお問い合わせください。</p>`;
         }
+        const containerEl = document.querySelector('.container');
+        if(containerEl) containerEl.innerHTML = `<p style="color: red; text-align: center; padding: 20px;">エラーが発生しました。詳細はコンソールを確認してください。</p>`;
     }
-}
-
-function renderAllAdminUISections() {
-    // Call the internal render functions from each manager module
-    // These functions should ideally fetch their required data using the getters.
-    if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
-    if (typeof renderTagsUI === 'function') renderTagsUI();
-    if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
-    if (typeof renderEffectTypesUI === 'function') renderEffectTypesUI();
-    if (typeof renderCharBaseOptionsUI === 'function') renderCharBaseOptionsUI();
-    if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
-
-    // Also, re-populate any select dropdowns that depend on dynamic data
-    if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
-    if (typeof populateCharBaseEffectTypeSelectInModal === 'function') populateCharBaseEffectTypeSelectInModal();
-    if (typeof populateItemFormTags === 'function') populateItemFormTags();
-    // ... and other similar population functions for category/tag selects in forms ...
-    // These might be part of the manager's init or their internal render logic now.
-    // Example: Category manager's init populates its own parent category selectors.
-    // Tag manager's init populates its own category selectors.
-}
+});
