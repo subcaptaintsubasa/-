@@ -6,29 +6,62 @@ const adminModals = {}; // Cache for admin modal elements: { modalId: element }
 
 /**
  * Initializes common UI helper functionalities.
- * Currently focuses on generic modal close behavior.
+ * Focuses on generic modal close behavior.
  */
 export function initUIHelpers() {
     // Generic modal close button handler
     document.querySelectorAll('#admin-content .modal .close-button').forEach(btn => {
-        const modal = btn.closest('.modal');
-        if (modal) {
-            adminModals[modal.id] = modal; // Cache modal element
-            btn.addEventListener('click', () => closeModal(modal.id));
+        const modalElement = btn.closest('.modal');
+        if (modalElement && modalElement.id) {
+            if (!adminModals[modalElement.id]) {
+                adminModals[modalElement.id] = modalElement;
+            }
+            // Remove existing listener before adding a new one to prevent duplicates
+            btn.removeEventListener('click', handleModalCloseButtonClick);
+            btn.addEventListener('click', handleModalCloseButtonClick);
+        } else {
+            console.warn("Close button found without a parent .modal or modal ID:", btn);
         }
     });
 
     // Generic modal overlay click handler
     document.querySelectorAll('#admin-content .modal').forEach(modal => {
-        if (!adminModals[modal.id]) adminModals[modal.id] = modal; // Cache if not already
-        modal.addEventListener('click', (event) => {
-            if (event.target === modal) { // Clicked on modal backdrop
-                closeModal(modal.id);
+        if (modal.id) {
+            if (!adminModals[modal.id]) {
+                adminModals[modal.id] = modal;
             }
-        });
+            // Remove existing listener before adding a new one
+            modal.removeEventListener('click', handleModalOverlayClick);
+            modal.addEventListener('click', handleModalOverlayClick);
+        } else {
+            console.warn("Modal element found without an ID:", modal);
+        }
     });
     console.log("Admin UI Helpers Initialized.");
 }
+
+/**
+ * Event handler for modal close buttons.
+ * @param {Event} event - The click event.
+ */
+function handleModalCloseButtonClick(event) {
+    const modalElement = event.currentTarget.closest('.modal');
+    if (modalElement && modalElement.id) {
+        closeModal(modalElement.id);
+    }
+}
+
+/**
+ * Event handler for modal overlay clicks.
+ * @param {Event} event - The click event.
+ */
+function handleModalOverlayClick(event) {
+    // `this` refers to the modal element the listener was attached to.
+    if (event.target === this && this.id) {
+        closeModal(this.id);
+    }
+}
+
 
 /**
  * Opens a specific admin modal.
@@ -38,12 +71,10 @@ export function openModal(modalId) {
     const modal = adminModals[modalId] || document.getElementById(modalId);
     if (modal) {
         modal.classList.add('active-modal');
-        // If the HTML has an inline style="display:none;", this will clear it
-        // so the class-based display:flex can take effect.
         if (modal.hasAttribute('style') && modal.style.display === 'none') {
-            modal.style.display = '';
+            modal.style.display = ''; // Clear inline display:none if present from HTML
         }
-        if (!adminModals[modalId]) adminModals[modalId] = modal; // Cache if opened directly
+        if (!adminModals[modalId]) adminModals[modalId] = modal;
     } else {
         console.warn(`Modal with ID "${modalId}" not found.`);
     }
@@ -57,10 +88,8 @@ export function closeModal(modalId) {
     const modal = adminModals[modalId];
     if (modal) {
         modal.classList.remove('active-modal');
-        // The .modal class itself should have display: none by default in CSS.
-        // Setting style.display = 'none' here can be a fallback if CSS isn't working as expected.
-        // However, relying on class toggling is generally cleaner.
-        // modal.style.display = 'none'; // Can be added if class removal alone isn't hiding it.
+        // Default display:none for .modal class in CSS should hide it.
+        // No need to set modal.style.display = 'none'; if CSS is correctly set up.
     } else {
         console.warn(`Modal with ID "${modalId}" not found or not cached for closing.`);
     }
@@ -70,18 +99,18 @@ export function closeModal(modalId) {
  * Populates a select element with options.
  * @param {HTMLSelectElement} selectElement - The select DOM element.
  * @param {Array<Object>} optionsArray - Array of { value: string, text: string } objects.
- * @param {string} [defaultText='Select...'] - Text for the default empty option. If null, no default empty option is added.
+ * @param {string | null} [defaultText='選択してください...'] - Text for the default empty option. Pass null to omit.
  * @param {string} [selectedValue=''] - The value to pre-select.
  */
 export function populateSelect(selectElement, optionsArray, defaultText = '選択してください...', selectedValue = '') {
     if (!selectElement) {
-        console.warn("populateSelect: selectElement is null or undefined.");
+        console.warn("populateSelect: selectElement is null or undefined for options:", optionsArray);
         return;
     }
-    const currentValue = selectElement.value || selectedValue; // Preserve current value if exists
+    const currentValue = selectElement.value || selectedValue;
 
-    selectElement.innerHTML = ''; // Clear existing options
-    if (defaultText !== null) { // Allow disabling the default empty option by passing null
+    selectElement.innerHTML = '';
+    if (defaultText !== null) {
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = defaultText;
@@ -95,13 +124,12 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
         selectElement.appendChild(option);
     });
 
-    // Try to re-select the previous or specified value
     if (Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
         selectElement.value = currentValue;
     } else if (defaultText !== null) {
-        selectElement.value = ''; // Fallback to default empty option if it exists
+        selectElement.value = '';
     } else if (optionsArray.length > 0) {
-        selectElement.value = optionsArray[0].value; // Select first actual option if no default and options exist
+        selectElement.value = optionsArray[0].value;
     }
 }
 
@@ -127,14 +155,13 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
     }
 
     items.forEach(item => {
-        // Ensure containerElement.id is valid for constructing checkboxId
         const safeContainerId = containerElement.id ? containerElement.id.replace(/\W/g, '') : simpleUID('container');
         const checkboxId = `${idPrefix}${item.id}-${safeContainerId}`;
         const checkboxWrapper = document.createElement('div');
         checkboxWrapper.classList.add('checkbox-item');
 
         let labelText = item.name;
-        if (item.parentName) { // For child categories, show parent name
+        if (item.parentName) {
             labelText += ` (親: ${item.parentName})`;
         }
 
@@ -177,7 +204,7 @@ export function populateTagButtonSelector(containerElement, tags, activeTagIds =
 
     tags.forEach(tag => {
         const button = document.createElement('div');
-        button.className = 'tag-filter admin-tag-select'; // Ensure these classes are defined in CSS
+        button.className = 'tag-filter admin-tag-select';
         button.textContent = tag.name;
         button.dataset.tagId = tag.id;
         if (activeTagIds.includes(tag.id)) {
@@ -226,8 +253,8 @@ export function clearForm(formElement) {
     }
 
     if (formElement.tagName === 'FORM') {
-        formElement.reset(); // Native form reset
-    } else { // For other containers, manually clear inputs
+        formElement.reset();
+    } else {
         const inputs = formElement.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
             const type = input.type ? input.type.toLowerCase() : input.tagName.toLowerCase();
@@ -249,28 +276,24 @@ export function clearForm(formElement) {
                     break;
                 case 'select-one':
                 case 'select-multiple':
-                case 'select': // Fallback for select elements
-                    input.selectedIndex = -1; // Deselect all options
+                case 'select':
+                    input.selectedIndex = -1;
                     if (input.options.length > 0 && input.options[0].value === "") {
-                        input.selectedIndex = 0; // Select the default empty option if it exists
+                        input.selectedIndex = 0;
                     }
                     break;
                 case 'file':
-                    input.value = null; // For file inputs
+                    input.value = null;
                     break;
                 default:
-                    // For other input types, a general value clear might work or need specific handling
                     // console.log("Clearing unknown input type:", type, input);
-                    // input.value = ''; // Tentative clear
                     break;
             }
-            // Trigger change event for selects if needed for dependent UI updates
             if (input.tagName === 'SELECT') {
                 input.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
     }
-    // Clear any custom "active" states on buttons if they are part of the form
     formElement.querySelectorAll('.active[data-tag-id], .active[data-parent-id]').forEach(activeEl => {
         activeEl.classList.remove('active');
     });
@@ -281,6 +304,6 @@ export function clearForm(formElement) {
  * @param {string} [prefix='uid-'] - Optional prefix for the ID.
  * @returns {string}
  */
-function simpleUID(prefix = 'uid-') {
+function simpleUID(prefix = 'uid-') { // This was added here temporarily, ideally from utils.js
     return prefix + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
 }
