@@ -1,30 +1,30 @@
-// js/script-main.js (修正案・全文)
-import { db } from '../firebase-config.js';
+// js/script-main.js
+import { db } from '../firebase-config.js'; // ★パス修正: プロジェクトルートからの相対パス
 import {
     loadData,
     getAllItems, getAllCategories, getAllTags, getEffectTypesCache, getCharacterBasesCache,
     EQUIPMENT_SLOT_TAG_IDS, SIMULATOR_PARENT_CATEGORY_NAME, SIMULATOR_EFFECT_CHILD_CATEGORY_NAME
-} from './modules/data-loader.js';
+} from './modules/data-loader.js'; // ★パス修正: modules/ を追加
 import {
     initUIMain,
     displaySearchToolMessage, showConfirmSelectionButton
-} from './modules/ui-main.js';
+} from './modules/ui-main.js'; // ★パス修正: modules/ を追加
 import {
     initSearchFilters, applyFiltersAndRender,
     activateSimulatorSelectionMode, deactivateSimulatorSelectionMode, cancelItemSelection,
-    setTemporarilySelectedItemExport, // ★静的インポートで持ってくる
+    setTemporarilySelectedItemExport,
     isSelectingForSimulatorState as getIsSelectingForSimulator,
     getCurrentSelectingSlotState as getCurrentSelectingSlot
-} from './modules/search-filters.js'; // ★search-filters.js から必要なものをインポート
+} from './modules/search-filters.js'; // ★パス修正: modules/ を追加
 import {
     initSearchRender
-} from './modules/search-render.js';
+} from './modules/search-render.js'; // ★パス修正: modules/ を追加
 import {
     initSimulatorUI, updateSimulatorSlotDisplay, calculateAndDisplayTotalEffects, initializeSimulatorDisplay,
     getSelectedEquipment, getSelectedCharacterBase, setSelectedCharacterBaseValue, updateSelectedEquipment
-} from './modules/simulator-ui.js';
-import { initSimulatorLogic } from './modules/simulator-logic.js';
-import { initSimulatorImage, getSimulatorDOMS as getSimulatorImageDOMS } from './modules/simulator-image.js';
+} from './modules/simulator-ui.js'; // ★パス修正: modules/ を追加
+import { initSimulatorLogic } from './modules/simulator-logic.js'; // ★パス修正: modules/ を追加
+import { initSimulatorImage, getSimulatorDOMS as getSimulatorImageDOMS } from './modules/simulator-image.js'; // ★パス修正: modules/ を追加
 
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             getEffectTypesCache: getEffectTypesCache,
             getAllTags: getAllTags,
             onItemTempSelect: (itemId) => {
-                // ★修正点: 静的インポートした関数を直接呼び出す
                 setTemporarilySelectedItemExport(itemId);
             }
         });
