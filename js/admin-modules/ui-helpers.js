@@ -2,9 +2,6 @@
 // Contains helper functions for common UI tasks in the admin panel,
 // such as modal handling, populating selects, rendering list items, etc.
 
-// This module will be populated with functions that are used by multiple manager.js files.
-// For now, it can start with modal helpers if they are generic enough.
-
 const adminModals = {}; // Cache for admin modal elements: { modalId: element }
 
 /**
@@ -40,7 +37,10 @@ export function initUIHelpers() {
 export function openModal(modalId) {
     const modal = adminModals[modalId] || document.getElementById(modalId);
     if (modal) {
-        modal.style.display = 'flex';
+        // Instead of modal.style.display = 'flex';
+        // We will add a class that has display: flex !important;
+        modal.classList.add('active-modal');
+        modal.style.display = ''; // Clear any inline display none from HTML
         if (!adminModals[modalId]) adminModals[modalId] = modal; // Cache if opened directly
     } else {
         console.warn(`Modal with ID "${modalId}" not found.`);
@@ -54,8 +54,11 @@ export function openModal(modalId) {
 export function closeModal(modalId) {
     const modal = adminModals[modalId];
     if (modal) {
+        // Instead of modal.style.display = 'none';
+        // We will remove the class
+        modal.classList.remove('active-modal');
+        // Optionally, to ensure it's hidden if the class removal isn't enough due to other styles:
         modal.style.display = 'none';
-        // Add any generic cleanup for modals if needed
     } else {
         console.warn(`Modal with ID "${modalId}" not found or not cached for closing.`);
     }
@@ -229,10 +232,4 @@ export function clearForm(formElement) {
     formElement.querySelectorAll('.active[data-tag-id], .active[data-parent-id]').forEach(activeEl => {
         activeEl.classList.remove('active');
     });
-    // Special handling for "Top Level" parent category button if it exists and needs reset
-    const topLevelButton = formElement.querySelector('.category-select-button[data-parent-id=""]');
-    if (topLevelButton && formElement.querySelector('.category-select-button.active') === null) {
-        // If no parent is active, make "Top Level" active by default (depends on form logic)
-        // topLevelButton.classList.add('active');
-    }
 }
