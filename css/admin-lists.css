@@ -3,173 +3,159 @@
 
 /* General container for lists of manageable items (categories, tags, etc.) */
 .list-container {
-    margin-top: 15px;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    padding: 10px;
-    max-height: 300px; /* Scrollable if content exceeds this height */
+    margin-top: 1rem; /* Use rem */
+    border: 1px solid #dee2e6; /* Slightly darker border */
+    border-radius: 0.25rem; /* Consistent radius */
+    padding: 0.5rem; /* Adjusted padding */
+    max-height: 320px; /* Slightly increased max-height */
     overflow-y: auto;
-    background-color: #fff; /* White background for list area */
+    background-color: #fdfdfd; /* Slightly off-white */
 }
 .list-item { /* Individual item in a .list-container */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
-    border-bottom: 1px solid #f0f0f0; /* Light separator for items */
-    transition: background-color 0.1s; /* Subtle hover effect */
+    padding: 0.6rem 0.8rem; /* Adjusted padding */
+    border-bottom: 1px solid #e9ecef; /* Lighter separator */
+    transition: background-color 0.15s ease-in-out;
 }
 .list-item:last-child {
-    border-bottom: none; /* No border for the last item */
+    border-bottom: none;
 }
 .list-item:hover {
-    background-color: #f9f9f9; /* Slight background change on hover */
+    background-color: #f1f3f5; /* Slightly more noticeable hover */
 }
-.list-item > span { /* Text content of the list item, direct child span */
+.list-item > span { /* Text content of the list item */
     flex-grow: 1;
-    margin-right: 10px;
-    word-break: break-word; /* Prevent long text from breaking layout */
-    font-size: 0.95em;
+    margin-right: 0.75rem;
+    word-break: break-word;
+    font-size: 0.9rem; /* Adjusted font size */
+    color: #343a40;
 }
 .list-item > span small { /* For extra info like parent category, units etc. */
-    color: #555;
-    font-size: 0.9em;
+    color: #5a6268; /* Muted but readable */
+    font-size: 0.85em; /* Relative to parent span */
+    margin-left: 0.3rem;
 }
 .list-item div { /* Container for action buttons */
-    flex-shrink: 0; /* Prevent button container from shrinking */
+    flex-shrink: 0;
     display: flex;
-    gap: 5px; /* Space between buttons */
+    align-items: center; /* Vertically align buttons if they have different heights */
+    gap: 0.3rem; /* Reduced gap for compact buttons */
 }
-/* Action buttons are styled in admin-forms.css */
+/* Action buttons (.action-button) are styled in admin-forms.css */
 
 /* Checkbox groups (used for tag assignment, item tag selection) */
 .checkbox-group-container {
     display: flex;
     flex-direction: column;
-    gap: 5px; /* Space between checkbox items */
-    max-height: 150px; /* Scrollable if many options */
+    gap: 0.3rem; /* Reduced gap */
+    max-height: 180px; /* Increased max-height */
     overflow-y: auto;
-    border: 1px solid #eee;
-    padding: 10px;
-    border-radius: 4px;
-    background-color: #fdfdfd; /* Slightly off-white background */
+    border: 1px solid #e0e0e0; /* Slightly softer border */
+    padding: 0.75rem; /* Adjusted padding */
+    border-radius: 0.25rem;
+    background-color: #ffffff; /* White background */
 }
 .checkbox-item {
     display: flex;
     align-items: center;
-    padding: 3px 0; /* Small padding for each checkbox line */
+    padding: 0.2rem 0;
 }
 .checkbox-item input[type="checkbox"] {
-    margin-right: 8px;
-    width: auto; /* Default checkbox size */
-    padding: initial; /* Reset inherited padding */
-    border: initial; /* Reset inherited border */
-    box-shadow: none; /* Remove inherited shadow */
+    margin-right: 0.5rem;
+    width: auto;
+    padding: initial;
+    border: initial;
+    box-shadow: none;
     vertical-align: middle;
-    flex-shrink: 0; /* Prevent checkbox from shrinking */
+    flex-shrink: 0;
+    transform: scale(1.05); /* Slightly larger checkboxes */
 }
 .checkbox-item input[type="checkbox"]:focus {
-    outline: 1px dotted #007bff; /* Simple focus outline */
+    outline: 1px dotted #007bff;
 }
 .checkbox-item label {
-    font-weight: normal; /* Normal weight for checkbox labels */
+    font-weight: normal;
     margin-bottom: 0;
-    font-size: 0.9em;
-    color: #333;
+    font-size: 0.9rem; /* Consistent font size */
+    color: #343a40;
     vertical-align: middle;
-    cursor: pointer; /* Make label clickable */
-    line-height: 1.4;
+    cursor: pointer;
+    line-height: 1.5;
 }
 
 /* Tag selection buttons within category edit modal */
-.tag-button-container.admin { /* Container for selectable tags */
+.tag-button-container.admin {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    max-height: 150px; /* Scrollable */
+    gap: 0.5rem;
+    max-height: 180px; /* Increased max-height */
     overflow-y: auto;
-    border: 1px solid #eee;
-    padding: 10px;
-    border-radius: 4px;
-    background-color: #fdfdfd;
+    border: 1px solid #e0e0e0;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    background-color: #ffffff;
 }
-.tag-filter.admin-tag-select { /* Individual tag button */
-    padding: 6px 10px;
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 15px; /* Pill shape */
-    cursor: pointer;
-    font-size: 0.85em;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-}
-.tag-filter.admin-tag-select:hover {
-     background-color: #e0e0e0;
-}
-.tag-filter.admin-tag-select.active {
-    background-color: #28a745; /* Green for active selection */
-    color: white;
-    border-color: #1e7e34;
-}
+/* .tag-filter.admin-tag-select is styled in admin-forms.css (consistency) */
+
 
 /* Effect input area and list (used in item form & char base option form) */
 .effect-input-area {
-    border: 1px solid #e0e0e0;
-    padding: 15px;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-    margin-top: 10px; /* Space above the area */
+    border: 1px solid #dee2e6; /* Consistent border color */
+    padding: 1rem; /* Use rem */
+    border-radius: 0.25rem;
+    background-color: #f8f9fa; /* Light background */
+    margin-top: 0.75rem;
 }
-.effect-input-row { /* Row for selecting effect type, value, and add button */
+.effect-input-row {
     display: flex;
-    flex-wrap: wrap; /* Allow wrapping on small screens */
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     align-items: center;
-    margin-bottom: 15px; /* Space before the list of added effects */
+    margin-bottom: 1rem;
 }
 .effect-input-row select,
-.effect-input-row input[type="number"] { /* Effect type select and value input */
-    flex: 1 1 120px; /* Allow growing and shrinking, base width 120px */
-    /* Uses .form-control-short styles from admin-forms.css if applied,
-       otherwise, default form element styles */
+.effect-input-row input[type="number"] {
+    flex: 1 1 130px; /* Adjusted flex-basis */
 }
 .effect-input-row button { /* "Add Effect" button */
-    flex-shrink: 0; /* Prevent button from shrinking */
-    margin-left: auto; /* Push to the right if space allows */
-    /* Uses general button styles from admin-forms.css */
+    flex-shrink: 0;
+    margin-left: auto;
 }
-.unit-display { /* Displays the unit for the selected effect type */
+.unit-display {
     display: inline-block;
-    min-width: 40px; /* Ensure some space for the unit text */
+    min-width: 45px; /* Slightly wider */
     text-align: left;
     font-style: italic;
-    color: #6c757d; /* Muted color for unit */
-    margin-left: -4px; /* Slight adjustment for alignment */
-    margin-right: 8px; /* Space before add button */
-    font-size: 0.9em;
+    color: #5a6268;
+    margin-left: -0.2rem;
+    margin-right: 0.5rem;
+    font-size: 0.875rem;
     white-space: nowrap;
 }
 
-.effects-list-container { /* Container for currently added effects */
-    margin-top: 10px;
-    border-top: 1px dashed #ccc; /* Separator from input row */
-    padding-top: 10px;
-    max-height: 150px; /* Scrollable if many effects */
+.effects-list-container {
+    margin-top: 0.75rem;
+    border-top: 1px dashed #ced4da; /* Slightly darker dashed line */
+    padding-top: 0.75rem;
+    max-height: 160px; /* Increased max-height */
     overflow-y: auto;
 }
-.effect-list-item { /* Individual added effect */
+.effect-list-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: #fff;
-    padding: 6px 10px;
-    margin-bottom: 5px;
-    border-radius: 4px;
-    border: 1px solid #eee;
-    font-size: 0.9em;
+    padding: 0.4rem 0.7rem; /* Adjusted padding */
+    margin-bottom: 0.3rem;
+    border-radius: 0.2rem;
+    border: 1px solid #e9ecef; /* Lighter border for items */
+    font-size: 0.875rem;
 }
-.effect-list-item span { /* Effect text */
+.effect-list-item span {
     flex-grow: 1;
-    margin-right: 5px; /* Space before delete button */
+    margin-right: 0.3rem;
 }
 /* .delete-effect-from-list button is styled in admin-forms.css */
 
@@ -178,60 +164,73 @@
 #itemsTable {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
-    font-size: 0.95em; /* Slightly smaller font for table density */
-    table-layout: auto; /* Or fixed if column widths are an issue */
+    margin-top: 1.25rem; /* Use rem */
+    font-size: 0.9rem; /* Base font size for table */
+    table-layout: auto;
+    background-color: #fff; /* White background for table */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Subtle shadow for table */
+    border-radius: 0.25rem;
+    overflow: hidden; /* To make border-radius work with table */
 }
 #itemsTable th,
 #itemsTable td {
-    border: 1px solid #dee2e6; /* Standard table border */
-    padding: 10px 12px;
+    border: 1px solid #e9ecef; /* Lighter border for cells */
+    padding: 0.75rem 0.9rem; /* Adjusted padding */
     text-align: left;
     vertical-align: middle;
 }
 #itemsTable th {
-    background-color: #f8f9fa; /* Light background for headers */
-    font-weight: bold;
+    background-color: #f8f9fa; /* Light gray for headers */
+    font-weight: 500; /* Medium weight */
     color: #495057;
-    white-space: nowrap; /* Prevent headers from wrapping unnecessarily */
+    white-space: nowrap;
+    font-size: 0.85rem; /* Slightly smaller header text */
+    text-transform: uppercase; /* Uppercase headers for distinction */
+    letter-spacing: 0.5px;
 }
-#itemsTable img { /* Images in the item table */
-    max-width: 60px;
-    max-height: 60px;
+#itemsTable img {
+    max-width: 50px; /* Slightly smaller default image size */
+    max-height: 50px;
     width: auto;
     height: auto;
-    object-fit: contain; /* Use contain to see full image */
-    background-color: #e9ecef; /* Placeholder background */
-    border-radius: 3px;
-    border: 1px solid #ddd;
-    display: block; /* Remove extra space below image */
+    object-fit: contain;
+    background-color: #f0f0f0; /* Placeholder bg */
+    border-radius: 3px; /* Consistent radius */
+    border: 1px solid #dee2e6;
+    display: block;
+    padding: 2px; /* Small padding around image */
 }
-#itemsTable td .action-button { /* Buttons within table cells */
-    margin-right: 5px;
-    margin-bottom: 3px; /* Spacing if buttons wrap */
+#itemsTable td .action-button {
+    margin-right: 0.3rem;
+    margin-bottom: 0.2rem; /* For wrapping */
 }
 #itemsTable td .action-button:last-child {
     margin-right: 0;
 }
 #itemsTable td:last-child { /* Action column */
-    white-space: nowrap; /* Prevent action buttons from wrapping too early */
-    width: 1%; /* Try to make it as narrow as content allows */
+    white-space: nowrap;
+    width: 1%;
+    text-align: right; /* Align action buttons to the right */
+}
+#itemsTable tbody tr:hover {
+    background-color: #f1f3f5; /* Hover effect for table rows */
 }
 
 
 /* Search input for admin item list */
 #itemSearchAdmin {
-    /* width: calc(100% - 22px); Full width with padding considerations */
-    /* max-width: 400px; Limit width for aesthetics */
-    /* Uses .form-group input styling from admin-forms.css by default if wrapped in .form-group */
-    /* If standalone, apply similar styles: */
-    padding: 8px 10px;
-    margin-bottom: 15px;
+    padding: 0.6rem 0.75rem; /* Adjusted padding */
+    margin-bottom: 1rem;
     border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 0.95em;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
     box-sizing: border-box;
-    display: block; /* Make it take full width of its container */
+    display: block;
     width: 100%;
-    max-width: 400px; /* Or remove if full width is preferred */
+    max-width: 450px; /* Slightly wider */
+}
+#itemSearchAdmin:focus { /* Ensure focus style matches other inputs */
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
