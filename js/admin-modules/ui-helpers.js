@@ -9,60 +9,56 @@ const adminModals = {}; // Cache for admin modal elements: { modalId: element }
  * Focuses on generic modal close behavior.
  */
 export function initUIHelpers() {
-    console.log("[ui-helpers] initUIHelpers called"); // ★デバッグログ
+    console.log("[ui-helpers] initUIHelpers called");
 
-    // Generic modal close button handler
-    const closeButtons = document.querySelectorAll('#admin-content .modal .close-button');
-    console.log("[ui-helpers] Close buttons found by querySelectorAll:", closeButtons.length, closeButtons); // ★デバッグログ
+    // ★修正: セレクタから #admin-content を削除
+    const closeButtons = document.querySelectorAll('body#admin-page .modal .close-button');
+    console.log("[ui-helpers] Close buttons found by querySelectorAll('body#admin-page .modal .close-button'):", closeButtons.length, closeButtons);
     closeButtons.forEach((btn, index) => {
-        console.log(`[ui-helpers] Processing close button #${index}:`, btn); // ★どのボタンか特定
+        console.log(`[ui-helpers] Processing close button #${index}:`, btn);
         const modalElementForListener = btn.closest('.modal');
         if (modalElementForListener && modalElementForListener.id) {
             if (!adminModals[modalElementForListener.id]) {
                 adminModals[modalElementForListener.id] = modalElementForListener;
             }
-            // イベントリスナーを一度削除してから追加（重複防止の試みだが、通常はinitUIHelpersが一度しか呼ばれないなら不要）
-            // btn.removeEventListener('click', handleModalCloseButtonClick); // 名前付き関数での削除は一旦保留
-            btn.addEventListener('click', (event) => { // ★デバッグのため一時的に匿名関数に戻す
+            btn.addEventListener('click', (event) => {
                 const clickedButton = event.currentTarget;
                 const parentModal = clickedButton.closest('.modal');
-                console.log("[ui-helpers] Close button CLICKED:", clickedButton); // ★デバッグログ
-                console.log("[ui-helpers] Parent modal found for click:", parentModal); // ★デバッグログ
+                console.log("[ui-helpers] Close button CLICKED:", clickedButton);
+                console.log("[ui-helpers] Parent modal found for click:", parentModal);
                 if (parentModal && parentModal.id) {
                     closeModal(parentModal.id);
                 } else {
                     console.error("[ui-helpers] Could not find parent .modal for clicked close button:", clickedButton);
                 }
             });
-            console.log(`[ui-helpers] SUCCESSFULLY Added click listener to close button for modal '${modalElementForListener.id}'. Button:`, btn); // ★デバッグログ
+            console.log(`[ui-helpers] SUCCESSFULLY Added click listener to close button for modal '${modalElementForListener.id}'. Button:`, btn);
         } else {
-            console.warn("[ui-helpers] Close button SKIPPED (no valid parent .modal with ID, or button not in modal). Button:", btn, "Found parent modal:", modalElementForListener); // ★デバッグログ
+            console.warn("[ui-helpers] Close button SKIPPED (no valid parent .modal with ID, or button not in modal). Button:", btn, "Found parent modal:", modalElementForListener);
         }
     });
 
-    // Generic modal overlay click handler
-    const allModalsForOverlay = document.querySelectorAll('#admin-content .modal');
-    console.log("[ui-helpers] Modals found for overlay click:", allModalsForOverlay.length, allModalsForOverlay); // ★デバッグログ
+    // ★修正: セレクタから #admin-content を削除
+    const allModalsForOverlay = document.querySelectorAll('body#admin-page .modal');
+    console.log("[ui-helpers] Modals found for overlay click by querySelectorAll('body#admin-page .modal'):", allModalsForOverlay.length, allModalsForOverlay);
     allModalsForOverlay.forEach((modal, index) => {
-        console.log(`[ui-helpers] Processing modal #${index} for overlay click:`, modal); // ★どのモーダルか特定
+        console.log(`[ui-helpers] Processing modal #${index} for overlay click:`, modal);
         if (modal.id) {
             if (!adminModals[modal.id]) {
                 adminModals[modal.id] = modal;
             }
-            // modal.removeEventListener('click', handleModalOverlayClick); // 名前付き関数での削除は一旦保留
-            modal.addEventListener('click', function(event) { // ★デバッグのため一時的に匿名関数に戻す (this を使うため function キーワード)
-                // console.log("[ui-helpers] Modal overlay area clicked. Target:", event.target, "CurrentTarget (this):", this); // より詳細なログが必要な場合
-                if (event.target === this && this.id) { // Check if the click is directly on the modal overlay and it has an ID
-                    console.log(`[ui-helpers] Overlay click detected for modal '${this.id}'. Closing.`); // ★デバッグログ
+            modal.addEventListener('click', function(event) {
+                if (event.target === this && this.id) {
+                    console.log(`[ui-helpers] Overlay click detected for modal '${this.id}'. Closing.`);
                     closeModal(this.id);
                 }
             });
-            console.log(`[ui-helpers] SUCCESSFULLY Added overlay click listener for modal '${modal.id}'.`); // ★デバッグログ
+            console.log(`[ui-helpers] SUCCESSFULLY Added overlay click listener for modal '${modal.id}'.`);
         } else {
-            console.warn("[ui-helpers] Modal element found without an ID, cannot attach overlay click listener:", modal); // ★デバッグログ
+            console.warn("[ui-helpers] Modal element found without an ID, cannot attach overlay click listener:", modal);
         }
     });
-    console.log("Admin UI Helpers Initialized with enhanced debug logs.");
+    console.log("Admin UI Helpers Initialized with corrected selectors.");
 }
 
 /**
@@ -77,11 +73,10 @@ export function openModal(modalId) {
         console.log(`[ui-helpers] Current classes before add: ${modal.className}`);
         modal.classList.add('active-modal');
         console.log(`[ui-helpers] Current classes after add: ${modal.className}`);
-        // Clear inline display:none if it was set in HTML, so class rule can take over
         if (modal.hasAttribute('style') && modal.style.display === 'none') {
             modal.style.display = '';
         }
-        if (!adminModals[modalId]) adminModals[modalId] = modal; // Cache if opened directly
+        if (!adminModals[modalId]) adminModals[modalId] = modal;
     } else {
         console.warn(`Modal with ID "${modalId}" not found.`);
     }
@@ -99,7 +94,6 @@ export function closeModal(modalId) {
         console.log(`[ui-helpers] Classes before remove: ${modal.className}`);
         modal.classList.remove('active-modal');
         console.log(`[ui-helpers] Classes after remove: ${modal.className}`);
-        // CSS rule for .modal (without .active-modal) should handle display:none
     } else {
         console.warn(`Modal with ID "${modalId}" not found or not cached for closing.`);
     }
@@ -114,12 +108,11 @@ export function closeModal(modalId) {
  */
 export function populateSelect(selectElement, optionsArray, defaultText = '選択してください...', selectedValue = '') {
     if (!selectElement) {
-        // console.warn("populateSelect: selectElement is null or undefined. Cannot populate options:", optionsArray);
         return;
     }
     const currentValue = selectElement.value || selectedValue;
 
-    selectElement.innerHTML = ''; // Clear existing options
+    selectElement.innerHTML = '';
     if (defaultText !== null) {
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
@@ -128,7 +121,6 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
     }
 
     if (!optionsArray || !Array.isArray(optionsArray)) {
-        // console.warn("populateSelect: optionsArray is not a valid array for selectElement:", selectElement.id || selectElement);
         return;
     }
 
@@ -139,13 +131,12 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
         selectElement.appendChild(option);
     });
 
-    // Try to re-select the previous or specified value
     if (Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
         selectElement.value = currentValue;
     } else if (defaultText !== null) {
-        selectElement.value = ''; // Fallback to default empty option if it exists
-    } else if (optionsArray.length > 0 && selectElement.options[0]) { // Ensure options[0] exists
-        selectElement.value = selectElement.options[0].value; // Select first actual option
+        selectElement.value = '';
+    } else if (optionsArray.length > 0 && selectElement.options[0]) {
+        selectElement.value = selectElement.options[0].value;
     }
 }
 
@@ -160,7 +151,6 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
  */
 export function populateCheckboxGroup(containerElement, items, selectedIds = [], checkboxName, idPrefix = 'cb-') {
     if (!containerElement) {
-        // console.warn("populateCheckboxGroup: containerElement is null or undefined.");
         return;
     }
     containerElement.innerHTML = '';
@@ -208,7 +198,6 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
  */
 export function populateTagButtonSelector(containerElement, tags, activeTagIds = []) {
     if (!containerElement) {
-        // console.warn("populateTagButtonSelector: containerElement is null or undefined.");
         return;
     }
     containerElement.innerHTML = '';
@@ -264,7 +253,6 @@ export function getSelectedTagButtonValues(containerElement) {
  */
 export function clearForm(formElement) {
     if (!formElement) {
-        // console.warn("clearForm: formElement is null or undefined.");
         return;
     }
 
@@ -293,27 +281,22 @@ export function clearForm(formElement) {
                 case 'select-one':
                 case 'select-multiple':
                 case 'select':
-                    input.selectedIndex = -1; // Deselect all options
-                    // If there's a default empty option (usually the first one with value="")
+                    input.selectedIndex = -1;
                     if (input.options.length > 0 && input.options[0].value === "") {
                         input.selectedIndex = 0;
                     }
                     break;
                 case 'file':
-                    input.value = null; // For file inputs
+                    input.value = null;
                     break;
                 default:
-                    // For other input types, this might not be sufficient
-                    // console.log("Clearing unknown input type or unhandled case:", type, input);
                     break;
             }
-            // Trigger change event for selects if needed for dependent UI updates
             if (input.tagName === 'SELECT') {
                 input.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
     }
-    // Clear any custom "active" states on buttons if they are part of the form
     formElement.querySelectorAll('.active[data-tag-id], .active[data-parent-id]').forEach(activeEl => {
         activeEl.classList.remove('active');
     });
@@ -324,6 +307,6 @@ export function clearForm(formElement) {
  * @param {string} [prefix='uid-'] - Optional prefix for the ID.
  * @returns {string}
  */
-function simpleUID(prefix = 'uid-') { // This was added here temporarily, ideally from utils.js
+function simpleUID(prefix = 'uid-') {
     return prefix + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
 }
