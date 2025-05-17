@@ -1,201 +1,144 @@
-/* css/admin-base.css */
-/* Base styles specifically for the admin panel */
-body#admin-page {
+/* css/base.css */
+/* General body and page structure for user-facing pages */
+body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Modern system font stack */
     margin: 0;
-    background-color: #f8f9fa; /* Slightly lighter background */
-    color: #212529; /* Darker text color for better contrast */
+    background-color: #f4f4f4; /* Light gray background for the page */
+    color: #333; /* Default text color */
     line-height: 1.6;
     font-size: 16px; /* Base font size */
+    -webkit-font-smoothing: antialiased; /* Smoother fonts on WebKit */
+    -moz-osx-font-smoothing: grayscale;  /* Smoother fonts on Firefox */
 }
 
-/* Password Prompt Overlay */
-#password-prompt {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(33, 37, 41, 0.9); /* Darker, slightly transparent overlay */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
+/* Header Styles */
+.site-header {
+    background-color: #343a40; /* Dark primary color for header */
     color: white;
-    padding: 20px;
-    box-sizing: border-box;
-}
-#password-prompt h2 {
-    margin-top: 0;
-    margin-bottom: 20px; /* Increased margin */
-    color: white;
-    text-align: center;
-    font-weight: 500; /* Medium weight */
-}
-#password-prompt input[type="password"],
-#password-prompt input[type="email"] {
-    padding: 12px 15px; /* Slightly more padding */
-    margin-bottom: 15px;
-    font-size: 1rem; /* Use rem for scalability */
-    border: 1px solid #ced4da;
-    border-radius: 0.25rem; /* Bootstrap-like radius */
-    width: 100%;
-    max-width: 320px; /* Slightly wider */
-    box-sizing: border-box;
-}
-#password-prompt button {
-    padding: 12px 25px; /* Wider button */
-    font-size: 1rem;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-}
-#password-prompt button:hover {
-    background-color: #0056b3;
-}
-.error-message { /* For login errors */
-    color: #f8d7da; /* Lighter red for dark background */
-    background-color: #721c24; /* Dark red background for contrast */
-    padding: 8px 12px;
-    border-radius: 0.25rem;
-    font-weight: 500;
-    margin-top: 15px;
-    text-align: center;
-    max-width: 320px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Admin Header */
-#admin-content header {
-    background-color: #ffffff; /* White header */
-    color: #343a40; /* Dark text */
-    padding: 0.8rem 1.5rem; /* Use rem */
+    padding: 0 20px;
+    height: 60px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Softer shadow */
-    border-bottom: 1px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 1000; /* High z-index to stay on top */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* Slightly more pronounced shadow */
 }
-#admin-content header h1 {
-    margin: 0;
-    font-size: 1.6rem; /* Use rem */
-    font-weight: 600; /* Slightly bolder */
-}
-#admin-content header div { /* Container for user email and logout */
+.header-content {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    width: 100%;
+    max-width: 1280px; /* Max width for header content if needed */
+    margin: 0 auto;    /* Center header content */
 }
-#logoutButton {
-    background-color: #6c757d;
-    color: white;
-    padding: 0.5rem 0.9rem; /* Use rem */
+.site-title {
+    margin: 0;
+    font-size: 1.6rem; /* Use rem for scalability */
+    font-weight: 600; /* Bolder title */
+    text-decoration: none; /* Remove underline if it's a link */
+    color: white;          /* Ensure title color is white */
+}
+.hamburger-button {
+    font-size: 1.7rem; /* Slightly larger icon */
+    background: transparent; /* Ensure no background */
     border: none;
-    border-radius: 0.25rem;
+    color: white;
     cursor: pointer;
-    font-size: 0.9rem; /* Use rem */
+    padding: 10px 12px; /* Adjusted padding for better click area */
+    line-height: 1;
+    margin-left: auto;
+    border-radius: 4px; /* Slight rounding */
     transition: background-color 0.2s ease-in-out;
 }
-#logoutButton:hover {
-    background-color: #5a6268;
-}
-#currentUserEmail {
-    margin-right: 1rem; /* Use rem */
-    font-size: 0.9rem;
-    color: #495057; /* Slightly muted text */
+.hamburger-button:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Subtle hover */
 }
 
 
-/* Admin Main Container */
-#admin-content .container {
-    max-width: 1200px; /* Wider max-width */
-    margin: 30px auto; /* More margin top/bottom */
-    padding: 25px 35px; /* Adjusted padding */
-    background-color: #fff;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.07); /* Softer, slightly larger shadow */
-    border-radius: 6px; /* Slightly smaller radius */
+/* Side Navigation Panel */
+.side-navigation {
+    height: 100%;
+    width: 0; /* Initially hidden */
+    position: fixed;
+    z-index: 10002; /* Above header overlay, but can be below a global modal overlay */
+    top: 0;
+    right: 0;
+    background-color: #2c3034; /* Slightly different dark shade */
+    overflow-x: hidden;
+    transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
+    padding-top: 70px; /* More space for close button or header */
+    box-shadow: -4px 0 12px rgba(0,0,0,0.25); /* More defined shadow */
+}
+.side-navigation.open {
+    width: 260px; /* Slightly wider */
+}
+.side-navigation ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.side-navigation li .nav-button {
+    padding: 16px 25px; /* Increased padding */
+    text-decoration: none;
+    font-size: 1.05rem; /* Adjusted font size */
+    color: #e0e0e0; /* Lighter text, but not pure white */
+    display: block;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #3a3f44; /* Subtle separator */
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+.side-navigation li:last-child .nav-button {
+    border-bottom: none; /* No border for the last item */
+}
+.side-navigation li .nav-button:hover {
+    background-color: #007bff; /* Primary color hover */
+    color: white;
+}
+.close-nav-button {
+    position: absolute;
+    top: 18px; /* Adjusted position */
+    right: 22px; /* Adjusted position */
+    font-size: 2.2rem; /* Larger close icon */
+    background: none;
+    border: none;
+    color: #adb5bd; /* Muted gray */
+    cursor: pointer;
+    padding: 5px; /* Make clickable area slightly larger */
+    line-height: 1;
+    transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+.close-nav-button:hover {
+    color: white;
+    transform: rotate(90deg); /* Fun hover effect */
 }
 
-/* Admin Sections */
-#admin-content section {
-    padding-top: 20px; /* Increased padding top */
-    padding-bottom: 30px; /* Increased padding bottom */
-    margin-bottom: 30px;
-    border-bottom: 1px solid #e9ecef;
-}
-#admin-content section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 15px;
-}
-
-/* Admin Headings */
-#admin-content h2,
-#admin-content h3 {
-    color: #343a40;
-    margin-top: 0; /* Reset default */
-    margin-bottom: 25px; /* Increased margin */
-    font-weight: 500; /* Medium weight */
-}
-#admin-content h2 {
-    font-size: 1.75rem; /* Larger h2 */
-    display: flex;
-    align-items: center;
-    padding-bottom: 10px; /* Add padding below h2 */
-    border-bottom: 1px solid #dee2e6; /* Separator for h2 */
-}
-#admin-content h3 {
-    font-size: 1.4rem; /* Larger h3 */
-    margin-top: 25px;
-    color: #495057; /* Slightly lighter h3 color */
-    font-weight: 500;
+/* Main Content Container for user-facing pages */
+.container {
+    width: 90%;
+    max-width: 1240px; /* Slightly wider */
+    margin: 25px auto; /* Adjusted margin */
+    padding: 25px 30px; /* Adjusted padding */
+    background-color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* Softer, more spread shadow */
+    border-radius: 6px;
+    margin-top: calc(60px + 25px); /* Header height (60px) + desired top margin (25px) */
 }
 
-/* General Info Message for Admin */
-.info-message {
-    font-size: 0.9rem;
-    color: #004085; /* Bootstrap info blue */
-    background-color: #cce5ff;
-    border: 1px solid #b8daff;
-    border-left: 5px solid #007bff; /* Accent border */
-    padding: 1rem 1.25rem; /* Use rem */
-    border-radius: 0.25rem;
-    margin-top: 15px;
-    margin-bottom: 25px;
-}
-
-/* Helper for icons in headings */
-#admin-content h2 .icon {
-    font-size: 1.1em; /* Relative to h2 font size */
-    margin-right: 12px; /* More space */
-    color: #007bff; /* Primary color for icons */
-    /* Ensure FontAwesome or similar icon font is loaded if these are class-based icons */
-}
-
-/* General utility classes */
-.hidden {
-    display: none !important;
-}
-hr { /* Default hr styling for admin sections */
+/* General Section Divider */
+.section-divider {
     border: 0;
     height: 1px;
-    background-color: #ced4da; /* Slightly darker hr */
-    margin: 40px 0; /* Increased margin for hr */
+    background-color: #dee2e6; /* Consistent border color */
+    margin: 50px 0; /* Increased spacing */
 }
 
-/* For screen readers only */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
+/* Utility classes (can be expanded) */
+.text-center {
+    text-align: center;
 }
