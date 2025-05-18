@@ -74,7 +74,7 @@ body#admin-page {
 .admin-header {
     background-color: #ffffff;
     color: #343a40;
-    padding: 0.8rem 1.5rem;
+    padding: 0.8rem 1rem; /* Adjusted padding */
     display: flex;
     align-items: center;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -87,20 +87,26 @@ body#admin-page {
 }
 .admin-header-content {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     width: 100%;
+}
+.admin-header-title-group {
+    flex-grow: 1; /* Allow title to take space */
 }
 .admin-site-title {
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
-    margin-right: auto; /* Push other elements to the right */
 }
-#admin-content header div { /* Login info and logout button group */
+.admin-header-actions {
     display: flex;
     align-items: center;
-    margin-right: 1rem; /* Space before hamburger */
+    margin-left: auto; /* Push actions to the right */
+}
+#admin-content header div.admin-user-info {
+    display: flex;
+    align-items: center;
+    margin-right: 0.75rem; /* Space between user info and hamburger */
 }
 #logoutButton {
     background-color: #6c757d;
@@ -126,11 +132,10 @@ body#admin-page {
     border: none;
     color: #343a40;
     cursor: pointer;
-    padding: 10px 12px;
+    padding: 10px; /* Adjusted padding for better click area */
     line-height: 1;
     border-radius: 4px;
     transition: background-color 0.2s ease-in-out;
-    /* No margin-left: auto as it's now at the end of header-content flow */
 }
 .admin-hamburger-button:hover {
     background-color: rgba(0, 0, 0, 0.05);
@@ -148,12 +153,12 @@ body#admin-page {
     color: #f8f9fa;
     overflow-x: hidden;
     transition: width 0.25s ease-in-out;
-    padding-top: 60px;
+    padding-top: 60px; /* Match header height */
 }
-.admin-side-navigation.admin-nav-right {
+.admin-side-navigation.admin-nav-right { /* Class to align nav to the right */
     right: 0;
     left: auto;
-    box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+    box-shadow: -2px 0 8px rgba(0,0,0,0.15); /* Shadow on the left */
 }
 .admin-side-navigation.open {
     width: 280px;
@@ -180,12 +185,10 @@ body#admin-page {
 .admin-side-navigation li:last-child .admin-nav-button {
     border-bottom: none;
 }
-.admin-side-navigation li .admin-nav-button:hover { /* General hover for all nav items */
-    background-color: #495057; /* Darker gray hover */
+.admin-side-navigation li .admin-nav-button:hover { /* No active state by default now */
+    background-color: #495057;
     color: white;
 }
-/* .admin-side-navigation li .admin-nav-button.active-nav-item { ... }  <- Removed active item styling for now */
-
 .admin-close-nav-button {
     position: absolute;
     top: 12px;
@@ -213,7 +216,7 @@ body#admin-page {
     background-color: #fff;
     box-shadow: 0 3px 10px rgba(0,0,0,0.07);
     border-radius: 6px;
-    margin-top: calc(60px + 30px); /* Header height + desired top margin */
+    margin-top: calc(60px + 30px);
 }
 
 #admin-content section {
@@ -222,7 +225,8 @@ body#admin-page {
     margin-bottom: 0;
 }
 #admin-content .container.admin-main-container > #item-management {
-    padding-top: 20px;
+    padding-top: 20px; /* Add padding as it's directly in container */
+    border-bottom: none; /* Item management section might not need a bottom border here */
 }
 
 
@@ -233,14 +237,14 @@ body#admin-page {
     margin-bottom: 25px;
     font-weight: 500;
 }
-#admin-content h2 {
+#admin-content h2 { /* Section titles (used in item-management and modal titles) */
     font-size: 1.75rem;
     display: flex;
     align-items: center;
     padding-bottom: 10px;
     border-bottom: 1px solid #dee2e6;
 }
-#admin-content h3 {
+#admin-content h3 { /* Sub-titles like "カテゴリ一覧" or "アイテム一覧" */
     font-size: 1.4rem;
     margin-top: 30px;
     margin-bottom: 15px;
