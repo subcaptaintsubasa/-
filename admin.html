@@ -117,128 +117,128 @@
         </div>
 
         <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle">
-            <div class="modal-content scrollable-content">
+            <div class="modal-content">
                 <span class="close-button" aria-label="閉じる">×</span>
-                <section id="category-management" aria-labelledby="categoryManagementModalTitle">
-                    <h2 id="categoryManagementModalTitle"><span class="icon" aria-hidden="true"></span> カテゴリ管理</h2>
+                <h2 id="categoryManagementModalTitle"><span class="icon" aria-hidden="true"></span> カテゴリ管理</h2>
+                <section id="category-management" class="modal-scrollable-section"> {/* ★IDを元のセクションIDに */}
                     <div class="form-group">
-                         <label for="newCategoryNameModal">新しいカテゴリ名:</label>
-                         <input type="text" id="newCategoryNameModal" placeholder="カテゴリ名">
+                         <label for="newCategoryName">新しいカテゴリ名:</label> {/* ★IDを元のIDに */}
+                         <input type="text" id="newCategoryName" placeholder="カテゴリ名">
                     </div>
                      <div class="form-group">
-                         <label id="newCategoryParentLabelModal">親カテゴリ設定:</label>
-                         <div id="newCategoryParentButtonsModal" class="category-button-group admin" role="group" aria-labelledby="newCategoryParentLabelModal">
+                         <label id="newCategoryParentLabel">親カテゴリ設定:</label> {/* ★IDを元のIDに */}
+                         <div id="newCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="newCategoryParentLabel"> {/* ★IDを元のIDに */}
                          </div>
-                         <input type="hidden" id="selectedNewParentCategoryIdModal" value="">
+                         <input type="hidden" id="selectedNewParentCategoryId" value=""> {/* ★IDを元のIDに */}
                      </div>
-                    <button id="addCategoryButtonModal" type="button">カテゴリ追加</button>
+                    <button id="addCategoryButton" type="button">カテゴリ追加</button> {/* ★IDを元のIDに */}
                     <h3 style="margin-top: 20px;">カテゴリ一覧</h3>
-                    <div id="categoryListContainerModal" class="list-container">
+                    <div id="categoryListContainer" class="list-container"> {/* ★IDを元のIDに */}
                     </div>
                 </section>
             </div>
         </div>
 
         <div id="tagManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="tagManagementModalTitle">
-            <div class="modal-content scrollable-content">
+            <div class="modal-content">
                 <span class="close-button" aria-label="閉じる">×</span>
-                <section id="tag-management" aria-labelledby="tagManagementModalTitle">
-                    <h2 id="tagManagementModalTitle"><span class="icon" aria-hidden="true"></span> タグ管理</h2>
+                 <h2 id="tagManagementModalTitle"><span class="icon" aria-hidden="true"></span> タグ管理</h2>
+                <section id="tag-management" class="modal-scrollable-section"> {/* ★IDを元のセクションIDに */}
                     <div class="form-group">
-                        <label for="newTagNameModal">新しいタグ名:</label>
-                        <input type="text" id="newTagNameModal" placeholder="タグの名前">
+                        <label for="newTagName">新しいタグ名:</label> {/* ★IDを元のIDに */}
+                        <input type="text" id="newTagName" placeholder="タグの名前">
                     </div>
                     <div class="form-group">
-                        <label id="newTagCategoriesLabelModal">このタグが所属するカテゴリ (子カテゴリのみ選択可):</label>
-                        <div id="newTagCategoriesCheckboxesModal" class="checkbox-group-container" role="group" aria-labelledby="newTagCategoriesLabelModal">
+                        <label id="newTagCategoriesLabel">このタグが所属するカテゴリ (子カテゴリのみ選択可):</label> {/* ★IDを元のIDに */}
+                        <div id="newTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="newTagCategoriesLabel"> {/* ★IDを元のIDに */}
                         </div>
                     </div>
-                    <button id="addTagButtonModal" type="button">タグ追加</button>
+                    <button id="addTagButton" type="button">タグ追加</button> {/* ★IDを元のIDに */}
                     <h3 style="margin-top: 20px;">既存タグ一覧</h3>
-                    <div id="tagListContainerModal" class="list-container">
+                    <div id="tagListContainer" class="list-container"> {/* ★IDを元のIDに */}
                     </div>
                 </section>
             </div>
         </div>
 
         <div id="effectUnitManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectUnitManagementModalTitle">
-            <div class="modal-content scrollable-content">
+            <div class="modal-content">
                 <span class="close-button" aria-label="閉じる">×</span>
-                <section id="effect-unit-management" aria-labelledby="effectUnitManagementModalTitle">
-                    <h2 id="effectUnitManagementModalTitle"><span class="icon" aria-hidden="true">📏</span> 効果単位管理</h2>
+                <h2 id="effectUnitManagementModalTitle"><span class="icon" aria-hidden="true">📏</span> 効果単位管理</h2>
+                <section id="effect-unit-management" class="modal-scrollable-section"> {/* ★IDを元のセクションIDに */}
                     <div class="form-group">
-                        <label for="newEffectUnitNameModal">新しい効果単位名:</label>
-                        <input type="text" id="newEffectUnitNameModal" placeholder="単位名 (例: ポイント, %, 秒)">
+                        <label for="newEffectUnitName">新しい効果単位名:</label> {/* ★IDを元のIDに */}
+                        <input type="text" id="newEffectUnitName" placeholder="単位名 (例: ポイント, %, 秒)">
                     </div>
-                    <button id="addEffectUnitButtonModal" type="button">効果単位を追加</button>
+                    <button id="addEffectUnitButton" type="button">効果単位を追加</button> {/* ★IDを元のIDに */}
                     <h3 style="margin-top: 20px;">既存の効果単位一覧</h3>
-                    <div id="effectUnitListContainerModal" class="list-container">
+                    <div id="effectUnitListContainer" class="list-container"> {/* ★IDを元のIDに */}
                     </div>
                 </section>
             </div>
         </div>
 
         <div id="effectTypeManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectTypeManagementModalTitle">
-            <div class="modal-content scrollable-content">
+            <div class="modal-content">
                 <span class="close-button" aria-label="閉じる">×</span>
-                <section id="effect-type-management" aria-labelledby="effectTypeManagementModalTitle">
-                     <h2 id="effectTypeManagementModalTitle"><span class="icon" aria-hidden="true">✨</span> 効果種類管理</h2>
+                <h2 id="effectTypeManagementModalTitle"><span class="icon" aria-hidden="true">✨</span> 効果種類管理</h2>
+                <section id="effect-type-management" class="modal-scrollable-section"> {/* ★IDを元のセクションIDに */}
                      <div class="form-group">
-                         <label for="newEffectTypeNameModal">新しい効果種類名:</label>
-                         <input type="text" id="newEffectTypeNameModal" placeholder="効果名 (例: 攻撃力UP)">
+                         <label for="newEffectTypeName">新しい効果種類名:</label> {/* ★IDを元のIDに */}
+                         <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
                      </div>
                      <div class="form-group">
-                         <label for="newEffectTypeUnitModal">デフォルト単位:</label>
+                         <label for="newEffectTypeUnit">デフォルト単位:</label> {/* ★IDを元のIDに */}
                          <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
-                             <select id="newEffectTypeUnitModal" class="form-control-short"></select>
-                             <button type="button" id="manageUnitsForNewEffectTypeButtonModal" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
+                             <select id="newEffectTypeUnit" class="form-control-short"></select> {/* ★IDを元のIDに */}
+                             <button type="button" id="manageUnitsForNewEffectTypeButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button> {/* ★IDを元のIDに */}
                          </div>
                      </div>
                      <div class="form-group">
                          <label>計算方法:</label>
                          <div class="radio-group">
-                             <input type="radio" id="newCalcMethodSumModal" name="newCalcMethodModal" value="sum" checked>
-                             <label for="newCalcMethodSumModal">加算</label>
-                             <input type="radio" id="newCalcMethodMaxModal" name="newCalcMethodModal" value="max">
-                             <label for="newCalcMethodMaxModal">最大値</label>
+                             <input type="radio" id="newCalcMethodSum" name="newCalcMethod" value="sum" checked> {/* ★IDを元のIDに */}
+                             <label for="newCalcMethodSum">加算</label>
+                             <input type="radio" id="newCalcMethodMax" name="newCalcMethod" value="max"> {/* ★IDを元のIDに */}
+                             <label for="newCalcMethodMax">最大値</label>
                          </div>
                      </div>
-                     <div class="form-group" id="newEffectTypeSumCapGroupModal">
-                         <label for="newEffectTypeSumCapModal">加算時の最大値 (任意):</label>
-                         <input type="number" id="newEffectTypeSumCapModal" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short">
+                     <div class="form-group" id="newEffectTypeSumCapGroup"> {/* ★IDを元のIDに */}
+                         <label for="newEffectTypeSumCap">加算時の最大値 (任意):</label> {/* ★IDを元のIDに */}
+                         <input type="number" id="newEffectTypeSumCap" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short"> {/* ★IDを元のIDに */}
                          <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
                      </div>
-                     <button id="addEffectTypeButtonModal" type="button">効果種類を追加</button>
+                     <button id="addEffectTypeButton" type="button">効果種類を追加</button> {/* ★IDを元のIDに */}
                      <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
-                     <div id="effectTypeListContainerModal" class="list-container">
+                     <div id="effectTypeListContainer" class="list-container"> {/* ★IDを元のIDに */}
                      </div>
                 </section>
             </div>
         </div>
 
         <div id="charBaseManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="charBaseManagementModalTitle">
-            <div class="modal-content scrollable-content">
+            <div class="modal-content">
                 <span class="close-button" aria-label="閉じる">×</span>
-                <section id="character-base-management" aria-labelledby="charBaseManagementModalTitle">
-                    <h2 id="charBaseManagementModalTitle"><span class="icon" aria-hidden="true">👤</span> キャラクター基礎情報管理</h2>
+                 <h2 id="charBaseManagementModalTitle"><span class="icon" aria-hidden="true">👤</span> キャラクター基礎情報管理</h2>
+                <section id="character-base-management" class="modal-scrollable-section"> {/* ★IDを元のセクションIDに */}
                     <div class="form-group">
-                        <label for="charBaseTypeSelectModal">基礎情報の種類:</label>
-                        <select id="charBaseTypeSelectModal">
+                        <label for="charBaseTypeSelect">基礎情報の種類:</label> {/* ★IDを元のIDに */}
+                        <select id="charBaseTypeSelect"> {/* ★IDを元のIDに */}
                             <option value="headShape">頭の形</option>
                             <option value="correction">補正</option>
                             <option value="color">色</option>
                             <option value="pattern">柄</option>
                         </select>
-                        <button type="button" id="addNewCharBaseOptionButtonModal" class="button-like">新しい選択肢を追加</button>
+                        <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button> {/* ★IDを元のIDに */}
                     </div>
-                    <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplayModal">頭の形</span> の選択肢一覧</h3>
-                    <div id="charBaseOptionListContainerModal" class="list-container">
+                    <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3> {/* ★IDを元のIDに */}
+                    <div id="charBaseOptionListContainer" class="list-container"> {/* ★IDを元のIDに */}
                     </div>
                 </section>
             </div>
         </div>
 
-        <!-- Existing Edit Modals (e.g., for editing a specific category) -->
+        <!-- Existing Edit Modals (for editing a specific item, category, tag etc.) -->
         <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalInternalTitle">
             <div class="modal-content">
                 <span class="close-button" aria-label="閉じる">×</span>
