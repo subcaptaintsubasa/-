@@ -25,7 +25,7 @@ body#admin-page div.modal.active-modal {
 body#admin-page div.modal div.modal-content {
     background-color: #fff;
     margin: auto;
-    padding: 0; /* ★Paddingを0にし、子要素で制御 */
+    padding: 0; /* Padding is now on title and scrollable section */
     border: none;
     width: 90%;
     max-width: 580px; /* Default for smaller edit modals */
@@ -35,19 +35,42 @@ body#admin-page div.modal div.modal-content {
     animation: fadeInAdminModal 0.25s ease-out;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 60px);
-    overflow: hidden; /* ★モーダルコンテンツ自体はスクロールさせない */
+    max-height: calc(100vh - 60px); /* Adjusted max-height */
+    overflow: hidden; /* Modal content itself does not scroll */
 }
-/* モーダル内のスクロール可能なコンテンツエリア */
-body#admin-page div.modal div.modal-content > section, /* Management sections */
-body#admin-page div.modal div.modal-content > div:not(.modal-actions) { /* For edit modals that don't use <section> directly */
-    padding: 30px 35px; /* ★実際のコンテンツのパディング */
-    overflow-y: auto; /* ★内容が多ければスクロール */
-    flex-grow: 1;
+
+/* Modal Title Area (for both edit modals and management section modals) */
+body#admin-page div.modal div.modal-content > h3, /* Edit modal title */
+body#admin-page div.modal.admin-management-modal div.modal-content > h2 { /* Management modal title */
+    margin-top: 0;
+    margin-bottom: 0; /* No bottom margin, separated by border */
+    font-size: 1.6rem;
+    color: #212529;
+    border-bottom: 1px solid #dee2e6;
+    padding: 20px 30px 15px 30px; /* Padding for the title area */
+    flex-shrink: 0; /* Prevent title from shrinking */
+    font-weight: 500;
+    text-align: left;
+    background-color: #f8f9fa; /* Slight background for title bar */
+    border-top-left-radius: 6px; /* Match modal radius */
+    border-top-right-radius: 6px;
+    display: flex; /* For icon alignment in management modals */
+    align-items: center;
 }
-/* Specific padding for management section modals if needed after title */
-body#admin-page div.modal.admin-management-modal div.modal-content > section {
-    padding-top: 20px; /* タイトルの下のスペース */
+body#admin-page div.modal.admin-management-modal div.modal-content > h2 .icon {
+    font-size: 1em; /* Relative to h2 */
+    margin-right: 10px;
+    color: #007bff;
+}
+
+/* Scrollable content area within the modal */
+/* This applies to <section class="modal-scrollable-section"> inside management modals */
+/* and the main content div of smaller edit modals */
+body#admin-page div.modal div.modal-content > .modal-scrollable-section,
+body#admin-page div.modal:not(.admin-management-modal) div.modal-content > div:not(:first-child):not(.modal-actions) { /* Target content div of edit modals */
+    padding: 20px 30px 30px 30px; /* Inner padding for the content */
+    overflow-y: auto; /* Enable vertical scroll for this section */
+    flex-grow: 1; /* Allow this section to take available vertical space */
 }
 
 
@@ -56,40 +79,19 @@ body#admin-page div.modal.admin-management-modal div.modal-content > section {
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Modal Title (for both edit modals and management section modals) */
-body#admin-page div.modal div.modal-content h3,
-body#admin-page div.modal.admin-management-modal div.modal-content h2 {
-    margin-top: 0;
-    margin-bottom: 0; /* ★マージンはsection/content divのpaddingで制御 */
-    font-size: 1.6rem;
-    color: #212529;
-    border-bottom: 1px solid #dee2e6;
-    padding: 20px 35px 15px 35px; /* ★タイトルエリアのパディング */
-    flex-shrink: 0;
-    font-weight: 500;
-    text-align: left;
-    display: flex;
-    align-items: center;
-}
-body#admin-page div.modal.admin-management-modal div.modal-content h2 .icon {
-    font-size: 1em;
-    margin-right: 10px;
-    color: #007bff;
-}
-
 
 body#admin-page div.modal span.close-button {
     color: #6c757d;
     position: absolute;
-    top: 15px; /* タイトルエリアのパディングに合わせて調整 */
-    right: 20px;
-    font-size: 32px;
+    top: 22px; /* Adjusted to align better within title area padding */
+    right: 25px; /* Adjusted */
+    font-size: 28px; /* Slightly smaller to fit better */
     font-weight: bold;
-    line-height: 0.8;
+    line-height: 1;
     cursor: pointer;
     z-index: 10;
     transition: color 0.2s ease-in-out, transform 0.15s ease-in-out;
-    padding: 5px;
+    padding: 0px 5px; /* Minimal padding */
 }
 body#admin-page div.modal span.close-button:hover,
 body#admin-page div.modal span.close-button:focus {
@@ -114,45 +116,44 @@ body#admin-page div.modal#editCharBaseOptionModal div.modal-content {
 }
 
 
-/* Form groups within modals (inside the scrollable section) */
-body#admin-page div.modal div.modal-content section .form-group,
-body#admin-page div.modal div.modal-content > div:not(.modal-actions) .form-group {
+/* Form groups within modals (inside the scrollable section or content div) */
+body#admin-page div.modal div.modal-content .modal-scrollable-section .form-group,
+body#admin-page div.modal div.modal-content > div:not([class*="title"]):not(.modal-actions) .form-group { /* More generic selector for edit modal content */
     margin-bottom: 1.1rem;
 }
-body#admin-page div.modal div.modal-content section .form-group:last-of-type,
-body#admin-page div.modal div.modal-content > div:not(.modal-actions) .form-group:last-of-type {
+body#admin-page div.modal div.modal-content .modal-scrollable-section .form-group:last-of-type,
+body#admin-page div.modal div.modal-content > div:not([class*="title"]):not(.modal-actions) .form-group:last-of-type {
     margin-bottom: 1.5rem;
 }
 
 
 /* Action buttons at the bottom of modals */
-body#admin-page div.modal div.modal-content button[type="submit"],
-body#admin-page div.modal div.modal-content #saveCategoryEditButton,
-body#admin-page div.modal div.modal-content #saveTagEditButton,
-body#admin-page div.modal div.modal-content #saveEffectTypeEditButton,
-body#admin-page div.modal div.modal-content #saveEffectUnitEditButton,
-body#admin-page div.modal div.modal-content #saveCharBaseOptionButton {
-    /* These buttons are now expected to be inside a .modal-actions container or directly in the scrollable part */
-    /* If directly in scrollable part and need to be full width: */
-    /* width: 100%; */
-    /* padding: 0.7rem 1rem; */
-    /* font-size: 1rem; */
-    /* margin-top: 1.25rem; */
-}
-/* Footer area for buttons */
 body#admin-page div.modal div.modal-content .modal-actions {
     display: flex;
     gap: 0.75rem;
     justify-content: flex-end;
-    margin-top: 1.5rem; /* From content above */
+    margin-top: auto; /* Push actions to bottom if content is short */
     border-top: 1px solid #e9ecef;
-    padding: 1rem 35px 20px 35px; /* ★アクションエリアのパディング */
-    flex-shrink: 0; /* Prevent shrinking */
-    background-color: #f8f9fa; /* Optional: slightly different bg for footer */
-    border-bottom-left-radius: 6px; /* Match modal radius */
+    padding: 1rem 30px 1.25rem 30px;
+    flex-shrink: 0;
+    background-color: #f8f9fa;
+    border-bottom-left-radius: 6px;
     border-bottom-right-radius: 6px;
 }
 body#admin-page div.modal div.modal-content .modal-actions button {
-    width: auto; /* Buttons take their own width */
+    width: auto;
     margin-top: 0;
+}
+/* Ensure save buttons directly inside <section class="modal-scrollable-section"> are styled */
+body#admin-page div.modal div.modal-content .modal-scrollable-section > button[type="submit"],
+body#admin-page div.modal div.modal-content .modal-scrollable-section > #saveCategoryEditButton,
+body#admin-page div.modal div.modal-content .modal-scrollable-section > #saveTagEditButton,
+body#admin-page div.modal div.modal-content .modal-scrollable-section > #saveEffectTypeEditButton,
+body#admin-page div.modal div.modal-content .modal-scrollable-section > #saveEffectUnitEditButton,
+body#admin-page div.modal div.modal-content .modal-scrollable-section > #saveCharBaseOptionButton {
+    display: block; /* Make them block to take full width */
+    width: 100%;
+    margin-top: 1.25rem;
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
 }
