@@ -6,7 +6,7 @@ let navigationOverlayEl; // For admin side navigation overlay
 export function initUIHelpers() {
     console.log("[ui-helpers] initUIHelpers called");
     // Generic modal close button handler (for edit modals, etc.)
-    document.querySelectorAll('body#admin-page .modal:not(.admin-management-modal) .close-button, body#admin-page .modal.admin-management-modal .close-button').forEach(btn => {
+    document.querySelectorAll('body#admin-page .modal .close-button').forEach(btn => {
         const modalElement = btn.closest('.modal');
         if (modalElement && modalElement.id) {
             if (!adminModals[modalElement.id]) {
@@ -24,7 +24,7 @@ export function initUIHelpers() {
             if (!adminModals[modal.id]) {
                 adminModals[modal.id] = modal;
             }
-            modal.addEventListener('click', function(event) {
+            modal.addEventListener('click', function(event) { // Use function keyword for 'this'
                 if (event.target === this && this.id) { // Clicked on the modal backdrop itself
                     closeModal(this.id);
                 }
@@ -44,17 +44,22 @@ export function initAdminNavigation() {
     const itemManagementSectionEl = document.getElementById('item-management');
 
     // Create and append navigation overlay
-    navigationOverlayEl = document.createElement('div');
-    navigationOverlayEl.className = 'navigation-overlay'; // Style this in admin-base.css or similar
-    navigationOverlayEl.style.position = 'fixed';
-    navigationOverlayEl.style.top = '0';
-    navigationOverlayEl.style.left = '0';
-    navigationOverlayEl.style.width = '100%';
-    navigationOverlayEl.style.height = '100%';
-    navigationOverlayEl.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'; // Overlay color
-    navigationOverlayEl.style.zIndex = '10001'; // Below sideNav (10002), above content
-    navigationOverlayEl.style.display = 'none'; // Initially hidden
-    document.body.appendChild(navigationOverlayEl);
+    if (!document.querySelector('.navigation-overlay')) { // Create only if it doesn't exist
+        navigationOverlayEl = document.createElement('div');
+        navigationOverlayEl.className = 'navigation-overlay';
+        // Basic styles for overlay - ideally, these should be in CSS
+        navigationOverlayEl.style.position = 'fixed';
+        navigationOverlayEl.style.top = '0';
+        navigationOverlayEl.style.left = '0';
+        navigationOverlayEl.style.width = '100%';
+        navigationOverlayEl.style.height = '100%';
+        navigationOverlayEl.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+        navigationOverlayEl.style.zIndex = '10001'; // Below sideNav (10002)
+        navigationOverlayEl.style.display = 'none'; // Initially hidden
+        document.body.appendChild(navigationOverlayEl);
+    } else {
+        navigationOverlayEl = document.querySelector('.navigation-overlay');
+    }
 
 
     if (adminHamburgerButtonEl && adminSideNavEl) {
@@ -94,17 +99,14 @@ export function initAdminNavigation() {
             button.addEventListener('click', (event) => {
                 const clickedButton = event.currentTarget;
                 const targetModalId = clickedButton.dataset.modalTarget;
-                // const targetViewId = clickedButton.dataset.viewTarget; // Not used since item-management is default
 
-                // Remove active class from all nav buttons (if we were using it)
-                // navButtons.forEach(btn => btn.classList.remove('active-nav-item'));
-                // Add active class to the clicked button (if we were using it)
-                // clickedButton.classList.add('active-nav-item');
+                // No active class management for nav items as per request
 
-                // Hide item management section if a modal is opened
-                if (itemManagementSectionEl && targetModalId) { // Only hide if opening a modal
+                // Hide item management section if a modal (other than item management) is to be opened
+                if (itemManagementSectionEl && targetModalId) {
                     itemManagementSectionEl.style.display = 'none';
                 }
+
                 // Close all other management modals first
                 document.querySelectorAll('.modal.admin-management-modal.active-modal').forEach(m => {
                     if (m.id !== targetModalId) {
@@ -114,12 +116,13 @@ export function initAdminNavigation() {
 
                 if (targetModalId) {
                     console.log(`[ui-helpers] Admin nav button clicked for modal: ${targetModalId}`);
-                    openModal(targetModalId);
-                } else { // This case is for item management, which is now always visible or handled differently
-                    console.log(`[ui-helpers] Admin nav button clicked for default view (item-management)`);
-                    if (itemManagementSectionEl) {
-                        itemManagementSectionEl.style.display = 'block'; // Ensure item management is visible
-                    }
+                    openModal(targetModalId); // This will also dispatch 'adminModalOpened'
+                }
+                // If data-view-target was for item-management, it's handled by default or by ensuring other modals are closed
+                // and item-management is visible.
+                else if (!targetModalId && itemManagementSectionEl) { // Clicked a nav item that doesn't open a modal (should be none now)
+                     console.log(`[ui-helpers] Admin nav button clicked, no modal target. Ensuring item management is visible.`);
+                     itemManagementSectionEl.style.display = 'block';
                 }
                 closeAdminNav(); // Always close nav after item click
             });
@@ -139,6 +142,10 @@ export function openModal(modalId) {
             modal.style.display = '';
         }
         if (!adminModals[modalId]) adminModals[modalId] = modal;
+
+        const event = new CustomEvent('adminModalOpened', { detail: { modalId: modalId } });
+        document.dispatchEvent(event);
+        console.log(`[ui-helpers] Dispatched adminModalOpened event for: ${modalId}`);
     } else {
         console.warn(`Modal with ID "${modalId}" not found.`);
     }
