@@ -76,7 +76,6 @@ body#admin-page {
     color: #343a40;
     padding: 0.8rem 1.5rem;
     display: flex;
-    /* justify-content: space-between; HamburgerButton が右端にくるように調整 */
     align-items: center;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     border-bottom: 1px solid #dee2e6;
@@ -88,7 +87,7 @@ body#admin-page {
 }
 .admin-header-content {
     display: flex;
-    justify-content: space-between; /* This will push hamburger to the right if it's the last child */
+    justify-content: space-between;
     align-items: center;
     width: 100%;
 }
@@ -96,27 +95,12 @@ body#admin-page {
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
+    margin-right: auto; /* Push other elements to the right */
 }
-.admin-hamburger-button { /* Hamburger is now first, so no margin-left: auto */
-    font-size: 1.7rem;
-    background: transparent;
-    border: none;
-    color: #343a40;
-    cursor: pointer;
-    padding: 10px 12px;
-    line-height: 1;
-    border-radius: 4px;
-    transition: background-color 0.2s ease-in-out;
-    order: -1; /* ★ハンバーガーボタンを左端に持ってくる場合 */
-    margin-right: 1rem; /* ★タイトルとの間に少し余白 */
-}
-.admin-hamburger-button:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-#admin-content header div { /* User email and logout group */
+#admin-content header div { /* Login info and logout button group */
     display: flex;
     align-items: center;
-    margin-left: auto; /* Push this group to the very right */
+    margin-right: 1rem; /* Space before hamburger */
 }
 #logoutButton {
     background-color: #6c757d;
@@ -136,9 +120,25 @@ body#admin-page {
     font-size: 0.9rem;
     color: #495057;
 }
+.admin-hamburger-button {
+    font-size: 1.7rem;
+    background: transparent;
+    border: none;
+    color: #343a40;
+    cursor: pointer;
+    padding: 10px 12px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out;
+    /* No margin-left: auto as it's now at the end of header-content flow */
+}
+.admin-hamburger-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
 
 /* Admin Side Navigation Panel */
-.admin-side-navigation { /* For general structure */
+.admin-side-navigation {
     height: 100%;
     width: 0;
     position: fixed;
@@ -150,9 +150,9 @@ body#admin-page {
     transition: width 0.25s ease-in-out;
     padding-top: 60px;
 }
-.admin-side-navigation.admin-nav-right { /* Specific class for right-side nav */
+.admin-side-navigation.admin-nav-right {
     right: 0;
-    left: auto; /* Ensure left is not set */
+    left: auto;
     box-shadow: -2px 0 8px rgba(0,0,0,0.15);
 }
 .admin-side-navigation.open {
@@ -180,17 +180,16 @@ body#admin-page {
 .admin-side-navigation li:last-child .admin-nav-button {
     border-bottom: none;
 }
-.admin-side-navigation li .admin-nav-button:hover,
-.admin-side-navigation li .admin-nav-button.active-nav-item { /* Style for active nav item */
-    background-color: #007bff;
+.admin-side-navigation li .admin-nav-button:hover { /* General hover for all nav items */
+    background-color: #495057; /* Darker gray hover */
     color: white;
-    font-weight: 500; /* Slightly bolder for active item */
 }
+/* .admin-side-navigation li .admin-nav-button.active-nav-item { ... }  <- Removed active item styling for now */
+
 .admin-close-nav-button {
     position: absolute;
     top: 12px;
-    /* right: 15px; For left nav */
-    left: 15px; /* For right nav, close button is on the left inside nav */
+    left: 15px; /* For right-aligned nav, close button on its left */
     font-size: 2rem;
     background: none;
     border: none;
@@ -214,19 +213,16 @@ body#admin-page {
     background-color: #fff;
     box-shadow: 0 3px 10px rgba(0,0,0,0.07);
     border-radius: 6px;
-    margin-top: calc(60px + 30px);
+    margin-top: calc(60px + 30px); /* Header height + desired top margin */
 }
 
-/* Admin Sections (Now mostly inside modals) */
-#admin-content section { /* General styling for sections if used directly or within modals */
-    padding-top: 0; /* Reset top padding as modal/container handles it */
-    padding-bottom: 15px; /* Reduce bottom padding */
-    margin-bottom: 0; /* Reset bottom margin as it's modal content */
-    /* border-bottom: none; Sections are now distinct units in modals */
+#admin-content section {
+    padding-top: 0;
+    padding-bottom: 15px;
+    margin-bottom: 0;
 }
-/* Main item-management section (not in modal) specific styling if needed */
 #admin-content .container.admin-main-container > #item-management {
-    padding-top: 20px; /* Add padding if it's directly in container */
+    padding-top: 20px;
 }
 
 
@@ -244,14 +240,14 @@ body#admin-page {
     padding-bottom: 10px;
     border-bottom: 1px solid #dee2e6;
 }
-#admin-content h3 { /* Sub-titles like "カテゴリ一覧" or "アイテム一覧" */
+#admin-content h3 {
     font-size: 1.4rem;
-    margin-top: 30px; /* More space for these sub-titles */
-    margin-bottom: 15px; /* Less space after them before the list/table */
+    margin-top: 30px;
+    margin-bottom: 15px;
     color: #495057;
     font-weight: 500;
     padding-bottom: 5px;
-    border-bottom: 1px dashed #e0e0e0; /* Dashed border for sub-titles */
+    border-bottom: 1px dashed #e0e0e0;
 }
 
 .info-message {
