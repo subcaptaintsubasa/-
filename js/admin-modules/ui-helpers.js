@@ -1,33 +1,29 @@
 // js/admin-modules/ui-helpers.js
 const adminModals = {};
 let adminSideNavEl, adminHamburgerButtonEl, adminCloseNavButtonEl;
-let navigationOverlayEl; // For admin side navigation overlay
+let navigationOverlayEl;
 
 export function initUIHelpers() {
     console.log("[ui-helpers] initUIHelpers called");
-    // Generic modal close button handler (for edit modals, etc.)
     document.querySelectorAll('body#admin-page .modal .close-button').forEach(btn => {
         const modalElement = btn.closest('.modal');
         if (modalElement && modalElement.id) {
             if (!adminModals[modalElement.id]) {
                 adminModals[modalElement.id] = modalElement;
             }
-            // Remove previous listener before adding a new one to prevent duplicates if initUIHelpers is called multiple times
-            // For simplicity, assuming it's called once. If issues, use named functions for add/remove.
             btn.addEventListener('click', () => closeModal(modalElement.id));
         } else {
             console.warn("Close button found without a parent .modal or modal ID:", btn);
         }
     });
 
-    // Generic modal overlay click handler (for edit modals, etc.)
     document.querySelectorAll('body#admin-page .modal').forEach(modal => {
         if (modal.id) {
             if (!adminModals[modal.id]) {
                 adminModals[modal.id] = modal;
             }
-            modal.addEventListener('click', function(event) { // Use function keyword for 'this'
-                if (event.target === this && this.id) { // Clicked on the modal backdrop itself
+            modal.addEventListener('click', function(event) {
+                if (event.target === this && this.id) {
                     closeModal(this.id);
                 }
             });
@@ -43,10 +39,9 @@ export function initAdminNavigation() {
     adminSideNavEl = document.getElementById('adminSideNav');
     adminHamburgerButtonEl = document.getElementById('adminHamburgerButton');
     adminCloseNavButtonEl = document.getElementById('adminCloseNavButton');
-    // const itemManagementSectionEl = document.getElementById('item-management'); // No longer needed to hide/show here
+    const itemManagementSectionEl = document.getElementById('item-management');
 
-    // Create and append navigation overlay
-    if (!document.querySelector('.navigation-overlay')) {
+    if (!document.querySelector('.navigation-overlay')) { // Create overlay only if it doesn't exist
         navigationOverlayEl = document.createElement('div');
         navigationOverlayEl.className = 'navigation-overlay';
         navigationOverlayEl.style.position = 'fixed';
@@ -58,6 +53,11 @@ export function initAdminNavigation() {
         navigationOverlayEl.style.zIndex = '10001';
         navigationOverlayEl.style.display = 'none';
         document.body.appendChild(navigationOverlayEl);
+
+        navigationOverlayEl.addEventListener('click', () => {
+            console.log("[ui-helpers] Navigation overlay clicked");
+            closeAdminNav();
+        });
     } else {
         navigationOverlayEl = document.querySelector('.navigation-overlay');
     }
@@ -87,24 +87,19 @@ export function initAdminNavigation() {
         console.warn("[ui-helpers] Admin close nav button not found.");
     }
 
-    if (navigationOverlayEl) {
-        navigationOverlayEl.addEventListener('click', () => {
-            console.log("[ui-helpers] Navigation overlay clicked");
-            closeAdminNav();
-        });
-    }
 
     if (adminSideNavEl) {
-        const navButtons = adminSideNavEl.querySelectorAll('.admin-nav-button');
+        const navButtons = adminSideNavEl.querySelectorAll('.admin-nav-button, .nav-button'); // Include both classes
         navButtons.forEach(button => {
             button.addEventListener('click', (event) => {
                 const clickedButton = event.currentTarget;
                 const targetModalId = clickedButton.dataset.modalTarget;
 
-                // Item management section is always visible, no need to hide/show it based on nav clicks.
-                // Modals will simply overlay it.
-
-                // Close all *other* management modals first
+                // Hide item management section when a modal is opened from nav
+                if (itemManagementSectionEl && targetModalId) {
+                    itemManagementSectionEl.style.display = 'none';
+                }
+                // Close all other management modals first
                 document.querySelectorAll('.modal.admin-management-modal.active-modal').forEach(m => {
                     if (m.id !== targetModalId) {
                         closeModal(m.id);
@@ -113,9 +108,14 @@ export function initAdminNavigation() {
 
                 if (targetModalId) {
                     console.log(`[ui-helpers] Admin nav button clicked for modal: ${targetModalId}`);
-                    openModal(targetModalId); // This will also dispatch 'adminModalOpened'
+                    openModal(targetModalId);
+                } else { // If a nav button doesn't target a modal (e.g., a future dashboard link)
+                    console.log(`[ui-helpers] Admin nav button clicked, but no modal target. Ensure item-management is visible.`);
+                    if (itemManagementSectionEl) {
+                        itemManagementSectionEl.style.display = 'block'; // Default to show item management
+                    }
                 }
-                closeAdminNav(); // Always close nav after item click
+                closeAdminNav();
             });
         });
     } else {
@@ -133,13 +133,6 @@ export function openModal(modalId) {
             modal.style.display = '';
         }
         if (!adminModals[modalId]) adminModals[modalId] = modal;
-
-        // Dispatch event when a management modal (that needs data refresh) is opened
-        if (modal.classList.contains('admin-management-modal')) {
-            const event = new CustomEvent('adminModalOpened', { detail: { modalId: modalId } });
-            document.dispatchEvent(event);
-            console.log(`[ui-helpers] Dispatched adminModalOpened event for: ${modalId}`);
-        }
     } else {
         console.warn(`Modal with ID "${modalId}" not found.`);
     }
