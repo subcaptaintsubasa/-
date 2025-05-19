@@ -11,7 +11,7 @@
     overflow-y: auto;
     background-color: #fdfdfd; /* Slightly off-white */
 }
-.list-item { /* Individual item in a .list-container */
+.list-item { /* Individual item in a .list-container (used by effect units, types, char base options) */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -25,31 +25,38 @@
 .list-item:hover {
     background-color: #f1f3f5; /* Slightly more noticeable hover */
 }
-.list-item > span { /* Text content of the list item - WILL BE MODIFIED for category tree */
+/* For item name part that will be clickable to open edit modal */
+.list-item > .list-item-name-clickable {
     flex-grow: 1;
     margin-right: 0.75rem;
     word-break: break-word;
-    font-size: 0.9rem; /* Adjusted font size */
-    color: #343a40;
-}
-/* Style for clickable item names (will be applied via JS or specific class) */
-.list-item-name-clickable {
-    cursor: pointer;
+    font-size: 0.9rem;
     color: #0056b3; /* Link-like color */
-    text-decoration: none; /* Initially no underline */
+    cursor: pointer;
+    text-decoration: none;
     transition: color 0.15s ease-in-out;
 }
-.list-item-name-clickable:hover {
+.list-item > .list-item-name-clickable:hover {
     color: #003d80;
-    text-decoration: underline; /* Underline on hover */
+    text-decoration: underline;
+}
+/* For non-clickable span within list-item, if any part is not clickable */
+.list-item > span:not(.list-item-name-clickable) {
+    flex-grow: 1;
+    margin-right: 0.75rem;
+    word-break: break-word;
+    font-size: 0.9rem;
+    color: #343a40;
 }
 
-.list-item > span small { /* For extra info like parent category, units etc. */
-    color: #5a6268; /* Muted but readable */
-    font-size: 0.85em; /* Relative to parent span */
+
+.list-item > span small,
+.list-item > .list-item-name-clickable small { /* Small text within clickable or non-clickable span */
+    color: #5a6268;
+    font-size: 0.85em;
     margin-left: 0.3rem;
 }
-.list-item div.list-item-actions { /* Container for action buttons (now typically empty or just details button) */
+.list-item div.list-item-actions { 
     flex-shrink: 0;
     display: flex;
     align-items: center; 
@@ -60,7 +67,7 @@
 .category-tree-item {
     padding: 0.5rem 0.7rem;
     border-bottom: 1px solid #f0f0f0;
-    display: flex; /* Use flex for alignment of expander and content */
+    display: flex;
     align-items: center;
 }
 .category-tree-item:last-child {
@@ -68,27 +75,27 @@
 }
 .category-tree-expander {
     cursor: pointer;
-    width: 20px; /* Fixed width for the expander icon */
+    width: 20px;
     display: inline-block;
     text-align: center;
     margin-right: 5px;
     color: #6c757d;
-    font-size: 0.8em; /* Smaller icon */
+    font-size: 0.8em;
     transition: transform 0.2s ease-in-out;
 }
 .category-tree-expander.expanded {
     transform: rotate(90deg);
 }
 .category-tree-content {
-    flex-grow: 1; /* Allow content to take remaining space */
-    cursor: pointer; /* Make the name clickable for editing */
+    flex-grow: 1;
+    cursor: pointer;
 }
 .category-tree-content:hover .category-name {
     text-decoration: underline;
     color: #0056b3;
 }
-.category-name { /* Specific class for the name part to apply hover */
-    font-weight: 500; /* Slightly bolder for better click affordance */
+.category-name {
+    font-weight: 500;
     color: #212529;
     transition: color 0.15s ease-in-out;
 }
@@ -98,11 +105,34 @@
     margin-left: 0.5em;
 }
 .category-tree-children {
-    padding-left: 25px; /* Indent child categories */
-    /* display: none; /* Initially hidden, toggled by JS */
+    padding-left: 25px;
 }
-.category-tree-children.hidden { /* Class to hide children */
+.category-tree-children.hidden {
     display: none;
+}
+
+/* Styles for Tag Group View */
+.tag-group {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed #e0e0e0;
+}
+.tag-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+.tag-group-header {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    padding-left: 0.3rem; /* Align with list items if they have padding */
+}
+.tag-group .list-item { /* Tags within a group */
+    padding-left: 0.8rem; /* Indent tags slightly under their group header */
+}
+.tag-group .list-item .list-item-name-clickable small { /* For tags, small info might not be needed if grouped by category */
+    display: none; /* Or adjust if showing other info */
 }
 
 
@@ -110,13 +140,13 @@
 .checkbox-group-container {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem; /* Reduced gap */
-    max-height: 180px; /* Increased max-height */
+    gap: 0.3rem;
+    max-height: 180px;
     overflow-y: auto;
-    border: 1px solid #e0e0e0; /* Slightly softer border */
-    padding: 0.75rem; /* Adjusted padding */
+    border: 1px solid #e0e0e0;
+    padding: 0.75rem;
     border-radius: 0.25rem;
-    background-color: #ffffff; /* White background */
+    background-color: #ffffff;
 }
 .checkbox-item {
     display: flex;
@@ -131,7 +161,7 @@
     box-shadow: none;
     vertical-align: middle;
     flex-shrink: 0;
-    transform: scale(1.05); /* Slightly larger checkboxes */
+    transform: scale(1.05);
     cursor: pointer;
 }
 .checkbox-item input[type="checkbox"]:focus {
@@ -140,7 +170,7 @@
 .checkbox-item label {
     font-weight: normal;
     margin-bottom: 0;
-    font-size: 0.9rem; /* Consistent font size */
+    font-size: 0.9rem;
     color: #343a40;
     vertical-align: middle;
     cursor: pointer;
@@ -152,7 +182,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    max-height: 180px; /* Increased max-height */
+    max-height: 180px;
     overflow-y: auto;
     border: 1px solid #e0e0e0;
     padding: 0.75rem;
@@ -163,10 +193,10 @@
 
 /* Effect input area and list (used in item form & char base option form) */
 .effect-input-area {
-    border: 1px solid #dee2e6; /* Consistent border color */
-    padding: 1rem; /* Use rem */
+    border: 1px solid #dee2e6;
+    padding: 1rem;
     border-radius: 0.25rem;
-    background-color: #f8f9fa; /* Light background */
+    background-color: #f8f9fa;
     margin-top: 0.75rem;
 }
 .effect-input-row {
@@ -178,15 +208,15 @@
 }
 .effect-input-row select,
 .effect-input-row input[type="number"] {
-    flex: 1 1 130px; /* Adjusted flex-basis */
+    flex: 1 1 130px;
 }
-.effect-input-row button { /* "Add Effect" button */
+.effect-input-row button {
     flex-shrink: 0;
     margin-left: auto;
 }
 .unit-display {
     display: inline-block;
-    min-width: 45px; /* Slightly wider */
+    min-width: 45px;
     text-align: left;
     font-style: italic;
     color: #5a6268;
@@ -198,9 +228,9 @@
 
 .effects-list-container {
     margin-top: 0.75rem;
-    border-top: 1px dashed #ced4da; /* Slightly darker dashed line */
+    border-top: 1px dashed #ced4da;
     padding-top: 0.75rem;
-    max-height: 160px; /* Increased max-height */
+    max-height: 160px;
     overflow-y: auto;
 }
 .effect-list-item {
@@ -208,10 +238,10 @@
     justify-content: space-between;
     align-items: center;
     background-color: #fff;
-    padding: 0.4rem 0.7rem; /* Adjusted padding */
+    padding: 0.4rem 0.7rem;
     margin-bottom: 0.3rem;
     border-radius: 0.2rem;
-    border: 1px solid #e9ecef; /* Lighter border for items */
+    border: 1px solid #e9ecef;
     font-size: 0.875rem;
 }
 .effect-list-item span {
@@ -224,36 +254,36 @@
 #itemsTable {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1.25rem; /* Use rem */
-    font-size: 0.9rem; /* Base font size for table */
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
     table-layout: auto;
-    background-color: #fff; /* White background for table */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Subtle shadow for table */
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border-radius: 0.25rem;
-    overflow: hidden; /* To make border-radius work with table */
-    border: 1px solid #dee2e6; /* Add overall table border */
+    overflow: hidden;
+    border: 1px solid #dee2e6;
 }
 #itemsTable th,
 #itemsTable td {
-    border-bottom: 1px solid #dee2e6; /* Horizontal lines between rows */
-    border-left: 1px solid #e9ecef; /* Vertical lines (lighter) */
-    padding: 0.75rem 0.9rem; /* Adjusted padding */
+    border-bottom: 1px solid #dee2e6;
+    border-left: 1px solid #e9ecef;
+    padding: 0.75rem 0.9rem;
     text-align: left;
     vertical-align: middle;
 }
 #itemsTable th:first-child,
 #itemsTable td:first-child {
-    border-left: none; /* No left border for first column */
+    border-left: none;
 }
 #itemsTable th {
-    background-color: #f1f3f5; /* Slightly different header background */
-    font-weight: 500; /* Medium weight */
-    color: #343a40; /* Darker header text */
+    background-color: #f1f3f5;
+    font-weight: 500;
+    color: #343a40;
     white-space: nowrap;
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom-width: 2px; /* Thicker bottom border for header */
+    border-bottom-width: 2px;
 }
 #itemsTable img {
     max-width: 50px;
@@ -269,20 +299,20 @@
 }
 #itemsTable td .action-button {
     margin-right: 0.3rem;
-    margin-bottom: 0.2rem; /* For wrapping */
+    margin-bottom: 0.2rem;
 }
 #itemsTable td .action-button:last-child {
     margin-right: 0;
 }
-#itemsTable td:last-child { /* Action column */
+#itemsTable td:last-child {
     white-space: nowrap;
     width: 1%;
     text-align: right;
 }
 #itemsTable tbody tr:hover {
-    background-color: #e9ecef; /* Slightly darker hover for table rows */
+    background-color: #e9ecef;
 }
-#itemsTable tbody tr:nth-child(even) { /* Subtle striping for readability */
+#itemsTable tbody tr:nth-child(even) {
     background-color: #f8f9fa;
 }
 #itemsTable tbody tr:nth-child(even):hover {
