@@ -22,135 +22,37 @@
     </div>
 
     <div id="admin-content" style="display:none;">
-        <header>
-            <h1>アイテム管理ツール</h1>
-            <div>
+        <header class="admin-header">
+            <div class="admin-header-content">
+                <h1 class="admin-site-title">管理ツール</h1>
+                <button id="adminHamburgerButton" class="admin-hamburger-button" aria-label="メニューを開く" aria-expanded="false" aria-controls="adminSideNav">☰</button>
+            </div>
+            <div class="admin-header-user-info">
                 <span id="currentUserEmail" style="margin-right: 15px;"></span>
                 <button id="logoutButton" type="button">ログアウト</button>
             </div>
         </header>
 
+        <nav id="adminSideNav" class="admin-side-navigation" aria-hidden="true">
+            <button id="adminCloseNavButton" class="admin-close-nav-button" aria-label="メニューを閉じる">×</button>
+            <ul>
+                <li><button class="admin-nav-button" data-modal-target="categoryManagementModal">カテゴリ管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="tagManagementModal">タグ管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="effectUnitManagementModal">効果単位管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="effectTypeManagementModal">効果種類管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="characterBaseManagementModal">キャラクター基礎情報管理</button></li>
+            </ul>
+        </nav>
+
+
         <div class="container">
             <p class="info-message" style="text-align: center; margin-bottom: 20px;">
-                カテゴリ、タグ、効果種類、アイテムの変更は、保存ボタンを押すとFirebaseに直接保存されます。
+                アイテムの変更は、保存ボタンを押すとFirebaseに直接保存されます。<br>
+                カテゴリ、タグ、効果種類などの管理は、ヘッダー右上のメニューから各管理ダイアログを開いてください。
             </p>
-
-            <!-- カテゴリ管理 -->
-            <section id="category-management" aria-labelledby="categoryManagementHeading">
-                <h2 id="categoryManagementHeading"><span class="icon" aria-hidden="true"></span> カテゴリ管理</h2>
-                <div class="form-group">
-                     <label for="newCategoryName">新しいカテゴリ名:</label>
-                     <input type="text" id="newCategoryName" placeholder="カテゴリ名">
-                </div>
-                 <div class="form-group">
-                     <label id="newCategoryParentLabel">親カテゴリ設定:</label>
-                     <div id="newCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="newCategoryParentLabel">
-                         <!-- Buttons populated by JS -->
-                     </div>
-                     <input type="hidden" id="selectedNewParentCategoryId" value="">
-                 </div>
-                <button id="addCategoryButton" type="button">カテゴリ追加</button>
-                <h3 style="margin-top: 20px;">カテゴリ一覧</h3>
-                <div id="categoryListContainer" class="list-container">
-                    <!-- Category list populated by JS -->
-                </div>
-            </section>
             <hr>
 
-            <!-- タグ管理 -->
-            <section id="tag-management" aria-labelledby="tagManagementHeading">
-                <h2 id="tagManagementHeading"><span class="icon" aria-hidden="true"></span> タグ管理</h2>
-                <div class="form-group">
-                    <label for="newTagName">新しいタグ名:</label>
-                    <input type="text" id="newTagName" placeholder="タグの名前">
-                </div>
-                <div class="form-group">
-                    <label id="newTagCategoriesLabel">このタグが所属するカテゴリ (子カテゴリのみ選択可):</label>
-                    <div id="newTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="newTagCategoriesLabel">
-                        <!-- Checkboxes populated by JS -->
-                    </div>
-                </div>
-                <button id="addTagButton" type="button">タグ追加</button>
-                <h3 style="margin-top: 20px;">既存タグ一覧</h3>
-                <div id="tagListContainer" class="list-container">
-                    <!-- Tag list populated by JS -->
-                </div>
-            </section>
-            <hr>
-
-            <!-- 効果単位管理 -->
-            <section id="effect-unit-management" aria-labelledby="effectUnitManagementHeading">
-                <h2 id="effectUnitManagementHeading"><span class="icon" aria-hidden="true">📏</span> 効果単位管理</h2>
-                <div class="form-group">
-                    <label for="newEffectUnitName">新しい効果単位名:</label>
-                    <input type="text" id="newEffectUnitName" placeholder="単位名 (例: ポイント, %, 秒)">
-                </div>
-                <button id="addEffectUnitButton" type="button">効果単位を追加</button>
-                <h3 style="margin-top: 20px;">既存の効果単位一覧</h3>
-                <div id="effectUnitListContainer" class="list-container">
-                    <!-- Effect unit list populated by JS -->
-                </div>
-            </section>
-            <hr>
-
-            <!-- 効果種類管理 -->
-            <section id="effect-type-management" aria-labelledby="effectTypeManagementHeading">
-                <h2 id="effectTypeManagementHeading"><span class="icon" aria-hidden="true">✨</span> 効果種類管理</h2>
-                 <div class="form-group">
-                     <label for="newEffectTypeName">新しい効果種類名:</label>
-                     <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
-                 </div>
-                 <div class="form-group">
-                     <label for="newEffectTypeUnit">デフォルト単位:</label>
-                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
-                         <select id="newEffectTypeUnit" class="form-control-short"></select>
-                         <button type="button" id="manageUnitsForNewEffectTypeButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
-                     </div>
-                 </div>
-                 <div class="form-group">
-                     <label>計算方法:</label>
-                     <div class="radio-group">
-                         <input type="radio" id="newCalcMethodSum" name="newCalcMethod" value="sum" checked>
-                         <label for="newCalcMethodSum">加算</label>
-                         <input type="radio" id="newCalcMethodMax" name="newCalcMethod" value="max">
-                         <label for="newCalcMethodMax">最大値</label>
-                     </div>
-                 </div>
-                 <div class="form-group" id="newEffectTypeSumCapGroup"> <!-- Container for sumCap -->
-                     <label for="newEffectTypeSumCap">加算時の最大値 (任意):</label>
-                     <input type="number" id="newEffectTypeSumCap" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short">
-                     <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
-                 </div>
-                 <button id="addEffectTypeButton" type="button">効果種類を追加</button>
-                 <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
-                 <div id="effectTypeListContainer" class="list-container">
-                     <!-- Effect type list populated by JS -->
-                 </div>
-            </section>
-            <hr>
-
-            <!-- キャラクター基礎情報管理 -->
-            <section id="character-base-management" aria-labelledby="charBaseManagementHeading">
-                <h2 id="charBaseManagementHeading"><span class="icon" aria-hidden="true">👤</span> キャラクター基礎情報管理</h2>
-                <div class="form-group">
-                    <label for="charBaseTypeSelect">基礎情報の種類:</label>
-                    <select id="charBaseTypeSelect">
-                        <option value="headShape">頭の形</option>
-                        <option value="correction">補正</option>
-                        <option value="color">色</option>
-                        <option value="pattern">柄</option>
-                    </select>
-                    <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button>
-                </div>
-                <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
-                <div id="charBaseOptionListContainer" class="list-container">
-                    <!-- Character base options populated by JS -->
-                </div>
-            </section>
-            <hr>
-
-
-            <!-- アイテム管理 -->
+            <!-- アイテム管理 (これはページ上に残す) -->
             <section id="item-management" aria-labelledby="itemManagementHeading">
                 <h2 id="itemManagementHeading"><span class="icon" aria-hidden="true"></span> アイテム管理</h2>
                 <form id="itemForm">
@@ -225,13 +127,140 @@
                 </div>
             </section>
         </div><!-- closing .container -->
-
-        <!-- Modals should be outside .container if they are to overlay the whole page correctly,
-             or their positioning context needs to be body.
-             The current CSS selectors for modals (body#admin-page div.modal) assume they are children of body.
-        -->
     </div><!-- closing #admin-content -->
 
+    <!-- 管理機能モーダル群 -->
+    <!-- カテゴリ管理モーダル -->
+    <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="categoryManagementModalTitle"><span class="icon" aria-hidden="true"></span> カテゴリ管理</h2>
+            <p class="info-message">カテゴリの変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                 <label for="newCategoryName">新しいカテゴリ名:</label>
+                 <input type="text" id="newCategoryName" placeholder="カテゴリ名">
+            </div>
+             <div class="form-group">
+                 <label id="newCategoryParentLabel">親カテゴリ設定:</label>
+                 <div id="newCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="newCategoryParentLabel">
+                     <!-- Buttons populated by JS -->
+                 </div>
+                 <input type="hidden" id="selectedNewParentCategoryId" value="">
+             </div>
+            <button id="addCategoryButton" type="button">カテゴリ追加</button>
+            <h3 style="margin-top: 20px;">カテゴリ一覧</h3>
+            <div id="categoryListContainer" class="list-container">
+                <!-- Category list populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- タグ管理モーダル -->
+    <div id="tagManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="tagManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="tagManagementModalTitle"><span class="icon" aria-hidden="true"></span> タグ管理</h2>
+            <p class="info-message">タグの変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                <label for="newTagName">新しいタグ名:</label>
+                <input type="text" id="newTagName" placeholder="タグの名前">
+            </div>
+            <div class="form-group">
+                <label id="newTagCategoriesLabel">このタグが所属するカテゴリ (子カテゴリのみ選択可):</label>
+                <div id="newTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="newTagCategoriesLabel">
+                    <!-- Checkboxes populated by JS -->
+                </div>
+            </div>
+            <button id="addTagButton" type="button">タグ追加</button>
+            <h3 style="margin-top: 20px;">既存タグ一覧</h3>
+            <div id="tagListContainer" class="list-container">
+                <!-- Tag list populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 効果単位管理モーダル -->
+    <div id="effectUnitManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectUnitManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="effectUnitManagementModalTitle"><span class="icon" aria-hidden="true">📏</span> 効果単位管理</h2>
+            <p class="info-message">効果単位の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                <label for="newEffectUnitName">新しい効果単位名:</label>
+                <input type="text" id="newEffectUnitName" placeholder="単位名 (例: ポイント, %, 秒)">
+            </div>
+            <button id="addEffectUnitButton" type="button">効果単位を追加</button>
+            <h3 style="margin-top: 20px;">既存の効果単位一覧</h3>
+            <div id="effectUnitListContainer" class="list-container">
+                <!-- Effect unit list populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 効果種類管理モーダル -->
+    <div id="effectTypeManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectTypeManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="effectTypeManagementModalTitle"><span class="icon" aria-hidden="true">✨</span> 効果種類管理</h2>
+            <p class="info-message">効果種類の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+             <div class="form-group">
+                 <label for="newEffectTypeName">新しい効果種類名:</label>
+                 <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
+             </div>
+             <div class="form-group">
+                 <label for="newEffectTypeUnit">デフォルト単位:</label>
+                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
+                     <select id="newEffectTypeUnit" class="form-control-short"></select>
+                     <button type="button" id="manageUnitsForNewEffectTypeButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
+                 </div>
+             </div>
+             <div class="form-group">
+                 <label>計算方法:</label>
+                 <div class="radio-group">
+                     <input type="radio" id="newCalcMethodSum" name="newCalcMethod" value="sum" checked>
+                     <label for="newCalcMethodSum">加算</label>
+                     <input type="radio" id="newCalcMethodMax" name="newCalcMethod" value="max">
+                     <label for="newCalcMethodMax">最大値</label>
+                 </div>
+             </div>
+             <div class="form-group" id="newEffectTypeSumCapGroup"> <!-- Container for sumCap -->
+                 <label for="newEffectTypeSumCap">加算時の最大値 (任意):</label>
+                 <input type="number" id="newEffectTypeSumCap" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short">
+                 <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
+             </div>
+             <button id="addEffectTypeButton" type="button">効果種類を追加</button>
+             <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
+             <div id="effectTypeListContainer" class="list-container">
+                 <!-- Effect type list populated by JS -->
+             </div>
+        </div>
+    </div>
+
+    <!-- キャラクター基礎情報管理モーダル -->
+    <div id="characterBaseManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="charBaseManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="charBaseManagementModalTitle"><span class="icon" aria-hidden="true">👤</span> キャラクター基礎情報管理</h2>
+            <p class="info-message">キャラクター基礎情報の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                <label for="charBaseTypeSelect">基礎情報の種類:</label>
+                <select id="charBaseTypeSelect">
+                    <option value="headShape">頭の形</option>
+                    <option value="correction">補正</option>
+                    <option value="color">色</option>
+                    <option value="pattern">柄</option>
+                </select>
+                <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button>
+            </div>
+            <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
+            <div id="charBaseOptionListContainer" class="list-container">
+                <!-- Character base options populated by JS -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 既存の編集モーダル群 (これらは変更なしだが、上記管理モーダルから呼び出される) -->
     <!-- カテゴリ編集モーダル -->
     <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
         <div class="modal-content">
