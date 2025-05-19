@@ -169,6 +169,44 @@ function destroySortableInstances() {
     sortableInstances = [];
 }
 
+function tryInitializeSortable(ulElement) {
+    if (typeof Sortable !== 'undefined') {
+        // console.log(`[Category Manager] SortableJS is loaded. Initializing for ul:`, ulElement.dataset.parentId || 'root');
+        const sortable = new Sortable(ulElement, {
+            group: 'nested-categories',
+            animation: 150,
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            filter: '.category-tree-expander',
+            preventOnFilter: false,
+            onEnd: function (evt) {
+                const itemEl = evt.item;
+                const newParentUl = evt.to;
+                const oldParentUl = evt.from;
+                
+                const newParentId = newParentUl.dataset.parentId === "root" ? "" : newParentUl.dataset.parentId;
+                const movedCategoryId = itemEl.dataset.categoryId;
+                
+                console.log(`Category moved: ID=${movedCategoryId}, Name=${itemEl.querySelector('.category-name') ? itemEl.querySelector('.category-name').textContent : 'N/A'}`);
+                console.log(`Old Parent ID: ${oldParentUl.dataset.parentId === "root" ? "" : oldParentUl.dataset.parentId}`);
+                console.log(`New Parent ID: ${newParentId}`);
+                
+                const newOrderIds = Array.from(newParentUl.children).map(li => li.dataset.categoryId);
+                console.log('New order in this list (IDs):', newOrderIds);
+
+                alert(`カテゴリ「${movedCategoryId}」が移動操作されました。\n新しい親: ${newParentId || 'ルート'}\n新しい順序(このリスト内ID): ${newOrderIds.join(', ')}\n（注意: この変更はまだデータベースには保存されていません。）`);
+                // TODO: Firestore更新処理 (次のステップ)
+            }
+        });
+        sortableInstances.push(sortable);
+        return true; // 初期化成功
+    } else {
+        // console.warn("[Category Manager] SortableJS is not loaded yet for ul:", ulElement.dataset.parentId || 'root');
+        return false; // 初期化失敗
+    }
+}
+
+
 export function _renderCategoriesForManagementInternal() {
     destroySortableInstances();
     if (!DOMC.categoryListContainer) return;
@@ -194,7 +232,6 @@ export function _renderCategoriesForManagementInternal() {
         filteredCategories.forEach(cat => addWithParents(cat.id));
         filteredCategories = allCategories.filter(cat => categoriesToShow.has(cat.id));
     }
-
 
     if (filteredCategories.length === 0) {
         DOMC.categoryListContainer.innerHTML = currentCategorySearchTerm ?
@@ -270,37 +307,22 @@ export function _renderCategoriesForManagementInternal() {
             }
         });
 
-        if (typeof Sortable !== 'undefined') {
-            const sortable = new Sortable(ul, {
-                group: 'nested-categories',
-                animation: 150,
-                fallbackOnBody: true,
-                swapThreshold: 0.65,
-                filter: '.category-tree-expander',
-                preventOnFilter: false,
-                onEnd: function (evt) {
-                    const itemEl = evt.item;
-                    const newParentUl = evt.to;
-                    const oldParentUl = evt.from;
-                    
-                    const newParentId = newParentUl.dataset.parentId === "root" ? "" : newParentUl.dataset.parentId;
-                    const movedCategoryId = itemEl.dataset.categoryId;
-                    
-                    console.log(`Category moved: ID=${movedCategoryId}, Name=${itemEl.querySelector('.category-name') ? itemEl.querySelector('.category-name').textContent : 'N/A'}`);
-                    console.log(`Old Parent ID: ${oldParentUl.dataset.parentId === "root" ? "" : oldParentUl.dataset.parentId}`);
-                    console.log(`New Parent ID: ${newParentId}`);
-                    
-                    const newOrderIds = Array.from(newParentUl.children).map(li => li.dataset.categoryId);
-                    console.log('New order in this list (IDs):', newOrderIds);
+        let attempts = 0;
+        const maxAttempts = 20; // Increase attempts, maybe up to 2 seconds
+        const interval = 100;
 
-                    alert(`カテゴリ「${movedCategoryId}」が移動操作されました。\n新しい親: ${newParentId || 'ルート'}\n新しい順序(このリスト内ID): ${newOrderIds.join(', ')}\n（注意: この変更はまだデータベースには保存されていません。）`);
-                    // TODO: Firestore更新処理 (次のステップ)
+        function attemptInit() {
+            if (tryInitializeSortable(ul) || attempts >= maxAttempts) {
+                if (attempts >= maxAttempts && typeof Sortable === 'undefined') {
+                     console.error("SortableJS failed to load after multiple attempts for ul:", ul.dataset.parentId || 'root', ". Drag and drop will not be available.");
                 }
-            });
-            sortableInstances.push(sortable);
-        } else {
-            console.warn("SortableJS is not loaded. Drag and drop will not be available.");
+                return;
+            }
+            attempts++;
+            setTimeout(attemptInit, interval);
         }
+        setTimeout(attemptInit, 0); // Start first attempt asynchronously
+
         return ul;
     };
 
@@ -314,7 +336,7 @@ export function _renderCategoriesForManagementInternal() {
     }
 
     populateParentCategoryButtonsUI(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: DOMC.selectedNewParentCategoryIdInput.value || "" });
-    console.log("[Category Manager] Categories rendered as tree. Sortable instances:", sortableInstances.length);
+    // console.log("[Category Manager] Categories rendered as tree. Sortable instances (after attempts):", sortableInstances.length);
 }
 
 function handleCategoryTreeClick(event) {
@@ -327,13 +349,13 @@ function handleCategoryTreeClick(event) {
     const action = actionTarget ? actionTarget.dataset.action : null;
 
     if (action === 'toggle') {
-        event.stopPropagation(); // Prevent edit action from firing when clicking expander
+        event.stopPropagation();
         const expander = listItem.querySelector('.category-tree-expander');
         const childrenUl = listItem.querySelector('.category-tree-children');
         if (childrenUl) {
-            const isCurrentlyExpanded = !(categoryExpansionState.get(categoryId) === false); // Default to expanded if not set, or if true
-            categoryExpansionState.set(categoryId, !isCurrentlyExpanded); // Toggle state
-            childrenUl.classList.toggle('hidden', isCurrentlyExpanded); // If it was expanded, hide it.
+            const isCurrentlyExpanded = !(categoryExpansionState.get(categoryId) === false);
+            categoryExpansionState.set(categoryId, !isCurrentlyExpanded);
+            childrenUl.classList.toggle('hidden', isCurrentlyExpanded);
             if(expander) expander.textContent = !isCurrentlyExpanded ? '▼' : '►';
             if(expander) expander.classList.toggle('expanded', !isCurrentlyExpanded);
         }
@@ -358,12 +380,16 @@ async function addCategory() {
     }
 
     try {
+        // 新しいカテゴリの order 値を設定
+        const siblingQuery = query(collection(dbInstance, 'categories'), where('parentId', '==', parentId || ""));
+        const siblingSnapshot = await getDocs(siblingQuery);
+        const maxOrder = siblingSnapshot.docs.reduce((max, doc) => Math.max(max, doc.data().order || 0), -1);
+
         const categoryData = {
             name: name,
             parentId: parentId || "",
             createdAt: serverTimestamp(),
-            order: 0 // ★★★ 新規追加時に order フィールドを初期値で追加 ★★★
-                     // (実際には、同じ親を持つカテゴリの最大の order + 1 などにするのが望ましい)
+            order: maxOrder + 1 // 新しいカテゴリはリストの最後に追加される order を持つ
         };
         if (parentId) categoryData.tagSearchMode = 'AND';
 
@@ -458,7 +484,7 @@ async function saveCategoryEdit() {
             name: newName,
             parentId: newParentId || "",
             updatedAt: serverTimestamp()
-            // order フィールドの更新はドラッグ＆ドロップ時に行う
+            // order フィールドの更新はドラッグ＆ドロップ時に行う。親が変わった場合も、新しい親のリストの最後に追加されるように order を再計算する必要がある。
         };
 
         const isBecomingChild = !!newParentId;
