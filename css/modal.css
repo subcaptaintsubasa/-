@@ -1,72 +1,150 @@
-/* css/modal.css */
-/* Common styles for all modals on the user-facing side */
+/* css/admin-modal.css */
+/* Styles for modals used within the admin panel */
 
-.modal {
-    position: fixed;
-    z-index: 10001; /* High z-index to be on top */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto; /* Enable scroll if modal content is too long */
-    background-color: rgba(0,0,0,0.6); /* Semi-transparent black background */
-    display: none; /* Initially hidden */
-    align-items: center; /* Vertically center modal content */
-    justify-content: center; /* Horizontally center modal content */
+body#admin-page div.modal {
+    position: fixed !important;
+    z-index: 10001 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: auto !important;
+    background-color: rgba(33, 37, 41, 0.75) !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
 }
 
-.modal-content {
+body#admin-page div.modal.active-modal {
+    display: flex !important;
+}
+
+body#admin-page div.modal div.modal-content {
     background-color: #fff;
-    margin: auto; /* Centering for older browsers, works with flex */
-    padding: 25px 30px;
-    border: none; /* No border by default */
-    width: 90%; /* Default width, can be overridden by specific modals */
-    border-radius: 8px; /* Rounded corners */
-    position: relative; /* For absolute positioning of close button */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* Modal shadow */
-    animation: fadeInModal 0.3s ease-out; /* Fade-in animation */
-    display: flex; /* Use flex for easier internal layout */
+    margin: auto;
+    padding: 0; /* Outer padding handled by child or section */
+    border: none;
+    width: 90%;
+    max-width: 580px; /* Default for smaller edit modals */
+    border-radius: 6px;
+    position: relative;
+    box-shadow: 0 7px 20px rgba(0,0,0,0.2);
+    animation: fadeInAdminModal 0.25s ease-out;
+    display: flex;
     flex-direction: column;
-    max-height: 90vh; /* Max height to prevent overflow on small screens */
-    overflow-y: auto; /* Allow content itself to scroll if it overflows */
+    max-height: calc(100vh - 60px);
+    overflow: hidden; /* Let internal section scroll */
+}
+/* Scrollable content area within the modal-content */
+body#admin-page div.modal div.modal-content > section,
+body#admin-page div.modal div.modal-content > div:not(.modal-actions):not(.close-button-container) { /* For edit modals not using <section> */
+    padding: 25px 30px; /* Padding for the content itself */
+    overflow-y: auto;
+    flex-grow: 1; /* Allows this part to take available space and scroll */
+}
+/* Specific padding for management section modals if header is part of modal-content but outside section */
+body#admin-page div.modal.admin-management-modal div.modal-content > section {
+    padding-top: 20px; /* Space below modal title */
 }
 
-@keyframes fadeInModal {
-    from { opacity: 0; transform: translateY(-20px); } /* Start from slightly above and transparent */
-    to { opacity: 1; transform: translateY(0); } /* End at normal position and opaque */
+
+@keyframes fadeInAdminModal {
+    from { opacity: 0; transform: translateY(-25px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.modal-content h2,
-.modal-content h3 {
-    margin-top: 0; /* Remove default top margin */
-    margin-bottom: 15px;
-    font-size: 1.4em;
-    color: #343a40; /* Darker heading color */
-    border-bottom: 1px solid #eee; /* Separator line */
-    padding-bottom: 10px;
-    flex-shrink: 0; /* Prevent headers from shrinking if content is large */
+/* Modal Title (for both edit modals and management section modals) */
+body#admin-page div.modal div.modal-content h3, /* For smaller edit modals */
+body#admin-page div.modal.admin-management-modal div.modal-content h2 { /* For larger management modals */
+    margin-top: 0;
+    margin-bottom: 0; /* Margin controlled by padding of content area now */
+    font-size: 1.6rem;
+    color: #212529;
+    border-bottom: 1px solid #dee2e6;
+    padding: 20px 30px 15px 30px; /* Padding for the title bar */
+    flex-shrink: 0;
+    font-weight: 500;
+    text-align: left;
+    display: flex;
+    align-items: center;
+}
+body#admin-page div.modal.admin-management-modal div.modal-content h2 .icon {
+    font-size: 1em;
+    margin-right: 10px;
+    color: #007bff;
 }
 
-.modal-content h3 { /* Slightly smaller for h3 within modals */
-    font-size: 1.2em;
-    margin-bottom: 10px;
-}
-
-.close-button {
-    color: #6c757d; /* Muted color for close button */
+body#admin-page div.modal span.close-button {
+    color: #6c757d;
     position: absolute;
-    top: 15px;
+    top: 15px; /* Relative to modal-content padding */
     right: 20px;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
-    line-height: 1; /* Ensure consistent vertical alignment */
+    line-height: 0.8;
     cursor: pointer;
-    z-index: 10; /* Above other modal content */
-    transition: color 0.2s; /* Smooth hover effect */
+    z-index: 10;
+    transition: color 0.2s ease-in-out, transform 0.15s ease-in-out;
+    padding: 5px;
+}
+body#admin-page div.modal span.close-button:hover,
+body#admin-page div.modal span.close-button:focus {
+    color: #343a40;
+    text-decoration: none;
+    transform: scale(1.1);
 }
 
-.close-button:hover,
-.close-button:focus {
-    color: #343a40; /* Darker on hover/focus */
-    text-decoration: none;
+/* Styles for the larger modals containing entire management sections */
+body#admin-page div.modal.admin-management-modal .modal-content {
+    max-width: 90%;
+    width: 1000px; /* Or your preferred large width */
+}
+
+/* Specific Edit Modal Adjustments (smaller modals) */
+body#admin-page div.modal#editEffectUnitModal div.modal-content {
+    max-width: 420px;
+}
+body#admin-page div.modal#editCharBaseOptionModal div.modal-content {
+    max-width: 620px;
+}
+
+/* Form groups within modals (inside the scrollable section) */
+body#admin-page div.modal div.modal-content section .form-group,
+body#admin-page div.modal div.modal-content > div:not(.modal-actions):not(.close-button-container) .form-group {
+    margin-bottom: 1.1rem;
+}
+body#admin-page div.modal div.modal-content section .form-group:last-of-type,
+body#admin-page div.modal div.modal-content > div:not(.modal-actions):not(.close-button-container) .form-group:last-of-type {
+    margin-bottom: 1.5rem;
+}
+
+/* Action buttons at the bottom of modals */
+body#admin-page div.modal div.modal-content .modal-actions { /* Create this div in HTML if needed */
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: auto; /* Push to bottom if content is short */
+    border-top: 1px solid #e9ecef;
+    padding: 1rem 30px 20px 30px; /* Padding for the actions footer */
+    flex-shrink: 0;
+    background-color: #f8f9fa;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+body#admin-page div.modal div.modal-content .modal-actions button {
+    width: auto;
+    margin-top: 0;
+    padding: 0.6rem 1.1rem; /* Consistent button padding */
+    font-size: 0.95rem;
+}
+/* If a single save button is not in .modal-actions but directly in content */
+body#admin-page div.modal div.modal-content > section > button[type="submit"],
+body#admin-page div.modal div.modal-content > section > #saveCategoryEditButton, /* Example */
+body#admin-page div.modal div.modal-content > div:not(.modal-actions) > button[type="submit"] {
+    margin-top: 1.25rem;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
 }
