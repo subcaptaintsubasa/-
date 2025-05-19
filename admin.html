@@ -148,7 +148,13 @@
                  <input type="hidden" id="selectedNewParentCategoryId" value="">
              </div>
             <button id="addCategoryButton" type="button">カテゴリ追加</button>
+            
             <h3 style="margin-top: 20px;">カテゴリ一覧</h3>
+            <!-- ★★★ 検索バーを追加 ★★★ -->
+            <div class="form-group list-search-bar">
+                <label for="categorySearchInput" class="sr-only">カテゴリ検索</label>
+                <input type="text" id="categorySearchInput" placeholder="カテゴリ名で検索..." aria-label="カテゴリを検索">
+            </div>
             <div id="categoryListContainer" class="list-container">
                 <!-- Category list populated by JS -->
             </div>
@@ -173,6 +179,7 @@
             </div>
             <button id="addTagButton" type="button">タグ追加</button>
             <h3 style="margin-top: 20px;">既存タグ一覧</h3>
+            <!-- (ここにタグ用の検索バーを追加予定) -->
             <div id="tagListContainer" class="list-container">
                 <!-- Tag list populated by JS -->
             </div>
@@ -191,6 +198,7 @@
             </div>
             <button id="addEffectUnitButton" type="button">効果単位を追加</button>
             <h3 style="margin-top: 20px;">既存の効果単位一覧</h3>
+            <!-- (ここに効果単位用の検索バーを追加予定) -->
             <div id="effectUnitListContainer" class="list-container">
                 <!-- Effect unit list populated by JS -->
             </div>
@@ -230,6 +238,7 @@
              </div>
              <button id="addEffectTypeButton" type="button">効果種類を追加</button>
              <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
+             <!-- (ここに効果種類用の検索バーを追加予定) -->
              <div id="effectTypeListContainer" class="list-container">
                  <!-- Effect type list populated by JS -->
              </div>
@@ -253,6 +262,7 @@
                 <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button>
             </div>
             <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
+            <!-- (ここにキャラ基礎オプション用の検索バーを追加予定) -->
             <div id="charBaseOptionListContainer" class="list-container">
                 <!-- Character base options populated by JS -->
             </div>
@@ -261,7 +271,6 @@
 
 
     <!-- 既存の編集モーダル群 -->
-    <!-- カテゴリ編集モーダル -->
     <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -298,7 +307,6 @@
         </div>
     </div>
 
-    <!-- タグ編集モーダル -->
     <div id="editTagModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editTagModalTitle">
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -321,7 +329,6 @@
         </div>
     </div>
 
-    <!-- 効果種類編集モーダル -->
     <div id="editEffectTypeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectTypeModalTitle">
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -359,7 +366,6 @@
         </div>
     </div>
 
-    <!-- 効果単位編集モーダル -->
     <div id="editEffectUnitModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectUnitModalTitle">
         <div class="modal-content" style="max-width: 400px;">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -376,7 +382,6 @@
         </div>
     </div>
 
-    <!-- キャラクター基礎情報オプション編集モーダル -->
     <div id="editCharBaseOptionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCharBaseOptionModalTitle">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close-button" aria-label="閉じる">×</span>
