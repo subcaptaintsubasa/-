@@ -1,5 +1,5 @@
 // js/admin-main.js
-import { auth, db } from '../firebase-config.js';
+import { auth, db } from '../firebase-config.js'; // firebase-config.js から auth と db をインポート
 import { initAuth } from './admin-modules/auth.js';
 import {
     loadInitialData,
@@ -17,7 +17,7 @@ import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _popu
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI } from './admin-modules/effect-unit-manager.js';
 import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms } from './admin-modules/effect-type-manager.js';
 import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings } from './admin-modules/char-base-manager.js';
-import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js';
+import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js'; // エイリアス名を確認
 import { IMAGE_UPLOAD_WORKER_URL } from './admin-modules/data-loader-admin.js';
 
 
@@ -27,9 +27,6 @@ const DOM = {
     adminCloseNavButton: null,
     adminNavButtons: null,
 };
-
-let sortableJsLoaded = false; // Flag to track SortableJS load status
-let adminModulesInitialized = false; // Flag to prevent multiple initializations
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("[admin-main] DOMContentLoaded, initializing admin panel...");
@@ -41,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initUIHelpers();
 
-    // Hamburger menu control
     if (DOM.adminHamburgerButton && DOM.adminSideNav) {
         DOM.adminHamburgerButton.addEventListener('click', () => {
             const isOpen = DOM.adminSideNav.classList.toggle('open');
@@ -58,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Navigation buttons to open modals
     DOM.adminNavButtons.forEach(button => {
         button.addEventListener('click', () => {
             const modalId = button.dataset.modalTarget;
@@ -74,44 +69,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Listen for SortableJS loaded event (dispatched from admin.html onload)
-    document.addEventListener('sortableLoaded', () => {
-        console.log("[admin-main] Event 'sortableLoaded' received.");
-        sortableJsLoaded = true;
-        // If user is already authenticated, try to initialize modules
-        if (auth.currentUser && !adminModulesInitialized) {
-            console.log("[admin-main] Sortable loaded after user auth, proceeding with module init.");
-            loadAndInitializeAdminModules();
-        }
-    });
-
     initAuth(auth,
-        (user) => { // onLogin
-            console.log("[admin-main] User logged in.");
+        (user) => {
+            console.log("[admin-main] User logged in, displaying admin content.");
             const passwordPromptEl = document.getElementById('password-prompt');
             if(passwordPromptEl) passwordPromptEl.style.display = 'none';
 
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'block';
             else console.error("#admin-content element not found!");
-            
-            // If SortableJS is already loaded, initialize modules
-            if (sortableJsLoaded && !adminModulesInitialized) {
-                console.log("[admin-main] User logged in and Sortable already loaded, proceeding with module init.");
-                loadAndInitializeAdminModules();
-            } else if (!sortableJsLoaded) {
-                console.log("[admin-main] User logged in, but SortableJS not yet loaded. Waiting for 'sortableLoaded' event.");
-            } else if (adminModulesInitialized) {
-                console.log("[admin-main] User logged in, modules already initialized.");
-                // Potentially re-render item section if it was cleared on a quick logout/login
-                 if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
-                 if (typeof populateItemFormTags === 'function') populateItemFormTags();
-                 if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
-            }
+
+            // currentUserEmail の表示は auth.js 側で処理されるか、HTMLヘッダー変更時に別途対応
+            loadAndInitializeAdminModules();
         },
-        () => { // onLogout
+        () => {
             console.log("[admin-main] User logged out, hiding admin content.");
-            adminModulesInitialized = false; // Reset flag on logout
             const passwordPromptEl = document.getElementById('password-prompt');
             if(passwordPromptEl) passwordPromptEl.style.display = 'flex';
 
@@ -171,13 +143,7 @@ function clearAdminUIAndData() {
 
 
 async function loadAndInitializeAdminModules() {
-    if (adminModulesInitialized) {
-        console.log("[admin-main] Admin modules already initialized. Skipping.");
-        return;
-    }
     console.log("[admin-main] Starting to load data and initialize modules...");
-    adminModulesInitialized = true; // Set flag before async operations
-
     try {
         await loadInitialData(db);
 
@@ -192,7 +158,7 @@ async function loadAndInitializeAdminModules() {
             refreshAllData: async () => {
                 console.log("[admin-main] Refreshing all data and UI (called from a manager)...");
                 await loadInitialData(db);
-                
+                // アイテム管理セクションは常に表示されている可能性があるので再描画
                 if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
                 if (typeof populateItemFormTags === 'function') populateItemFormTags();
                 if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
@@ -214,15 +180,15 @@ async function loadAndInitializeAdminModules() {
         initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
         initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
+        // 初回UI描画 (アイテム管理セクションのみ)
         if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
-        if (typeof populateItemFormTags === 'function') populateItemFormTags();
+        if (typeof populateItemFormTags === 'function') populateItemFormTags(); // ★★★ エイリアス名を使用 ★★★
         if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
 
         console.log("[admin-main] Admin modules initialized. Item management section rendered.");
 
     } catch (error) {
         console.error("[admin-main] CRITICAL ERROR during admin panel initialization:", error);
-        adminModulesInitialized = false; // Reset flag on error
         alert("管理パネルの初期化中に重大なエラーが発生しました。コンソールを確認してください。");
         const adminContainer = document.getElementById('admin-content')?.querySelector('.container');
         if (adminContainer) {
@@ -233,13 +199,6 @@ async function loadAndInitializeAdminModules() {
 
 function triggerModalContentRefresh(modalId) {
     console.log(`[admin-main] Refreshing content for modal: ${modalId}`);
-    // Ensure SortableJS is available before attempting to render categories/tags that might use it
-    if (!sortableJsLoaded && (modalId === 'categoryManagementModal' /* || modalId === 'tagManagementModal' if tags become sortable */)) {
-        console.warn(`[admin-main] SortableJS not loaded yet, delaying refresh for ${modalId}. It should be re-triggered once loaded.`);
-        // Optionally, set a flag to re-trigger this specific modal refresh when sortableLoaded event fires
-        return;
-    }
-
     switch (modalId) {
         case 'categoryManagementModal':
             if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
@@ -248,6 +207,7 @@ function triggerModalContentRefresh(modalId) {
             if (typeof renderTagsUI === 'function') renderTagsUI();
             if (typeof populateTagFormCategories === 'function') {
                  populateTagFormCategories(document.getElementById('newTagCategoriesCheckboxes'));
+                 // 編集モーダル内のチェックボックスは、編集モーダルが開かれる際に item-manager 側で処理される
             }
             break;
         case 'effectUnitManagementModal':
