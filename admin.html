@@ -291,7 +291,10 @@
                      <option value="OR">OR検索</option>
                  </select>
              </div>
-            <button id="saveCategoryEditButton" type="button">変更を保存</button>
+             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteCategoryFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このカテゴリを削除</button>
+                <button id="saveCategoryEditButton" type="button">変更を保存</button>
+            </div>
         </div>
     </div>
 
@@ -311,7 +314,10 @@
                     <!-- Checkboxes populated by JS -->
                 </div>
             </div>
-            <button id="saveTagEditButton" type="button">変更を保存</button>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteTagFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このタグを削除</button>
+                <button id="saveTagEditButton" type="button">変更を保存</button>
+            </div>
         </div>
     </div>
 
@@ -346,7 +352,10 @@
                 <input type="number" id="editingEffectTypeSumCap" placeholder="例: 100 (空欄で上限なし)" min="0" class="form-control-short">
                 <p class="info">計算方法が「加算」の場合のみ適用されます。空欄にすると上限なしとして扱われます。</p>
             </div>
-            <button id="saveEffectTypeEditButton" type="button">変更を保存</button>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteEffectTypeFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この効果種類を削除</button>
+                <button id="saveEffectTypeEditButton" type="button">変更を保存</button>
+            </div>
         </div>
     </div>
 
@@ -360,7 +369,10 @@
                 <label for="editingEffectUnitName">単位名:</label>
                 <input type="text" id="editingEffectUnitName">
             </div>
-            <button id="saveEffectUnitEditButton" type="button">単位を保存</button>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteEffectUnitFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この効果単位を削除</button>
+                <button id="saveEffectUnitEditButton" type="button">単位を保存</button>
+            </div>
         </div>
     </div>
 
@@ -392,7 +404,10 @@
                      </div>
                 </div>
             </div>
-            <button id="saveCharBaseOptionButton" type="button">オプションを保存</button>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteCharBaseOptionFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このオプションを削除</button>
+                <button id="saveCharBaseOptionButton" type="button">オプションを保存</button>
+            </div>
         </div>
     </div>
 
