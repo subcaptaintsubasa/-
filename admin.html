@@ -130,7 +130,6 @@
     </div><!-- closing #admin-content -->
 
     <!-- 管理機能モーダル群 -->
-    <!-- カテゴリ管理モーダル -->
     <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -150,7 +149,6 @@
             <button id="addCategoryButton" type="button">カテゴリ追加</button>
             
             <h3 style="margin-top: 20px;">カテゴリ一覧</h3>
-            <!-- ★★★ 検索バーを追加 ★★★ -->
             <div class="form-group list-search-bar">
                 <label for="categorySearchInput" class="sr-only">カテゴリ検索</label>
                 <input type="text" id="categorySearchInput" placeholder="カテゴリ名で検索..." aria-label="カテゴリを検索">
@@ -161,7 +159,6 @@
         </div>
     </div>
 
-    <!-- タグ管理モーダル -->
     <div id="tagManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="tagManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -179,14 +176,16 @@
             </div>
             <button id="addTagButton" type="button">タグ追加</button>
             <h3 style="margin-top: 20px;">既存タグ一覧</h3>
-            <!-- (ここにタグ用の検索バーを追加予定) -->
+            <div class="form-group list-search-bar">
+                <label for="tagSearchInput" class="sr-only">タグ検索</label>
+                <input type="text" id="tagSearchInput" placeholder="タグ名で検索..." aria-label="タグを検索">
+            </div>
             <div id="tagListContainer" class="list-container">
                 <!-- Tag list populated by JS -->
             </div>
         </div>
     </div>
 
-    <!-- 効果単位管理モーダル -->
     <div id="effectUnitManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectUnitManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -198,14 +197,12 @@
             </div>
             <button id="addEffectUnitButton" type="button">効果単位を追加</button>
             <h3 style="margin-top: 20px;">既存の効果単位一覧</h3>
-            <!-- (ここに効果単位用の検索バーを追加予定) -->
             <div id="effectUnitListContainer" class="list-container">
                 <!-- Effect unit list populated by JS -->
             </div>
         </div>
     </div>
 
-    <!-- 効果種類管理モーダル -->
     <div id="effectTypeManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectTypeManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -231,21 +228,19 @@
                      <label for="newCalcMethodMax">最大値</label>
                  </div>
              </div>
-             <div class="form-group" id="newEffectTypeSumCapGroup"> <!-- Container for sumCap -->
+             <div class="form-group" id="newEffectTypeSumCapGroup">
                  <label for="newEffectTypeSumCap">加算時の最大値 (任意):</label>
                  <input type="number" id="newEffectTypeSumCap" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short">
                  <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
              </div>
              <button id="addEffectTypeButton" type="button">効果種類を追加</button>
              <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
-             <!-- (ここに効果種類用の検索バーを追加予定) -->
              <div id="effectTypeListContainer" class="list-container">
                  <!-- Effect type list populated by JS -->
              </div>
         </div>
     </div>
 
-    <!-- キャラクター基礎情報管理モーダル -->
     <div id="characterBaseManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="charBaseManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -262,7 +257,6 @@
                 <button type="button" id="addNewCharBaseOptionButton" class="button-like">新しい選択肢を追加</button>
             </div>
             <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
-            <!-- (ここにキャラ基礎オプション用の検索バーを追加予定) -->
             <div id="charBaseOptionListContainer" class="list-container">
                 <!-- Character base options populated by JS -->
             </div>
@@ -418,5 +412,7 @@
 
     <!-- Admin JavaScript Modules -->
     <script type="module" src="js/admin-main.js"></script>
+    <!-- SortableJSライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" integrity="sha512-Eezs+g9Lq4TCCq0wae01s97wKeqNdocrUAoz3eg0LZQSwMNGDGO8rizSXBfv/VBFBBRfDLs5zDXP7KLXsJGDCw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
 </html>
