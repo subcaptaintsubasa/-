@@ -1,54 +1,99 @@
 // js/admin-main.js
-import { auth, db } from '../firebase-config.js';
-import { initAuth, getCurrentUser } from './admin-modules/auth.js';
+import { auth, db } from '../firebase-config.js'; // firebase-config.js から auth と db をインポート
+import { initAuth } from './admin-modules/auth.js'; 
 import {
     loadInitialData,
     clearAdminDataCache,
-    IMAGE_UPLOAD_WORKER_URL,
-    getAllCategoriesCache,
+    getAllCategoriesCache, 
     getAllTagsCache,
     getItemsCache,
     getEffectTypesCache,
     getEffectUnitsCache,
     getCharacterBasesCache
 } from './admin-modules/data-loader-admin.js';
-import { initUIHelpers } from './admin-modules/ui-helpers.js';
+import { initUIHelpers, openModal as openAdminModal, closeModal as closeAdminModal } from './admin-modules/ui-helpers.js';
 import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI } from './admin-modules/category-manager.js';
 import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _populateCategoryCheckboxesForTagFormInternal as populateTagFormCategories } from './admin-modules/tag-manager.js';
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI } from './admin-modules/effect-unit-manager.js';
 import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms } from './admin-modules/effect-type-manager.js';
 import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings } from './admin-modules/char-base-manager.js';
 import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js';
+import { IMAGE_UPLOAD_WORKER_URL } from './admin-modules/data-loader-admin.js';
 
+
+const DOM = { 
+    adminHamburgerButton: null,
+    adminSideNav: null,
+    adminCloseNavButton: null,
+    adminNavButtons: null, 
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("[admin-main] DOMContentLoaded, initializing admin panel...");
-    initUIHelpers();
+    
+    DOM.adminHamburgerButton = document.getElementById('adminHamburgerButton');
+    DOM.adminSideNav = document.getElementById('adminSideNav');
+    DOM.adminCloseNavButton = document.getElementById('adminCloseNavButton');
+    DOM.adminNavButtons = document.querySelectorAll('.admin-nav-button');
 
-    initAuth(auth,
-        (user) => {
+    initUIHelpers(); 
+
+    if (DOM.adminHamburgerButton && DOM.adminSideNav) {
+        DOM.adminHamburgerButton.addEventListener('click', () => {
+            const isOpen = DOM.adminSideNav.classList.toggle('open');
+            DOM.adminSideNav.setAttribute('aria-hidden', String(!isOpen));
+            DOM.adminHamburgerButton.setAttribute('aria-expanded', String(isOpen));
+        });
+    }
+
+    if (DOM.adminCloseNavButton && DOM.adminSideNav && DOM.adminHamburgerButton) {
+        DOM.adminCloseNavButton.addEventListener('click', () => {
+            DOM.adminSideNav.classList.remove('open');
+            DOM.adminSideNav.setAttribute('aria-hidden', 'true');
+            DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    DOM.adminNavButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const modalId = button.dataset.modalTarget;
+            if (modalId) {
+                openAdminModal(modalId); 
+                if (DOM.adminSideNav && DOM.adminHamburgerButton) {
+                    DOM.adminSideNav.classList.remove('open');
+                    DOM.adminSideNav.setAttribute('aria-hidden', 'true');
+                    DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+                }
+                triggerModalContentRefresh(modalId);
+            }
+        });
+    });
+
+    initAuth(auth, 
+        (user) => { 
             console.log("[admin-main] User logged in, displaying admin content.");
-            document.getElementById('password-prompt').style.display = 'none';
+            const passwordPromptEl = document.getElementById('password-prompt');
+            if(passwordPromptEl) passwordPromptEl.style.display = 'none';
+            
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'block';
             else console.error("#admin-content element not found!");
 
-            const currentUserEmailSpan = document.getElementById('currentUserEmail');
-            if (user && currentUserEmailSpan) {
-                currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
-            }
             loadAndInitializeAdminModules();
         },
-        () => {
+        () => { 
             console.log("[admin-main] User logged out, hiding admin content.");
             const passwordPromptEl = document.getElementById('password-prompt');
             if(passwordPromptEl) passwordPromptEl.style.display = 'flex';
 
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'none';
-
-            const currentUserEmailSpan = document.getElementById('currentUserEmail');
-            if (currentUserEmailSpan) currentUserEmailSpan.textContent = '';
+            
+            if (DOM.adminSideNav && DOM.adminSideNav.classList.contains('open')) {
+                DOM.adminSideNav.classList.remove('open');
+                DOM.adminSideNav.setAttribute('aria-hidden', 'true');
+                if(DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+            }
             clearAdminUIAndData();
         }
     );
@@ -66,51 +111,71 @@ function clearAdminUIAndData() {
     });
 
     const itemsTableBody = document.querySelector('#itemsTable tbody');
-    if (itemsTableBody) itemsTableBody.innerHTML = '';
+    if (itemsTableBody) itemsTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">ログアウトしました。</td></tr>';
 
-    document.querySelectorAll('#admin-content form').forEach(form => {
-        if (typeof form.reset === 'function') form.reset();
-    });
-    // Specific form clear might be needed for custom elements not reset by form.reset()
-    // e.g., clearing selected buttons in category parent selector, clearing effect lists etc.
-    // For now, relying on individual managers to reset their specific form states if needed upon data refresh.
-
-    clearAdminDataCache();
+    const itemForm = document.getElementById('itemForm');
+    if (itemForm && typeof itemForm.reset === 'function') {
+        itemForm.reset();
+        document.getElementById('itemIdToEdit').value = '';
+        const itemImagePreview = document.getElementById('itemImagePreview');
+        if(itemImagePreview) {
+            itemImagePreview.style.display = 'none';
+            itemImagePreview.src = '#';
+        }
+        document.getElementById('itemImageUrl').value = '';
+        const itemImageFile = document.getElementById('itemImageFile');
+        if(itemImageFile) itemImageFile.value = '';
+        const currentEffectsList = document.getElementById('currentEffectsList');
+        if (currentEffectsList) currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
+        const itemTagsCheckboxes = document.getElementById('itemTagsSelectorCheckboxes');
+        if (itemTagsCheckboxes) itemTagsCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    }
+    clearAdminDataCache(); 
     console.log("[admin-main] Admin UI cleared and data cache flushed.");
 }
-
 
 async function loadAndInitializeAdminModules() {
     console.log("[admin-main] Starting to load data and initialize modules...");
     try {
-        await loadInitialData(db);
+        await loadInitialData(db); 
 
         const commonDependencies = {
-            db,
+            db, 
             getAllCategories: getAllCategoriesCache,
             getAllTags: getAllTagsCache,
-            getItems: getItemsCache,
+            getItems: getItemsCache, 
             getEffectTypes: getEffectTypesCache,
             getEffectUnits: getEffectUnitsCache,
             getCharacterBases: getCharacterBasesCache,
             refreshAllData: async () => {
                 console.log("[admin-main] Refreshing all data and UI (called from a manager)...");
                 await loadInitialData(db);
-                renderAllAdminUISections(); // This will re-render everything
+                renderItemsTableUI(); // アイテム管理は常に表示されているので再描画
+                _populateTagCheckboxesForItemFormInternal();
+                populateEffectTypeSelectsInForms();
+
+                const activeModal = document.querySelector('.admin-management-modal.active-modal');
+                if (activeModal) {
+                    triggerModalContentRefresh(activeModal.id);
+                }
                 console.log("[admin-main] All data and UI refreshed after manager action.");
-            }
+            },
+            openAdminModal: openAdminModal,
+            closeAdminModal: closeAdminModal,
         };
 
         initEffectUnitManager(commonDependencies);
-        initEffectTypeManager(commonDependencies); // Depends on units for its form's select
-        initCategoryManager(commonDependencies);   // Depends on tags for its modal
-        initTagManager(commonDependencies);        // Depends on categories for its form/modal
-        initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings }); // Pass mapping
-        initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL }); // Depends on tags, effect types
+        initEffectTypeManager(commonDependencies);
+        initCategoryManager(commonDependencies);
+        initTagManager(commonDependencies);
+        initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
+        initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
-        renderAllAdminUISections(); // Initial render after all data is loaded and managers are ready
+        renderItemsTableUI(); 
+        _populateTagCheckboxesForItemFormInternal(); 
+        populateEffectTypeSelectsInForms();    
 
-        console.log("[admin-main] Admin modules initialized and initial UI rendered successfully.");
+        console.log("[admin-main] Admin modules initialized. Item management section rendered.");
 
     } catch (error) {
         console.error("[admin-main] CRITICAL ERROR during admin panel initialization:", error);
@@ -122,23 +187,28 @@ async function loadAndInitializeAdminModules() {
     }
 }
 
-function renderAllAdminUISections() {
-    console.log("[admin-main] Rendering all admin UI sections...");
-    if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
-    if (typeof renderTagsUI === 'function') renderTagsUI();
-    if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
-    if (typeof renderEffectTypesUI === 'function') renderEffectTypesUI();
-    if (typeof renderCharBaseOptionsUI === 'function') renderCharBaseOptionsUI();
-    if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
-
-    // Populate selects/checkboxes in forms that depend on other data collections
-    // These are typically called within the respective _render...Internal functions now,
-    // but calling them here again ensures they are populated after all data is available.
-    if (typeof populateTagFormCategories === 'function') populateTagFormCategories(document.getElementById('newTagCategoriesCheckboxes')); // For new tag form
-    if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms(); // For item & char-base forms
-    if (typeof populateCharBaseEffectTypeSelectInModal === 'function') populateCharBaseEffectTypeSelectInModal(); // For char-base modal
-    if (typeof populateItemFormTags === 'function') populateItemFormTags(); // For item form
-    // Note: category-manager's parent category selector is populated within its _render function.
-
-    console.log("[admin-main] All admin UI sections rendering process complete.");
+function triggerModalContentRefresh(modalId) {
+    console.log(`[admin-main] Refreshing content for modal: ${modalId}`);
+    switch (modalId) {
+        case 'categoryManagementModal':
+            if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
+            break;
+        case 'tagManagementModal':
+            if (typeof renderTagsUI === 'function') renderTagsUI();
+            if (typeof populateTagFormCategories === 'function') {
+                 populateTagFormCategories(document.getElementById('newTagCategoriesCheckboxes'));
+                 // 編集モーダル内のカテゴリチェックボックスは、編集モーダルが開かれる際に都度設定されるのでここでは不要
+            }
+            break;
+        case 'effectUnitManagementModal':
+            if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
+            break;
+        case 'effectTypeManagementModal':
+            if (typeof renderEffectTypesUI === 'function') renderEffectTypesUI();
+            break;
+        case 'characterBaseManagementModal':
+            if (typeof renderCharBaseOptionsUI === 'function') renderCharBaseOptionsUI();
+             if (typeof populateCharBaseEffectTypeSelectInModal === 'function') populateCharBaseEffectTypeSelectInModal();
+            break;
+    }
 }
