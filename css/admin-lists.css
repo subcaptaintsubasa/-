@@ -8,15 +8,15 @@
     border-radius: 0.25rem;
     padding: 0.5rem;
     max-height: 320px;
-    min-height: 150px; 
+    min-height: 150px;
     overflow-y: auto;
     background-color: #fdfdfd;
     display: flex;
     flex-direction: column;
 }
-.list-container > p { 
-    margin: auto; 
-    padding: 1rem; 
+.list-container > p {
+    margin: auto;
+    padding: 1rem;
     color: #6c757d;
     font-style: italic;
     text-align: center;
@@ -76,6 +76,8 @@
     border-bottom: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
+    background-color: #fff; /* ドラッグ時に背景が見えるように */
+    user-select: none; /* ドラッグ中のテキスト選択を防ぐ */
 }
 .category-tree-item:last-child {
     border-bottom: none;
@@ -118,6 +120,19 @@
     display: none;
 }
 
+/* SortableJS ドラッグ中スタイル */
+.category-tree-item.sortable-ghost {
+    opacity: 0.4;
+    background-color: #cce5ff;
+}
+.category-tree-item.sortable-chosen {
+    /* background-color: #e9ecef; */
+}
+.category-tree-item.sortable-drag {
+    /* opacity: 0.7; */
+}
+
+
 /* Styles for Tag Group View */
 .tag-group {
     margin-bottom: 1rem;
@@ -141,6 +156,7 @@
 .tag-group .list-item .list-item-name-clickable small {
     display: none;
 }
+
 
 /* Checkbox groups (used for tag assignment, item tag selection) */
 .checkbox-group-container {
@@ -172,11 +188,11 @@
 }
 .checkbox-item input[type="checkbox"]:focus {
     outline: 1px dotted #007bff;
-    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25); /* フォーカス時の可視性向上 */
+    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25);
 }
-.checkbox-item input[type="checkbox"]:checked + label { /* ★★★ チェックされたチェックボックスのラベルを強調 ★★★ */
-    color: #0056b3; /* より濃い青 */
-    font-weight: 600; /* 少し太字に */
+.checkbox-item input[type="checkbox"]:checked + label {
+    color: #0056b3;
+    font-weight: 600;
 }
 .checkbox-item label {
     font-weight: normal;
@@ -200,7 +216,6 @@
     border-radius: 0.25rem;
     background-color: #ffffff;
 }
-/* ★★★ タグ選択ボタンのアクティブ状態を強調 ★★★ */
 .tag-button-container.admin .tag-filter.admin-tag-select {
     padding: 0.35rem 0.8rem;
     background-color: #f0f0f0;
@@ -216,10 +231,10 @@
     border-color: #ccc;
 }
 .tag-button-container.admin .tag-filter.admin-tag-select.active {
-    background-color: #28a745; /* Green for active tags */
+    background-color: #28a745;
     color: white;
-    border-color: #1e7e34; /* Darker green border */
-    box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3); /* Green focus ring */
+    border-color: #1e7e34;
+    box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3);
     font-weight: 500;
 }
 
