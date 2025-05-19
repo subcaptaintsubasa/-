@@ -26,6 +26,7 @@
     box-sizing: border-box;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     background-color: #fff; /* Ensure white background */
+    color: #495057; /* Input text color */
 }
 .form-group input[type="text"]:focus,
 .form-group input[type="number"]:focus,
@@ -41,6 +42,12 @@
     resize: vertical;
     min-height: 100px; /* Slightly taller min-height */
 }
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #6c757d; /* Placeholder text color */
+    opacity: 1; /* Firefox fix */
+}
+
 
 /* For shorter form controls */
 .form-control-short {
@@ -70,6 +77,7 @@
     cursor: pointer;
     font-size: 0.875rem; /* Slightly smaller */
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
+    color: #495057;
 }
 .category-select-button:hover {
     background-color: #e9ecef;
@@ -96,6 +104,7 @@
     margin-right: 0.3rem;
     vertical-align: middle;
     transform: scale(1.1); /* Slightly larger radio buttons */
+    cursor: pointer;
 }
 .radio-group label {
     margin-bottom: 0;
@@ -124,6 +133,7 @@
     text-decoration: none;
     display: inline-block;
     line-height: 1.5; /* Ensure text is centered vertically */
+    text-align: center; /* Center text within button */
 }
 #admin-content button:hover,
 #admin-content .button-like:hover {
@@ -214,22 +224,22 @@
 /* Inline form style */
 .inline-form {
     display: flex;
-    align-items: center;
+    align-items: center; /* Align items vertically */
     gap: 0.75rem; /* Use rem */
     margin-bottom: 1rem;
     flex-wrap: wrap;
 }
 .inline-form label {
-    margin-bottom: 0;
+    margin-bottom: 0; /* Remove bottom margin for inline label */
     flex-shrink: 0;
 }
 .inline-form input[type="text"],
 .inline-form select {
-    flex-grow: 1;
+    flex-grow: 1; /* Input takes available space */
     min-width: 180px; /* Adjusted min-width */
 }
 .inline-form button {
-    flex-shrink: 0;
+    flex-shrink: 0; /* Button does not shrink */
 }
 
 
