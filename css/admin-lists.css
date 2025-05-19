@@ -8,9 +8,23 @@
     border-radius: 0.25rem; /* Consistent radius */
     padding: 0.5rem; /* Adjusted padding */
     max-height: 320px; /* Slightly increased max-height */
+    min-height: 150px; /* ★★★ 追加: 最低限の高さを確保 ★★★ */
     overflow-y: auto;
     background-color: #fdfdfd; /* Slightly off-white */
+    display: flex; /* ★★★ 追加: 内容がない場合にメッセージを中央揃えしやすくするため ★★★ */
+    flex-direction: column; /* ★★★ 追加: pタグなどを縦に並べるため ★★★ */
 }
+
+/* メッセージ（例: 「カテゴリが登録されていません」）のスタイル調整 */
+.list-container > p { /* .list-container 直下の子の p 要素に適用 */
+    margin: auto; /* flexコンテナ内で上下左右中央揃え */
+    padding: 1rem; /* メッセージが見やすいようにパディングを追加 */
+    color: #6c757d;
+    font-style: italic;
+    text-align: center; /*念のためテキストも中央揃え*/
+}
+
+
 .list-item { /* Individual item in a .list-container (used by effect units, types, char base options) */
     display: flex;
     justify-content: space-between;
@@ -56,10 +70,10 @@
     font-size: 0.85em;
     margin-left: 0.3rem;
 }
-.list-item div.list-item-actions { 
+.list-item div.list-item-actions {
     flex-shrink: 0;
     display: flex;
-    align-items: center; 
+    align-items: center;
     gap: 0.3rem;
 }
 
@@ -232,7 +246,17 @@
     padding-top: 0.75rem;
     max-height: 160px;
     overflow-y: auto;
+    display: flex; /* For centering message when empty */
+    flex-direction: column; /* For message stacking if needed */
+    min-height: 50px; /* Ensure some space for the "no effects" message */
 }
+/* Style for the "no effects" paragraph inside effects-list-container */
+.effects-list-container > p {
+    margin: auto; /* Center the message */
+    color: #6c757d;
+    font-style: italic;
+}
+
 .effect-list-item {
     display: flex;
     justify-content: space-between;
