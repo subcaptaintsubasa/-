@@ -3,49 +3,45 @@
 
 /* General container for lists of manageable items (categories, tags, etc.) */
 .list-container {
-    margin-top: 1rem; /* Use rem */
-    border: 1px solid #dee2e6; /* Slightly darker border */
-    border-radius: 0.25rem; /* Consistent radius */
-    padding: 0.5rem; /* Adjusted padding */
-    max-height: 320px; /* Slightly increased max-height */
-    min-height: 150px; /* ★★★ 追加: 最低限の高さを確保 ★★★ */
+    margin-top: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    max-height: 320px;
+    min-height: 150px; 
     overflow-y: auto;
-    background-color: #fdfdfd; /* Slightly off-white */
-    display: flex; /* ★★★ 追加: 内容がない場合にメッセージを中央揃えしやすくするため ★★★ */
-    flex-direction: column; /* ★★★ 追加: pタグなどを縦に並べるため ★★★ */
+    background-color: #fdfdfd;
+    display: flex;
+    flex-direction: column;
 }
-
-/* メッセージ（例: 「カテゴリが登録されていません」）のスタイル調整 */
-.list-container > p { /* .list-container 直下の子の p 要素に適用 */
-    margin: auto; /* flexコンテナ内で上下左右中央揃え */
-    padding: 1rem; /* メッセージが見やすいようにパディングを追加 */
+.list-container > p { 
+    margin: auto; 
+    padding: 1rem; 
     color: #6c757d;
     font-style: italic;
-    text-align: center; /*念のためテキストも中央揃え*/
+    text-align: center;
 }
 
-
-.list-item { /* Individual item in a .list-container (used by effect units, types, char base options) */
+.list-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.6rem 0.8rem; /* Adjusted padding */
-    border-bottom: 1px solid #e9ecef; /* Lighter separator */
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid #e9ecef;
     transition: background-color 0.15s ease-in-out;
 }
 .list-item:last-child {
     border-bottom: none;
 }
 .list-item:hover {
-    background-color: #f1f3f5; /* Slightly more noticeable hover */
+    background-color: #f1f3f5;
 }
-/* For item name part that will be clickable to open edit modal */
 .list-item > .list-item-name-clickable {
     flex-grow: 1;
     margin-right: 0.75rem;
     word-break: break-word;
     font-size: 0.9rem;
-    color: #0056b3; /* Link-like color */
+    color: #0056b3;
     cursor: pointer;
     text-decoration: none;
     transition: color 0.15s ease-in-out;
@@ -54,7 +50,6 @@
     color: #003d80;
     text-decoration: underline;
 }
-/* For non-clickable span within list-item, if any part is not clickable */
 .list-item > span:not(.list-item-name-clickable) {
     flex-grow: 1;
     margin-right: 0.75rem;
@@ -62,10 +57,8 @@
     font-size: 0.9rem;
     color: #343a40;
 }
-
-
 .list-item > span small,
-.list-item > .list-item-name-clickable small { /* Small text within clickable or non-clickable span */
+.list-item > .list-item-name-clickable small {
     color: #5a6268;
     font-size: 0.85em;
     margin-left: 0.3rem;
@@ -140,15 +133,14 @@
     font-weight: 600;
     color: #495057;
     margin-bottom: 0.5rem;
-    padding-left: 0.3rem; /* Align with list items if they have padding */
+    padding-left: 0.3rem;
 }
-.tag-group .list-item { /* Tags within a group */
-    padding-left: 0.8rem; /* Indent tags slightly under their group header */
+.tag-group .list-item {
+    padding-left: 0.8rem;
 }
-.tag-group .list-item .list-item-name-clickable small { /* For tags, small info might not be needed if grouped by category */
-    display: none; /* Or adjust if showing other info */
+.tag-group .list-item .list-item-name-clickable small {
+    display: none;
 }
-
 
 /* Checkbox groups (used for tag assignment, item tag selection) */
 .checkbox-group-container {
@@ -180,6 +172,11 @@
 }
 .checkbox-item input[type="checkbox"]:focus {
     outline: 1px dotted #007bff;
+    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25); /* フォーカス時の可視性向上 */
+}
+.checkbox-item input[type="checkbox"]:checked + label { /* ★★★ チェックされたチェックボックスのラベルを強調 ★★★ */
+    color: #0056b3; /* より濃い青 */
+    font-weight: 600; /* 少し太字に */
 }
 .checkbox-item label {
     font-weight: normal;
@@ -202,6 +199,28 @@
     padding: 0.75rem;
     border-radius: 0.25rem;
     background-color: #ffffff;
+}
+/* ★★★ タグ選択ボタンのアクティブ状態を強調 ★★★ */
+.tag-button-container.admin .tag-filter.admin-tag-select {
+    padding: 0.35rem 0.8rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
+    color: #495057;
+}
+.tag-button-container.admin .tag-filter.admin-tag-select:hover {
+    background-color: #e0e0e0;
+    border-color: #ccc;
+}
+.tag-button-container.admin .tag-filter.admin-tag-select.active {
+    background-color: #28a745; /* Green for active tags */
+    color: white;
+    border-color: #1e7e34; /* Darker green border */
+    box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3); /* Green focus ring */
+    font-weight: 500;
 }
 
 
@@ -246,13 +265,12 @@
     padding-top: 0.75rem;
     max-height: 160px;
     overflow-y: auto;
-    display: flex; /* For centering message when empty */
-    flex-direction: column; /* For message stacking if needed */
-    min-height: 50px; /* Ensure some space for the "no effects" message */
+    display: flex;
+    flex-direction: column;
+    min-height: 50px;
 }
-/* Style for the "no effects" paragraph inside effects-list-container */
 .effects-list-container > p {
-    margin: auto; /* Center the message */
+    margin: auto;
     color: #6c757d;
     font-style: italic;
 }
