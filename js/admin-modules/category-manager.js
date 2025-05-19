@@ -8,6 +8,7 @@ const DOMC = {
     selectedNewParentCategoryIdInput: null,
     addCategoryButton: null,
     categoryListContainer: null,
+    categorySearchInput: null, // ★★★ 追加: 検索入力フィールド ★★★
     editCategoryModal: null,
     editingCategoryDocIdInput: null,
     editingCategoryNameInput: null,
@@ -18,16 +19,15 @@ const DOMC = {
     tagSearchModeGroup: null,
     editingTagSearchModeSelect: null,
     saveCategoryEditButton: null,
-    deleteCategoryFromEditModalButton: null, // 新しい削除ボタン
+    deleteCategoryFromEditModalButton: null,
 };
 
 let dbInstance = null;
 let getAllCategoriesFuncCache = () => [];
 let getAllTagsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
-
-// カテゴリツリーの展開状態を保持
-const categoryExpansionState = new Map(); // Map<categoryId, boolean>
+const categoryExpansionState = new Map();
+let currentCategorySearchTerm = ""; // ★★★ 追加: 現在の検索キーワード ★★★
 
 export function initCategoryManager(dependencies) {
     dbInstance = dependencies.db;
@@ -40,6 +40,7 @@ export function initCategoryManager(dependencies) {
     DOMC.selectedNewParentCategoryIdInput = document.getElementById('selectedNewParentCategoryId');
     DOMC.addCategoryButton = document.getElementById('addCategoryButton');
     DOMC.categoryListContainer = document.getElementById('categoryListContainer');
+    DOMC.categorySearchInput = document.getElementById('categorySearchInput'); // ★★★ 取得 ★★★
 
     DOMC.editCategoryModal = document.getElementById('editCategoryModal');
     DOMC.editingCategoryDocIdInput = document.getElementById('editingCategoryDocId');
@@ -64,15 +65,21 @@ export function initCategoryManager(dependencies) {
             const categoryId = DOMC.editingCategoryDocIdInput.value;
             const category = getAllCategoriesFuncCache().find(c => c.id === categoryId);
             if (categoryId && category) {
-                deleteCategory(categoryId, category.name); // categoryNameを渡す
+                deleteCategory(categoryId, category.name);
             } else {
                 alert("削除対象のカテゴリIDが見つかりません。");
             }
         });
     }
-    // イベントデリゲーションでカテゴリツリーのクリックを処理
     if (DOMC.categoryListContainer) {
         DOMC.categoryListContainer.addEventListener('click', handleCategoryTreeClick);
+    }
+    // ★★★ 検索入力フィールドのイベントリスナー ★★★
+    if (DOMC.categorySearchInput) {
+        DOMC.categorySearchInput.addEventListener('input', (e) => {
+            currentCategorySearchTerm = e.target.value.toLowerCase().trim();
+            _renderCategoriesForManagementInternal(); // 検索語が変わるたびにリストを再描画
+        });
     }
 
     console.log("[Category Manager] Initialized.");
@@ -88,11 +95,11 @@ function populateParentCategoryButtonsUI(buttonContainer, hiddenInput, options =
     }
     buttonContainer.innerHTML = '';
 
-    const topLevelButton = document.createElement('button'); // Changed to button
+    const topLevelButton = document.createElement('button');
     topLevelButton.type = 'button';
     topLevelButton.className = 'category-select-button';
     topLevelButton.textContent = '親カテゴリなし';
-    topLevelButton.dataset.parentId = ""; // Use consistent dataset attribute
+    topLevelButton.dataset.parentId = "";
     if (selectedParentId === "") {
         topLevelButton.classList.add('active');
     }
@@ -108,11 +115,11 @@ function populateParentCategoryButtonsUI(buttonContainer, hiddenInput, options =
         .filter(cat => (!cat.parentId || cat.parentId === "") && cat.id !== currentCategoryIdToExclude)
         .sort((a,b) => a.name.localeCompare(b.name, 'ja'))
         .forEach(cat => {
-            const button = document.createElement('button'); // Changed to button
+            const button = document.createElement('button');
             button.type = 'button';
             button.className = 'category-select-button';
             button.textContent = cat.name;
-            button.dataset.parentId = cat.id; // Use consistent dataset attribute
+            button.dataset.parentId = cat.id;
             if (selectedParentId === cat.id) {
                 button.classList.add('active');
             }
@@ -120,9 +127,9 @@ function populateParentCategoryButtonsUI(buttonContainer, hiddenInput, options =
                 selectParentCategoryButtonUI(buttonContainer, hiddenInput, button, cat.id);
                 if (buttonContainer === DOMC.editingCategoryParentButtons) {
                     toggleEditModalChildFields(true);
-                    const categoryBeingEdited = allCategories.find(c => c.id === DOMC.editingCategoryDocIdInput.value);
-                    if (categoryBeingEdited) {
-                        populateTagsForCategoryEditModal(DOMC.editingCategoryTagsSelector, categoryBeingEdited.id, getAllTagsFuncCache());
+                    const categoryBeingEditedId = DOMC.editingCategoryDocIdInput.value;
+                    if (categoryBeingEditedId) { // Ensure we have a category ID to work with
+                        populateTagsForCategoryEditModal(DOMC.editingCategoryTagsSelector, categoryBeingEditedId, getAllTagsFuncCache());
                     }
                 }
             });
@@ -155,51 +162,76 @@ function toggleEditModalChildFields(isChild) {
 
 export function _renderCategoriesForManagementInternal() {
     if (!DOMC.categoryListContainer) return;
-    const allCategories = getAllCategoriesFuncCache();
+    let allCategories = getAllCategoriesFuncCache();
     DOMC.categoryListContainer.innerHTML = '';
 
-    if (allCategories.length === 0) {
-        DOMC.categoryListContainer.innerHTML = '<p>カテゴリが登録されていません。</p>';
+    // ★★★ 検索キーワードでフィルタリング ★★★
+    let filteredCategories = allCategories;
+    if (currentCategorySearchTerm) {
+        filteredCategories = allCategories.filter(cat => 
+            cat.name.toLowerCase().includes(currentCategorySearchTerm)
+        );
+        // 検索時、親子関係を維持するために、ヒットしたカテゴリの親も表示対象に加える (再帰的に)
+        const categoriesToShow = new Set();
+        function addWithParents(categoryId) {
+            if (categoriesToShow.has(categoryId)) return;
+            const category = allCategories.find(c => c.id === categoryId);
+            if (category) {
+                categoriesToShow.add(category.id);
+                if (category.parentId) {
+                    addWithParents(category.parentId);
+                }
+            }
+        }
+        filteredCategories.forEach(cat => addWithParents(cat.id));
+        // フィルタリングされた結果でヒットしたカテゴリとその親のみを対象とする
+        filteredCategories = allCategories.filter(cat => categoriesToShow.has(cat.id));
+    }
+
+
+    if (filteredCategories.length === 0) {
+        DOMC.categoryListContainer.innerHTML = currentCategorySearchTerm ? 
+            '<p>検索条件に一致するカテゴリはありません。</p>' : 
+            '<p>カテゴリが登録されていません。</p>';
+        // 新規カテゴリ追加フォームの親カテゴリセレクタは、フィルタリングに関わらず常に全親カテゴリで表示
         populateParentCategoryButtonsUI(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: "" });
         return;
     }
 
     const buildCategoryTree = (parentId = "") => {
-        const children = allCategories.filter(cat => (cat.parentId || "") === parentId)
+        const children = filteredCategories.filter(cat => (cat.parentId || "") === parentId)
                                  .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
         if (children.length === 0) return null;
 
         const ul = document.createElement('ul');
         if (parentId !== "") ul.classList.add('category-tree-children');
         
-        // 親カテゴリの場合、展開状態に応じて 'hidden' クラスを適用
-        if (parentId !== "" && !categoryExpansionState.get(parentId)) {
+        if (parentId !== "" && !categoryExpansionState.get(parentId) && !currentCategorySearchTerm) { // 検索時はデフォルトで展開
             ul.classList.add('hidden');
         }
-
 
         children.forEach(category => {
             const li = document.createElement('li');
             li.classList.add('category-tree-item');
             li.dataset.categoryId = category.id;
 
-            const hasChildren = allCategories.some(c => c.parentId === category.id);
-            const isExpanded = categoryExpansionState.get(category.id) === true;
+            const hasActualChildren = allCategories.some(c => c.parentId === category.id); // 元のデータで子がいるか
+            const isExpanded = categoryExpansionState.get(category.id) === true || !!currentCategorySearchTerm; // 検索時は展開
 
             const expander = document.createElement('span');
             expander.classList.add('category-tree-expander');
-            if (hasChildren) {
+            if (hasActualChildren) {
                 expander.textContent = isExpanded ? '▼' : '►';
                 expander.classList.toggle('expanded', isExpanded);
             } else {
-                expander.innerHTML = ' '; // 子がない場合はスペースでインデントを保つ
+                expander.innerHTML = ' '; 
             }
             expander.dataset.action = 'toggle';
             li.appendChild(expander);
 
             const content = document.createElement('div');
             content.classList.add('category-tree-content');
-            content.dataset.action = 'edit'; // クリックで編集モーダルを開く
+            content.dataset.action = 'edit'; 
 
             const nameSpan = document.createElement('span');
             nameSpan.classList.add('category-name');
@@ -222,20 +254,22 @@ export function _renderCategoriesForManagementInternal() {
             li.appendChild(content);
             ul.appendChild(li);
 
-            if (hasChildren) {
-                const childrenUl = buildCategoryTree(category.id);
+            if (hasActualChildren) {
+                const childrenUl = buildCategoryTree(category.id); // 再帰呼び出し
                 if (childrenUl) {
-                    if (!isExpanded) childrenUl.classList.add('hidden'); // 子ULも展開状態に合わせる
-                    li.appendChild(childrenUl); // li の子として孫カテゴリのulを追加
+                    if (!isExpanded) childrenUl.classList.add('hidden'); 
+                    li.appendChild(childrenUl); 
                 }
             }
         });
         return ul;
     };
 
-    const treeRoot = buildCategoryTree(""); // 親カテゴリからツリー構築開始
+    const treeRoot = buildCategoryTree(""); 
     if (treeRoot) {
         DOMC.categoryListContainer.appendChild(treeRoot);
+    } else if (currentCategorySearchTerm) {
+        DOMC.categoryListContainer.innerHTML = '<p>検索条件に一致するカテゴリはありません。</p>';
     } else {
         DOMC.categoryListContainer.innerHTML = '<p>カテゴリが登録されていません。(ルート構築失敗)</p>';
     }
@@ -250,15 +284,16 @@ function handleCategoryTreeClick(event) {
     if (!listItem) return;
 
     const categoryId = listItem.dataset.categoryId;
-    const action = target.dataset.action || target.closest('[data-action]')?.dataset.action;
+    const actionTarget = target.closest('[data-action]'); // expander or content
+    const action = actionTarget ? actionTarget.dataset.action : null;
 
     if (action === 'toggle') {
         const expander = listItem.querySelector('.category-tree-expander');
         const childrenUl = listItem.querySelector('.category-tree-children');
-        if (childrenUl) {
+        if (childrenUl) { // Only toggle if there are actual children displayed
             const isCurrentlyExpanded = categoryExpansionState.get(categoryId) || false;
             categoryExpansionState.set(categoryId, !isCurrentlyExpanded);
-            childrenUl.classList.toggle('hidden', isCurrentlyExpanded); // isCurrentlyExpandedがtrueならhiddenにする
+            childrenUl.classList.toggle('hidden', isCurrentlyExpanded); 
             if(expander) expander.textContent = !isCurrentlyExpanded ? '▼' : '►';
             if(expander) expander.classList.toggle('expanded', !isCurrentlyExpanded);
         }
@@ -271,7 +306,7 @@ function handleCategoryTreeClick(event) {
 async function addCategory() {
     if (!DOMC.newCategoryNameInput || !DOMC.selectedNewParentCategoryIdInput) return;
     const name = DOMC.newCategoryNameInput.value.trim();
-    const parentId = DOMC.selectedNewParentCategoryIdInput.value; // "" or an ID
+    const parentId = DOMC.selectedNewParentCategoryIdInput.value; 
 
     if (!name) { alert("カテゴリ名を入力してください。"); return; }
 
@@ -285,17 +320,17 @@ async function addCategory() {
     try {
         const categoryData = {
             name: name,
-            parentId: parentId || "", // Firestoreでは空文字列で保存
+            parentId: parentId || "", 
             createdAt: serverTimestamp()
         };
-        if (parentId) categoryData.tagSearchMode = 'AND'; // 子カテゴリのデフォルト
+        if (parentId) categoryData.tagSearchMode = 'AND'; 
 
         await addDoc(collection(dbInstance, 'categories'), categoryData);
         
         DOMC.newCategoryNameInput.value = '';
         populateParentCategoryButtonsUI(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: "" });
 
-        await refreshAllDataCallback(); // This will trigger _renderCategoriesForManagementInternal
+        await refreshAllDataCallback(); 
     } catch (error) {
         console.error("[Category Manager] Error adding category:", error);
         alert("カテゴリの追加に失敗しました。");
@@ -337,7 +372,7 @@ function populateTagsForCategoryEditModal(containerElement, categoryId, allTags)
 async function saveCategoryEdit() {
     const docId = DOMC.editingCategoryDocIdInput.value;
     const newName = DOMC.editingCategoryNameInput.value.trim();
-    const newParentId = DOMC.selectedEditingParentCategoryIdInput.value; // "" or an ID
+    const newParentId = DOMC.selectedEditingParentCategoryIdInput.value; 
     const newTagSearchMode = DOMC.editingTagSearchModeSelect.value;
     const selectedTagIdsForThisCategory = getSelectedTagButtonValues(DOMC.editingCategoryTagsSelector);
 
@@ -356,9 +391,9 @@ async function saveCategoryEdit() {
         }
     }
 
-    if (newParentId) { // 循環参照チェック
+    if (newParentId) { 
         let currentAncestorId = newParentId;
-        const visited = new Set([docId]); // 自分自身から始まる
+        const visited = new Set([docId]); 
         while (currentAncestorId) {
             if (visited.has(currentAncestorId)) {
                 alert("循環参照です。この親カテゴリ設定はできません。"); return;
@@ -380,25 +415,24 @@ async function saveCategoryEdit() {
         const isBecomingChild = !!newParentId;
         if (isBecomingChild) {
             categoryUpdateData.tagSearchMode = newTagSearchMode;
-        } else { // 親カテゴリになる、または最上位のまま
-            categoryUpdateData.tagSearchMode = deleteField(); // Firestoreでフィールドを削除
+        } else { 
+            categoryUpdateData.tagSearchMode = deleteField(); 
         }
         batch.update(doc(dbInstance, 'categories', docId), categoryUpdateData);
 
-        // タグのカテゴリ関連を更新
         const allTags = getAllTagsFuncCache();
         allTags.forEach(tag => {
             const isCurrentlySelectedForCat = selectedTagIdsForThisCategory.includes(tag.id);
             const isAlreadyAssociatedWithCat = tag.categoryIds && tag.categoryIds.includes(docId);
 
-            if (isBecomingChild) { // カテゴリが子カテゴリになる/子カテゴリのまま
+            if (isBecomingChild) { 
                 if (isCurrentlySelectedForCat && !isAlreadyAssociatedWithCat) {
                     batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayUnion(docId) });
                 } else if (!isCurrentlySelectedForCat && isAlreadyAssociatedWithCat) {
                     batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
                 }
-            } else { // カテゴリが親カテゴリになる
-                if (isAlreadyAssociatedWithCat) { // 以前子カテゴリでタグと紐付いていたら解除
+            } else { 
+                if (isAlreadyAssociatedWithCat) { 
                      batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
                 }
             }
@@ -424,17 +458,15 @@ async function deleteCategory(docId, categoryName) {
     if (confirm(`カテゴリ「${categoryName}」を削除しますか？\nこのカテゴリに紐づいているタグの関連付けも解除されます。\nこの操作は元に戻せません。`)) {
         try {
             const batch = writeBatch(dbInstance);
-            // タグからこのカテゴリIDを削除
             const tagsToUpdateQuery = query(collection(dbInstance, 'tags'), where('categoryIds', 'array-contains', docId));
             const tagsSnapshot = await getDocs(tagsToUpdateQuery);
             tagsSnapshot.forEach(tagDoc => {
                 batch.update(tagDoc.ref, { categoryIds: arrayRemove(docId) });
             });
-            // カテゴリ自体を削除
             batch.delete(doc(dbInstance, 'categories', docId));
             await batch.commit();
             
-            closeModal('editCategoryModal'); // 編集モーダルが開いていたら閉じる
+            closeModal('editCategoryModal'); 
             await refreshAllDataCallback();
         } catch (error) {
             console.error("[Category Manager] Error deleting category:", error);
