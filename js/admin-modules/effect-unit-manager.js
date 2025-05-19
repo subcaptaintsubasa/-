@@ -1,6 +1,6 @@
 // js/admin-modules/effect-unit-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { openModal, closeModal } from './ui-helpers.js'; // Removed clearForm as it's simple
+import { openModal, closeModal } from './ui-helpers.js';
 
 const DOMEU = {
     newEffectUnitNameInput: null,
@@ -10,6 +10,7 @@ const DOMEU = {
     editingEffectUnitDocIdInput: null,
     editingEffectUnitNameInput: null,
     saveEffectUnitEditButton: null,
+    deleteEffectUnitFromEditModalButton: null, // New delete button
     manageUnitsForNewEffectTypeButton: null,
     manageUnitsForEditingEffectTypeButton: null,
 };
@@ -17,11 +18,8 @@ const DOMEU = {
 let dbInstance = null;
 let getEffectUnitsFuncCache = () => [];
 let getEffectTypesFuncCache = () => [];
-let getItemsFuncCache = () => [];
-let getCharacterBasesFuncCache = () => ({});
-// Assuming baseTypeMappings will be imported if needed for detailed messages, or pass as dependency
-// For now, keeping messages simpler.
-// import { baseTypeMappings } from './char-base-manager.js'; // Example if needed
+let getItemsFuncCache = () => []; // For checking usage before delete
+let getCharacterBasesFuncCache = () => ({}); // For checking usage before delete
 let refreshAllDataCallback = async () => {};
 
 export function initEffectUnitManager(dependencies) {
@@ -40,6 +38,7 @@ export function initEffectUnitManager(dependencies) {
     DOMEU.editingEffectUnitDocIdInput = document.getElementById('editingEffectUnitDocId');
     DOMEU.editingEffectUnitNameInput = document.getElementById('editingEffectUnitName');
     DOMEU.saveEffectUnitEditButton = document.getElementById('saveEffectUnitEditButton');
+    DOMEU.deleteEffectUnitFromEditModalButton = document.getElementById('deleteEffectUnitFromEditModalButton');
 
     DOMEU.manageUnitsForNewEffectTypeButton = document.getElementById('manageUnitsForNewEffectTypeButton');
     DOMEU.manageUnitsForEditingEffectTypeButton = document.getElementById('manageUnitsForEditingEffectTypeButton');
@@ -51,57 +50,83 @@ export function initEffectUnitManager(dependencies) {
     if (DOMEU.saveEffectUnitEditButton) {
         DOMEU.saveEffectUnitEditButton.addEventListener('click', saveEffectUnitEdit);
     }
-    if (DOMEU.manageUnitsForNewEffectTypeButton) {
-        DOMEU.manageUnitsForNewEffectTypeButton.addEventListener('click', () => scrollToUnitSection('new'));
+    if (DOMEU.deleteEffectUnitFromEditModalButton) {
+        DOMEU.deleteEffectUnitFromEditModalButton.addEventListener('click', () => {
+            const unitId = DOMEU.editingEffectUnitDocIdInput.value;
+            const unit = getEffectUnitsFuncCache().find(u => u.id === unitId);
+            if (unitId && unit) {
+                deleteEffectUnit(unitId, unit.name);
+            } else {
+                alert("削除対象の効果単位IDが見つかりません。");
+            }
+        });
     }
-    if (DOMEU.manageUnitsForEditingEffectTypeButton) {
-        DOMEU.manageUnitsForEditingEffectTypeButton.addEventListener('click', () => scrollToUnitSection('edit'));
+    
+    // Event delegation for list item clicks
+    if (DOMEU.effectUnitListContainer) {
+        DOMEU.effectUnitListContainer.addEventListener('click', handleEffectUnitListClick);
     }
 
-    // Initial UI population handled by renderAllAdminUISections
+    // "単位管理" buttons in EffectType modals
+    if (DOMEU.manageUnitsForNewEffectTypeButton) {
+        DOMEU.manageUnitsForNewEffectTypeButton.addEventListener('click', () => {
+            const effectUnitModal = document.getElementById('effectUnitManagementModal');
+            if (effectUnitModal) {
+                openModal('effectUnitManagementModal'); // Open the unit management modal
+                // Optionally scroll to the add new unit form
+                const newUnitInput = document.getElementById('newEffectUnitName');
+                if(newUnitInput) newUnitInput.focus();
+            }
+        });
+    }
+    if (DOMEU.manageUnitsForEditingEffectTypeButton) {
+        DOMEU.manageUnitsForEditingEffectTypeButton.addEventListener('click', () => {
+            const effectUnitModal = document.getElementById('effectUnitManagementModal');
+            if (effectUnitModal) {
+                 openModal('effectUnitManagementModal');
+                 const newUnitInput = document.getElementById('newEffectUnitName');
+                 if(newUnitInput) newUnitInput.focus();
+            }
+        });
+    }
+
     console.log("[Effect Unit Manager] Initialized.");
 }
 
-function scrollToUnitSection(context) {
-    const section = document.getElementById('effect-unit-management');
-    if (section) {
-        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (context === 'new' && DOMEU.newEffectUnitNameInput) DOMEU.newEffectUnitNameInput.focus();
-    }
-}
-
-export function _renderEffectUnitsForManagementInternal() { // Renamed
+export function _renderEffectUnitsForManagementInternal() {
     if (!DOMEU.effectUnitListContainer) return;
     const effectUnitsCache = getEffectUnitsFuncCache();
     DOMEU.effectUnitListContainer.innerHTML = '';
 
     if (effectUnitsCache.length === 0) {
         DOMEU.effectUnitListContainer.innerHTML = '<p>効果単位が登録されていません。「なし」は自動的に利用可能です。</p>';
+        return;
     }
 
-    // Sort units alphabetically
     const sortedUnits = [...effectUnitsCache].sort((a,b) => a.name.localeCompare(b.name, 'ja'));
 
     sortedUnits.forEach(unit => {
         const div = document.createElement('div');
         div.classList.add('list-item');
         div.innerHTML = `
-            <span>${unit.name}</span>
-            <div>
-                <button class="edit-effect-unit action-button" data-id="${unit.id}" title="編集">✎</button>
-                <button class="delete-effect-unit action-button delete" data-id="${unit.id}" data-name="${unit.name}" title="削除">×</button>
+            <span class="list-item-name-clickable" data-id="${unit.id}" data-action="edit">${unit.name}</span>
+            <div class="list-item-actions">
+                <!-- Buttons removed from here -->
             </div>
         `;
         DOMEU.effectUnitListContainer.appendChild(div);
     });
-
-    DOMEU.effectUnitListContainer.querySelectorAll('.edit-effect-unit').forEach(btn => {
-        btn.addEventListener('click', (e) => openEditEffectUnitModalById(e.currentTarget.dataset.id));
-    });
-    DOMEU.effectUnitListContainer.querySelectorAll('.delete-effect-unit').forEach(btn => {
-        btn.addEventListener('click', (e) => deleteEffectUnit(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
-    });
     console.log("[Effect Unit Manager] Effect units rendered for management.");
+}
+
+function handleEffectUnitListClick(event) {
+    const target = event.target;
+    const clickableName = target.closest('.list-item-name-clickable[data-id]');
+    
+    if (clickableName && clickableName.dataset.action === 'edit') {
+        const unitId = clickableName.dataset.id;
+        openEditEffectUnitModalById(unitId);
+    }
 }
 
 async function addEffectUnit() {
@@ -162,78 +187,34 @@ async function saveEffectUnitEdit() {
         });
 
         if (oldUnitName && oldUnitName !== newName) {
-            const batch = writeBatch(dbInstance);
-            let updatesMade = false;
-
-            getEffectTypesFuncCache().forEach(et => {
-                if (et.defaultUnit === oldUnitName) {
-                    batch.update(doc(dbInstance, 'effect_types', et.id), { defaultUnit: newName });
-                    updatesMade = true;
-                }
-            });
-            getItemsFuncCache().forEach(item => {
-                let itemEffectsUpdated = false;
-                const updatedEffects = (item.structured_effects || []).map(eff => {
-                    if (eff.unit === oldUnitName) { itemEffectsUpdated = true; return { ...eff, unit: newName }; }
-                    return eff;
-                });
-                if (itemEffectsUpdated) {
-                    batch.update(doc(dbInstance, 'items', item.docId), { structured_effects: updatedEffects });
-                    updatesMade = true;
-                }
-            });
-            const charBases = getCharacterBasesFuncCache();
-            // Assuming baseTypeMappings is available if more descriptive messages are needed
-            // const baseTypeMappings = (await import('./char-base-manager.js')).baseTypeMappings; // Async import if needed
-            for (const baseKey in charBases) {
-                (charBases[baseKey] || []).forEach(option => {
-                    let optionEffectsUpdated = false;
-                    const updatedOptionEffects = (option.effects || []).map(eff => {
-                        if (eff.unit === oldUnitName) { optionEffectsUpdated = true; return { ...eff, unit: newName }; }
-                        return eff;
-                    });
-                    if (optionEffectsUpdated) {
-                        batch.update(doc(dbInstance, `character_bases/${baseKey}/options`, option.id), { effects: updatedOptionEffects });
-                        updatesMade = true;
-                    }
-                });
-            }
-            if (updatesMade) await batch.commit();
+            // 以前はここで関連エンティティの単位名を更新していたが、
+            // effect_types.defaultUnit はID参照ではなく文字列だったため、
+            // この更新はEffectType編集時に行うのがより適切。
+            // アイテムやキャラ基礎情報の効果リスト内の `unit` プロパティは現状存在しないため、更新不要。
+            // もし将来的に効果インスタンスごとに単位を保存するなら、ここでの更新が必要。
+            console.log(`Effect unit name changed from "${oldUnitName}" to "${newName}". Dependent entities might need manual review or a more robust update mechanism if unit names are denormalized.`);
         }
         closeModal('editEffectUnitModal');
-        await refreshAllDataCallback();
+        await refreshAllDataCallback(); // This reloads all data, including effect types
     } catch (error) {
         console.error("[Effect Unit Manager] Error updating effect unit:", error);
-        alert("効果単位の更新または関連エンティティの更新に失敗しました。");
+        alert("効果単位の更新に失敗しました。");
     }
 }
 
 async function deleteEffectUnit(id, name) {
     const effectTypesCache = getEffectTypesFuncCache();
-    const itemsCache = getItemsFuncCache();
-    const charBasesCache = getCharacterBasesFuncCache();
-
+    // アイテムやキャラ基礎情報の効果リスト内の `unit` は現在保存していないため、チェック不要。
+    // 効果種類の `defaultUnit` がこの単位名(name)を参照しているか確認
     const usedByEffectType = effectTypesCache.find(et => et.defaultUnit === name);
     if (usedByEffectType) {
         alert(`効果単位「${name}」は効果種類「${usedByEffectType.name}」のデフォルト単位として使用されているため削除できません。`); return;
-    }
-    const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.unit === name));
-    if (usedByItem) {
-        alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。`); return;
-    }
-    for (const baseKey in charBasesCache) {
-        const usedInBase = (charBasesCache[baseKey] || []).find(option =>
-            option.effects && option.effects.some(eff => eff.unit === name)
-        );
-        if (usedInBase) {
-            // const typeDisplayName = baseTypeMappings[baseKey] || baseKey; // If baseTypeMappings is available
-            alert(`効果単位「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。`); return;
-        }
     }
 
     if (confirm(`効果単位「${name}」を削除しますか？この操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'effect_units', id));
+            closeModal('editEffectUnitModal'); // 編集モーダルが開いていたら閉じる
             await refreshAllDataCallback();
         } catch (error) {
             console.error("[Effect Unit Manager] Error deleting effect unit:", error);
