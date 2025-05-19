@@ -1,26 +1,25 @@
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, deleteField, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { populateCheckboxGroup, getSelectedCheckboxValues, populateSelect, clearForm as clearFormGeneric } from './ui-helpers.js'; // Using generic clearForm
+import { populateCheckboxGroup, getSelectedCheckboxValues, populateSelect } from './ui-helpers.js'; // Removed clearForm
 
-const DOMI = { // DOM elements for Item Management
+const DOMI = {
     itemForm: null,
     itemIdToEditInput: null,
     itemNameInput: null,
     itemImageFileInput: null,
     itemImagePreview: null,
-    itemImageUrlInput: null, // Hidden input for existing/uploaded URL
+    itemImageUrlInput: null,
     itemPriceInput: null,
     uploadProgressContainer: null,
     uploadProgress: null,
     uploadProgressText: null,
-    // Effect input area in item form
-    effectTypeSelect: null, // This is the item.structured_effects one
+    effectTypeSelect: null,
     effectValueInput: null,
     effectUnitDisplay: null,
     addEffectToListButton: null,
-    currentEffectsList: null, // Container for added effects for the item
+    currentEffectsList: null,
     itemSourceInput: null,
-    itemTagsSelectorCheckboxes: null, // Container for tag checkboxes
+    itemTagsSelectorCheckboxes: null,
     saveItemButton: null,
     clearFormButton: null,
     itemsTableBody: null,
@@ -33,23 +32,17 @@ let getAllTagsFuncCache = () => [];
 let getEffectTypesFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
-// State for item form's effect list and image file
-let currentItemEffects = []; // Array of { type: string, value: number, unit: string }
-let selectedImageFile = null; // File object for new image upload
-let IMAGE_UPLOAD_WORKER_URL_CONST = ''; // Passed in dependencies
+let currentItemEffects = [];
+let selectedImageFile = null;
+let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
 export function initItemManager(dependencies) {
     dbInstance = dependencies.db;
-    getAllItemsFuncCache = dependencies.getItems; // Note: getItems for item specific cache
+    getAllItemsFuncCache = dependencies.getItems;
     getAllTagsFuncCache = dependencies.getAllTags;
     getEffectTypesFuncCache = dependencies.getEffectTypes;
     refreshAllDataCallback = dependencies.refreshAllData;
-    // setCurrentItemEffects = dependencies.setCurrentItemEffects; // Not needed if managed locally
-    // getCurrentItemEffects = dependencies.getCurrentItemEffects; // Not needed if managed locally
-    // setSelectedImageFile = dependencies.setSelectedImageFile; // Not needed if managed locally
-    // getSelectedImageFile = dependencies.getSelectedImageFile; // Not needed if managed locally
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
-
 
     DOMI.itemForm = document.getElementById('itemForm');
     DOMI.itemIdToEditInput = document.getElementById('itemIdToEdit');
@@ -61,13 +54,11 @@ export function initItemManager(dependencies) {
     DOMI.uploadProgressContainer = document.getElementById('uploadProgressContainer');
     DOMI.uploadProgress = document.getElementById('uploadProgress');
     DOMI.uploadProgressText = document.getElementById('uploadProgressText');
-
     DOMI.effectTypeSelect = document.getElementById('effectTypeSelect');
     DOMI.effectValueInput = document.getElementById('effectValueInput');
     DOMI.effectUnitDisplay = document.getElementById('effectUnitDisplay');
     DOMI.addEffectToListButton = document.getElementById('addEffectToListButton');
     DOMI.currentEffectsList = document.getElementById('currentEffectsList');
-
     DOMI.itemSourceInput = document.getElementById('itemSource');
     DOMI.itemTagsSelectorCheckboxes = document.getElementById('itemTagsSelectorCheckboxes');
     DOMI.saveItemButton = document.getElementById('saveItemButton');
@@ -75,37 +66,21 @@ export function initItemManager(dependencies) {
     DOMI.itemsTableBody = document.querySelector('#itemsTable tbody');
     DOMI.itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
-    if (DOMI.itemForm) {
-        DOMI.itemForm.addEventListener('submit', saveItem);
-    }
-    if (DOMI.clearFormButton) {
-        DOMI.clearFormButton.addEventListener('click', clearItemFormInternal);
-    }
-    if (DOMI.itemImageFileInput) {
-        DOMI.itemImageFileInput.addEventListener('change', handleImageFileSelect);
-    }
-    if (DOMI.addEffectToListButton) {
-        DOMI.addEffectToListButton.addEventListener('click', addEffectToItemList);
-    }
-    if (DOMI.effectTypeSelect) {
-        DOMI.effectTypeSelect.addEventListener('change', updateItemFormEffectUnitDisplay);
-    }
-    if (DOMI.itemSearchAdminInput) {
-        DOMI.itemSearchAdminInput.addEventListener('input', renderItemsAdminTable);
-    }
+    if (DOMI.itemForm) DOMI.itemForm.addEventListener('submit', saveItem);
+    if (DOMI.clearFormButton) DOMI.clearFormButton.addEventListener('click', clearItemFormInternal);
+    if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.addEventListener('change', handleImageFileSelect);
+    if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.addEventListener('click', addEffectToItemList);
+    if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.addEventListener('change', updateItemFormEffectUnitDisplay);
+    if (DOMI.itemSearchAdminInput) DOMI.itemSearchAdminInput.addEventListener('input', _renderItemsAdminTableInternal);
 
-    // Initial population for item form elements
-    populateTagCheckboxesForItemFormInternal();
-    // Effect type select is populated by effect-type-manager via refreshAllData or direct call
-    // _populateEffectTypeSelectsInternal(); in effect-type-manager handles DOMI.effectTypeSelect
-    renderItemsAdminTable();
-    renderCurrentItemEffectsListModal(); // Initial render of empty effects list
+    // Initial UI population (tag checkboxes, effect type select) is handled by renderAllAdminUISections
+    // which calls exported functions from this and effect-type-manager.
+    console.log("[Item Manager] Initialized.");
 }
 
-function clearItemFormInternal() {
-    if (DOMI.itemForm) clearFormGeneric(DOMI.itemForm); // Use generic helper
+function clearItemFormInternal() { // Renamed to avoid conflict with ui-helpers
+    if (DOMI.itemForm) DOMI.itemForm.reset(); // Native form reset is good first step
 
-    // Specific resets not handled by generic clearForm
     DOMI.itemIdToEditInput.value = '';
     DOMI.itemImageUrlInput.value = '';
     if (DOMI.itemImagePreview) {
@@ -121,20 +96,22 @@ function clearItemFormInternal() {
     }
 
     currentItemEffects = [];
-    renderCurrentItemEffectsListModal();
-    if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.value = ''; // Reset dropdown
+    renderCurrentItemEffectsListUI();
+    if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.value = '';
     if (DOMI.effectValueInput) DOMI.effectValueInput.value = '';
     if (DOMI.effectUnitDisplay) DOMI.effectUnitDisplay.textContent = '';
 
-    populateTagCheckboxesForItemFormInternal(); // Re-populate (clears selections)
+    _populateTagCheckboxesForItemFormInternal(); // Re-populate and clear selections
 
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
     if (DOMI.itemNameInput) DOMI.itemNameInput.focus();
+    console.log("[Item Manager] Item form cleared.");
 }
 
 
-function populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
-    const allTags = getAllTagsFuncCache();
+export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) { // Renamed
+    if(!DOMI.itemTagsSelectorCheckboxes) return;
+    const allTags = getAllTagsFuncCache().sort((a,b) => a.name.localeCompare(b.name, 'ja'));
     const tagOptions = allTags.map(tag => ({ id: tag.id, name: tag.name }));
     populateCheckboxGroup(
         DOMI.itemTagsSelectorCheckboxes,
@@ -143,22 +120,20 @@ function populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
         'itemTag',
         'item-tag-sel-'
     );
+    console.log("[Item Manager] Tag checkboxes in item form populated.");
 }
 
 function handleImageFileSelect(event) {
     const file = event.target.files[0];
     if (file) {
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        if (file.size > 5 * 1024 * 1024) {
             alert("ファイルサイズが大きすぎます。5MB以下の画像を選択してください。");
-            DOMI.itemImageFileInput.value = null; // Reset file input
-            return;
+            DOMI.itemImageFileInput.value = null; return;
         }
         if (!file.type.startsWith('image/')) {
             alert("画像ファイルを選択してください (例: JPG, PNG, GIF)。");
-            DOMI.itemImageFileInput.value = null;
-            return;
+            DOMI.itemImageFileInput.value = null; return;
         }
-
         selectedImageFile = file;
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -168,56 +143,44 @@ function handleImageFileSelect(event) {
             }
         }
         reader.readAsDataURL(selectedImageFile);
-        DOMI.itemImageUrlInput.value = ''; // Clear manual URL if a file is chosen
+        DOMI.itemImageUrlInput.value = ''; // Clear manual URL
         if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none';
     } else {
         selectedImageFile = null;
-        // If user cancels, don't clear existing preview if editing an item
     }
 }
 
 function updateItemFormEffectUnitDisplay() {
     if (!DOMI.effectUnitDisplay || !DOMI.effectTypeSelect) return;
     const selectedTypeId = DOMI.effectTypeSelect.value;
-    const effectTypesCache = getEffectTypesFuncCache();
-    const selectedEffectType = effectTypesCache.find(et => et.id === selectedTypeId);
-
-    if (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') {
-        DOMI.effectUnitDisplay.textContent = `(${selectedEffectType.defaultUnit})`;
-    } else {
-        DOMI.effectUnitDisplay.textContent = '';
-    }
+    const selectedEffectType = getEffectTypesFuncCache().find(et => et.id === selectedTypeId);
+    DOMI.effectUnitDisplay.textContent = (selectedEffectType && selectedEffectType.defaultUnit && selectedEffectType.defaultUnit !== 'none') ? `(${selectedEffectType.defaultUnit})` : '';
 }
 
 function addEffectToItemList() {
     const typeId = DOMI.effectTypeSelect.value;
     const valueStr = DOMI.effectValueInput.value;
-    const effectTypesCache = getEffectTypesFuncCache();
-
     if (!typeId) { alert("効果種類を選択してください。"); return; }
-    if (valueStr.trim() === '' || isNaN(parseFloat(valueStr))) {
-        alert("効果の値を数値で入力してください。"); return;
-    }
+    if (valueStr.trim() === '' || isNaN(parseFloat(valueStr))) { alert("効果の値を数値で入力してください。"); return; }
+
     const value = parseFloat(valueStr);
-    const selectedEffectType = effectTypesCache.find(et => et.id === typeId);
+    const selectedEffectType = getEffectTypesFuncCache().find(et => et.id === typeId);
     const unit = selectedEffectType ? (selectedEffectType.defaultUnit || 'none') : 'none';
 
     currentItemEffects.push({ type: typeId, value: value, unit: unit });
-    renderCurrentItemEffectsListModal();
-
+    renderCurrentItemEffectsListUI();
     DOMI.effectTypeSelect.value = '';
     DOMI.effectValueInput.value = '';
-    updateItemFormEffectUnitDisplay(); // Clear unit
+    updateItemFormEffectUnitDisplay();
 }
 
-function renderCurrentItemEffectsListModal() {
+function renderCurrentItemEffectsListUI() { // Renamed to avoid conflict
     if (!DOMI.currentEffectsList) return;
     DOMI.currentEffectsList.innerHTML = '';
     const effectTypesCache = getEffectTypesFuncCache();
 
     if (currentItemEffects.length === 0) {
-        DOMI.currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
-        return;
+        DOMI.currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>'; return;
     }
     currentItemEffects.forEach((effect, index) => {
         const effectType = effectTypesCache.find(et => et.id === effect.type);
@@ -229,15 +192,11 @@ function renderCurrentItemEffectsListModal() {
             <span>${typeName}: ${effect.value}${unitText}</span>
             <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="この効果を削除">×</button>
         `;
-        DOMI.currentEffectsList.appendChild(div);
-    });
-
-    DOMI.currentEffectsList.querySelectorAll('.delete-effect-from-list').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
-            currentItemEffects.splice(indexToRemove, 1);
-            renderCurrentItemEffectsListModal();
+        div.querySelector('.delete-effect-from-list').addEventListener('click', (e) => {
+            currentItemEffects.splice(parseInt(e.currentTarget.dataset.index, 10), 1);
+            renderCurrentItemEffectsListUI();
         });
+        DOMI.currentEffectsList.appendChild(div);
     });
 }
 
@@ -245,58 +204,62 @@ async function uploadImageToWorkerAndGetURL(file) {
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) return null;
     if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'block';
     if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
-    if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード準備中...';
-
+    if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード準備中... (0%)';
+    
     const formData = new FormData();
     formData.append('imageFile', file);
 
-    let intervalId;
-    try {
-        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード中... (0%)';
-        let progress = 0;
-        intervalId = setInterval(() => {
-            progress += 10;
-            if (progress <= 90) {
-                if (DOMI.uploadProgress) DOMI.uploadProgress.value = progress;
-                if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `アップロード中... (${progress}%)`;
-            } else {
-                clearInterval(intervalId); // Stop at 90% before fetch completes
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', IMAGE_UPLOAD_WORKER_URL_CONST, true);
+
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                if (DOMI.uploadProgress) DOMI.uploadProgress.value = percentComplete;
+                if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `アップロード中... (${percentComplete}%)`;
             }
-        }, 100); // Simulate progress
+        };
 
-        const response = await fetch(IMAGE_UPLOAD_WORKER_URL_CONST, { method: 'POST', body: formData });
-        clearInterval(intervalId);
-        if (DOMI.uploadProgress) DOMI.uploadProgress.value = 100;
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'サーバーからの不明なエラーレスポンス' }));
-            console.error('[Image Upload] Upload failed with status:', response.status, errorData);
-            alert(`画像のアップロードに失敗しました: ${errorData.error || response.statusText}`);
-            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード失敗。';
+        xhr.onload = () => {
+            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '処理中...';
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const result = JSON.parse(xhr.responseText);
+                    if (result.success && result.imageUrl) {
+                        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード完了!';
+                        setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 2000);
+                        resolve(result.imageUrl);
+                    } else {
+                        console.error('[Image Upload] Worker response error:', result);
+                        alert(`画像アップロードエラー(Worker): ${result.message || '予期せぬ応答'}`);
+                        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロードエラー。';
+                        setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
+                        resolve(null); // Resolve with null on logical error from worker
+                    }
+                } catch (e) {
+                    console.error('[Image Upload] Error parsing worker response:', e, xhr.responseText);
+                    alert('画像アップロード応答の解析に失敗しました。');
+                    if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '応答解析エラー。';
+                    resolve(null);
+                }
+            } else {
+                console.error('[Image Upload] Upload failed with status:', xhr.status, xhr.statusText, xhr.responseText);
+                alert(`画像アップロードに失敗しました: ${xhr.statusText || 'サーバーエラー'}`);
+                if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `失敗 (${xhr.status})。`;
+                setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
+                resolve(null); // Resolve with null on HTTP error
+            }
+        };
+        xhr.onerror = () => {
+            console.error('[Image Upload] Network error during upload.');
+            alert('画像アップロード中に通信エラーが発生しました。');
+            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '通信エラー。';
             setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-            return null;
-        }
-
-        const result = await response.json();
-        if (result.success && result.imageUrl) {
-            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード完了!';
-            setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 2000);
-            return result.imageUrl;
-        } else {
-            console.error('[Image Upload] Upload response error:', result);
-            alert(`画像のアップロードエラー: ${result.message || 'Workerからの予期せぬ応答'}`);
-            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロードエラー。';
-            setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-            return null;
-        }
-    } catch (error) {
-        if(intervalId) clearInterval(intervalId);
-        console.error('[Image Upload] Error uploading image to worker:', error);
-        alert(`画像のアップロード中に通信エラーが発生しました: ${error.message}`);
-        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '通信エラー。';
-        setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-        return null;
-    }
+            resolve(null); // Resolve with null on network error
+        };
+        xhr.send(formData);
+    });
 }
 
 
@@ -312,7 +275,7 @@ async function saveItem(event) {
     const priceStr = DOMI.itemPriceInput.value.trim();
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
-    let finalImageUrl = DOMI.itemImageUrlInput.value; // Existing or manually entered URL
+    let finalImageUrl = DOMI.itemImageUrlInput.value || "";
 
     let price = null;
     if (priceStr !== "") {
@@ -330,51 +293,34 @@ async function saveItem(event) {
     try {
         if (selectedImageFile) {
             const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
-            if (uploadedUrl) {
-                finalImageUrl = uploadedUrl;
-            } else {
-                // Optional: alert user about upload failure but proceed with saving other data
-                // alert("画像アップロードに失敗しましたが、他の情報は保存を試みます。");
-            }
+            if (uploadedUrl) finalImageUrl = uploadedUrl;
+            // If upload fails, uploadedUrl will be null, keeping previous finalImageUrl or empty.
         }
 
         const itemData = {
-            name: name || "", // Store empty string if name is cleared
-            image: finalImageUrl || "",
+            name: name, // Allow empty name if user intends it, or add validation
+            image: finalImageUrl,
             structured_effects: currentItemEffects,
-            入手手段: source || "",
+            入手手段: source,
             tags: selectedItemTagIds,
             updatedAt: serverTimestamp()
         };
         
-        if (price !== null) {
-            itemData.price = price;
-        }
+        if (price !== null) itemData.price = price;
+        else itemData.price = deleteField(); // Explicitly remove if null and was previously set
 
         if (editingDocId) {
-            const updatePayload = {...itemData};
-             if (price === null && itemData.hasOwnProperty('price')) { // If price field was cleared explicitly
-                 updatePayload.price = deleteField();
-             } else if (price === null && !itemData.hasOwnProperty('price')) {
-                 // If price was not in itemData and field is cleared, ensure it's removed if it existed
-                 const originalItemSnap = await getDoc(doc(dbInstance, 'items', editingDocId));
-                 if (originalItemSnap.exists() && originalItemSnap.data().hasOwnProperty('price')) {
-                     updatePayload.price = deleteField();
-                 }
-             }
-            await updateDoc(doc(dbInstance, 'items', editingDocId), updatePayload);
+            await updateDoc(doc(dbInstance, 'items', editingDocId), itemData);
         } else {
             itemData.createdAt = serverTimestamp();
-            const dataToAdd = {...itemData};
-            if (price === null) delete dataToAdd.price; // Don't add price field if it's null
-            await addDoc(collection(dbInstance, 'items'), dataToAdd);
+            await addDoc(collection(dbInstance, 'items'), itemData);
         }
 
-        clearItemFormInternal(); // Clear form after successful save
-        await refreshAllDataCallback(); // Reload items and re-render table
+        clearItemFormInternal();
+        await refreshAllDataCallback();
 
     } catch (error) {
-        console.error("[Item Save] Error:", error);
+        console.error("[Item Manager] Error saving item:", error);
         alert(`アイテム保存エラー: ${error.message}`);
     } finally {
         if (DOMI.saveItemButton) {
@@ -384,7 +330,7 @@ async function saveItem(event) {
     }
 }
 
-function renderItemsAdminTable() {
+export function _renderItemsAdminTableInternal() { // Renamed
     if (!DOMI.itemsTableBody) return;
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
@@ -394,8 +340,8 @@ function renderItemsAdminTable() {
     const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
     const filteredItems = itemsCache.filter(item =>
         (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-        (!searchTerm && (item.name === "" || !item.name))
-    );
+        (!searchTerm && (item.name === "" || !item.name)) // Show unnamed if search is empty
+    ).sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja')); // Sort by name
 
     if (filteredItems.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
@@ -408,10 +354,11 @@ function renderItemsAdminTable() {
 
     filteredItems.forEach(item => {
         const tr = document.createElement('tr');
-        const imageDisplayPath = item.image || './images/placeholder_item.png'; // Default placeholder
+        const imageDisplayPath = item.image || './images/placeholder_item.png'; // Ensure this path is correct relative to admin.html
         const itemTagsString = (item.tags || [])
             .map(tagId => allTags.find(t => t.id === tagId)?.name)
             .filter(name => name)
+            .sort((a,b) => a.localeCompare(b, 'ja'))
             .join(', ') || 'なし';
 
         let effectsDisplay = '効果なし';
@@ -422,13 +369,13 @@ function renderItemsAdminTable() {
                 const unit = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
                 return `${typeName}: ${eff.value}${unit}`;
             }).join('; ');
-            if (effectsDisplay.length > 40) effectsDisplay = effectsDisplay.substring(0, 37) + '...';
+            if (effectsDisplay.length > 50) effectsDisplay = effectsDisplay.substring(0, 47) + '...';
         }
         const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
         const nameDisplay = item.name || '(名称未設定)';
 
         tr.innerHTML = `
-            <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/placeholder_item.png'; this.style.backgroundColor='#eee';"></td>
+            <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/no_image_placeholder.png'; this.style.backgroundColor='#eee';"></td>
             <td>${nameDisplay}</td>
             <td>${priceDisplay}</td>
             <td>${effectsDisplay}</td>
@@ -444,6 +391,7 @@ function renderItemsAdminTable() {
         });
         DOMI.itemsTableBody.appendChild(tr);
     });
+    console.log("[Item Manager] Items table rendered.");
 }
 
 async function loadItemForEdit(docId) {
@@ -451,55 +399,47 @@ async function loadItemForEdit(docId) {
         const itemSnap = await getDoc(doc(dbInstance, "items", docId));
         if (itemSnap.exists()) {
             const itemData = itemSnap.data();
-            clearItemFormInternal(); // Start with a clean form
+            clearItemFormInternal(); // Clear form before populating
 
             DOMI.itemIdToEditInput.value = itemSnap.id;
             DOMI.itemNameInput.value = itemData.name || "";
             DOMI.itemSourceInput.value = itemData.入手手段 || "";
             DOMI.itemImageUrlInput.value = itemData.image || '';
-            if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? itemData.price : '';
-
+            if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? String(itemData.price) : '';
 
             if (itemData.image && DOMI.itemImagePreview) {
                 DOMI.itemImagePreview.src = itemData.image;
                 DOMI.itemImagePreview.style.display = 'block';
             }
 
-            populateTagCheckboxesForItemFormInternal(itemData.tags || []);
+            _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
 
             currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : [];
-            renderCurrentItemEffectsListModal();
-            // effectTypeSelect and value are cleared by clearItemFormInternal, unit display will update on change.
+            renderCurrentItemEffectsListUI();
 
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
-            if (DOMI.itemForm) DOMI.itemForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Scroll to form for better UX
+            const itemFormSection = document.getElementById('item-management');
+            if (itemFormSection) itemFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             DOMI.itemNameInput.focus();
-        } else {
-            alert("編集対象のアイテムが見つかりませんでした。");
-        }
-    } catch (error) {
-        console.error("[Item Edit] Error loading:", error);
-        alert("編集データの読み込み中にエラーが発生しました。");
-    }
+        } else { alert("編集対象のアイテムが見つかりませんでした。"); }
+    } catch (error) { console.error("[Item Manager] Error loading item for edit:", error); alert("編集データの読み込み中にエラーが発生しました。"); }
 }
 
 async function deleteItem(docId, itemName, imageUrl) {
-    if (confirm(`アイテム「${itemName}」を削除しますか？\n注意: Cloudflare R2上の関連画像は、この操作では削除されません。`)) {
+    if (confirm(`アイテム「${itemName}」を削除しますか？\n注意: Cloudflare R2上の関連画像は、この操作では削除されません。\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'items', docId));
-            // Note: Image on Cloudflare R2 is not deleted by this Firestore operation.
-            // Manual deletion or a separate backend process would be needed if R2 cleanup is required.
-            console.warn(`Image ${imageUrl} (associated with deleted item ${docId}) may need manual deletion from Cloudflare R2 if it was uploaded via the worker and is no longer needed.`);
-
-            if (DOMI.itemIdToEditInput.value === docId) { // If the deleted item was being edited
+            if (imageUrl) {
+                console.warn(`Image ${imageUrl} (associated with deleted item ${docId}) may need manual deletion from Cloudflare R2.`);
+            }
+            if (DOMI.itemIdToEditInput.value === docId) {
                 clearItemFormInternal();
             }
-            await refreshAllDataCallback(); // Reload items and re-render table
+            await refreshAllDataCallback();
         } catch (error) {
-            console.error(`[Item Delete] Error deleting item ${docId}:`, error);
+            console.error(`[Item Manager] Error deleting item ${docId}:`, error);
             alert("アイテムの削除に失敗しました。");
         }
     }
 }
-
-export { renderItemsAdminTable as _renderItemsAdminTableInternal, populateTagCheckboxesForItemFormInternal as _populateTagCheckboxesForItemFormInternal };
