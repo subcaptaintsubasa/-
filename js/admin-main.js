@@ -1,10 +1,10 @@
 // js/admin-main.js
 import { auth, db } from '../firebase-config.js'; // firebase-config.js から auth と db をインポート
-import { initAuth } from './admin-modules/auth.js'; 
+import { initAuth } from './admin-modules/auth.js';
 import {
     loadInitialData,
     clearAdminDataCache,
-    getAllCategoriesCache, 
+    getAllCategoriesCache,
     getAllTagsCache,
     getItemsCache,
     getEffectTypesCache,
@@ -17,26 +17,26 @@ import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _popu
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI } from './admin-modules/effect-unit-manager.js';
 import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms } from './admin-modules/effect-type-manager.js';
 import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings } from './admin-modules/char-base-manager.js';
-import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js';
+import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js'; // エイリアス名を確認
 import { IMAGE_UPLOAD_WORKER_URL } from './admin-modules/data-loader-admin.js';
 
 
-const DOM = { 
+const DOM = {
     adminHamburgerButton: null,
     adminSideNav: null,
     adminCloseNavButton: null,
-    adminNavButtons: null, 
+    adminNavButtons: null,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("[admin-main] DOMContentLoaded, initializing admin panel...");
-    
+
     DOM.adminHamburgerButton = document.getElementById('adminHamburgerButton');
     DOM.adminSideNav = document.getElementById('adminSideNav');
     DOM.adminCloseNavButton = document.getElementById('adminCloseNavButton');
     DOM.adminNavButtons = document.querySelectorAll('.admin-nav-button');
 
-    initUIHelpers(); 
+    initUIHelpers();
 
     if (DOM.adminHamburgerButton && DOM.adminSideNav) {
         DOM.adminHamburgerButton.addEventListener('click', () => {
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             const modalId = button.dataset.modalTarget;
             if (modalId) {
-                openAdminModal(modalId); 
+                openAdminModal(modalId);
                 if (DOM.adminSideNav && DOM.adminHamburgerButton) {
                     DOM.adminSideNav.classList.remove('open');
                     DOM.adminSideNav.setAttribute('aria-hidden', 'true');
@@ -69,26 +69,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    initAuth(auth, 
-        (user) => { 
+    initAuth(auth,
+        (user) => {
             console.log("[admin-main] User logged in, displaying admin content.");
             const passwordPromptEl = document.getElementById('password-prompt');
             if(passwordPromptEl) passwordPromptEl.style.display = 'none';
-            
+
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'block';
             else console.error("#admin-content element not found!");
 
+            // currentUserEmail の表示は auth.js 側で処理されるか、HTMLヘッダー変更時に別途対応
             loadAndInitializeAdminModules();
         },
-        () => { 
+        () => {
             console.log("[admin-main] User logged out, hiding admin content.");
             const passwordPromptEl = document.getElementById('password-prompt');
             if(passwordPromptEl) passwordPromptEl.style.display = 'flex';
 
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'none';
-            
+
             if (DOM.adminSideNav && DOM.adminSideNav.classList.contains('open')) {
                 DOM.adminSideNav.classList.remove('open');
                 DOM.adminSideNav.setAttribute('aria-hidden', 'true');
@@ -116,43 +117,51 @@ function clearAdminUIAndData() {
     const itemForm = document.getElementById('itemForm');
     if (itemForm && typeof itemForm.reset === 'function') {
         itemForm.reset();
-        document.getElementById('itemIdToEdit').value = '';
+        const itemIdToEdit = document.getElementById('itemIdToEdit');
+        if(itemIdToEdit) itemIdToEdit.value = '';
+        
         const itemImagePreview = document.getElementById('itemImagePreview');
         if(itemImagePreview) {
             itemImagePreview.style.display = 'none';
             itemImagePreview.src = '#';
         }
-        document.getElementById('itemImageUrl').value = '';
+        const itemImageUrl = document.getElementById('itemImageUrl');
+        if(itemImageUrl) itemImageUrl.value = '';
+        
         const itemImageFile = document.getElementById('itemImageFile');
         if(itemImageFile) itemImageFile.value = '';
+        
         const currentEffectsList = document.getElementById('currentEffectsList');
         if (currentEffectsList) currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
+        
         const itemTagsCheckboxes = document.getElementById('itemTagsSelectorCheckboxes');
         if (itemTagsCheckboxes) itemTagsCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
     }
-    clearAdminDataCache(); 
+    clearAdminDataCache();
     console.log("[admin-main] Admin UI cleared and data cache flushed.");
 }
+
 
 async function loadAndInitializeAdminModules() {
     console.log("[admin-main] Starting to load data and initialize modules...");
     try {
-        await loadInitialData(db); 
+        await loadInitialData(db);
 
         const commonDependencies = {
-            db, 
+            db,
             getAllCategories: getAllCategoriesCache,
             getAllTags: getAllTagsCache,
-            getItems: getItemsCache, 
+            getItems: getItemsCache,
             getEffectTypes: getEffectTypesCache,
             getEffectUnits: getEffectUnitsCache,
             getCharacterBases: getCharacterBasesCache,
             refreshAllData: async () => {
                 console.log("[admin-main] Refreshing all data and UI (called from a manager)...");
                 await loadInitialData(db);
-                renderItemsTableUI(); // アイテム管理は常に表示されているので再描画
-                _populateTagCheckboxesForItemFormInternal();
-                populateEffectTypeSelectsInForms();
+                // アイテム管理セクションは常に表示されている可能性があるので再描画
+                if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
+                if (typeof populateItemFormTags === 'function') populateItemFormTags();
+                if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
 
                 const activeModal = document.querySelector('.admin-management-modal.active-modal');
                 if (activeModal) {
@@ -171,9 +180,10 @@ async function loadAndInitializeAdminModules() {
         initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
         initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
-        renderItemsTableUI(); 
-        _populateTagCheckboxesForItemFormInternal(); 
-        populateEffectTypeSelectsInForms();    
+        // 初回UI描画 (アイテム管理セクションのみ)
+        if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
+        if (typeof populateItemFormTags === 'function') populateItemFormTags(); // ★★★ エイリアス名を使用 ★★★
+        if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
 
         console.log("[admin-main] Admin modules initialized. Item management section rendered.");
 
@@ -197,7 +207,7 @@ function triggerModalContentRefresh(modalId) {
             if (typeof renderTagsUI === 'function') renderTagsUI();
             if (typeof populateTagFormCategories === 'function') {
                  populateTagFormCategories(document.getElementById('newTagCategoriesCheckboxes'));
-                 // 編集モーダル内のカテゴリチェックボックスは、編集モーダルが開かれる際に都度設定されるのでここでは不要
+                 // 編集モーダル内のチェックボックスは、編集モーダルが開かれる際に item-manager 側で処理される
             }
             break;
         case 'effectUnitManagementModal':
