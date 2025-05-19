@@ -1,7 +1,7 @@
 // js/admin-modules/category-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch, arrayUnion, arrayRemove, deleteField } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { openModal, closeModal, populateTagButtonSelector, getSelectedTagButtonValues } from './ui-helpers.js';
-// SortableJS は admin.html でグローバルに読み込まれるので、ここでは import しません
+// SortableJS is loaded globally via admin.html
 
 const DOMC = {
     newCategoryNameInput: null,
@@ -29,7 +29,7 @@ let getAllTagsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 const categoryExpansionState = new Map();
 let currentCategorySearchTerm = "";
-let sortableInstances = []; // SortableJSのインスタンスを保持
+let sortableInstances = [];
 
 export function initCategoryManager(dependencies) {
     dbInstance = dependencies.db;
@@ -169,44 +169,6 @@ function destroySortableInstances() {
     sortableInstances = [];
 }
 
-function tryInitializeSortable(ulElement) {
-    if (typeof Sortable !== 'undefined') {
-        // console.log(`[Category Manager] SortableJS is loaded. Initializing for ul:`, ulElement.dataset.parentId || 'root');
-        const sortable = new Sortable(ulElement, {
-            group: 'nested-categories',
-            animation: 150,
-            fallbackOnBody: true,
-            swapThreshold: 0.65,
-            filter: '.category-tree-expander',
-            preventOnFilter: false,
-            onEnd: function (evt) {
-                const itemEl = evt.item;
-                const newParentUl = evt.to;
-                const oldParentUl = evt.from;
-                
-                const newParentId = newParentUl.dataset.parentId === "root" ? "" : newParentUl.dataset.parentId;
-                const movedCategoryId = itemEl.dataset.categoryId;
-                
-                console.log(`Category moved: ID=${movedCategoryId}, Name=${itemEl.querySelector('.category-name') ? itemEl.querySelector('.category-name').textContent : 'N/A'}`);
-                console.log(`Old Parent ID: ${oldParentUl.dataset.parentId === "root" ? "" : oldParentUl.dataset.parentId}`);
-                console.log(`New Parent ID: ${newParentId}`);
-                
-                const newOrderIds = Array.from(newParentUl.children).map(li => li.dataset.categoryId);
-                console.log('New order in this list (IDs):', newOrderIds);
-
-                alert(`カテゴリ「${movedCategoryId}」が移動操作されました。\n新しい親: ${newParentId || 'ルート'}\n新しい順序(このリスト内ID): ${newOrderIds.join(', ')}\n（注意: この変更はまだデータベースには保存されていません。）`);
-                // TODO: Firestore更新処理 (次のステップ)
-            }
-        });
-        sortableInstances.push(sortable);
-        return true; // 初期化成功
-    } else {
-        // console.warn("[Category Manager] SortableJS is not loaded yet for ul:", ulElement.dataset.parentId || 'root');
-        return false; // 初期化失敗
-    }
-}
-
-
 export function _renderCategoriesForManagementInternal() {
     destroySortableInstances();
     if (!DOMC.categoryListContainer) return;
@@ -307,22 +269,37 @@ export function _renderCategoriesForManagementInternal() {
             }
         });
 
-        let attempts = 0;
-        const maxAttempts = 20; // Increase attempts, maybe up to 2 seconds
-        const interval = 100;
+        if (typeof Sortable !== 'undefined') {
+            // console.log(`[Category Manager] Initializing Sortable for ul:`, ul.dataset.parentId || 'root');
+            const sortable = new Sortable(ul, {
+                group: 'nested-categories',
+                animation: 150,
+                fallbackOnBody: true,
+                swapThreshold: 0.65,
+                filter: '.category-tree-expander',
+                preventOnFilter: false,
+                onEnd: function (evt) {
+                    const itemEl = evt.item;
+                    const newParentUl = evt.to;
+                    const oldParentUl = evt.from;
 
-        function attemptInit() {
-            if (tryInitializeSortable(ul) || attempts >= maxAttempts) {
-                if (attempts >= maxAttempts && typeof Sortable === 'undefined') {
-                     console.error("SortableJS failed to load after multiple attempts for ul:", ul.dataset.parentId || 'root', ". Drag and drop will not be available.");
+                    const newParentId = newParentUl.dataset.parentId === "root" ? "" : newParentUl.dataset.parentId;
+                    const movedCategoryId = itemEl.dataset.categoryId;
+
+                    console.log(`Category moved: ID=${movedCategoryId}, Name=${itemEl.querySelector('.category-name') ? itemEl.querySelector('.category-name').textContent : 'N/A'}`);
+                    console.log(`Old Parent ID: ${oldParentUl.dataset.parentId === "root" ? "" : oldParentUl.dataset.parentId}`);
+                    console.log(`New Parent ID: ${newParentId}`);
+
+                    const newOrderIds = Array.from(newParentUl.children).map(li => li.dataset.categoryId);
+                    console.log('New order in this list (IDs):', newOrderIds);
+
+                    alert(`カテゴリ「${movedCategoryId}」が移動操作されました。\n新しい親: ${newParentId || 'ルート'}\n新しい順序(このリスト内ID): ${newOrderIds.join(', ')}\n（注意: この変更はまだデータベースには保存されていません。）`);
                 }
-                return;
-            }
-            attempts++;
-            setTimeout(attemptInit, interval);
+            });
+            sortableInstances.push(sortable);
+        } else {
+            console.warn("SortableJS is not available when trying to initialize for ul:", ul.dataset.parentId || 'root', ". Drag and drop will not be available.");
         }
-        setTimeout(attemptInit, 0); // Start first attempt asynchronously
-
         return ul;
     };
 
@@ -336,7 +313,7 @@ export function _renderCategoriesForManagementInternal() {
     }
 
     populateParentCategoryButtonsUI(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: DOMC.selectedNewParentCategoryIdInput.value || "" });
-    // console.log("[Category Manager] Categories rendered as tree. Sortable instances (after attempts):", sortableInstances.length);
+    // console.log("[Category Manager] Categories rendered. Sortable instances:", sortableInstances.length);
 }
 
 function handleCategoryTreeClick(event) {
@@ -380,7 +357,6 @@ async function addCategory() {
     }
 
     try {
-        // 新しいカテゴリの order 値を設定
         const siblingQuery = query(collection(dbInstance, 'categories'), where('parentId', '==', parentId || ""));
         const siblingSnapshot = await getDocs(siblingQuery);
         const maxOrder = siblingSnapshot.docs.reduce((max, doc) => Math.max(max, doc.data().order || 0), -1);
@@ -389,7 +365,7 @@ async function addCategory() {
             name: name,
             parentId: parentId || "",
             createdAt: serverTimestamp(),
-            order: maxOrder + 1 // 新しいカテゴリはリストの最後に追加される order を持つ
+            order: maxOrder + 1
         };
         if (parentId) categoryData.tagSearchMode = 'AND';
 
@@ -484,8 +460,16 @@ async function saveCategoryEdit() {
             name: newName,
             parentId: newParentId || "",
             updatedAt: serverTimestamp()
-            // order フィールドの更新はドラッグ＆ドロップ時に行う。親が変わった場合も、新しい親のリストの最後に追加されるように order を再計算する必要がある。
+            // order フィールドは、親が変わった場合に再計算が必要
         };
+        // もし親カテゴリが変わった場合、新しい親のリストでのorderを再設定
+        if (originalCategory && (originalCategory.parentId || "") !== (newParentId || "")) {
+            const siblingQuery = query(collection(dbInstance, 'categories'), where('parentId', '==', newParentId || ""));
+            const siblingSnapshot = await getDocs(siblingQuery);
+            const maxOrderInNewParent = siblingSnapshot.docs.reduce((max, doc) => Math.max(max, doc.data().order || 0), -1);
+            categoryUpdateData.order = maxOrderInNewParent + 1;
+        }
+
 
         const isBecomingChild = !!newParentId;
         if (isBecomingChild) {
