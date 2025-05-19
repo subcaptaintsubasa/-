@@ -1,326 +1,150 @@
-/* css/admin-responsive.css */
-/* Responsive adjustments for the admin panel */
+/* css/admin-modal.css */
+/* Styles for modals used within the admin panel */
 
-@media (max-width: 992px) { /* Larger breakpoint for table adjustments */
-    #admin-content .container {
-        padding: 20px 25px;
-    }
-    #admin-content header h1 {
-        font-size: 1.5rem;
-    }
-    #admin-content h2 {
-        font-size: 1.6rem;
-    }
-    #admin-content h3 {
-        font-size: 1.3rem;
-    }
-    /* Make table slightly more compact on medium screens */
-    #itemsTable th,
-    #itemsTable td {
-        padding: 0.6rem 0.7rem;
-        font-size: 0.85rem;
-    }
-    #itemsTable img {
-        max-width: 45px;
-        max-height: 45px;
-    }
+/* General Admin Modal Structure */
+body#admin-page div.modal {
+    position: fixed !important;
+    z-index: 10001 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: auto !important; /* Changed from hidden to auto to allow modal itself to scroll if content overflows viewport, but prefer internal scroll for modal-content */
+    background-color: rgba(33, 37, 41, 0.75) !important; /* Slightly darker overlay */
+    display: none !important; /* Default state: hidden, strongly enforced */
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important; /* Increased padding for better spacing from viewport edges */
+    box-sizing: border-box !important;
+}
+
+body#admin-page div.modal.active-modal {
+    display: flex !important; /* State when active: visible and centered */
+}
+
+body#admin-page div.modal div.modal-content {
+    background-color: #fff;
+    margin: auto;
+    padding: 30px 35px; /* Increased padding */
+    border: none;
+    width: 90%;
+    max-width: 580px; /* Default max-width for smaller edit modals */
+    border-radius: 6px; /* Consistent radius */
+    position: relative;
+    box-shadow: 0 7px 20px rgba(0,0,0,0.2); /* More pronounced shadow */
+    animation: fadeInAdminModal 0.25s ease-out;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 60px); /* Adjusted max-height for more padding, applies to smaller modals */
+}
+
+/* Specific styles for the new, larger Management Modals */
+body#admin-page div.modal.admin-management-modal div.modal-content {
+    max-width: 800px; /* Wider for management sections */
+    padding: 25px 30px; /* Slightly adjusted padding */
+}
+
+/* For content that needs internal scrolling within any modal */
+body#admin-page div.modal div.modal-content.scrollable-content {
+    overflow-y: auto;
 }
 
 
-@media (max-width: 768px) {
-    /* General Admin Layout */
-    body#admin-page {
-        font-size: 15px; /* Slightly smaller base font for mobile */
-    }
-    #admin-content .container {
-        margin: 20px 15px; /* Adjusted margins */
-        padding: 20px 15px;
-        width: auto;
-    }
-    #admin-content header {
-        padding: 0.8rem 1rem;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    #admin-content header h1 {
-        font-size: 1.4rem;
-        margin-bottom: 0.5rem;
-    }
-    #admin-content header div { /* User email and logout button container */
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 0.5rem;
-    }
-    #logoutButton {
-        padding: 0.4rem 0.7rem;
-        font-size: 0.8rem;
-    }
-    #currentUserEmail {
-        font-size: 0.8rem;
-    }
-    #admin-content h2 {
-        font-size: 1.5rem;
-        padding-bottom: 0.5rem;
-        margin-bottom: 1.25rem;
-    }
-    #admin-content h2 .icon {
-        font-size: 0.9em; /* Adjust icon size relative to h2 */
-        margin-right: 8px;
-    }
-    #admin-content h3 {
-        font-size: 1.25rem;
-        margin-top: 1.25rem;
-        margin-bottom: 1rem;
-    }
-
-
-    /* Admin Forms */
-    .form-group label {
-        font-size: 0.9rem;
-        margin-bottom: 0.4rem;
-    }
-    .form-group input[type="text"],
-    .form-group input[type="number"],
-    .form-group input[type="url"],
-    .form-group input[type="file"],
-    .form-group textarea,
-    .form-group select {
-        font-size: 0.9rem;
-        padding: 0.5rem 0.6rem;
-    }
-    .form-control-short {
-        max-width: none;
-        width: 100%;
-        margin-right: 0;
-        margin-bottom: 0.5rem;
-    }
-    .form-control-short:last-child {
-        margin-bottom: 0;
-    }
-
-    .inline-form {
-       flex-direction: column;
-       align-items: stretch;
-    }
-    .inline-form label {
-        margin-bottom: 5px;
-    }
-    .inline-form input[type="text"],
-    .inline-form select {
-       width: 100%;
-       margin-bottom: 0.5rem;
-    }
-    .inline-form button {
-       width: 100%;
-       margin-top: 0.3rem;
-       margin-right: 0;
-    }
-
-    .category-button-group.admin {
-        justify-content: flex-start;
-        gap: 0.4rem;
-    }
-    .category-select-button {
-        font-size: 0.8rem;
-        padding: 0.35rem 0.75rem;
-    }
-    .radio-group {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    #admin-content button,
-    #admin-content .button-like {
-        font-size: 0.9rem;
-        padding: 0.6rem 1rem; /* Keep buttons reasonably sized */
-    }
-
-
-    /* Effect Input Rows */
-    .effect-input-row {
-        flex-direction: column;
-        gap: 0.6rem;
-        align-items: stretch;
-    }
-    .effect-input-row select,
-    .effect-input-row input[type="number"],
-    .effect-input-row button {
-        width: 100%;
-        margin-right: 0;
-        max-width: none;
-        flex-basis: auto;
-    }
-     .effect-input-row button {
-         margin-left: 0;
-         margin-top: 0.3rem;
-     }
-     .unit-display {
-         display: block;
-         text-align: left;
-         margin-left: 0;
-         margin-bottom: 0.3rem;
-         width: 100%;
-     }
-
-
-    /* Admin Lists and Tables */
-    .list-container {
-        padding: 0.5rem;
-        max-height: 280px;
-    }
-    .list-item {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 0.6rem; /* Adjusted padding */
-    }
-    .list-item > span {
-        margin-bottom: 0.5rem;
-        font-size: 0.85rem;
-    }
-    .list-item div { /* Button container */
-        width: 100%;
-        display: flex;
-        justify-content: flex-start; /* Align buttons to start for easier tap */
-        gap: 0.5rem;
-    }
-    .action-button {
-        padding: 0.4rem 0.7rem; /* Slightly larger tap target */
-        font-size: 0.8rem;
-    }
-
-
-    #itemsTable {
-        font-size: 0.8rem; /* Smaller font in table */
-        display: block; /* Allow horizontal scrolling for table */
-        overflow-x: auto;
-        white-space: nowrap; /* Prevent wrapping within cells that shouldn't wrap */
-    }
-    #itemsTable th,
-    #itemsTable td {
-        padding: 0.5rem 0.4rem;
-        white-space: normal; /* Allow content within cells to wrap if needed */
-    }
-     #itemsTable th { /* Header cells can still be nowrap if preferred */
-        white-space: nowrap;
-        font-size: 0.75rem;
-    }
-    #itemsTable img {
-        max-width: 35px;
-        max-height: 35px;
-    }
-    #itemSearchAdmin {
-        width: 100% !important;
-        max-width: none;
-        font-size: 0.85rem;
-    }
-    #character-base-management .form-group #addNewCharBaseOptionButton {
-        margin-left: 0; /* Reset margin for stacking */
-    }
-
-
-    /* Admin Modals */
-    #admin-content div.modal {
-        padding: 10px !important;
-    }
-    #admin-content div.modal div.modal-content {
-        width: calc(100% - 20px); /* Full width minus modal padding */
-        margin: 10px; /* Ensure it doesn't touch viewport edges */
-        padding: 20px 15px;
-        max-height: calc(100vh - 20px); /* Full height minus modal padding */
-    }
-    #admin-content div.modal div.modal-content h3 {
-        font-size: 1.3rem;
-        margin-bottom: 1rem;
-        padding-bottom: 0.75rem;
-    }
-    #admin-content div.modal span.close-button {
-        top: 10px;
-        right: 10px;
-        font-size: 28px;
-    }
-    #admin-content div.modal div.modal-content button[type="submit"],
-    #admin-content div.modal div.modal-content #saveCategoryEditButton,
-    #admin-content div.modal div.modal-content #saveTagEditButton,
-    #admin-content div.modal div.modal-content #saveEffectTypeEditButton,
-    #admin-content div.modal div.modal-content #saveEffectUnitEditButton,
-    #admin-content div.modal div.modal-content #saveCharBaseOptionButton {
-        width: 100%;
-        padding: 0.7rem;
-        font-size: 0.95rem;
-    }
-
-
-    /* Character Base Management specific responsive */
-    #character-base-management .form-group {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    #character-base-management .form-group label {
-        margin-bottom: 0.4rem;
-    }
-    #charBaseTypeSelect {
-        max-width: none;
-    }
-    #addNewCharBaseOptionButton {
-        margin-left: 0;
-        margin-top: 0.75rem;
-        width: 100%;
-    }
+@keyframes fadeInAdminModal {
+    from { opacity: 0; transform: translateY(-25px) scale(0.98); } /* Added scale effect */
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@media (max-width: 480px) {
-    body#admin-page {
-        font-size: 14px;
-    }
-    #admin-content header h1 {
-        font-size: 1.2rem;
-    }
-    #admin-content .container {
-        padding: 15px 10px;
-    }
-    #admin-content h2 { font-size: 1.3rem; }
-    #admin-content h2 .icon { font-size: 0.9em; margin-right: 6px;}
-    #admin-content h3 { font-size: 1.1rem; }
+/* Modal title for existing small edit modals */
+body#admin-page div.modal div.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 25px; /* Increased margin */
+    font-size: 1.6rem; /* Use rem, adjusted size */
+    color: #212529; /* Darker title */
+    border-bottom: 1px solid #dee2e6; /* Consistent border */
+    padding-bottom: 15px; /* Increased padding */
+    flex-shrink: 0;
+    font-weight: 500; /* Medium weight */
+    text-align: left; /* Ensure title is left-aligned */
+}
+/* Modal title for new larger management modals (uses h2, styled in admin-base.css) */
 
-    .form-group input[type="text"],
-    .form-group input[type="number"],
-    .form-group input[type="url"],
-    .form-group input[type="file"],
-    .form-group textarea,
-    .form-group select {
-        font-size: 0.85rem;
-    }
-    #admin-content button,
-    #admin-content .button-like {
-        font-size: 0.85rem;
-        padding: 0.5rem 0.8rem;
-    }
-    .list-item > span {
-        font-size: 0.8rem;
-    }
-    #itemsTable {
-        font-size: 0.75rem;
-    }
-     #itemsTable td:last-child {
-        min-width: 60px;
-    }
-    .action-button {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-    }
 
-    #admin-content div.modal div.modal-content {
-        padding: 15px 10px;
-    }
-    #admin-content div.modal div.modal-content h3 {
-        font-size: 1.2rem;
-    }
-    #admin-content div.modal div.modal-content button[type="submit"],
-    /* ... other save buttons ... */
-    #admin-content div.modal div.modal-content #saveCharBaseOptionButton {
-        font-size: 0.9rem;
-        padding: 0.6rem;
-    }
+body#admin-page div.modal span.close-button { /* Close button */
+    color: #6c757d;
+    position: absolute;
+    top: 20px; /* Adjusted position */
+    right: 20px; /* Adjusted position */
+    font-size: 32px; /* Slightly larger */
+    font-weight: bold;
+    line-height: 0.8; /* Adjust for better vertical centering of '×' */
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.2s ease-in-out, transform 0.15s ease-in-out;
+    padding: 5px; /* Make clickable area slightly larger */
+    background: transparent; /* Ensure no background from user agent styles */
+    border: none; /* Ensure no border from user agent styles */
+}
+/* Adjust close button for larger management modals if needed */
+body#admin-page div.modal.admin-management-modal span.close-button {
+    top: 15px;
+    right: 25px;
+}
+
+
+body#admin-page div.modal span.close-button:hover,
+body#admin-page div.modal span.close-button:focus {
+    color: #343a40;
+    text-decoration: none;
+    transform: scale(1.1); /* Slight scale effect on hover */
+}
+
+/* Specific Modal Adjustments for existing edit modals */
+body#admin-page div.modal#editEffectUnitModal div.modal-content {
+    max-width: 420px; /* Adjusted */
+}
+
+body#admin-page div.modal#editCharBaseOptionModal div.modal-content,
+body#admin-page div.modal#editItemModal div.modal-content { /* Assuming #editItemModal exists */
+    max-width: 620px; /* Adjusted */
+}
+
+
+/* Form groups within modals */
+body#admin-page div.modal div.modal-content .form-group {
+    margin-bottom: 1.1rem; /* Adjusted */
+}
+body#admin-page div.modal div.modal-content .form-group:last-of-type { /* If it's the last before action buttons */
+    margin-bottom: 1.5rem; /* Adjusted */
+}
+
+
+/* Action buttons at the bottom of modals */
+body#admin-page div.modal div.modal-content button[type="submit"],
+body#admin-page div.modal div.modal-content #saveCategoryEditButton,
+body#admin-page div.modal div.modal-content #saveTagEditButton,
+body#admin-page div.modal div.modal-content #saveEffectTypeEditButton,
+body#admin-page div.modal div.modal-content #saveEffectUnitEditButton,
+body#admin-page div.modal div.modal-content #saveCharBaseOptionButton {
+    margin-top: 1.25rem; /* Increased margin top */
+    width: 100%; /* Make main action button full width */
+    padding: 0.7rem 1rem; /* Adjusted padding */
+    font-size: 1rem;
+}
+/* For management modals, buttons might not always be full width if form controls are above */
+body#admin-page div.modal.admin-management-modal div.modal-content button[type="button"]:not(.close-button):not(.button-like) {
+    /* If specific styling is needed for main action buttons within management modals */
+    /* Example: margin-top: 1rem; width: auto; padding: 0.6rem 1.2rem; */
+}
+
+
+/* If there are multiple buttons, e.g., Save and Cancel in a row */
+body#admin-page div.modal div.modal-content .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end; /* Or center, space-between */
+    margin-top: 1.5rem;
+}
+body#admin-page div.modal div.modal-content .modal-actions button {
+    width: auto; /* Reset width if in .modal-actions */
 }
