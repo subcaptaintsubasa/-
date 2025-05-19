@@ -71,24 +71,24 @@
 }
 .category-select-button {
     padding: 0.4rem 0.9rem; /* Adjusted padding */
-    background-color: #f8f9fa; /* デフォルトの背景色 */
-    border: 1px solid #ced4da; /* デフォルトのボーダー */
+    background-color: #f8f9fa; /* ★★★ デフォルトの背景色: 薄いグレー ★★★ */
+    border: 1px solid #dee2e6;   /* ★★★ デフォルトのボーダー: やや薄いグレー ★★★ */
     border-radius: 50px; /* More pill-like */
     cursor: pointer;
     font-size: 0.875rem; /* Slightly smaller */
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
-    color: #495057; /* デフォルトの文字色 */
+    color: #495057; /* ★★★ デフォルトの文字色: やや濃いグレー ★★★ */
 }
 .category-select-button:hover {
-    background-color: #e9ecef;
-    border-color: #adb5bd;
+    background-color: #e9ecef; /* ホバー時の背景色: 少し濃いグレー */
+    border-color: #ced4da;   /* ホバー時のボーダー色 */
+    color: #343a40;          /* ホバー時の文字色 */
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 .category-select-button.active {
-    background-color: #007bff; /* ★★★ アクティブ時の背景色 (例: プライマリブルー) ★★★ */
-    color: white;               /* ★★★ アクティブ時の文字色 ★★★ */
-    border-color: #007bff;      /* ★★★ ボーダー色も背景色と合わせるか、少し濃くする (#0056b3など) ★★★ */
-    /* box-shadow は削除（枠で囲わないため） */
+    background-color: #007bff; /* アクティブ時の背景色 (プライマリブルー) */
+    color: white;               /* アクティブ時の文字色 */
+    border-color: #007bff;      /* ボーダー色も背景色と合わせる */
     font-weight: 600;           /* アクティブなボタンの文字を少し太く */
 }
 
