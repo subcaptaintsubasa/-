@@ -1,20 +1,20 @@
 // js/admin-modules/category-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch, arrayUnion, arrayRemove, deleteField } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { openModal, closeModal, populateTagButtonSelector, getSelectedTagButtonValues } from './ui-helpers.js'; // populateCheckboxGroup might not be used directly here now
+import { openModal, closeModal, populateTagButtonSelector, getSelectedTagButtonValues, clearForm } from './ui-helpers.js';
 
 const DOMC = {
-    // Elements within the Category Management Modal
+    // Elements within the categoryManagementModal
     newCategoryNameInput: null,
     newCategoryParentButtons: null,
     selectedNewParentCategoryIdInput: null,
     addCategoryButton: null,
     categoryListContainer: null,
-    // Edit Modal Elements (these are for the separate "Edit Specific Category" modal)
-    editCategoryModal: null, // The modal for editing a single category
+    // Edit Modal Elements (these are for the separate #editCategoryModal)
+    editCategoryModal: null,
     editingCategoryDocIdInput: null,
     editingCategoryNameInput: null,
-    editingCategoryParentButtons: null,
-    selectedEditingParentCategoryIdInput: null,
+    editingCategoryParentButtons: null, // This is for the #editCategoryModal
+    selectedEditingParentCategoryIdInput: null, // This is for the #editCategoryModal
     editCategoryTagsGroup: null,
     editingCategoryTagsSelector: null,
     tagSearchModeGroup: null,
@@ -33,41 +33,39 @@ export function initCategoryManager(dependencies) {
     getAllTagsFuncCache = dependencies.getAllTags;
     refreshAllDataCallback = dependencies.refreshAllData;
 
-    // ★ DOM elements for the main category management section (now inside a modal)
-    // Assuming IDs have 'CategoryModal' suffix or similar as discussed
-    DOMC.newCategoryNameInput = document.getElementById('newCategoryNameCategoryModal'); // Example ID
-    DOMC.newCategoryParentButtons = document.getElementById('newCategoryParentButtonsCategoryModal');
-    DOMC.selectedNewParentCategoryIdInput = document.getElementById('selectedNewParentCategoryIdCategoryModal');
-    DOMC.addCategoryButton = document.getElementById('addCategoryButtonCategoryModal');
-    DOMC.categoryListContainer = document.getElementById('categoryListContainerCategoryModal');
+    // Get elements within the #categoryManagementModal
+    DOMC.newCategoryNameInput = document.getElementById('newCategoryName_inModal');
+    DOMC.newCategoryParentButtons = document.getElementById('newCategoryParentButtons_inModal');
+    DOMC.selectedNewParentCategoryIdInput = document.getElementById('selectedNewParentCategoryId_inModal');
+    DOMC.addCategoryButton = document.getElementById('addCategoryButton_inModal');
+    DOMC.categoryListContainer = document.getElementById('categoryListContainer_inModal');
 
-    // DOM elements for the "Edit Specific Category" modal (these IDs are likely unchanged)
-    DOMC.editCategoryModal = document.getElementById('editCategoryModal');
+    // Get elements for the separate edit modal (for editing an individual category)
+    DOMC.editCategoryModal = document.getElementById('editCategoryModal'); // This is the smaller, specific edit modal
     DOMC.editingCategoryDocIdInput = document.getElementById('editingCategoryDocId');
     DOMC.editingCategoryNameInput = document.getElementById('editingCategoryName');
-    DOMC.editingCategoryParentButtons = document.getElementById('editingCategoryParentButtons');
-    DOMC.selectedEditingParentCategoryIdInput = document.getElementById('selectedEditingParentCategoryId');
+    DOMC.editingCategoryParentButtons = document.getElementById('editingCategoryParentButtons'); // In #editCategoryModal
+    DOMC.selectedEditingParentCategoryIdInput = document.getElementById('selectedEditingParentCategoryId'); // In #editCategoryModal
     DOMC.editCategoryTagsGroup = document.getElementById('editCategoryTagsGroup');
     DOMC.editingCategoryTagsSelector = document.getElementById('editingCategoryTagsSelector');
     DOMC.tagSearchModeGroup = document.getElementById('tagSearchModeGroup');
     DOMC.editingTagSearchModeSelect = document.getElementById('editingTagSearchMode');
     DOMC.saveCategoryEditButton = document.getElementById('saveCategoryEditButton');
 
+
     if (DOMC.addCategoryButton) {
         DOMC.addCategoryButton.addEventListener('click', addCategory);
     }
-    if (DOMC.saveCategoryEditButton) {
+    if (DOMC.saveCategoryEditButton) { // For the separate edit modal
         DOMC.saveCategoryEditButton.addEventListener('click', saveCategoryEdit);
     }
 
-    renderCategoriesForManagement();
-    // Ensure parent category buttons for "new category" are populated correctly within its modal
-    if (DOMC.newCategoryParentButtons && DOMC.selectedNewParentCategoryIdInput) {
-        populateParentCategoryButtonsUI(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: "" });
-    }
+    // Initial population for the form inside #categoryManagementModal
+    _renderCategoriesForManagementInternal(); // Render list inside the modal
+    populateParentCategoryButtonsForForm(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: "" });
 }
 
-function populateParentCategoryButtonsUI(buttonContainer, hiddenInput, options = {}) {
+function populateParentCategoryButtonsForForm(buttonContainer, hiddenInput, options = {}) {
     const { currentCategoryIdToExclude = null, selectedParentId = "" } = options;
     const allCategories = getAllCategoriesFuncCache();
 
@@ -75,7 +73,7 @@ function populateParentCategoryButtonsUI(buttonContainer, hiddenInput, options =
     buttonContainer.innerHTML = '';
 
     const topLevelButton = document.createElement('div');
-    topLevelButton.classList.add('category-select-button');
+    topLevelButton.className = 'category-select-button';
     topLevelButton.textContent = '最上位カテゴリとして設定';
     topLevelButton.dataset.parentId = "";
     if (selectedParentId === "") {
@@ -83,8 +81,9 @@ function populateParentCategoryButtonsUI(buttonContainer, hiddenInput, options =
     }
     topLevelButton.addEventListener('click', () => {
         selectParentCategoryButtonUI(buttonContainer, hiddenInput, topLevelButton, "");
-        if (buttonContainer === DOMC.editingCategoryParentButtons) { // This is for the "Edit Specific Category" modal
-            toggleEditModalChildFields(false);
+        // For the #editCategoryModal, specific UI toggles are needed
+        if (buttonContainer === DOMC.editingCategoryParentButtons) {
+            toggleEditModalChildFieldsUI(false);
         }
     });
     buttonContainer.appendChild(topLevelButton);
@@ -93,7 +92,7 @@ function populateParentCategoryButtonsUI(buttonContainer, hiddenInput, options =
         .filter(cat => (!cat.parentId || cat.parentId === "") && cat.id !== currentCategoryIdToExclude)
         .forEach(cat => {
             const button = document.createElement('div');
-            button.classList.add('category-select-button');
+            button.className = 'category-select-button';
             button.textContent = cat.name;
             button.dataset.parentId = cat.id;
             if (selectedParentId === cat.id) {
@@ -102,11 +101,11 @@ function populateParentCategoryButtonsUI(buttonContainer, hiddenInput, options =
             button.addEventListener('click', () => {
                 selectParentCategoryButtonUI(buttonContainer, hiddenInput, button, cat.id);
                 if (buttonContainer === DOMC.editingCategoryParentButtons) {
-                    toggleEditModalChildFields(true);
-                    const categoryBeingEdited = allCategories.find(c => c.id === DOMC.editingCategoryDocIdInput.value);
-                    if (categoryBeingEdited) {
-                         populateTagsForCategoryEditModal(DOMC.editingCategoryTagsSelector, categoryBeingEdited.id, getAllTagsFuncCache());
-                    }
+                    toggleEditModalChildFieldsUI(true);
+                     const categoryBeingEdited = allCategories.find(c => c.id === DOMC.editingCategoryDocIdInput.value);
+                     if (categoryBeingEdited) {
+                         populateTagsForCategoryEditModalUI(DOMC.editingCategoryTagsSelector, categoryBeingEdited.id, getAllTagsFuncCache());
+                     }
                 }
             });
             buttonContainer.appendChild(button);
@@ -122,21 +121,19 @@ function selectParentCategoryButtonUI(container, hiddenInput, clickedButton, par
     hiddenInput.value = parentId;
 }
 
-function toggleEditModalChildFields(isChild) { // This specifically targets the "Edit Specific Category" modal's fields
+function toggleEditModalChildFieldsUI(isChild) { // For #editCategoryModal
     if (DOMC.tagSearchModeGroup) DOMC.tagSearchModeGroup.style.display = isChild ? 'block' : 'none';
     if (DOMC.editCategoryTagsGroup) DOMC.editCategoryTagsGroup.style.display = isChild ? 'block' : 'none';
-    if (isChild) {
-        if (DOMC.editingTagSearchModeSelect && !DOMC.editingTagSearchModeSelect.value) {
-            DOMC.editingTagSearchModeSelect.value = 'AND';
-        }
-    } else {
-        if (DOMC.editingCategoryTagsSelector) DOMC.editingCategoryTagsSelector.innerHTML = '';
+    if (isChild && DOMC.editingTagSearchModeSelect && !DOMC.editingTagSearchModeSelect.value) {
+        DOMC.editingTagSearchModeSelect.value = 'AND';
+    } else if (!isChild && DOMC.editingCategoryTagsSelector) {
+        DOMC.editingCategoryTagsSelector.innerHTML = '';
     }
 }
 
-function renderCategoriesForManagement() {
+export function _renderCategoriesForManagementInternal() { // Renamed, called by admin-main
     if (!DOMC.categoryListContainer) {
-        console.warn("Category list container (e.g., categoryListContainerCategoryModal) not found for rendering.");
+        console.warn("Category list container (for modal) not found.");
         return;
     }
     const allCategories = getAllCategoriesFuncCache();
@@ -174,7 +171,7 @@ function renderCategoriesForManagement() {
     DOMC.categoryListContainer.querySelectorAll('.edit-category').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const catId = e.currentTarget.dataset.categoryId;
-            openEditCategoryModalById(catId); // This opens the separate edit modal
+            openEditCategoryModalById(catId); // This opens the #editCategoryModal
         });
     });
     DOMC.categoryListContainer.querySelectorAll('.delete-category').forEach(btn => {
@@ -200,16 +197,14 @@ async function addCategory() {
 
     try {
         const categoryData = {
-            name: name,
-            parentId: parentId || "",
-            createdAt: serverTimestamp()
+            name: name, parentId: parentId || "", createdAt: serverTimestamp()
         };
-        if (parentId) { categoryData.tagSearchMode = 'AND'; }
+        if (parentId) categoryData.tagSearchMode = 'AND';
 
         await addDoc(collection(dbInstance, 'categories'), categoryData);
         
-        DOMC.newCategoryNameInput.value = '';
-        populateParentCategoryButtonsUI(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: "" });
+        DOMC.newCategoryNameInput.value = ''; // Clear input in the management modal
+        populateParentCategoryButtonsForForm(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: "" });
 
         await refreshAllDataCallback();
     } catch (error) {
@@ -218,44 +213,42 @@ async function addCategory() {
     }
 }
 
-function openEditCategoryModalById(categoryId) { // This is for the separate "Edit Specific Category" modal
+function openEditCategoryModalById(categoryId) { // This function opens the #editCategoryModal
     const allCategories = getAllCategoriesFuncCache();
     const categoryToEdit = allCategories.find(c => c.id === categoryId);
-    if (!categoryToEdit || !DOMC.editCategoryModal) {
-        alert("編集するカテゴリのデータまたは編集用モーダルが見つかりません。");
-        return;
-    }
+    if (!categoryToEdit) { alert("編集するカテゴリのデータが見つかりません。"); return; }
 
     DOMC.editingCategoryDocIdInput.value = categoryToEdit.id;
     DOMC.editingCategoryNameInput.value = categoryToEdit.name;
     const currentParentId = categoryToEdit.parentId || "";
     const currentTagSearchMode = categoryToEdit.tagSearchMode || 'AND';
 
-    populateParentCategoryButtonsUI(DOMC.editingCategoryParentButtons, DOMC.selectedEditingParentCategoryIdInput, {
+    populateParentCategoryButtonsForForm(DOMC.editingCategoryParentButtons, DOMC.selectedEditingParentCategoryIdInput, {
         currentCategoryIdToExclude: categoryToEdit.id,
         selectedParentId: currentParentId
     });
 
     const isChildCategory = !!currentParentId;
-    toggleEditModalChildFields(isChildCategory);
+    toggleEditModalChildFieldsUI(isChildCategory);
 
     if (isChildCategory) {
-        populateTagsForCategoryEditModal(DOMC.editingCategoryTagsSelector, categoryToEdit.id, getAllTagsFuncCache());
+        populateTagsForCategoryEditModalUI(DOMC.editingCategoryTagsSelector, categoryToEdit.id, getAllTagsFuncCache());
         if(DOMC.editingTagSearchModeSelect) DOMC.editingTagSearchModeSelect.value = currentTagSearchMode;
     } else {
         if(DOMC.editingCategoryTagsSelector) DOMC.editingCategoryTagsSelector.innerHTML = '';
     }
 
-    openModal('editCategoryModal'); // Uses ui-helpers.openModal
+    openModal('editCategoryModal'); // From ui-helpers.js
     if(DOMC.editingCategoryNameInput) DOMC.editingCategoryNameInput.focus();
 }
 
-function populateTagsForCategoryEditModal(containerElement, categoryId, allTags) {
+function populateTagsForCategoryEditModalUI(containerElement, categoryId, allTags) {
     const activeTagIds = allTags.filter(tag => tag.categoryIds && tag.categoryIds.includes(categoryId)).map(t => t.id);
-    populateTagButtonSelector(containerElement, allTags, activeTagIds); // Uses ui-helpers
+    populateTagButtonSelector(containerElement, allTags, activeTagIds); // From ui-helpers.js
 }
 
-async function saveCategoryEdit() { // This is for the separate "Edit Specific Category" modal
+
+async function saveCategoryEdit() { // For the #editCategoryModal
     const docId = DOMC.editingCategoryDocIdInput.value;
     const newName = DOMC.editingCategoryNameInput.value.trim();
     const newParentId = DOMC.selectedEditingParentCategoryIdInput.value;
@@ -265,9 +258,9 @@ async function saveCategoryEdit() { // This is for the separate "Edit Specific C
     if (!newName) { alert("カテゴリ名は空にできません。"); return; }
     if (docId === newParentId) { alert("自身を親カテゴリに設定することはできません。"); return; }
 
+    // ... (rest of validation and save logic from previous full version) ...
     const allCategories = getAllCategoriesFuncCache();
     const originalCategory = allCategories.find(c => c.id === docId);
-
     if (originalCategory && (originalCategory.name !== newName || (originalCategory.parentId || "") !== (newParentId || ""))) {
         const q = query(collection(dbInstance, 'categories'), where('name', '==', newName), where('parentId', '==', newParentId || ""));
         const existingQuery = await getDocs(q);
@@ -278,7 +271,6 @@ async function saveCategoryEdit() { // This is for the separate "Edit Specific C
             return;
         }
     }
-
     if (newParentId) {
         let currentAncestorId = newParentId;
         const visited = new Set([docId]);
@@ -295,11 +287,8 @@ async function saveCategoryEdit() { // This is for the separate "Edit Specific C
     try {
         const batch = writeBatch(dbInstance);
         const categoryUpdateData = {
-            name: newName,
-            parentId: newParentId || "",
-            updatedAt: serverTimestamp()
+            name: newName, parentId: newParentId || "", updatedAt: serverTimestamp()
         };
-
         const isBecomingChild = !!newParentId;
         if (isBecomingChild) {
             categoryUpdateData.tagSearchMode = newTagSearchMode;
@@ -312,7 +301,6 @@ async function saveCategoryEdit() { // This is for the separate "Edit Specific C
         allTags.forEach(tag => {
             const isCurrentlySelectedForCat = selectedTagIdsForThisCategory.includes(tag.id);
             const isAlreadyAssociatedWithCat = tag.categoryIds && tag.categoryIds.includes(docId);
-
             if (isBecomingChild) {
                 if (isCurrentlySelectedForCat && !isAlreadyAssociatedWithCat) {
                     batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayUnion(docId) });
@@ -321,13 +309,12 @@ async function saveCategoryEdit() { // This is for the separate "Edit Specific C
                 }
             } else {
                 if (isAlreadyAssociatedWithCat) {
-                    batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
+                     batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId) });
                 }
             }
         });
-
         await batch.commit();
-        closeModal('editCategoryModal'); // Uses ui-helpers.closeModal
+        closeModal('editCategoryModal'); // From ui-helpers.js
         await refreshAllDataCallback();
     } catch (error) {
         console.error("[Category Edit] Error:", error);
@@ -342,7 +329,6 @@ async function deleteCategory(docId, categoryName) {
         alert(`カテゴリ「${categoryName}」は他のカテゴリの親として使用されているため削除できません。`);
         return;
     }
-
     if (confirm(`カテゴリ「${categoryName}」を削除しますか？\nこのカテゴリに紐づいているタグの関連付けも解除されます。`)) {
         try {
             const batch = writeBatch(dbInstance);
@@ -351,7 +337,6 @@ async function deleteCategory(docId, categoryName) {
             tagsSnapshot.forEach(tagDoc => {
                 batch.update(tagDoc.ref, { categoryIds: arrayRemove(docId) });
             });
-
             batch.delete(doc(dbInstance, 'categories', docId));
             await batch.commit();
             await refreshAllDataCallback();
@@ -361,5 +346,3 @@ async function deleteCategory(docId, categoryName) {
         }
     }
 }
-
-export { renderCategoriesForManagement as _renderCategoriesForManagementInternal };
