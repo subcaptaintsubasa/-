@@ -1,26 +1,27 @@
 // js/admin-modules/effect-unit-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { openModal, closeModal, clearForm } from './ui-helpers.js';
+import { openModal, closeModal } from './ui-helpers.js'; // Removed clearForm as it's simple
 
-const DOMEU = { // DOM elements for Effect Unit Management
+const DOMEU = {
     newEffectUnitNameInput: null,
     addEffectUnitButton: null,
     effectUnitListContainer: null,
-    // Edit Modal Elements
     editEffectUnitModal: null,
     editingEffectUnitDocIdInput: null,
     editingEffectUnitNameInput: null,
     saveEffectUnitEditButton: null,
-    // Buttons to trigger scroll to this section
     manageUnitsForNewEffectTypeButton: null,
     manageUnitsForEditingEffectTypeButton: null,
 };
 
 let dbInstance = null;
 let getEffectUnitsFuncCache = () => [];
-let getEffectTypesFuncCache = () => []; // To check usage
-let getItemsFuncCache = () => [];       // To check usage
-let getCharacterBasesFuncCache = () => ({}); // To check usage
+let getEffectTypesFuncCache = () => [];
+let getItemsFuncCache = () => [];
+let getCharacterBasesFuncCache = () => ({});
+// Assuming baseTypeMappings will be imported if needed for detailed messages, or pass as dependency
+// For now, keeping messages simpler.
+// import { baseTypeMappings } from './char-base-manager.js'; // Example if needed
 let refreshAllDataCallback = async () => {};
 
 export function initEffectUnitManager(dependencies) {
@@ -57,8 +58,8 @@ export function initEffectUnitManager(dependencies) {
         DOMEU.manageUnitsForEditingEffectTypeButton.addEventListener('click', () => scrollToUnitSection('edit'));
     }
 
-
-    renderEffectUnitsForManagement();
+    // Initial UI population handled by renderAllAdminUISections
+    console.log("[Effect Unit Manager] Initialized.");
 }
 
 function scrollToUnitSection(context) {
@@ -69,16 +70,19 @@ function scrollToUnitSection(context) {
     }
 }
 
-function renderEffectUnitsForManagement() {
+export function _renderEffectUnitsForManagementInternal() { // Renamed
     if (!DOMEU.effectUnitListContainer) return;
     const effectUnitsCache = getEffectUnitsFuncCache();
     DOMEU.effectUnitListContainer.innerHTML = '';
 
     if (effectUnitsCache.length === 0) {
         DOMEU.effectUnitListContainer.innerHTML = '<p>効果単位が登録されていません。「なし」は自動的に利用可能です。</p>';
-        // Still render, as 'なし' is implicit
     }
-    effectUnitsCache.forEach(unit => {
+
+    // Sort units alphabetically
+    const sortedUnits = [...effectUnitsCache].sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+
+    sortedUnits.forEach(unit => {
         const div = document.createElement('div');
         div.classList.add('list-item');
         div.innerHTML = `
@@ -92,16 +96,12 @@ function renderEffectUnitsForManagement() {
     });
 
     DOMEU.effectUnitListContainer.querySelectorAll('.edit-effect-unit').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const unitId = e.currentTarget.dataset.id;
-            openEditEffectUnitModalById(unitId);
-        });
+        btn.addEventListener('click', (e) => openEditEffectUnitModalById(e.currentTarget.dataset.id));
     });
     DOMEU.effectUnitListContainer.querySelectorAll('.delete-effect-unit').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            deleteEffectUnit(e.currentTarget.dataset.id, e.currentTarget.dataset.name);
-        });
+        btn.addEventListener('click', (e) => deleteEffectUnit(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
     });
+    console.log("[Effect Unit Manager] Effect units rendered for management.");
 }
 
 async function addEffectUnit() {
@@ -109,17 +109,10 @@ async function addEffectUnit() {
     const name = DOMEU.newEffectUnitNameInput.value.trim();
     const effectUnitsCache = getEffectUnitsFuncCache();
 
-    if (!name) {
-        alert("効果単位名を入力してください。");
-        return;
-    }
-    if (name.toLowerCase() === "なし") {
-        alert("「なし」は予約語であり、単位として登録できません。");
-        return;
-    }
+    if (!name) { alert("効果単位名を入力してください。"); return; }
+    if (name.toLowerCase() === "なし") { alert("「なし」は予約語であり、単位として登録できません。"); return; }
     if (effectUnitsCache.some(u => u.name.toLowerCase() === name.toLowerCase())) {
-        alert("同じ名前の効果単位が既に存在します。");
-        return;
+        alert("同じ名前の効果単位が既に存在します。"); return;
     }
 
     try {
@@ -128,9 +121,9 @@ async function addEffectUnit() {
             createdAt: serverTimestamp()
         });
         DOMEU.newEffectUnitNameInput.value = '';
-        await refreshAllDataCallback(); // Reload and re-render all, including effect type selects
+        await refreshAllDataCallback();
     } catch (error) {
-        console.error("[Effect Units] Error adding:", error);
+        console.error("[Effect Unit Manager] Error adding effect unit:", error);
         alert("効果単位の追加に失敗しました。");
     }
 }
@@ -153,17 +146,10 @@ async function saveEffectUnitEdit() {
     const newName = DOMEU.editingEffectUnitNameInput.value.trim();
     const effectUnitsCache = getEffectUnitsFuncCache();
 
-    if (!newName) {
-        alert("効果単位名は空にできません。");
-        return;
-    }
-    if (newName.toLowerCase() === "なし") {
-        alert("「なし」は予約語であり、単位として登録できません。");
-        return;
-    }
+    if (!newName) { alert("効果単位名は空にできません。"); return; }
+    if (newName.toLowerCase() === "なし") { alert("「なし」は予約語であり、単位として登録できません。"); return; }
     if (effectUnitsCache.some(u => u.id !== id && u.name.toLowerCase() === newName.toLowerCase())) {
-        alert("編集後の名前が他の効果単位と重複します。");
-        return;
+        alert("編集後の名前が他の効果単位と重複します。"); return;
     }
 
     try {
@@ -175,27 +161,20 @@ async function saveEffectUnitEdit() {
             updatedAt: serverTimestamp()
         });
 
-        // If unit name changed, update related entities (effect types, items, char bases)
         if (oldUnitName && oldUnitName !== newName) {
             const batch = writeBatch(dbInstance);
             let updatesMade = false;
 
-            // Update Effect Types
             getEffectTypesFuncCache().forEach(et => {
                 if (et.defaultUnit === oldUnitName) {
                     batch.update(doc(dbInstance, 'effect_types', et.id), { defaultUnit: newName });
                     updatesMade = true;
                 }
             });
-
-            // Update Items
             getItemsFuncCache().forEach(item => {
                 let itemEffectsUpdated = false;
                 const updatedEffects = (item.structured_effects || []).map(eff => {
-                    if (eff.unit === oldUnitName) {
-                        itemEffectsUpdated = true;
-                        return { ...eff, unit: newName };
-                    }
+                    if (eff.unit === oldUnitName) { itemEffectsUpdated = true; return { ...eff, unit: newName }; }
                     return eff;
                 });
                 if (itemEffectsUpdated) {
@@ -203,17 +182,14 @@ async function saveEffectUnitEdit() {
                     updatesMade = true;
                 }
             });
-
-            // Update Character Base Options
             const charBases = getCharacterBasesFuncCache();
+            // Assuming baseTypeMappings is available if more descriptive messages are needed
+            // const baseTypeMappings = (await import('./char-base-manager.js')).baseTypeMappings; // Async import if needed
             for (const baseKey in charBases) {
                 (charBases[baseKey] || []).forEach(option => {
                     let optionEffectsUpdated = false;
                     const updatedOptionEffects = (option.effects || []).map(eff => {
-                        if (eff.unit === oldUnitName) {
-                            optionEffectsUpdated = true;
-                            return { ...eff, unit: newName };
-                        }
+                        if (eff.unit === oldUnitName) { optionEffectsUpdated = true; return { ...eff, unit: newName }; }
                         return eff;
                     });
                     if (optionEffectsUpdated) {
@@ -222,55 +198,46 @@ async function saveEffectUnitEdit() {
                     }
                 });
             }
-
-            if (updatesMade) {
-                await batch.commit();
-            }
+            if (updatesMade) await batch.commit();
         }
         closeModal('editEffectUnitModal');
-        await refreshAllDataCallback(); // Always refresh to ensure UI consistency
+        await refreshAllDataCallback();
     } catch (error) {
-        console.error("[Effect Units] Error updating:", error);
+        console.error("[Effect Unit Manager] Error updating effect unit:", error);
         alert("効果単位の更新または関連エンティティの更新に失敗しました。");
     }
 }
 
 async function deleteEffectUnit(id, name) {
-    // Check for usage before deleting
     const effectTypesCache = getEffectTypesFuncCache();
     const itemsCache = getItemsFuncCache();
     const charBasesCache = getCharacterBasesFuncCache();
 
     const usedByEffectType = effectTypesCache.find(et => et.defaultUnit === name);
     if (usedByEffectType) {
-        alert(`効果単位「${name}」は効果種類「${usedByEffectType.name}」のデフォルト単位として使用されているため削除できません。`);
-        return;
+        alert(`効果単位「${name}」は効果種類「${usedByEffectType.name}」のデフォルト単位として使用されているため削除できません。`); return;
     }
     const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.unit === name));
     if (usedByItem) {
-        alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。`);
-        return;
+        alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。`); return;
     }
     for (const baseKey in charBasesCache) {
         const usedInBase = (charBasesCache[baseKey] || []).find(option =>
             option.effects && option.effects.some(eff => eff.unit === name)
         );
         if (usedInBase) {
-            // Assuming baseTypeMappings is available via import or passed if needed for the alert message
-            // For simplicity, using baseKey directly here.
-            alert(`効果単位「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。`);
-            return;
+            // const typeDisplayName = baseTypeMappings[baseKey] || baseKey; // If baseTypeMappings is available
+            alert(`効果単位「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。`); return;
         }
     }
 
-    if (confirm(`効果単位「${name}」を削除しますか？`)) {
+    if (confirm(`効果単位「${name}」を削除しますか？この操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'effect_units', id));
             await refreshAllDataCallback();
         } catch (error) {
-            console.error("[Effect Units] Error deleting:", error);
+            console.error("[Effect Unit Manager] Error deleting effect unit:", error);
             alert("効果単位の削除に失敗しました。");
         }
     }
 }
-export { renderEffectUnitsForManagement as _renderEffectUnitsForManagementInternal };
