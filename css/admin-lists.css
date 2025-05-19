@@ -25,25 +25,86 @@
 .list-item:hover {
     background-color: #f1f3f5; /* Slightly more noticeable hover */
 }
-.list-item > span { /* Text content of the list item */
+.list-item > span { /* Text content of the list item - WILL BE MODIFIED for category tree */
     flex-grow: 1;
     margin-right: 0.75rem;
     word-break: break-word;
     font-size: 0.9rem; /* Adjusted font size */
     color: #343a40;
 }
+/* Style for clickable item names (will be applied via JS or specific class) */
+.list-item-name-clickable {
+    cursor: pointer;
+    color: #0056b3; /* Link-like color */
+    text-decoration: none; /* Initially no underline */
+    transition: color 0.15s ease-in-out;
+}
+.list-item-name-clickable:hover {
+    color: #003d80;
+    text-decoration: underline; /* Underline on hover */
+}
+
 .list-item > span small { /* For extra info like parent category, units etc. */
     color: #5a6268; /* Muted but readable */
     font-size: 0.85em; /* Relative to parent span */
     margin-left: 0.3rem;
 }
-.list-item div { /* Container for action buttons */
+.list-item div.list-item-actions { /* Container for action buttons (now typically empty or just details button) */
     flex-shrink: 0;
     display: flex;
-    align-items: center; /* Vertically align buttons if they have different heights */
-    gap: 0.3rem; /* Reduced gap for compact buttons */
+    align-items: center; 
+    gap: 0.3rem;
 }
-/* Action buttons (.action-button) are styled in admin-forms.css */
+
+/* Styles for Category Tree View */
+.category-tree-item {
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex; /* Use flex for alignment of expander and content */
+    align-items: center;
+}
+.category-tree-item:last-child {
+    border-bottom: none;
+}
+.category-tree-expander {
+    cursor: pointer;
+    width: 20px; /* Fixed width for the expander icon */
+    display: inline-block;
+    text-align: center;
+    margin-right: 5px;
+    color: #6c757d;
+    font-size: 0.8em; /* Smaller icon */
+    transition: transform 0.2s ease-in-out;
+}
+.category-tree-expander.expanded {
+    transform: rotate(90deg);
+}
+.category-tree-content {
+    flex-grow: 1; /* Allow content to take remaining space */
+    cursor: pointer; /* Make the name clickable for editing */
+}
+.category-tree-content:hover .category-name {
+    text-decoration: underline;
+    color: #0056b3;
+}
+.category-name { /* Specific class for the name part to apply hover */
+    font-weight: 500; /* Slightly bolder for better click affordance */
+    color: #212529;
+    transition: color 0.15s ease-in-out;
+}
+.category-tree-item small {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-left: 0.5em;
+}
+.category-tree-children {
+    padding-left: 25px; /* Indent child categories */
+    /* display: none; /* Initially hidden, toggled by JS */
+}
+.category-tree-children.hidden { /* Class to hide children */
+    display: none;
+}
+
 
 /* Checkbox groups (used for tag assignment, item tag selection) */
 .checkbox-group-container {
@@ -98,7 +159,6 @@
     border-radius: 0.25rem;
     background-color: #ffffff;
 }
-/* .tag-filter.admin-tag-select is styled in admin-forms.css (consistency) */
 
 
 /* Effect input area and list (used in item form & char base option form) */
@@ -158,7 +218,6 @@
     flex-grow: 1;
     margin-right: 0.3rem;
 }
-/* .delete-effect-from-list button is styled in admin-forms.css */
 
 
 /* Items Table for Admin */
