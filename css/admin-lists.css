@@ -71,6 +71,7 @@
     vertical-align: middle;
     flex-shrink: 0;
     transform: scale(1.05); /* Slightly larger checkboxes */
+    cursor: pointer;
 }
 .checkbox-item input[type="checkbox"]:focus {
     outline: 1px dotted #007bff;
@@ -171,34 +172,41 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Subtle shadow for table */
     border-radius: 0.25rem;
     overflow: hidden; /* To make border-radius work with table */
+    border: 1px solid #dee2e6; /* Add overall table border */
 }
 #itemsTable th,
 #itemsTable td {
-    border: 1px solid #e9ecef; /* Lighter border for cells */
+    border-bottom: 1px solid #dee2e6; /* Horizontal lines between rows */
+    border-left: 1px solid #e9ecef; /* Vertical lines (lighter) */
     padding: 0.75rem 0.9rem; /* Adjusted padding */
     text-align: left;
     vertical-align: middle;
 }
+#itemsTable th:first-child,
+#itemsTable td:first-child {
+    border-left: none; /* No left border for first column */
+}
 #itemsTable th {
-    background-color: #f8f9fa; /* Light gray for headers */
+    background-color: #f1f3f5; /* Slightly different header background */
     font-weight: 500; /* Medium weight */
-    color: #495057;
+    color: #343a40; /* Darker header text */
     white-space: nowrap;
-    font-size: 0.85rem; /* Slightly smaller header text */
-    text-transform: uppercase; /* Uppercase headers for distinction */
+    font-size: 0.85rem;
+    text-transform: uppercase;
     letter-spacing: 0.5px;
+    border-bottom-width: 2px; /* Thicker bottom border for header */
 }
 #itemsTable img {
-    max-width: 50px; /* Slightly smaller default image size */
+    max-width: 50px;
     max-height: 50px;
     width: auto;
     height: auto;
     object-fit: contain;
-    background-color: #f0f0f0; /* Placeholder bg */
-    border-radius: 3px; /* Consistent radius */
+    background-color: #f0f0f0;
+    border-radius: 3px;
     border: 1px solid #dee2e6;
     display: block;
-    padding: 2px; /* Small padding around image */
+    padding: 2px;
 }
 #itemsTable td .action-button {
     margin-right: 0.3rem;
@@ -210,16 +218,22 @@
 #itemsTable td:last-child { /* Action column */
     white-space: nowrap;
     width: 1%;
-    text-align: right; /* Align action buttons to the right */
+    text-align: right;
 }
 #itemsTable tbody tr:hover {
-    background-color: #f1f3f5; /* Hover effect for table rows */
+    background-color: #e9ecef; /* Slightly darker hover for table rows */
+}
+#itemsTable tbody tr:nth-child(even) { /* Subtle striping for readability */
+    background-color: #f8f9fa;
+}
+#itemsTable tbody tr:nth-child(even):hover {
+    background-color: #e2e6ea;
 }
 
 
 /* Search input for admin item list */
 #itemSearchAdmin {
-    padding: 0.6rem 0.75rem; /* Adjusted padding */
+    padding: 0.6rem 0.75rem;
     margin-bottom: 1rem;
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
@@ -227,9 +241,9 @@
     box-sizing: border-box;
     display: block;
     width: 100%;
-    max-width: 450px; /* Slightly wider */
+    max-width: 450px;
 }
-#itemSearchAdmin:focus { /* Ensure focus style matches other inputs */
+#itemSearchAdmin:focus {
     border-color: #80bdff;
     outline: 0;
     box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
