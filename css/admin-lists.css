@@ -76,12 +76,23 @@
     border-bottom: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
-    background-color: #fff; /* ドラッグ時に背景が見えるように */
+    background-color: #fff; /* 背景色を明示的に */
     user-select: none; /* ドラッグ中のテキスト選択を防ぐ */
 }
 .category-tree-item:last-child {
     border-bottom: none;
 }
+/* ★★★ SortableJS ドラッグ中スタイル ★★★ */
+.category-tree-item.sortable-ghost {
+    opacity: 0.4;
+    background: #c8ebfb;
+}
+.category-tree-item.sortable-drag {
+    opacity: 0.9;
+    background: #e6f7ff; /* ドラッグ中のアイテムの背景を少し変える */
+}
+
+
 .category-tree-expander {
     cursor: pointer;
     width: 20px;
@@ -97,7 +108,7 @@
 }
 .category-tree-content {
     flex-grow: 1;
-    cursor: pointer;
+    cursor: pointer; /* Make the name clickable for editing */
 }
 .category-tree-content:hover .category-name {
     text-decoration: underline;
@@ -113,23 +124,22 @@
     color: #6c757d;
     margin-left: 0.5em;
 }
-.category-tree-children {
+.category-tree-children { /* This is a UL */
     padding-left: 25px;
+    list-style-type: none; /* Remove default ul styling if any */
 }
 .category-tree-children.hidden {
     display: none;
 }
-
-/* SortableJS ドラッグ中スタイル */
-.category-tree-item.sortable-ghost {
-    opacity: 0.4;
-    background-color: #cce5ff;
+/* ★★★ SortableJSのためのリストのスタイル ★★★ */
+ul.category-sortable-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    min-height: 10px; /* ドロップ可能なエリアであることを示すための最小の高さ */
 }
-.category-tree-item.sortable-chosen {
-    /* background-color: #e9ecef; */
-}
-.category-tree-item.sortable-drag {
-    /* opacity: 0.7; */
+ul.category-sortable-list.sortable-chosen { /* ドロップ先候補のリストのスタイル */
+    /* background-color: #f0f8ff; */ /* 薄い青でハイライトなど */
 }
 
 
@@ -156,7 +166,6 @@
 .tag-group .list-item .list-item-name-clickable small {
     display: none;
 }
-
 
 /* Checkbox groups (used for tag assignment, item tag selection) */
 .checkbox-group-container {
