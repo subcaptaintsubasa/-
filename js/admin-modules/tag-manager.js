@@ -1,17 +1,16 @@
 // js/admin-modules/tag-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch, arrayRemove } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { openModal, closeModal, populateCheckboxGroup, getSelectedCheckboxValues, clearForm } from './ui-helpers.js';
+import { openModal, closeModal, populateCheckboxGroup, getSelectedCheckboxValues } from './ui-helpers.js'; // Removed clearForm as it's not used directly for a tag form
 
-const DOMT = { // DOM elements for Tag Management (within #tagManagementModal)
+const DOMT = {
     newTagNameInput: null,
     newTagCategoriesCheckboxes: null,
     addTagButton: null,
     tagListContainer: null,
-    // Edit Modal Elements (these are for the separate #editTagModal)
     editTagModal: null,
     editingTagDocIdInput: null,
     editingTagNameInput: null,
-    editingTagCategoriesCheckboxes: null, // In #editTagModal
+    editingTagCategoriesCheckboxes: null,
     saveTagEditButton: null,
 };
 
@@ -26,32 +25,29 @@ export function initTagManager(dependencies) {
     getAllTagsFuncCache = dependencies.getAllTags;
     refreshAllDataCallback = dependencies.refreshAllData;
 
-    // Get elements within the #tagManagementModal
-    DOMT.newTagNameInput = document.getElementById('newTagName_inModal');
-    DOMT.newTagCategoriesCheckboxes = document.getElementById('newTagCategoriesCheckboxes_inModal');
-    DOMT.addTagButton = document.getElementById('addTagButton_inModal');
-    DOMT.tagListContainer = document.getElementById('tagListContainer_inModal');
+    DOMT.newTagNameInput = document.getElementById('newTagName');
+    DOMT.newTagCategoriesCheckboxes = document.getElementById('newTagCategoriesCheckboxes');
+    DOMT.addTagButton = document.getElementById('addTagButton');
+    DOMT.tagListContainer = document.getElementById('tagListContainer');
 
-    // Get elements for the separate edit modal (for editing an individual tag)
-    DOMT.editTagModal = document.getElementById('editTagModal'); // This is the smaller, specific edit modal
+    DOMT.editTagModal = document.getElementById('editTagModal');
     DOMT.editingTagDocIdInput = document.getElementById('editingTagDocId');
     DOMT.editingTagNameInput = document.getElementById('editingTagName');
-    DOMT.editingTagCategoriesCheckboxes = document.getElementById('editingTagCategoriesCheckboxes'); // In #editTagModal
+    DOMT.editingTagCategoriesCheckboxes = document.getElementById('editingTagCategoriesCheckboxes');
     DOMT.saveTagEditButton = document.getElementById('saveTagEditButton');
 
     if (DOMT.addTagButton) {
         DOMT.addTagButton.addEventListener('click', addTag);
     }
-    if (DOMT.saveTagEditButton) { // For the separate edit modal
+    if (DOMT.saveTagEditButton) {
         DOMT.saveTagEditButton.addEventListener('click', saveTagEdit);
     }
 
-    // Initial population for the form inside #tagManagementModal
-    _renderTagsForManagementInternal(); // Render list inside the modal
-    populateCategoryCheckboxesForTagFormInternal(DOMT.newTagCategoriesCheckboxes);
+    // Initial UI population is handled by renderAllAdminUISections in admin-main.js
+    console.log("[Tag Manager] Initialized.");
 }
 
-function getAssignableCategoriesInternal() {
+function getAssignableCategoriesForTag() {
     const allCategories = getAllCategoriesFuncCache();
     return allCategories
         .filter(cat => cat.parentId && cat.parentId !== "") // Only child categories
@@ -62,38 +58,48 @@ function getAssignableCategoriesInternal() {
                 name: cat.name,
                 parentName: parentCat ? parentCat.name : '不明'
             };
+        })
+        .sort((a,b) => { // Sort by parent name, then child name
+            if (a.parentName !== b.parentName) {
+                return a.parentName.localeCompare(b.parentName, 'ja');
+            }
+            return a.name.localeCompare(b.name, 'ja');
         });
 }
 
-function populateCategoryCheckboxesForTagFormInternal(containerElement, selectedCategoryIds = []) {
-    const assignableCategories = getAssignableCategoriesInternal();
-    // Ensure unique checkboxName based on container if multiple instances exist (though likely not for add form)
-    const checkboxNameSuffix = containerElement === DOMT.editingTagCategoriesCheckboxes ? '_editTagModal' : '_addTagModal';
+export function _populateCategoryCheckboxesForTagFormInternal(containerElement, selectedCategoryIds = []) { // Renamed
+    if (!containerElement) {
+        console.warn("_populateCategoryCheckboxesForTagFormInternal: containerElement is null");
+        return;
+    }
+    const assignableCategories = getAssignableCategoriesForTag();
     populateCheckboxGroup(
         containerElement,
         assignableCategories,
         selectedCategoryIds,
-        `tagCategory${checkboxNameSuffix}`,
-        `tag-cat-assign${checkboxNameSuffix}-`
+        'tagCategory',
+        containerElement.id === 'newTagCategoriesCheckboxes' ? 'new-tag-cat-' : 'edit-tag-cat-'
     );
 }
 
 
-export function _renderTagsForManagementInternal() { // Renamed, called by admin-main
-    if (!DOMT.tagListContainer) {
-        console.warn("Tag list container (for modal) not found.");
-        return;
-    }
+export function _renderTagsForManagementInternal() { // Renamed
+    if (!DOMT.tagListContainer) return;
     const allTags = getAllTagsFuncCache();
     const allCategories = getAllCategoriesFuncCache();
     DOMT.tagListContainer.innerHTML = '';
 
     if (allTags.length === 0) {
         DOMT.tagListContainer.innerHTML = '<p>タグが登録されていません。</p>';
+        // Populate checkbox for "new tag" form even if list is empty
+        _populateCategoryCheckboxesForTagFormInternal(DOMT.newTagCategoriesCheckboxes);
         return;
     }
 
-    allTags.forEach(tag => {
+    // Sort tags alphabetically
+    const sortedTags = [...allTags].sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+
+    sortedTags.forEach(tag => {
         const belongingCategoriesNames = (tag.categoryIds || [])
             .map(catId => {
                 const cat = allCategories.find(c => c.id === catId);
@@ -106,13 +112,14 @@ export function _renderTagsForManagementInternal() { // Renamed, called by admin
                 return null;
             })
             .filter(name => name)
+            .sort((a,b) => a.localeCompare(b, 'ja')) // Sort belonging category names
             .join(', ');
         const displayCategories = belongingCategoriesNames || '未分類';
 
         const div = document.createElement('div');
         div.classList.add('list-item');
         div.innerHTML = `
-            <span>${tag.name} <small style="color:#555;">(所属: ${displayCategories})</small></span>
+            <span>${tag.name} <small>(所属: ${displayCategories})</small></span>
             <div>
                 <button class="edit-tag action-button" data-tag-id="${tag.id}" title="編集">✎</button>
                 <button class="delete-tag action-button delete" data-tag-id="${tag.id}" data-tag-name="${tag.name}" title="削除">×</button>
@@ -122,22 +129,21 @@ export function _renderTagsForManagementInternal() { // Renamed, called by admin
     });
 
     DOMT.tagListContainer.querySelectorAll('.edit-tag').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const tagId = e.currentTarget.dataset.tagId;
-            openEditTagModalById(tagId); // This opens the #editTagModal
-        });
+        btn.addEventListener('click', (e) => openEditTagModalById(e.currentTarget.dataset.tagId));
     });
     DOMT.tagListContainer.querySelectorAll('.delete-tag').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            deleteTag(e.currentTarget.dataset.tagId, e.currentTarget.dataset.tagName);
-        });
+        btn.addEventListener('click', (e) => deleteTag(e.currentTarget.dataset.tagId, e.currentTarget.dataset.tagName));
     });
+
+    // Populate category checkboxes for the "new tag" form
+    _populateCategoryCheckboxesForTagFormInternal(DOMT.newTagCategoriesCheckboxes);
+    console.log("[Tag Manager] Tags rendered for management.");
 }
 
 async function addTag() {
     if (!DOMT.newTagNameInput || !DOMT.newTagCategoriesCheckboxes) return;
     const name = DOMT.newTagNameInput.value.trim();
-    const selectedCategoryIdsForTag = getSelectedCheckboxValues(DOMT.newTagCategoriesCheckboxes, `tagCategory_addTagModal`);
+    const selectedCategoryIdsForTag = getSelectedCheckboxValues(DOMT.newTagCategoriesCheckboxes, 'tagCategory');
 
     if (!name) { alert("タグ名を入力してください。"); return; }
 
@@ -153,16 +159,16 @@ async function addTag() {
         });
 
         DOMT.newTagNameInput.value = '';
-        populateCategoryCheckboxesForTagFormInternal(DOMT.newTagCategoriesCheckboxes); // Clear checkboxes
+        _populateCategoryCheckboxesForTagFormInternal(DOMT.newTagCategoriesCheckboxes); // Clear selections
 
         await refreshAllDataCallback();
     } catch (error) {
-        console.error("[Tag Add] Error:", error);
+        console.error("[Tag Manager] Error adding tag:", error);
         alert("タグの追加に失敗しました。");
     }
 }
 
-function openEditTagModalById(tagId) { // This function opens the #editTagModal
+function openEditTagModalById(tagId) {
     const allTags = getAllTagsFuncCache();
     const tagToEdit = allTags.find(t => t.id === tagId);
     if (!tagToEdit) { alert("編集するタグのデータが見つかりません。"); return; }
@@ -174,16 +180,16 @@ function openEditTagModalById(tagId) { // This function opens the #editTagModal
         const cat = getAllCategoriesFuncCache().find(c => c.id === catId);
         return cat && cat.parentId;
     });
-    populateCategoryCheckboxesForTagFormInternal(DOMT.editingTagCategoriesCheckboxes, validCurrentCategoryIds); // Populates checkboxes in #editTagModal
+    _populateCategoryCheckboxesForTagFormInternal(DOMT.editingTagCategoriesCheckboxes, validCurrentCategoryIds);
 
-    openModal('editTagModal'); // From ui-helpers.js
+    openModal('editTagModal');
     if (DOMT.editingTagNameInput) DOMT.editingTagNameInput.focus();
 }
 
-async function saveTagEdit() { // For the #editTagModal
+async function saveTagEdit() {
     const docId = DOMT.editingTagDocIdInput.value;
     const newName = DOMT.editingTagNameInput.value.trim();
-    const newSelectedCategoryIdsForTag = getSelectedCheckboxValues(DOMT.editingTagCategoriesCheckboxes, `tagCategory_editTagModal`);
+    const newSelectedCategoryIdsForTag = getSelectedCheckboxValues(DOMT.editingTagCategoriesCheckboxes, 'tagCategory');
 
     if (!newName) { alert("タグ名は空にできません。"); return; }
 
@@ -192,9 +198,9 @@ async function saveTagEdit() { // For the #editTagModal
     if (originalTag && originalTag.name !== newName) {
         const q = query(collection(dbInstance, 'tags'), where('name', '==', newName));
         const existingQuery = await getDocs(q);
-        let conflict = false;
-        existingQuery.forEach(docSnap => { if (docSnap.id !== docId) conflict = true; });
-        if (conflict) { alert("編集後の名前が、他の既存タグと重複します。"); return; }
+        if (existingQuery.docs.some(docSnap => docSnap.id !== docId)) {
+            alert("編集後の名前が、他の既存タグと重複します。"); return;
+        }
     }
 
     try {
@@ -203,16 +209,16 @@ async function saveTagEdit() { // For the #editTagModal
             categoryIds: newSelectedCategoryIdsForTag,
             updatedAt: serverTimestamp()
         });
-        closeModal('editTagModal'); // From ui-helpers.js
+        closeModal('editTagModal');
         await refreshAllDataCallback();
     } catch (error) {
-        console.error("[Tag Edit] Error:", error);
+        console.error("[Tag Manager] Error saving tag edit:", error);
         alert("タグの更新に失敗しました。");
     }
 }
 
 async function deleteTag(docId, tagName) {
-    if (confirm(`タグ「${tagName}」を削除しますか？\nこのタグを使用している全てのアイテムからも自動的に解除されます。`)) {
+    if (confirm(`タグ「${tagName}」を削除しますか？\nこのタグを使用している全てのアイテムからも自動的に解除されます。\nこの操作は元に戻せません。`)) {
         try {
             const batch = writeBatch(dbInstance);
             const itemsToUpdateQuery = query(collection(dbInstance, 'items'), where('tags', 'array-contains', docId));
@@ -224,7 +230,7 @@ async function deleteTag(docId, tagName) {
             await batch.commit();
             await refreshAllDataCallback();
         } catch (error) {
-            console.error("[Tag Delete] Error:", error);
+            console.error("[Tag Manager] Error deleting tag:", error);
             alert("タグの削除または関連エンティティの更新に失敗しました。");
         }
     }
