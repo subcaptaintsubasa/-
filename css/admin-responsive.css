@@ -1,14 +1,40 @@
 /* css/admin-responsive.css */
 /* Responsive adjustments for the admin panel */
 
+@media (max-width: 992px) { /* Larger breakpoint for table adjustments */
+    #admin-content .container {
+        padding: 20px 25px;
+    }
+    #admin-content header h1 {
+        font-size: 1.5rem;
+    }
+    #admin-content h2 {
+        font-size: 1.6rem;
+    }
+    #admin-content h3 {
+        font-size: 1.3rem;
+    }
+    /* Make table slightly more compact on medium screens */
+    #itemsTable th,
+    #itemsTable td {
+        padding: 0.6rem 0.7rem;
+        font-size: 0.85rem;
+    }
+    #itemsTable img {
+        max-width: 45px;
+        max-height: 45px;
+    }
+}
+
+
 @media (max-width: 768px) {
     /* General Admin Layout */
     body#admin-page {
         font-size: 15px; /* Slightly smaller base font for mobile */
     }
     #admin-content .container {
-        margin: 15px;
-        padding: 20px 15px; /* Adjusted padding */
+        margin: 20px 15px; /* Adjusted margins */
+        padding: 20px 15px;
         width: auto;
     }
     #admin-content header {
@@ -17,7 +43,7 @@
         align-items: flex-start;
     }
     #admin-content header h1 {
-        font-size: 1.4rem; /* Adjusted */
+        font-size: 1.4rem;
         margin-bottom: 0.5rem;
     }
     #admin-content header div { /* User email and logout button container */
@@ -28,19 +54,23 @@
         margin-top: 0.5rem;
     }
     #logoutButton {
-        padding: 0.4rem 0.7rem; /* Adjusted */
+        padding: 0.4rem 0.7rem;
         font-size: 0.8rem;
     }
     #currentUserEmail {
         font-size: 0.8rem;
     }
     #admin-content h2 {
-        font-size: 1.5rem; /* Adjusted */
+        font-size: 1.5rem;
         padding-bottom: 0.5rem;
         margin-bottom: 1.25rem;
     }
+    #admin-content h2 .icon {
+        font-size: 0.9em; /* Adjust icon size relative to h2 */
+        margin-right: 8px;
+    }
     #admin-content h3 {
-        font-size: 1.25rem; /* Adjusted */
+        font-size: 1.25rem;
         margin-top: 1.25rem;
         margin-bottom: 1rem;
     }
@@ -48,7 +78,7 @@
 
     /* Admin Forms */
     .form-group label {
-        font-size: 0.9rem; /* Adjusted */
+        font-size: 0.9rem;
         margin-bottom: 0.4rem;
     }
     .form-group input[type="text"],
@@ -57,7 +87,7 @@
     .form-group input[type="file"],
     .form-group textarea,
     .form-group select {
-        font-size: 0.9rem; /* Adjusted */
+        font-size: 0.9rem;
         padding: 0.5rem 0.6rem;
     }
     .form-control-short {
@@ -66,9 +96,16 @@
         margin-right: 0;
         margin-bottom: 0.5rem;
     }
+    .form-control-short:last-child {
+        margin-bottom: 0;
+    }
+
     .inline-form {
        flex-direction: column;
        align-items: stretch;
+    }
+    .inline-form label {
+        margin-bottom: 5px;
     }
     .inline-form input[type="text"],
     .inline-form select {
@@ -97,14 +134,14 @@
     #admin-content button,
     #admin-content .button-like {
         font-size: 0.9rem;
-        padding: 0.5rem 1rem;
+        padding: 0.6rem 1rem; /* Keep buttons reasonably sized */
     }
 
 
     /* Effect Input Rows */
     .effect-input-row {
         flex-direction: column;
-        gap: 0.6rem; /* Adjusted */
+        gap: 0.6rem;
         align-items: stretch;
     }
     .effect-input-row select,
@@ -131,75 +168,86 @@
     /* Admin Lists and Tables */
     .list-container {
         padding: 0.5rem;
-        max-height: 280px; /* Adjusted */
+        max-height: 280px;
     }
     .list-item {
         flex-direction: column;
         align-items: flex-start;
-        padding: 0.5rem 0.6rem; /* Adjusted */
+        padding: 0.6rem; /* Adjusted padding */
     }
     .list-item > span {
         margin-bottom: 0.5rem;
-        font-size: 0.85rem; /* Adjusted */
+        font-size: 0.85rem;
     }
     .list-item div { /* Button container */
         width: 100%;
         display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem; /* Adjusted */
+        justify-content: flex-start; /* Align buttons to start for easier tap */
+        gap: 0.5rem;
     }
     .action-button {
-        padding: 0.35rem 0.6rem; /* Adjusted */
+        padding: 0.4rem 0.7rem; /* Slightly larger tap target */
         font-size: 0.8rem;
     }
 
 
     #itemsTable {
-        font-size: 0.8rem; /* Adjusted */
+        font-size: 0.8rem; /* Smaller font in table */
+        display: block; /* Allow horizontal scrolling for table */
+        overflow-x: auto;
+        white-space: nowrap; /* Prevent wrapping within cells that shouldn't wrap */
     }
     #itemsTable th,
     #itemsTable td {
-        padding: 0.5rem 0.4rem; /* Adjusted */
+        padding: 0.5rem 0.4rem;
+        white-space: normal; /* Allow content within cells to wrap if needed */
     }
-     #itemsTable th {
-        white-space: normal;
+     #itemsTable th { /* Header cells can still be nowrap if preferred */
+        white-space: nowrap;
         font-size: 0.75rem;
     }
     #itemsTable img {
-        max-width: 30px; /* Adjusted */
-        max-height: 30px;
+        max-width: 35px;
+        max-height: 35px;
     }
     #itemSearchAdmin {
         width: 100% !important;
         max-width: none;
-        font-size: 0.85rem; /* Adjusted */
+        font-size: 0.85rem;
+    }
+    #character-base-management .form-group #addNewCharBaseOptionButton {
+        margin-left: 0; /* Reset margin for stacking */
     }
 
+
     /* Admin Modals */
-    #admin-content div.modal { /* Apply to all admin modals */
-        padding: 10px !important; /* Less padding for the modal viewport itself on small screens */
+    #admin-content div.modal {
+        padding: 10px !important;
     }
     #admin-content div.modal div.modal-content {
-        width: 95%;
-        padding: 20px 15px; /* Adjusted padding */
-        max-height: 90vh;
+        width: calc(100% - 20px); /* Full width minus modal padding */
+        margin: 10px; /* Ensure it doesn't touch viewport edges */
+        padding: 20px 15px;
+        max-height: calc(100vh - 20px); /* Full height minus modal padding */
     }
     #admin-content div.modal div.modal-content h3 {
-        font-size: 1.3rem; /* Adjusted */
+        font-size: 1.3rem;
         margin-bottom: 1rem;
         padding-bottom: 0.75rem;
     }
     #admin-content div.modal span.close-button {
         top: 10px;
         right: 10px;
-        font-size: 28px; /* Keep close button reasonably sized */
+        font-size: 28px;
     }
     #admin-content div.modal div.modal-content button[type="submit"],
     #admin-content div.modal div.modal-content #saveCategoryEditButton,
-    /* ... other save buttons in modals ... */
+    #admin-content div.modal div.modal-content #saveTagEditButton,
+    #admin-content div.modal div.modal-content #saveEffectTypeEditButton,
+    #admin-content div.modal div.modal-content #saveEffectUnitEditButton,
     #admin-content div.modal div.modal-content #saveCharBaseOptionButton {
         width: 100%;
-        padding: 0.7rem; /* Adjusted */
+        padding: 0.7rem;
         font-size: 0.95rem;
     }
 
@@ -224,15 +272,16 @@
 
 @media (max-width: 480px) {
     body#admin-page {
-        font-size: 14px; /* Further reduce base font for very small screens */
+        font-size: 14px;
     }
     #admin-content header h1 {
         font-size: 1.2rem;
     }
     #admin-content .container {
-        padding: 15px 10px; /* Further reduce padding */
+        padding: 15px 10px;
     }
     #admin-content h2 { font-size: 1.3rem; }
+    #admin-content h2 .icon { font-size: 0.9em; margin-right: 6px;}
     #admin-content h3 { font-size: 1.1rem; }
 
     .form-group input[type="text"],
@@ -241,24 +290,37 @@
     .form-group input[type="file"],
     .form-group textarea,
     .form-group select {
-        font-size: 0.85rem; /* Further reduce font size */
+        font-size: 0.85rem;
+    }
+    #admin-content button,
+    #admin-content .button-like {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.8rem;
     }
     .list-item > span {
         font-size: 0.8rem;
     }
     #itemsTable {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
     }
-     #itemsTable td:last-child { /* Action column */
-        min-width: 60px; /* Adjusted */
+     #itemsTable td:last-child {
+        min-width: 60px;
     }
     .action-button {
-        font-size: 0.75rem; /* Smaller action buttons */
+        font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
+    }
+
+    #admin-content div.modal div.modal-content {
+        padding: 15px 10px;
+    }
+    #admin-content div.modal div.modal-content h3 {
+        font-size: 1.2rem;
     }
     #admin-content div.modal div.modal-content button[type="submit"],
     /* ... other save buttons ... */
     #admin-content div.modal div.modal-content #saveCharBaseOptionButton {
         font-size: 0.9rem;
+        padding: 0.6rem;
     }
 }
