@@ -1,123 +1,103 @@
 // js/admin-modules/ui-helpers.js
-// Contains helper functions for common UI tasks in the admin panel,
-// such as modal handling, populating selects, rendering list items, etc.
 
-const adminModals = {}; // Cache for admin modal elements: { modalId: element }
+const adminModals = {}; 
 
-/**
- * Initializes common UI helper functionalities.
- * Focuses on generic modal close behavior.
- */
 export function initUIHelpers() {
-    console.log("[ui-helpers] initUIHelpers called");
+    console.log("[ui-helpers] Initializing UI helpers for admin panel...");
 
-    // Generic modal close button handler
-    const closeButtons = document.querySelectorAll('body#admin-page .modal .close-button');
-    console.log("[ui-helpers] Close buttons found by querySelectorAll('body#admin-page .modal .close-button'):", closeButtons.length, closeButtons);
-    closeButtons.forEach((btn, index) => {
-        console.log(`[ui-helpers] Processing close button #${index}:`, btn);
-        const modalElementForListener = btn.closest('.modal');
-        if (modalElementForListener && modalElementForListener.id) {
-            if (!adminModals[modalElementForListener.id]) {
-                adminModals[modalElementForListener.id] = modalElementForListener;
-            }
-            // Ensure only one listener is attached, or manage via named functions if re-init is possible
-            btn.onclick = null; // Clear any previous inline or JS onclick
-            btn.addEventListener('click', (event) => {
-                const clickedButton = event.currentTarget;
-                const parentModal = clickedButton.closest('.modal');
-                console.log("[ui-helpers] Close button CLICKED:", clickedButton);
-                console.log("[ui-helpers] Parent modal found for click:", parentModal);
-                if (parentModal && parentModal.id) {
-                    closeModal(parentModal.id);
-                } else {
-                    console.error("[ui-helpers] Could not find parent .modal for clicked close button:", clickedButton);
-                }
-            });
-            console.log(`[ui-helpers] SUCCESSFULLY Added click listener to close button for modal '${modalElementForListener.id}'. Button:`, btn);
-        } else {
-            console.warn("[ui-helpers] Close button SKIPPED (no valid parent .modal with ID, or button not in modal). Button:", btn, "Found parent modal:", modalElementForListener);
-        }
-    });
+    const allModals = document.querySelectorAll('body#admin-page div.modal');
+    console.log(`[ui-helpers] Found ${allModals.length} modal elements.`);
 
-    // Generic modal overlay click handler
-    const allModalsForOverlay = document.querySelectorAll('body#admin-page .modal');
-    console.log("[ui-helpers] Modals found for overlay click by querySelectorAll('body#admin-page .modal'):", allModalsForOverlay.length, allModalsForOverlay);
-    allModalsForOverlay.forEach((modal, index) => {
-        console.log(`[ui-helpers] Processing modal #${index} for overlay click:`, modal);
-        if (modal.id) {
-            if (!adminModals[modal.id]) {
-                adminModals[modal.id] = modal;
-            }
-            modal.onclick = null; // Clear any previous inline or JS onclick for the modal itself
-            modal.addEventListener('click', function(event) {
-                if (event.target === this && this.id) { // Check if the click is directly on the modal overlay
-                    console.log(`[ui-helpers] Overlay click detected for modal '${this.id}'. Closing.`);
-                    closeModal(this.id);
-                }
-            });
-            console.log(`[ui-helpers] SUCCESSFULLY Added overlay click listener for modal '${modal.id}'.`);
-        } else {
-            console.warn("[ui-helpers] Modal element found without an ID, cannot attach overlay click listener:", modal);
+    allModals.forEach((modal) => { // Removed index as it's not used
+        if (!modal.id) {
+            console.warn(`[ui-helpers] Modal element found without an ID, skipping event listener attachment:`, modal);
+            return;
         }
+        // Ensure we don't double-cache or attach multiple listeners if re-initialized
+        if (adminModals[modal.id] && adminModals[modal.id].dataset.uiHelperInit === 'true') {
+            // console.log(`[ui-helpers] Modal ${modal.id} already initialized. Skipping.`);
+            return;
+        }
+        adminModals[modal.id] = modal; 
+        modal.dataset.uiHelperInit = 'true'; // Mark as initialized
+
+        const closeButton = modal.querySelector('.close-button');
+        if (closeButton) {
+            closeButton.addEventListener('click', (event) => {
+                console.log(`[ui-helpers] Close button clicked for modal: ${modal.id}`);
+                closeModal(modal.id); 
+                event.stopPropagation(); 
+            });
+        }
+        
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) { 
+                console.log(`[ui-helpers] Overlay click detected for modal '${modal.id}'. Closing.`);
+                closeModal(modal.id); 
+            }
+        });
     });
-    console.log("Admin UI Helpers Initialized with corrected selectors and listeners.");
+    console.log("[ui-helpers] UI Helper initialization complete. Cached modals:", Object.keys(adminModals).length);
 }
 
-/**
- * Opens a specific admin modal.
- * @param {string} modalId - The ID of the modal to open.
- */
 export function openModal(modalId) {
-    console.log(`[ui-helpers] openModal called for: ${modalId}`);
-    const modal = adminModals[modalId] || document.getElementById(modalId);
+    console.log(`[ui-helpers] Attempting to open modal: ${modalId}`);
+    const modal = adminModals[modalId] || document.getElementById(modalId); 
     if (modal) {
-        console.log(`[ui-helpers] Modal element to open:`, modal);
-        console.log(`[ui-helpers] Current classes before add: ${modal.className}`);
-        modal.classList.add('active-modal');
-        console.log(`[ui-helpers] Current classes after add: ${modal.className}`);
-        // Clear inline display:none if it was set in HTML, so class rule can take over
-        if (modal.style.display === 'none') { // Check only if style.display is explicitly 'none'
-            modal.style.display = ''; // Remove the inline style
-        }
-        if (!adminModals[modalId]) adminModals[modalId] = modal; // Cache if opened directly
+        modal.style.display = 'flex'; 
+        // Add class after a very short delay to ensure transition happens
+        setTimeout(() => {
+            modal.classList.add('active-modal');
+        }, 10); // Small delay, e.g., 10ms
+        
+        if (!adminModals[modalId]) adminModals[modalId] = modal; 
+        console.log(`[ui-helpers] Modal '${modalId}' opened and class 'active-modal' added.`);
     } else {
-        console.warn(`Modal with ID "${modalId}" not found.`);
+        console.warn(`[ui-helpers] Modal with ID "${modalId}" not found for opening.`);
     }
 }
 
-/**
- * Closes a specific admin modal.
- * @param {string} modalId - The ID of the modal to close.
- */
 export function closeModal(modalId) {
-    console.log(`[ui-helpers] closeModal called for: ${modalId}`);
-    const modal = adminModals[modalId];
+    console.log(`[ui-helpers] Attempting to close modal: ${modalId}`);
+    const modal = adminModals[modalId] || document.getElementById(modalId); // Try cache first, then by ID
     if (modal) {
-        console.log(`[ui-helpers] Modal to close:`, modal);
-        console.log(`[ui-helpers] Classes before remove: ${modal.className}`);
         modal.classList.remove('active-modal');
-        console.log(`[ui-helpers] Classes after remove: ${modal.className}`);
-        // CSS rule for .modal (without .active-modal) should handle display:none
+        // Listen for transition end to set display to none, if transitions are used for opacity/transform
+        // Otherwise, set display to none directly or after a short timeout to allow fade-out
+        // For simplicity here, direct hide or rely on CSS for .modal { display: none; }
+        // If using a fade-out animation on .active-modal removal, use transitionend:
+        const handleTransitionEnd = () => {
+            if (!modal.classList.contains('active-modal')) { // Double check if it's still meant to be hidden
+                 modal.style.display = 'none';
+            }
+            modal.removeEventListener('transitionend', handleTransitionEnd);
+        };
+        // Check if there's a transition duration set in CSS for the modal opacity or transform
+        const modalTransitionDuration = parseFloat(getComputedStyle(modal).transitionDuration) * 1000;
+        if (modalTransitionDuration > 0) {
+            modal.addEventListener('transitionend', handleTransitionEnd);
+        } else {
+             modal.style.display = 'none'; // No transition, hide immediately
+        }
+
+        console.log(`[ui-helpers] Modal '${modalId}' closed and class 'active-modal' removed.`);
+
+        const event = new CustomEvent('adminModalClosed', { detail: { modalId: modalId } });
+        document.dispatchEvent(event);
+
     } else {
-        console.warn(`Modal with ID "${modalId}" not found or not cached for closing.`);
+        console.warn(`[ui-helpers] Modal with ID "${modalId}" not found for closing.`);
     }
 }
 
-/**
- * Populates a select element with options.
- * @param {HTMLSelectElement | null} selectElement - The select DOM element.
- * @param {Array<Object>} optionsArray - Array of { value: string, text: string } objects.
- * @param {string | null} [defaultText='選択してください...'] - Text for the default empty option. Pass null to omit.
- * @param {string} [selectedValue=''] - The value to pre-select.
- */
 export function populateSelect(selectElement, optionsArray, defaultText = '選択してください...', selectedValue = '') {
     if (!selectElement) {
+        console.warn("[ui-helpers] populateSelect: selectElement is null for defaultText:", defaultText);
         return;
     }
-    const currentValue = selectElement.value || selectedValue;
+    const currentValue = selectElement.value || selectedValue; // Preserve current selection if possible
 
-    selectElement.innerHTML = '';
+    selectElement.innerHTML = ''; // Clear existing options
     if (defaultText !== null) {
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
@@ -126,6 +106,7 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
     }
 
     if (!optionsArray || !Array.isArray(optionsArray)) {
+        console.warn("[ui-helpers] populateSelect: optionsArray is invalid for selectElement:", selectElement.id);
         return;
     }
 
@@ -136,32 +117,25 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
         selectElement.appendChild(option);
     });
 
+    // Try to re-select the previous value if it's still valid
     if (Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
         selectElement.value = currentValue;
-    } else if (defaultText !== null) {
+    } else if (defaultText !== null) { // Fallback to default if current value is no longer valid
         selectElement.value = '';
-    } else if (optionsArray.length > 0 && selectElement.options[0]) {
+    } else if (optionsArray.length > 0 && selectElement.options[0]) { // Fallback to first actual option if no default
         selectElement.value = selectElement.options[0].value;
     }
 }
 
-
-/**
- * Creates and populates a container with checkbox items.
- * @param {HTMLElement | null} containerElement - The container to populate.
- * @param {Array<Object>} items - Array of { id: string, name: string, parentName?: string } objects for checkboxes.
- * @param {Array<string>} selectedIds - Array of IDs that should be checked.
- * @param {string} checkboxName - The name attribute for the checkboxes.
- * @param {string} idPrefix - A prefix for generating unique checkbox IDs.
- */
 export function populateCheckboxGroup(containerElement, items, selectedIds = [], checkboxName, idPrefix = 'cb-') {
     if (!containerElement) {
+        console.warn("[ui-helpers] populateCheckboxGroup: containerElement is null for checkboxName:", checkboxName);
         return;
     }
     containerElement.innerHTML = '';
 
     if (!items || items.length === 0) {
-        containerElement.innerHTML = '<p>利用可能な選択肢がありません。</p>';
+        containerElement.innerHTML = '<p style="font-size:0.9em; color: #6c757d;">利用可能な選択肢がありません。</p>';
         return;
     }
 
@@ -171,9 +145,14 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
         const checkboxWrapper = document.createElement('div');
         checkboxWrapper.classList.add('checkbox-item');
 
-        let labelText = item.name;
-        if (item.parentName) {
-            labelText += ` (親: ${item.parentName})`;
+        let labelContent = [];
+        const mainLabelText = document.createTextNode(item.name);
+        labelContent.push(mainLabelText);
+
+        if (item.parentName) { 
+            const small = document.createElement('small');
+            small.textContent = ` (親: ${item.parentName})`;
+            labelContent.push(small);
         }
 
         const input = document.createElement('input');
@@ -187,131 +166,93 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
 
         const label = document.createElement('label');
         label.htmlFor = checkboxId;
-        label.textContent = labelText;
-
+        labelContent.forEach(node => label.appendChild(node));
+        
         checkboxWrapper.appendChild(input);
         checkboxWrapper.appendChild(label);
         containerElement.appendChild(checkboxWrapper);
     });
 }
 
-/**
- * Creates and populates a container with selectable tag-like buttons.
- * @param {HTMLElement | null} containerElement - The container to populate.
- * @param {Array<Object>} tags - Array of { id: string, name: string } tag objects.
- * @param {Array<string>} activeTagIds - Array of tag IDs that should be marked active.
- */
 export function populateTagButtonSelector(containerElement, tags, activeTagIds = []) {
     if (!containerElement) {
+        console.warn("[ui-helpers] populateTagButtonSelector: containerElement is null.");
         return;
     }
     containerElement.innerHTML = '';
 
     if (!tags || tags.length === 0) {
-        containerElement.innerHTML = '<p>利用可能なタグがありません。</p>';
+        containerElement.innerHTML = '<p style="font-size:0.9em; color: #6c757d;">利用可能なタグがありません。</p>';
         return;
     }
 
     tags.forEach(tag => {
-        const button = document.createElement('div');
-        button.className = 'tag-filter admin-tag-select';
+        const button = document.createElement('button'); 
+        button.type = 'button'; 
+        button.className = 'tag-filter admin-tag-select'; 
         button.textContent = tag.name;
         button.dataset.tagId = tag.id;
         if (activeTagIds.includes(tag.id)) {
             button.classList.add('active');
         }
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault(); 
             button.classList.toggle('active');
         });
         containerElement.appendChild(button);
     });
 }
 
-
-/**
- * Gets an array of selected values from a group of checkboxes.
- * @param {HTMLElement | null} containerElement - The container holding the checkboxes.
- * @param {string} checkboxName - The name attribute of the checkboxes.
- * @returns {Array<string>} - Array of values of checked checkboxes.
- */
 export function getSelectedCheckboxValues(containerElement, checkboxName) {
     if (!containerElement) return [];
     return Array.from(containerElement.querySelectorAll(`input[type="checkbox"][name="${checkboxName}"]:checked`))
         .map(cb => cb.value);
 }
 
-/**
- * Gets an array of selected tag IDs from a tag button selector.
- * @param {HTMLElement | null} containerElement - The container holding the tag buttons.
- * @returns {Array<string>} - Array of tag IDs of active tag buttons.
- */
 export function getSelectedTagButtonValues(containerElement) {
     if (!containerElement) return [];
     return Array.from(containerElement.querySelectorAll('.tag-filter.admin-tag-select.active'))
         .map(btn => btn.dataset.tagId);
 }
 
-
-/**
- * Clears form fields within a given form or container element.
- * @param {HTMLElement | null} formElement - The form or container element.
- */
 export function clearForm(formElement) {
-    if (!formElement) {
-        return;
-    }
-
-    if (formElement.tagName === 'FORM') {
+    if (!formElement) return;
+    if (formElement.tagName === 'FORM' && typeof formElement.reset === 'function') {
         formElement.reset();
-    } else {
+    } else { 
         const inputs = formElement.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
             const type = input.type ? input.type.toLowerCase() : input.tagName.toLowerCase();
             switch (type) {
-                case 'text':
-                case 'password':
-                case 'textarea':
-                case 'hidden':
-                case 'number':
-                case 'email':
-                case 'url':
-                case 'search':
-                case 'tel':
-                    input.value = '';
-                    break;
-                case 'checkbox':
-                case 'radio':
-                    input.checked = false;
-                    break;
-                case 'select-one':
-                case 'select-multiple':
-                case 'select':
+                case 'text': case 'password': case 'textarea': case 'hidden':
+                case 'number': case 'email': case 'url': case 'search': case 'tel':
+                    input.value = ''; break;
+                case 'checkbox': case 'radio':
+                    input.checked = false; break;
+                case 'select-one': case 'select-multiple': case 'select':
                     input.selectedIndex = -1;
-                    if (input.options.length > 0 && input.options[0].value === "") {
-                        input.selectedIndex = 0;
-                    }
+                    if (input.options.length > 0 && input.options[0].value === "") input.selectedIndex = 0;
                     break;
-                case 'file':
-                    input.value = null;
-                    break;
-                default:
-                    break;
+                case 'file': input.value = null; break;
             }
-            if (input.tagName === 'SELECT') {
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-            }
+            if (input.tagName === 'SELECT') input.dispatchEvent(new Event('change', { bubbles: true }));
         });
     }
-    formElement.querySelectorAll('.active[data-tag-id], .active[data-parent-id]').forEach(activeEl => {
+    formElement.querySelectorAll('.active[data-tag-id], .active[data-parent-id], .category-select-button.active').forEach(activeEl => {
         activeEl.classList.remove('active');
     });
+     // Clear specific preview images or lists if needed, e.g., item image preview
+    const itemImagePreview = formElement.querySelector('#itemImagePreview'); // Assuming formElement can be the itemForm
+    if (itemImagePreview) {
+        itemImagePreview.style.display = 'none';
+        itemImagePreview.src = '#';
+    }
+    const currentEffectsList = formElement.querySelector('#currentEffectsList'); // Assuming formElement can be the itemForm
+    if (currentEffectsList) {
+        currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
+    }
 }
 
-/**
- * Generates a simple unique ID. Not for cryptographic purposes.
- * @param {string} [prefix='uid-'] - Optional prefix for the ID.
- * @returns {string}
- */
 function simpleUID(prefix = 'uid-') {
     return prefix + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
 }
