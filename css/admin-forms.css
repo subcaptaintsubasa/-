@@ -69,27 +69,33 @@
     margin-top: 0.25rem;
     margin-bottom: 0.75rem;
 }
-.category-select-button {
-    padding: 0.4rem 0.9rem; /* Adjusted padding */
-    background-color: #f8f9fa; /* ★★★ デフォルトの背景色: 薄いグレー ★★★ */
-    border: 1px solid #dee2e6;   /* ★★★ デフォルトのボーダー: やや薄いグレー ★★★ */
-    border-radius: 50px; /* More pill-like */
+
+/* ★★★ セレクタの具体性を上げて、デフォルトスタイルが優先されるように変更 ★★★ */
+.category-button-group.admin .category-select-button { /* 親クラスも指定して具体性を上げる */
+    padding: 0.4rem 0.9rem;
+    background-color: #f8f9fa; /* 薄いグレーをデフォルトに */
+    border: 1px solid #dee2e6;   /* 薄いグレーのボーダー */
+    border-radius: 50px;
     cursor: pointer;
-    font-size: 0.875rem; /* Slightly smaller */
+    font-size: 0.875rem;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
-    color: #495057; /* ★★★ デフォルトの文字色: やや濃いグレー ★★★ */
+    color: #495057; /* やや濃いグレーの文字色 */
 }
-.category-select-button:hover {
-    background-color: #e9ecef; /* ホバー時の背景色: 少し濃いグレー */
-    border-color: #ced4da;   /* ホバー時のボーダー色 */
-    color: #343a40;          /* ホバー時の文字色 */
+
+/* ★★★ ホバー時のスタイルも具体性を上げる ★★★ */
+.category-button-group.admin .category-select-button:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    color: #343a40;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
-.category-select-button.active {
-    background-color: #007bff; /* アクティブ時の背景色 (プライマリブルー) */
+
+/* ★★★ アクティブ時のスタイルも具体性を上げる ★★★ */
+.category-button-group.admin .category-select-button.active {
+    background-color: #007bff; /* アクティブ時の背景色 */
     color: white;               /* アクティブ時の文字色 */
     border-color: #007bff;      /* ボーダー色も背景色と合わせる */
-    font-weight: 600;           /* アクティブなボタンの文字を少し太く */
+    font-weight: 600;
 }
 
 /* Radio button groups */
@@ -121,9 +127,13 @@
 }
 
 /* General Button Styles in Admin Forms */
+/* .admin-management-modal button:not(.close-button) のような指定で、
+   デフォルトのボタンスタイルが .category-select-button に影響しないように注意が必要。
+   .category-select-button のセレクタの具体性を上げたので、通常は問題ないはず。
+*/
 #admin-content button,
 #admin-content .button-like,
-.admin-management-modal button:not(.close-button) {
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter) { /* .category-select-button と .tag-filter を除外 */
     background-color: #007bff;
     color: white;
     padding: 0.6rem 1.1rem;
@@ -143,13 +153,13 @@
 }
 #admin-content button:hover,
 #admin-content .button-like:hover,
-.admin-management-modal button:not(.close-button):hover {
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):hover {
     background-color: #0069d9;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 #admin-content button:active,
 #admin-content .button-like:active,
-.admin-management-modal button:not(.close-button):active {
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):active {
     background-color: #005cbf;
 }
 #admin-content button:last-child,
@@ -171,19 +181,19 @@
 #admin-content button[type="button"],
 #admin-content #clearFormButton,
 .button-like.secondary,
-.admin-management-modal button.secondary:not(.close-button) {
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter) {
     background-color: #6c757d;
 }
 #admin-content button[type="button"]:hover,
 #admin-content #clearFormButton:hover,
 .button-like.secondary:hover,
-.admin-management-modal button.secondary:not(.close-button):hover {
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):hover {
     background-color: #5a6268;
 }
 #admin-content button[type="button"]:active,
 #admin-content #clearFormButton:active,
 .button-like.secondary:active,
-.admin-management-modal button.secondary:not(.close-button):active {
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):active {
     background-color: #545b62;
 }
 
