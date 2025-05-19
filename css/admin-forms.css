@@ -117,7 +117,8 @@
 
 /* General Button Styles in Admin Forms */
 #admin-content button,
-#admin-content .button-like {
+#admin-content .button-like,
+.admin-management-modal button:not(.close-button) { /* Apply to buttons within management modals too */
     background-color: #007bff;
     color: white;
     padding: 0.6rem 1.1rem; /* Adjusted padding */
@@ -136,20 +137,24 @@
     text-align: center; /* Center text within button */
 }
 #admin-content button:hover,
-#admin-content .button-like:hover {
+#admin-content .button-like:hover,
+.admin-management-modal button:not(.close-button):hover {
     background-color: #0069d9; /* Slightly darker hover */
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 #admin-content button:active,
-#admin-content .button-like:active {
+#admin-content .button-like:active,
+.admin-management-modal button:not(.close-button):active {
     background-color: #005cbf; /* Active state */
 }
 #admin-content button:last-child,
-#admin-content .button-like:last-child {
+#admin-content .button-like:last-child,
+.admin-management-modal .modal-actions button:last-child { /* Specific to modal actions if needed */
     margin-right: 0;
 }
 #admin-content button:disabled,
-#admin-content .button-like.disabled {
+#admin-content .button-like.disabled,
+.admin-management-modal button:disabled {
     background-color: #6c757d;
     cursor: not-allowed;
     opacity: 0.65;
@@ -158,24 +163,27 @@
 
 
 /* Secondary/Utility Buttons */
-#admin-content button[type="button"], /* Generic type="button" */
+#admin-content button[type="button"], 
 #admin-content #clearFormButton,
-.button-like.secondary {
+.button-like.secondary,
+.admin-management-modal button.secondary:not(.close-button) { /* For secondary buttons in modals */
     background-color: #6c757d;
 }
 #admin-content button[type="button"]:hover,
 #admin-content #clearFormButton:hover,
-.button-like.secondary:hover {
+.button-like.secondary:hover,
+.admin-management-modal button.secondary:not(.close-button):hover {
     background-color: #5a6268;
 }
 #admin-content button[type="button"]:active,
 #admin-content #clearFormButton:active,
-.button-like.secondary:active {
+.button-like.secondary:active,
+.admin-management-modal button.secondary:not(.close-button):active {
     background-color: #545b62;
 }
 
 
-/* Action buttons (Edit, Delete) */
+/* Action buttons (Edit, Delete) - these are usually small buttons in lists or modal footers */
 .action-button {
     padding: 0.3rem 0.7rem; /* Adjusted padding */
     font-size: 0.85rem;
@@ -185,11 +193,11 @@
     border-radius: 0.2rem; /* Slightly smaller radius */
     line-height: 1.4;
     text-decoration: none;
-    display: inline-flex; /* For icon alignment if used inside */
+    display: inline-flex; 
     align-items: center;
     justify-content: center;
 }
-.action-button .icon { /* If icons are used inside action buttons */
+.action-button .icon { 
     margin-right: 0.3em;
     font-size: 0.9em;
 }
@@ -200,14 +208,17 @@
 .action-button.edit:hover, .edit-item:hover, .edit-category:hover, .edit-tag:hover, .edit-effect-type:hover, .edit-effect-unit:hover, .edit-char-base-option:hover {
     background-color: #218838 !important;
 }
-.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-unit, .delete-char-base-option, .delete-effect-from-list {
+/* General delete button style, can be used for .button-like.delete as well */
+.action-button.delete, .delete-item, .delete-category, .delete-tag, .delete-effect-type, .delete-effect-unit, .delete-char-base-option, .delete-effect-from-list,
+.button-like.delete { /* Style for larger delete buttons in modal footers */
     background-color: #dc3545 !important;
 }
-.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-unit:hover, .delete-char-base-option:hover, .delete-effect-from-list:hover {
+.action-button.delete:hover, .delete-item:hover, .delete-category:hover, .delete-tag:hover, .delete-effect-type:hover, .delete-effect-unit:hover, .delete-char-base-option:hover, .delete-effect-from-list:hover,
+.button-like.delete:hover {
     background-color: #c82333 !important;
 }
-.delete-effect-from-list {
-    padding: 0.2rem 0.5rem; /* Smaller padding */
+.delete-effect-from-list { /* Specific small delete button */
+    padding: 0.2rem 0.5rem; 
     font-size: 0.75rem;
     margin-left: 0.5rem;
 }
@@ -287,22 +298,33 @@
 }
 
 /* Character Base Management specific form layout */
-#character-base-management .form-group {
+#characterBaseManagementModal .form-group { /* Target within modal */
     display: flex;
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
 }
-#character-base-management .form-group label {
+#characterBaseManagementModal .form-group label {
     margin-bottom: 0;
     flex-shrink: 0;
 }
-#charBaseTypeSelect {
+#characterBaseManagementModal #charBaseTypeSelect {
     flex-grow: 1;
-    min-width: 180px; /* Adjusted */
-    max-width: 320px; /* Adjusted */
+    min-width: 180px; 
+    max-width: 320px; 
 }
-#addNewCharBaseOptionButton {
+#characterBaseManagementModal #addNewCharBaseOptionButton {
     margin-left: auto;
     flex-shrink: 0;
+}
+
+/* ★★★ Search bar style for lists within modals ★★★ */
+.list-search-bar {
+    margin-bottom: 0.75rem; /* Space before the list container */
+}
+.list-search-bar input[type="text"] {
+    /* Uses general .form-group input[type="text"] styles */
+    /* Optionally, make it slightly less prominent than main form inputs */
+    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
 }
