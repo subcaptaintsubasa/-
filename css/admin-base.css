@@ -9,69 +9,30 @@ body#admin-page {
     font-size: 16px;
 }
 
-/* Password Prompt Overlay */
+/* Password Prompt Overlay (変更なし) */
 #password-prompt {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(33, 37, 41, 0.9);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    color: white;
-    padding: 20px;
-    box-sizing: border-box;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(33, 37, 41, 0.9); display: flex; flex-direction: column;
+    justify-content: center; align-items: center; z-index: 10000;
+    color: white; padding: 20px; box-sizing: border-box;
 }
-#password-prompt h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: white;
-    text-align: center;
-    font-weight: 500;
-}
-#password-prompt input[type="password"],
-#password-prompt input[type="email"] {
-    padding: 12px 15px;
-    margin-bottom: 15px;
-    font-size: 1rem;
-    border: 1px solid #ced4da;
-    border-radius: 0.25rem;
-    width: 100%;
-    max-width: 320px;
-    box-sizing: border-box;
+#password-prompt h2 { margin-top: 0; margin-bottom: 20px; color: white; text-align: center; font-weight: 500; }
+#password-prompt input[type="password"], #password-prompt input[type="email"] {
+    padding: 12px 15px; margin-bottom: 15px; font-size: 1rem; border: 1px solid #ced4da;
+    border-radius: 0.25rem; width: 100%; max-width: 320px; box-sizing: border-box;
 }
 #password-prompt button {
-    padding: 12px 25px;
-    font-size: 1rem;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
+    padding: 12px 25px; font-size: 1rem; background-color: #007bff; color: white;
+    border: none; border-radius: 0.25rem; cursor: pointer; transition: background-color 0.2s ease-in-out;
 }
-#password-prompt button:hover {
-    background-color: #0056b3;
-}
+#password-prompt button:hover { background-color: #0056b3; }
 .error-message {
-    color: #f8d7da;
-    background-color: #721c24;
-    padding: 8px 12px;
-    border-radius: 0.25rem;
-    font-weight: 500;
-    margin-top: 15px;
-    text-align: center;
-    max-width: 320px;
-    width: 100%;
-    box-sizing: border-box;
+    color: #f8d7da; background-color: #721c24; padding: 8px 12px; border-radius: 0.25rem;
+    font-weight: 500; margin-top: 15px; text-align: center; max-width: 320px; width: 100%; box-sizing: border-box;
 }
 
 /* Admin Header - Styled like user-side header */
-.site-header.admin-header-override {
+.site-header.admin-header-override { /* HTML側で <header class="site-header admin-header-override"> */
     background-color: #343a40;
     color: white;
     padding: 0 20px;
@@ -81,31 +42,34 @@ body#admin-page {
     position: sticky;
     top: 0;
     z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
-.site-header.admin-header-override .header-content {
+.site-header.admin-header-override .header-content { /* HTML側で <div class="header-content"> */
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* Title left, (User Info + Logout) center-ish, Hamburger right */
     align-items: center;
     width: 100%;
 }
-.site-header.admin-header-override .site-title {
+.site-header.admin-header-override .site-title { /* HTML側で <h1 class="site-title"> */
     margin: 0;
-    font-size: 1.6rem;
-    font-weight: 600;
+    font-size: 1.5em; /* User title size */
+    font-weight: bold;
     color: white;
+    flex-shrink: 0; /* Prevent title from shrinking */
 }
-/* Login info and logout button group within header-content */
-.site-header.admin-header-override .header-content > div {
+/* Login info and logout button group */
+.site-header.admin-header-override .header-content > div:not(.site-title):not(.hamburger-button) { /* Targets the div for user info */
     display: flex;
     align-items: center;
-    margin-left: auto; /* Pushes this group before hamburger if hamburger is last */
+    margin-left: auto; /* Pushes this group towards the center/right */
     margin-right: 1rem; /* Space before hamburger */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 .site-header.admin-header-override .header-content > div #currentUserEmail {
     font-size: 0.85rem;
-    color: #f8f9fa; /* Lighter text on dark header */
+    color: #f8f9fa;
     margin-right: 1rem;
+    white-space: nowrap; /* Prevent email from wrapping */
 }
 .site-header.admin-header-override .header-content > div #logoutButton {
     background-color: #6c757d;
@@ -116,50 +80,53 @@ body#admin-page {
     border-radius: 0.25rem;
     cursor: pointer;
     transition: background-color 0.2s ease-in-out;
+    white-space: nowrap;
 }
 .site-header.admin-header-override .header-content > div #logoutButton:hover {
     background-color: #5a6268;
 }
-.hamburger-button.admin-hamburger-override { /* General hamburger styles are in user's base.css or here */
-    font-size: 1.7rem;
-    background: transparent;
+.hamburger-button.admin-hamburger-override { /* HTML側で <button id="adminHamburgerButton" class="hamburger-button admin-hamburger-override"> */
+    font-size: 1.8em; /* User hamburger size */
+    background: none;
     border: none;
-    color: white; /* Hamburger color for dark header */
+    color: white;
     cursor: pointer;
-    padding: 10px 12px;
+    padding: 10px;
     line-height: 1;
     border-radius: 4px;
     transition: background-color 0.2s ease-in-out;
+    /* margin-left: auto; /* Removed as it's now at the end of flex container */
+    flex-shrink: 0;
 }
 .hamburger-button.admin-hamburger-override:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
 
-/* Admin Side Navigation Panel (User-side like, right-aligned) */
-.side-navigation.admin-side-nav-override {
+/* Admin Side Navigation Panel - User-side like, right-aligned */
+.side-navigation.admin-side-nav-override { /* HTML側で <nav id="adminSideNav" class="side-navigation admin-nav-right admin-side-nav-override"> */
     height: 100%;
     width: 0;
     position: fixed;
     z-index: 10002;
     top: 0;
     right: 0; /* Positioned on the right */
-    left: auto; /* Ensure left is not set, to avoid conflict */
-    background-color: #222; /* Dark background like user nav */
+    left: auto;
+    background-color: #222; /* User nav background */
     overflow-x: hidden;
     transition: width 0.3s ease-in-out;
     padding-top: 60px; /* Match header height */
     box-shadow: -3px 0 8px rgba(0,0,0,0.3); /* Shadow on its left */
 }
 .side-navigation.admin-side-nav-override.open {
-    width: 260px; /* Width when open */
+    width: 260px; /* User nav width */
 }
 .side-navigation.admin-side-nav-override ul {
     list-style: none;
     padding: 0;
     margin: 0;
 }
-.side-navigation.admin-side-nav-override li .nav-button.admin-nav-button-override {
+.side-navigation.admin-side-nav-override li .nav-button.admin-nav-button-override { /* HTML側で <button class="nav-button admin-nav-button-override"> */
     padding: 15px 20px;
     text-decoration: none;
     font-size: 1.1em;
@@ -177,13 +144,20 @@ body#admin-page {
     border-bottom: none;
 }
 .side-navigation.admin-side-nav-override li .nav-button.admin-nav-button-override:hover {
-    background-color: #444; /* Hover color like user nav */
+    background-color: #444; /* User nav hover */
 }
-.close-nav-button.admin-close-nav-override { /* Close button for the admin nav */
+/* Active nav item styling removed as per request */
+/*
+.side-navigation.admin-side-nav-override li .nav-button.admin-nav-button-override.active-nav-item {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+}
+*/
+.close-nav-button.admin-close-nav-override { /* HTML側で <button id="adminCloseNavButton" class="close-nav-button admin-close-nav-override"> */
     position: absolute;
     top: 15px;
-    /* right: 25px; Original for user nav (if it's on right) */
-    left: 25px; /* If nav is on right, close button might be on its left edge */
+    right: 25px; /* User nav (right) close button position */
     font-size: 2em;
     background: none;
     border: none;
@@ -210,13 +184,14 @@ body#admin-page {
     margin-top: calc(60px + 30px); /* Header height + desired top margin */
 }
 
-#admin-content section {
-    padding-top: 0;
+#admin-content section { /* General style for sections, including item-management */
+    padding-top: 0; /* Titles within sections/modals provide top padding */
     padding-bottom: 15px;
     margin-bottom: 0;
 }
+/* Item management specific padding if directly in container and needs more top space */
 #admin-content .container.admin-main-container > #item-management {
-    padding-top: 20px; /* Specific padding for item-management if directly in container */
+    padding-top: 20px;
 }
 
 
@@ -257,7 +232,7 @@ body#admin-page {
 }
 
 #admin-content h2 .icon {
-    font-size: 1.1em;
+    font-size: 1.1em; /* Relative to h2 */
     margin-right: 12px;
     color: #007bff;
 }
