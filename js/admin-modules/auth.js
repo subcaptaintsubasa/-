@@ -3,7 +3,7 @@
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 
-const DOMA = { // DOM elements for Auth
+const DOMA = {
     passwordPrompt: null,
     adminContent: null,
     loginButton: null,
@@ -11,17 +11,16 @@ const DOMA = { // DOM elements for Auth
     adminPasswordInput: null,
     passwordError: null,
     logoutButton: null,
-    // currentUserEmailSpan: null, // Managed by callback now
 };
 
-let onLoginCallback = () => {};
-let onLogoutCallback = () => {};
+let onLoginCallback = (user) => { console.warn("onLoginCallback not set in auth.js", user);};
+let onLogoutCallback = () => { console.warn("onLogoutCallback not set in auth.js");};
 let firebaseAuthInstance = null;
 
 export function initAuth(authInstance, onLogin, onLogout) {
     firebaseAuthInstance = authInstance;
-    onLoginCallback = onLogin || (() => {});
-    onLogoutCallback = onLogout || (() => {});
+    if (typeof onLogin === 'function') onLoginCallback = onLogin;
+    if (typeof onLogout === 'function') onLogoutCallback = onLogout;
 
     DOMA.passwordPrompt = document.getElementById('password-prompt');
     DOMA.adminContent = document.getElementById('admin-content');
@@ -30,36 +29,36 @@ export function initAuth(authInstance, onLogin, onLogout) {
     DOMA.adminPasswordInput = document.getElementById('adminPasswordInput');
     DOMA.passwordError = document.getElementById('passwordError');
     DOMA.logoutButton = document.getElementById('logoutButton');
-    // DOMA.currentUserEmailSpan = document.getElementById('currentUserEmail');
 
     if (DOMA.loginButton) {
         DOMA.loginButton.addEventListener('click', handleLogin);
+    } else {
+        console.error("Login button not found in auth.js");
     }
 
     if (DOMA.logoutButton) {
         DOMA.logoutButton.addEventListener('click', handleLogout);
+    } else {
+        console.error("Logout button not found in auth.js");
     }
 
-    // Listen for auth state changes
     onAuthStateChanged(firebaseAuthInstance, (user) => {
         if (user) {
-            // User is signed in
-            // if (DOMA.passwordPrompt) DOMA.passwordPrompt.style.display = 'none';
-            // if (DOMA.adminContent) DOMA.adminContent.style.display = 'block';
-            // if (DOMA.currentUserEmailSpan) DOMA.currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
+            console.log("[Auth] User is signed in:", user.email);
             onLoginCallback(user);
         } else {
-            // User is signed out
-            // if (DOMA.passwordPrompt) DOMA.passwordPrompt.style.display = 'flex';
-            // if (DOMA.adminContent) DOMA.adminContent.style.display = 'none';
-            // if (DOMA.currentUserEmailSpan) DOMA.currentUserEmailSpan.textContent = '';
+            console.log("[Auth] User is signed out.");
             onLogoutCallback();
         }
     });
+    console.log("[Auth] Firebase Auth initialized.");
 }
 
 function handleLogin() {
-    if (!DOMA.adminEmailInput || !DOMA.adminPasswordInput || !DOMA.passwordError) return;
+    if (!DOMA.adminEmailInput || !DOMA.adminPasswordInput || !DOMA.passwordError) {
+        console.error("Auth form elements not found for login.");
+        return;
+    }
 
     const email = DOMA.adminEmailInput.value;
     const password = DOMA.adminPasswordInput.value;
@@ -68,17 +67,15 @@ function handleLogin() {
         DOMA.passwordError.textContent = 'メールアドレスとパスワードを入力してください。';
         return;
     }
-    DOMA.passwordError.textContent = ''; // Clear previous errors
+    DOMA.passwordError.textContent = '';
 
     signInWithEmailAndPassword(firebaseAuthInstance, email, password)
         .then((userCredential) => {
-            // Signed in
-            // const user = userCredential.user;
-            // onAuthStateChanged will handle UI update via onLoginCallback
-            console.log("Admin login successful");
+            // Signed in - onAuthStateChanged will trigger onLoginCallback
+            console.log("[Auth] Admin login successful for:", userCredential.user.email);
         })
         .catch((error) => {
-            console.error("Admin login error:", error);
+            console.error("[Auth] Admin login error:", error.code, error.message);
             let errorMessage = "ログインエラーが発生しました。";
             switch (error.code) {
                 case 'auth/invalid-email':
@@ -86,30 +83,31 @@ function handleLogin() {
                     break;
                 case 'auth/user-not-found':
                 case 'auth/wrong-password':
-                case 'auth/invalid-credential': // For v9+ combined error
+                case 'auth/invalid-credential': // v9+ uses this for wrong password or user not found
                     errorMessage = "メールアドレスまたはパスワードが間違っています。";
                     break;
+                case 'auth/too-many-requests':
+                    errorMessage = "試行回数が多すぎます。後でもう一度お試しください。";
+                    break;
                 default:
-                    errorMessage = `ログインエラー: ${error.message}`;
+                    errorMessage = `ログインエラー (${error.code})`;
             }
-            if (DOMA.passwordError) DOMA.passwordError.textContent = errorMessage;
+            DOMA.passwordError.textContent = errorMessage;
         });
 }
 
 function handleLogout() {
     signOut(firebaseAuthInstance)
         .then(() => {
-            // Sign-out successful.
-            // onAuthStateChanged will handle UI update via onLogoutCallback
-            console.log("Admin logout successful");
+            // Sign-out successful - onAuthStateChanged will trigger onLogoutCallback
+            console.log("[Auth] Admin logout successful.");
         })
         .catch((error) => {
-            console.error("Admin logout error:", error);
+            console.error("[Auth] Admin logout error:", error);
             alert(`ログアウトエラー: ${error.message}`);
         });
 }
 
-// Optional: Export a function to get current user if needed by other admin modules
 export function getCurrentUser() {
     return firebaseAuthInstance ? firebaseAuthInstance.currentUser : null;
 }
