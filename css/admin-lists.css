@@ -28,20 +28,21 @@
     padding: 0.6rem 0.8rem;
     border-bottom: 1px solid #e9ecef;
     transition: background-color 0.15s ease-in-out;
+    cursor: pointer; /* ★★★ リストアイテム全体をクリック可能に ★★★ */
 }
 .list-item:last-child {
     border-bottom: none;
 }
 .list-item:hover {
-    background-color: #f1f3f5;
+    background-color: #e9ecef; /* ★★★ ホバー時の背景色を少し濃く ★★★ */
 }
-.list-item > .list-item-name-clickable {
+.list-item > .list-item-name-clickable { /* 項目名部分のスタイルは維持しつつ、行全体も反応するように */
     flex-grow: 1;
     margin-right: 0.75rem;
     word-break: break-word;
     font-size: 0.9rem;
     color: #0056b3;
-    cursor: pointer;
+    /* cursor: pointer; 行に設定したので不要かも */
     text-decoration: none;
     transition: color 0.15s ease-in-out;
 }
@@ -75,6 +76,10 @@
     border-bottom: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
+    /* cursor: pointer; /* .category-tree-content に設定 */
+}
+.category-tree-item:hover {
+    background-color: #f8f9fa; /* ツリーアイテム全体のホバー色 */
 }
 .category-tree-item:last-child {
     border-bottom: none;
@@ -94,7 +99,7 @@
 }
 .category-tree-content {
     flex-grow: 1;
-    cursor: pointer;
+    cursor: pointer; /* コンテンツ部分（名前など）をクリック可能に */
 }
 .category-tree-content:hover .category-name {
     text-decoration: underline;
@@ -134,8 +139,12 @@
     margin-bottom: 0.5rem;
     padding-left: 0.3rem;
 }
-.tag-group .list-item {
+.tag-group .list-item { /* タグ自体もクリック可能にする */
     padding-left: 0.8rem;
+    cursor: pointer; /* ★★★ 追加 ★★★ */
+}
+.tag-group .list-item:hover {
+    background-color: #e9ecef; /* ★★★ 追加 ★★★ */
 }
 .tag-group .list-item .list-item-name-clickable small {
     display: none;
@@ -161,8 +170,12 @@
     border-radius: 0.2rem;
     border-left: 3px solid #007bff;
 }
-.effect-super-category-group .list-item {
+.effect-super-category-group .list-item { /* 効果種類もクリック可能にする */
     padding-left: 0.8rem;
+    cursor: pointer; /* ★★★ 追加 ★★★ */
+}
+.effect-super-category-group .list-item:hover {
+    background-color: #e9ecef; /* ★★★ 追加 ★★★ */
 }
 
 
@@ -321,7 +334,7 @@
     border-collapse: collapse;
     margin-top: 1.25rem;
     font-size: 0.9rem;
-    table-layout: fixed; /* ★★★ For column width control ★★★ */
+    table-layout: fixed;
     background-color: #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border-radius: 0.25rem;
@@ -335,9 +348,9 @@
     padding: 0.75rem 0.9rem;
     text-align: left;
     vertical-align: middle;
-    word-break: break-word; 
-    overflow: hidden;      
-    text-overflow: ellipsis; 
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 #itemsTable th:first-child,
 #itemsTable td:first-child {
@@ -354,32 +367,29 @@
     border-bottom-width: 2px;
 }
 
-/* Column width definitions for itemsTable */
-#itemsTable th:nth-child(1), /* 画像 */
+#itemsTable th:nth-child(1), 
 #itemsTable td:nth-child(1) {
     width: 10%;
-    min-width: 60px; 
-    text-align: center; 
+    min-width: 60px;
+    text-align: center;
 }
-#itemsTable th:nth-child(2), /* 名前 */
-#itemsTable td:nth-child(2) { /* ★★★ Apply clickable style for name cell ★★★ */
-    width: 25%; /* Adjusted width */
-    /* .list-item-name-clickable styles will be applied by JS if class is added */
+#itemsTable th:nth-child(2), 
+#itemsTable td:nth-child(2) { 
+    width: 25%;
 }
-#itemsTable th:nth-child(3), /* 売値 */
+#itemsTable th:nth-child(3), 
 #itemsTable td:nth-child(3) {
-    width: 15%; /* Adjusted width */
-    white-space: nowrap; 
+    width: 15%;
+    white-space: nowrap;
 }
-#itemsTable th:nth-child(4), /* 効果 */
+#itemsTable th:nth-child(4), 
 #itemsTable td:nth-child(4) {
-    width: 30%; /* Adjusted width */
+    width: 30%;
 }
-#itemsTable th:nth-child(5), /* タグ */
+#itemsTable th:nth-child(5), 
 #itemsTable td:nth-child(5) {
-    width: 20%; /* Adjusted width */
+    width: 20%;
 }
-/* Removed :last-child for operation column as it's deleted */
 
 #itemsTable img {
     max-width: 50px;
@@ -396,14 +406,29 @@
     padding: 2px;
 }
 
-#itemsTable tbody tr:hover {
-    background-color: #e9ecef;
+/* ★★★ アイテムテーブルの行全体をクリッカブルにするスタイル ★★★ */
+#itemsTable tbody tr.table-row-clickable {
+    cursor: pointer;
 }
-#itemsTable tbody tr:nth-child(even) {
+#itemsTable tbody tr.table-row-clickable:hover {
+    background-color: #e2e6ea; /* 通常のホバーより少し濃い色にするか、同じでも良い */
+}
+/* アイテム名セルに個別スタイルは不要になるか、または行ホバーと協調させる */
+/*
+#itemsTable td.list-item-name-clickable:hover {
+    color: #003d80;
+    text-decoration: underline;
+}
+*/
+
+#itemsTable tbody tr:nth-child(even) { /* ストライプは維持 */
     background-color: #f8f9fa;
 }
-#itemsTable tbody tr:nth-child(even):hover {
-    background-color: #e2e6ea;
+#itemsTable tbody tr:nth-child(even):hover { /* ストライプ時のホバーも考慮 */
+    background-color: #dde1e6; /* 通常ホバーより若干調整 */
+}
+#itemsTable tbody tr.table-row-clickable:nth-child(even):hover { /* クリッカブル行のストライプホバー */
+    background-color: #d3d9df;
 }
 
 
