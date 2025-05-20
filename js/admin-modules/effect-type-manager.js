@@ -18,14 +18,14 @@ const DOMET = {
     editingEffectTypeSumCapInput: null,
     editingEffectTypeSumCapGroup: null,
     saveEffectTypeEditButton: null,
-    deleteEffectTypeFromEditModalButton: null, // New delete button
+    deleteEffectTypeFromEditModalButton: null, 
     itemFormEffectTypeSelect: null,
     charBaseOptionEffectTypeSelect: null,
 };
 
 let dbInstance = null;
 let getEffectTypesFuncCache = () => [];
-let getEffectUnitsFuncCache = () => []; // For populating unit selects
+let getEffectUnitsFuncCache = () => []; 
 let getItemsFuncCache = () => [];
 let getCharacterBasesFuncCache = () => ({});
 let refreshAllDataCallback = async () => {};
@@ -42,7 +42,7 @@ export function initEffectTypeManager(dependencies) {
     DOMET.newEffectTypeUnitSelect = document.getElementById('newEffectTypeUnit');
     DOMET.newEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="newCalcMethod"]');
     DOMET.newEffectTypeSumCapInput = document.getElementById('newEffectTypeSumCap');
-    DOMET.newEffectTypeSumCapGroup = document.getElementById('newEffectTypeSumCapGroup'); // Already references group div
+    DOMET.newEffectTypeSumCapGroup = document.getElementById('newEffectTypeSumCapGroup'); 
     DOMET.addEffectTypeButton = document.getElementById('addEffectTypeButton');
     DOMET.effectTypeListContainer = document.getElementById('effectTypeListContainer');
 
@@ -52,7 +52,7 @@ export function initEffectTypeManager(dependencies) {
     DOMET.editingEffectTypeUnitSelect = document.getElementById('editingEffectTypeUnit');
     DOMET.editingEffectTypeCalcMethodRadios = document.querySelectorAll('input[name="editCalcMethod"]');
     DOMET.editingEffectTypeSumCapInput = document.getElementById('editingEffectTypeSumCap');
-    DOMET.editingEffectTypeSumCapGroup = document.getElementById('editingEffectTypeSumCapGroup'); // Already references group div
+    DOMET.editingEffectTypeSumCapGroup = document.getElementById('editingEffectTypeSumCapGroup'); 
     DOMET.saveEffectTypeEditButton = document.getElementById('saveEffectTypeEditButton');
     DOMET.deleteEffectTypeFromEditModalButton = document.getElementById('deleteEffectTypeFromEditModalButton');
 
@@ -77,12 +77,10 @@ export function initEffectTypeManager(dependencies) {
         });
     }
 
-    // Event delegation for list item clicks
     if (DOMET.effectTypeListContainer) {
         DOMET.effectTypeListContainer.addEventListener('click', handleEffectTypeListClick);
     }
 
-    // SumCap group visibility toggles
     [
         { radios: DOMET.newEffectTypeCalcMethodRadios, group: DOMET.newEffectTypeSumCapGroup, input: DOMET.newEffectTypeSumCapInput, sumRadioId: 'newCalcMethodSum' },
         { radios: DOMET.editingEffectTypeCalcMethodRadios, group: DOMET.editingEffectTypeSumCapGroup, input: DOMET.editingEffectTypeSumCapInput, sumRadioId: 'editCalcMethodSum' }
@@ -90,11 +88,17 @@ export function initEffectTypeManager(dependencies) {
         if (radios && group) {
             radios.forEach(radio => {
                 radio.addEventListener('change', (e) => {
-                    group.style.display = (document.getElementById(sumRadioId).checked) ? 'block' : 'none';
-                    if (!document.getElementById(sumRadioId).checked && input) input.value = '';
+                    const sumRadio = document.getElementById(sumRadioId);
+                    if (sumRadio) {
+                        group.style.display = (sumRadio.checked) ? 'block' : 'none';
+                        if (!sumRadio.checked && input) input.value = '';
+                    }
                 });
             });
-            group.style.display = (document.getElementById(sumRadioId)?.checked) ? 'block' : 'none';
+            const initialSumRadio = document.getElementById(sumRadioId);
+            if (initialSumRadio) {
+                group.style.display = (initialSumRadio.checked) ? 'block' : 'none';
+            }
         }
     });
     console.log("[Effect Type Manager] Initialized.");
@@ -102,22 +106,20 @@ export function initEffectTypeManager(dependencies) {
 
 function populateEffectUnitSelectsForTypeFormsUI() {
     const effectUnitsCache = getEffectUnitsFuncCache();
-    // effectUnitsCacheのnameをtextとvalueに使用する
     const options = [{ value: '', text: '単位なし' }, ...effectUnitsCache.map(u => ({ value: u.name, text: u.name })).sort((a,b) => a.text.localeCompare(b.text, 'ja'))];
     
-    populateSelect(DOMET.newEffectTypeUnitSelect, options, null, ''); // defaultText null, selectedValue ''
+    populateSelect(DOMET.newEffectTypeUnitSelect, options, null, ''); 
     populateSelect(DOMET.editingEffectTypeUnitSelect, options, null, '');
 }
 
-export function _populateEffectTypeSelectsInternal() { // For item and char-base forms
+export function _populateEffectTypeSelectsInternal() { 
     const effectTypesCache = getEffectTypesFuncCache();
-    const options = effectTypesCache.map(et => ({
-        value: et.id,
+    const options = effectTypesCache.map(et => ({ 
+        value: et.id, 
         text: et.name,
-        // Add data attributes for unit, calcMethod, sumCap to the option element
-        // This will be handled directly in populateSelect if it supports data attributes,
-        // or done manually after populating. For now, populateSelect just handles value/text.
-        // The consuming forms (item-manager, char-base-manager) will read these from effectTypesCache.
+        'data-unit-name': et.defaultUnit || '', // Store unit name for easy access by other JS
+        'data-calc-method': et.calculationMethod || 'sum',
+        'data-sum-cap': (et.sumCap !== undefined && et.sumCap !== null) ? String(et.sumCap) : ''
     })).sort((a,b) => a.text.localeCompare(b.text, 'ja'));
     
     populateSelect(DOMET.itemFormEffectTypeSelect, options, '効果種類を選択...');
@@ -139,7 +141,8 @@ export function _renderEffectTypesForManagementInternal() {
     const sortedEffectTypes = [...effectTypesCache].sort((a,b) => a.name.localeCompare(b.name, 'ja'));
 
     sortedEffectTypes.forEach(effectType => {
-        const unitText = effectType.defaultUnit && effectType.defaultUnit !== '' ? `(${effectType.defaultUnit})` : '(単位なし)';
+        const unitName = effectType.defaultUnit && effectType.defaultUnit !== '' ? effectType.defaultUnit : "なし";
+        const unitText = `(${unitName})`;
         const calcText = effectType.calculationMethod === 'max' ? '(最大値)' : '(加算)';
         let sumCapText = '';
         if (effectType.calculationMethod === 'sum' && typeof effectType.sumCap === 'number' && !isNaN(effectType.sumCap)) {
@@ -151,7 +154,6 @@ export function _renderEffectTypesForManagementInternal() {
         div.innerHTML = `
             <span class="list-item-name-clickable" data-id="${effectType.id}" data-action="edit">${effectType.name} <small>${unitText} ${calcText}${sumCapText}</small></span>
             <div class="list-item-actions">
-                <!-- Buttons removed from here -->
             </div>
         `;
         DOMET.effectTypeListContainer.appendChild(div);
@@ -173,7 +175,7 @@ function handleEffectTypeListClick(event) {
 
 async function addEffectType() {
     const name = DOMET.newEffectTypeNameInput.value.trim();
-    const unit = DOMET.newEffectTypeUnitSelect.value; // This will be the unit NAME, not ID
+    const unit = DOMET.newEffectTypeUnitSelect.value; 
     const calcMethodRadio = Array.from(DOMET.newEffectTypeCalcMethodRadios).find(r => r.checked);
     const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum';
     const sumCapStr = DOMET.newEffectTypeSumCapInput.value.trim();
@@ -186,7 +188,7 @@ async function addEffectType() {
 
     const effectData = {
         name: name,
-        defaultUnit: unit === '' ? null : unit, // Store unit name or null
+        defaultUnit: unit === '' ? null : unit, 
         calculationMethod: calcMethod,
         createdAt: serverTimestamp()
     };
@@ -204,11 +206,11 @@ async function addEffectType() {
         await addDoc(collection(dbInstance, 'effect_types'), effectData);
         
         DOMET.newEffectTypeNameInput.value = '';
-        DOMET.newEffectTypeUnitSelect.value = ''; // Reset to '単位なし' (empty value)
-        if(DOMET.newEffectTypeCalcMethodRadios[0]) DOMET.newEffectTypeCalcMethodRadios[0].checked = true; // Default to 'sum'
+        DOMET.newEffectTypeUnitSelect.value = ''; 
+        if(DOMET.newEffectTypeCalcMethodRadios[0]) DOMET.newEffectTypeCalcMethodRadios[0].checked = true; 
         DOMET.newEffectTypeSumCapInput.value = '';
         if (DOMET.newEffectTypeSumCapGroup) {
-             DOMET.newEffectTypeSumCapGroup.style.display = 'block'; // Default to visible for 'sum'
+             DOMET.newEffectTypeSumCapGroup.style.display = 'block'; 
         }
 
         await refreshAllDataCallback();
@@ -225,7 +227,7 @@ function openEditEffectTypeModalById(effectTypeId) {
 
     DOMET.editingEffectTypeDocIdInput.value = effectTypeData.id;
     DOMET.editingEffectTypeNameInput.value = effectTypeData.name;
-    DOMET.editingEffectTypeUnitSelect.value = effectTypeData.defaultUnit || ''; // Unit select uses name
+    DOMET.editingEffectTypeUnitSelect.value = effectTypeData.defaultUnit || ''; 
 
     const calcMethod = effectTypeData.calculationMethod || 'sum';
     const radioToCheck = Array.from(DOMET.editingEffectTypeCalcMethodRadios).find(r => r.value === calcMethod);
@@ -234,7 +236,8 @@ function openEditEffectTypeModalById(effectTypeId) {
 
     DOMET.editingEffectTypeSumCapInput.value = (typeof effectTypeData.sumCap === 'number' && !isNaN(effectTypeData.sumCap)) ? String(effectTypeData.sumCap) : '';
     if(DOMET.editingEffectTypeSumCapGroup) {
-        DOMET.editingEffectTypeSumCapGroup.style.display = (calcMethod === 'sum') ? 'block' : 'none';
+        const sumRadio = document.getElementById('editCalcMethodSum'); // Get the specific sum radio
+        DOMET.editingEffectTypeSumCapGroup.style.display = (sumRadio && sumRadio.checked) ? 'block' : 'none';
     }
 
     openModal('editEffectTypeModal');
@@ -244,7 +247,7 @@ function openEditEffectTypeModalById(effectTypeId) {
 async function saveEffectTypeEdit() {
     const id = DOMET.editingEffectTypeDocIdInput.value;
     const newName = DOMET.editingEffectTypeNameInput.value.trim();
-    const newUnit = DOMET.editingEffectTypeUnitSelect.value; // Unit name
+    const newUnit = DOMET.editingEffectTypeUnitSelect.value; 
     const editCalcMethodRadio = Array.from(DOMET.editingEffectTypeCalcMethodRadios).find(r => r.checked);
     const newCalcMethod = editCalcMethodRadio ? editCalcMethodRadio.value : 'sum';
     const newSumCapStr = DOMET.editingEffectTypeSumCapInput.value.trim();
@@ -271,10 +274,10 @@ async function saveEffectTypeEdit() {
                 alert("加算時の最大値は0以上の数値を入力してください。"); return;
             }
         } else {
-            updateData.sumCap = deleteField(); // Remove field if empty
+            updateData.sumCap = deleteField(); 
         }
     } else {
-        updateData.sumCap = deleteField(); // Remove field if not 'sum'
+        updateData.sumCap = deleteField(); 
     }
 
     try {
@@ -291,13 +294,13 @@ async function deleteEffectType(id, name) {
     const itemsCache = getItemsFuncCache();
     const charBasesCache = getCharacterBasesFuncCache();
 
-    const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.type === id));
+    const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.type === id)); // eff.type is typeId
     if (usedByItem) {
         alert(`効果種類「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。`); return;
     }
     for (const baseKey in charBasesCache) {
         const usedInBase = (charBasesCache[baseKey] || []).find(option =>
-            option.effects && option.effects.some(eff => eff.type === id)
+            option.effects && option.effects.some(eff => eff.type === id) // eff.type is typeId
         );
         if (usedInBase) {
             alert(`効果種類「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。`); return;
@@ -307,7 +310,7 @@ async function deleteEffectType(id, name) {
     if (confirm(`効果種類「${name}」を削除しますか？\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'effect_types', id));
-            closeModal('editEffectTypeModal'); // 編集モーダルが開いていたら閉じる
+            closeModal('editEffectTypeModal'); 
             await refreshAllDataCallback();
         } catch (error) {
             console.error("[Effect Type Manager] Error deleting effect type:", error);
