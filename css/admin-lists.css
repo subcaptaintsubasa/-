@@ -1,7 +1,6 @@
 /* css/admin-lists.css */
 /* Styles for various list displays in the admin panel */
 
-/* General container for lists of manageable items (categories, tags, etc.) */
 .list-container {
     margin-top: 1rem;
     border: 1px solid #dee2e6;
@@ -142,7 +141,7 @@
     display: none;
 }
 
-/* ★★★ Styles for Effect Super Category Group View ★★★ */
+/* Styles for Effect Super Category Group View */
 .effect-super-category-group {
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
@@ -153,19 +152,18 @@
     margin-bottom: 0;
 }
 .effect-super-category-header {
-    font-size: 1rem; /* h3相当のサイズ感 */
+    font-size: 1rem;
     font-weight: 600;
-    color: #343a40; /* 少し濃いめの見出し色 */
+    color: #343a40;
     margin-bottom: 0.5rem;
     padding: 0.3rem 0.3rem;
-    background-color: #f8f9fa; /* グループヘッダーに薄い背景色 */
+    background-color: #f8f9fa;
     border-radius: 0.2rem;
-    border-left: 3px solid #007bff; /* アクセントボーダー */
+    border-left: 3px solid #007bff;
 }
-.effect-super-category-group .list-item { /* Effect types within a group */
-    padding-left: 0.8rem; /* Indent effect types slightly under their group header */
+.effect-super-category-group .list-item {
+    padding-left: 0.8rem;
 }
-/* 効果種類名に表示される [大分類名] のsmallタグはそのまま表示 */
 
 
 /* Checkbox groups */
@@ -323,7 +321,7 @@
     border-collapse: collapse;
     margin-top: 1.25rem;
     font-size: 0.9rem;
-    table-layout: auto;
+    table-layout: fixed; /* ★★★ For column width control ★★★ */
     background-color: #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border-radius: 0.25rem;
@@ -337,6 +335,9 @@
     padding: 0.75rem 0.9rem;
     text-align: left;
     vertical-align: middle;
+    word-break: break-word; 
+    overflow: hidden;      
+    text-overflow: ellipsis; 
 }
 #itemsTable th:first-child,
 #itemsTable td:first-child {
@@ -352,6 +353,34 @@
     letter-spacing: 0.5px;
     border-bottom-width: 2px;
 }
+
+/* Column width definitions for itemsTable */
+#itemsTable th:nth-child(1), /* 画像 */
+#itemsTable td:nth-child(1) {
+    width: 10%;
+    min-width: 60px; 
+    text-align: center; 
+}
+#itemsTable th:nth-child(2), /* 名前 */
+#itemsTable td:nth-child(2) { /* ★★★ Apply clickable style for name cell ★★★ */
+    width: 25%; /* Adjusted width */
+    /* .list-item-name-clickable styles will be applied by JS if class is added */
+}
+#itemsTable th:nth-child(3), /* 売値 */
+#itemsTable td:nth-child(3) {
+    width: 15%; /* Adjusted width */
+    white-space: nowrap; 
+}
+#itemsTable th:nth-child(4), /* 効果 */
+#itemsTable td:nth-child(4) {
+    width: 30%; /* Adjusted width */
+}
+#itemsTable th:nth-child(5), /* タグ */
+#itemsTable td:nth-child(5) {
+    width: 20%; /* Adjusted width */
+}
+/* Removed :last-child for operation column as it's deleted */
+
 #itemsTable img {
     max-width: 50px;
     max-height: 50px;
@@ -362,20 +391,11 @@
     border-radius: 3px;
     border: 1px solid #dee2e6;
     display: block;
+    margin-left: auto;
+    margin-right: auto;
     padding: 2px;
 }
-#itemsTable td .action-button {
-    margin-right: 0.3rem;
-    margin-bottom: 0.2rem;
-}
-#itemsTable td .action-button:last-child {
-    margin-right: 0;
-}
-#itemsTable td:last-child {
-    white-space: nowrap;
-    width: 1%;
-    text-align: right;
-}
+
 #itemsTable tbody tr:hover {
     background-color: #e9ecef;
 }
