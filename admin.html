@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="css/admin-lists.css">
     <link rel="stylesheet" href="css/admin-modal.css">
     <link rel="stylesheet" href="css/admin-responsive.css">
-    <!-- Consider adding a link to an icon library if using class-based icons (e.g., FontAwesome) -->
 </head>
 <body id="admin-page">
     <div id="password-prompt">
@@ -39,6 +38,7 @@
                 <li><button class="admin-nav-button" data-modal-target="categoryManagementModal">カテゴリ管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="tagManagementModal">タグ管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="effectUnitManagementModal">効果単位管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="effectSuperCategoryManagementModal">効果大分類管理</button></li> <!-- ★★★ 追加 ★★★ -->
                 <li><button class="admin-nav-button" data-modal-target="effectTypeManagementModal">効果種類管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="characterBaseManagementModal">キャラクター基礎情報管理</button></li>
             </ul>
@@ -52,7 +52,7 @@
             </p>
             <hr>
 
-            <!-- アイテム管理 (これはページ上に残す) -->
+            <!-- アイテム管理 -->
             <section id="item-management" aria-labelledby="itemManagementHeading">
                 <h2 id="itemManagementHeading"><span class="icon" aria-hidden="true"></span> アイテム管理</h2>
                 <form id="itemForm">
@@ -84,7 +84,6 @@
                              <div class="effect-input-row">
                                  <select id="effectTypeSelect" class="form-control-short" aria-label="効果種類">
                                      <option value="">効果種類を選択...</option>
-                                     <!-- Populated by JS -->
                                  </select>
                                  <input type="number" id="effectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
                                  <span id="effectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
@@ -103,7 +102,6 @@
                     <div class="form-group">
                         <label id="itemTagsLabel">このアイテムのタグ (複数選択可):</label>
                         <div id="itemTagsSelectorCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="itemTagsLabel">
-                            <!-- Tag checkboxes populated by JS -->
                         </div>
                     </div>
                     <button type="submit" id="saveItemButton">アイテム保存</button>
@@ -121,7 +119,6 @@
                             <tr><th>画像</th><th>名前</th><th>売値</th><th>効果</th><th>タグ</th><th>操作</th></tr>
                         </thead>
                         <tbody>
-                            <!-- Item table rows populated by JS -->
                         </tbody>
                     </table>
                 </div>
@@ -130,7 +127,6 @@
     </div><!-- closing #admin-content -->
 
     <!-- 管理機能モーダル群 -->
-    <!-- カテゴリ管理モーダル -->
     <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -143,24 +139,20 @@
              <div class="form-group">
                  <label id="newCategoryParentLabel">親カテゴリ設定:</label>
                  <div id="newCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="newCategoryParentLabel">
-                     <!-- Buttons populated by JS -->
                  </div>
                  <input type="hidden" id="selectedNewParentCategoryId" value="">
              </div>
             <button id="addCategoryButton" type="button">カテゴリ追加</button>
-            
             <h3 style="margin-top: 20px;">カテゴリ一覧</h3>
             <div class="form-group list-search-bar">
                 <label for="categorySearchInput" class="sr-only">カテゴリ検索</label>
                 <input type="text" id="categorySearchInput" placeholder="カテゴリ名で検索..." aria-label="カテゴリを検索">
             </div>
             <div id="categoryListContainer" class="list-container">
-                <!-- Category list populated by JS -->
             </div>
         </div>
     </div>
 
-    <!-- タグ管理モーダル -->
     <div id="tagManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="tagManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -173,7 +165,6 @@
             <div class="form-group">
                 <label id="newTagCategoriesLabel">このタグが所属するカテゴリ (子カテゴリのみ選択可):</label>
                 <div id="newTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="newTagCategoriesLabel">
-                    <!-- Checkboxes populated by JS -->
                 </div>
             </div>
             <button id="addTagButton" type="button">タグ追加</button>
@@ -183,12 +174,10 @@
                 <input type="text" id="tagSearchInput" placeholder="タグ名で検索..." aria-label="タグを検索">
             </div>
             <div id="tagListContainer" class="list-container">
-                <!-- Tag list populated by JS -->
             </div>
         </div>
     </div>
 
-    <!-- 効果単位管理モーダル -->
     <div id="effectUnitManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectUnitManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -201,12 +190,28 @@
             <button id="addEffectUnitButton" type="button">効果単位を追加</button>
             <h3 style="margin-top: 20px;">既存の効果単位一覧</h3>
             <div id="effectUnitListContainer" class="list-container">
-                <!-- Effect unit list populated by JS -->
             </div>
         </div>
     </div>
 
-    <!-- 効果種類管理モーダル -->
+    <!-- ★★★ 効果大分類管理モーダルを追加 ★★★ -->
+    <div id="effectSuperCategoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectSuperCategoryManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="effectSuperCategoryManagementModalTitle"><span class="icon" aria-hidden="true">📂</span> 効果大分類管理</h2>
+            <p class="info-message">効果大分類の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                <label for="newEffectSuperCategoryName">新しい効果大分類名:</label>
+                <input type="text" id="newEffectSuperCategoryName" placeholder="大分類名 (例: 攻撃系)">
+            </div>
+            <button id="addEffectSuperCategoryButton" type="button">効果大分類を追加</button>
+            <h3 style="margin-top: 20px;">既存の効果大分類一覧</h3>
+            <div id="effectSuperCategoryListContainer" class="list-container">
+                <!-- Effect Super Category list populated by JS -->
+            </div>
+        </div>
+    </div>
+
     <div id="effectTypeManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectTypeManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -216,6 +221,7 @@
                  <label for="newEffectTypeName">新しい効果種類名:</label>
                  <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
              </div>
+             <!-- (ここに効果大分類を選択するプルダウンを追加予定) -->
              <div class="form-group">
                  <label for="newEffectTypeUnit">デフォルト単位:</label>
                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
@@ -232,7 +238,7 @@
                      <label for="newCalcMethodMax">最大値</label>
                  </div>
              </div>
-             <div class="form-group" id="newEffectTypeSumCapGroup"> 
+             <div class="form-group" id="newEffectTypeSumCapGroup">
                  <label for="newEffectTypeSumCap">加算時の最大値 (任意):</label>
                  <input type="number" id="newEffectTypeSumCap" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short">
                  <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
@@ -240,12 +246,10 @@
              <button id="addEffectTypeButton" type="button">効果種類を追加</button>
              <h3 style="margin-top: 20px;">既存の効果種類一覧</h3>
              <div id="effectTypeListContainer" class="list-container">
-                 <!-- Effect type list populated by JS -->
              </div>
         </div>
     </div>
 
-    <!-- キャラクター基礎情報管理モーダル -->
     <div id="characterBaseManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="charBaseManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -263,7 +267,6 @@
             </div>
             <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
             <div id="charBaseOptionListContainer" class="list-container">
-                <!-- Character base options populated by JS -->
             </div>
         </div>
     </div>
@@ -282,14 +285,12 @@
             <div class="form-group">
                 <label id="editingCategoryParentLabel">親カテゴリ:</label>
                  <div id="editingCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="editingCategoryParentLabel">
-                     <!-- Buttons populated by JS -->
                  </div>
                  <input type="hidden" id="selectedEditingParentCategoryId">
             </div>
              <div class="form-group" id="editCategoryTagsGroup" style="display: none;">
                  <label id="editingCategoryTagsLabel">この子カテゴリに所属させるタグ (複数選択可):</label>
                  <div id="editingCategoryTagsSelector" class="tag-button-container admin" role="group" aria-labelledby="editingCategoryTagsLabel">
-                     <!-- Tag buttons populated by JS -->
                  </div>
              </div>
              <div class="form-group" id="tagSearchModeGroup" style="display: none;">
@@ -318,12 +319,28 @@
             <div class="form-group">
                 <label id="editingTagCategoriesLabel">このタグが所属する子カテゴリ (複数選択可):</label>
                 <div id="editingTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="editingTagCategoriesLabel">
-                    <!-- Checkboxes populated by JS -->
                 </div>
             </div>
             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <button id="deleteTagFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このタグを削除</button>
                 <button id="saveTagEditButton" type="button">変更を保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ★★★ 効果大分類編集モーダルを追加 ★★★ -->
+    <div id="editEffectSuperCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectSuperCategoryModalTitle">
+        <div class="modal-content" style="max-width: 400px;"> <!-- 効果単位編集モーダルと似たサイズ感 -->
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editEffectSuperCategoryModalTitle">効果大分類編集</h3>
+            <input type="hidden" id="editingEffectSuperCategoryDocId">
+            <div class="form-group">
+                <label for="editingEffectSuperCategoryName">大分類名:</label>
+                <input type="text" id="editingEffectSuperCategoryName">
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteEffectSuperCategoryFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この大分類を削除</button>
+                <button id="saveEffectSuperCategoryEditButton" type="button">変更を保存</button>
             </div>
         </div>
     </div>
@@ -337,6 +354,7 @@
                 <label for="editingEffectTypeName">効果種類名:</label>
                 <input type="text" id="editingEffectTypeName">
             </div>
+            <!-- (ここに効果大分類を選択するプルダウンを追加予定) -->
              <div class="form-group">
                  <label for="editingEffectTypeUnit">デフォルト単位:</label>
                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
@@ -397,7 +415,6 @@
                      <div class="effect-input-row">
                          <select id="charBaseOptionEffectTypeSelect" class="form-control-short" aria-label="効果種類">
                              <option value="">効果種類を選択...</option>
-                             <!-- Populated by JS -->
                          </select>
                          <input type="number" id="charBaseOptionEffectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
                          <span id="charBaseOptionEffectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
