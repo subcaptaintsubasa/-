@@ -121,7 +121,6 @@
                 <div style="overflow-x: auto;">
                     <table id="itemsTable">
                         <thead>
-                            <!-- ★★★ 「操作」列を削除 ★★★ -->
                             <tr><th>画像</th><th>名前</th><th>売値</th><th>効果</th><th>タグ</th></tr>
                         </thead>
                         <tbody>
@@ -278,7 +277,7 @@
     </div>
 
 
-    <!-- 既存の編集モーダル群 (変更なし) -->
+    <!-- 既存の編集モーダル群 -->
     <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -334,14 +333,22 @@
         </div>
     </div>
 
+    <!-- 効果大分類編集モーダル -->
     <div id="editEffectSuperCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectSuperCategoryModalTitle">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 500px;"> <!-- ★★★ 幅を少し広げる ★★★ -->
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="editEffectSuperCategoryModalTitle">効果大分類編集</h3>
             <input type="hidden" id="editingEffectSuperCategoryDocId">
             <div class="form-group">
                 <label for="editingEffectSuperCategoryName">大分類名:</label>
                 <input type="text" id="editingEffectSuperCategoryName">
+            </div>
+            <!-- ★★★ 効果種類選択エリアを追加 ★★★ -->
+            <div class="form-group">
+                <label id="editingSuperCategoryEffectTypesLabel">この大分類に所属させる効果種類 (複数選択可):</label>
+                <div id="editingSuperCategoryEffectTypesSelector" class="tag-button-container admin" role="group" aria-labelledby="editingSuperCategoryEffectTypesLabel" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Effect Type buttons populated by JS -->
+                </div>
             </div>
             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <button id="deleteEffectSuperCategoryFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この大分類を削除</button>
