@@ -104,8 +104,14 @@
                         <div id="itemTagsSelectorCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="itemTagsLabel">
                         </div>
                     </div>
-                    <button type="submit" id="saveItemButton">アイテム保存</button>
-                    <button type="button" id="clearFormButton">フォームクリア</button>
+                    <!-- ★★★ ボタンの配置と新しい削除ボタンの追加 ★★★ -->
+                    <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                        <button type="button" id="deleteItemFromFormButton" class="button-like delete" style="background-color: #dc3545; display: none;">このアイテムを削除</button>
+                        <div> <!-- 右寄せ用のコンテナ -->
+                            <button type="button" id="clearFormButton" class="button-like secondary">フォームクリア</button>
+                            <button type="submit" id="saveItemButton">アイテム保存</button>
+                        </div>
+                    </div>
                 </form>
 
                 <h3 style="margin-top:30px;"><span class="icon" aria-hidden="true"></span> アイテム一覧</h3>
@@ -126,7 +132,7 @@
         </div><!-- closing .container -->
     </div><!-- closing #admin-content -->
 
-    <!-- 管理機能モーダル群 -->
+    <!-- 管理機能モーダル群 (変更なし) -->
     <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -253,19 +259,16 @@
         </div>
     </div>
 
-    <!-- キャラクター基礎情報管理モーダル -->
     <div id="characterBaseManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="charBaseManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
             <h2 id="charBaseManagementModalTitle"><span class="icon" aria-hidden="true">👤</span> キャラクター基礎情報管理</h2>
             <p class="info-message">キャラクター基礎情報の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
-            <div class="form-group" style="align-items: baseline;"> <!-- align-items: baseline for better alignment with buttons -->
-                <label id="charBaseTypeLabel" style="margin-bottom: 0.5rem; display: block;">基礎情報の種類:</label> <!-- Make label block for spacing -->
-                <!-- ★★★ プルダウンを削除し、ボタンコンテナに変更 ★★★ -->
+            <div class="form-group" style="align-items: baseline;">
+                <label id="charBaseTypeLabel" style="margin-bottom: 0.5rem; display: block;">基礎情報の種類:</label>
                 <div id="charBaseTypeButtons" class="category-button-group admin" role="group" aria-labelledby="charBaseTypeLabel">
-                    <!-- Buttons populated by JS: 頭の形, 補正, 色, 柄 -->
                 </div>
-                <input type="hidden" id="selectedCharBaseType" value="headShape"> <!-- 初期値を設定 -->
+                <input type="hidden" id="selectedCharBaseType" value="headShape">
                 <button type="button" id="addNewCharBaseOptionButton" class="button-like" style="margin-top: 0.5rem;">新しい選択肢を追加</button>
             </div>
             <h3 style="margin-top: 20px;"><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
@@ -275,7 +278,7 @@
     </div>
 
 
-    <!-- 既存の編集モーダル群 -->
+    <!-- 既存の編集モーダル群 (変更なし) -->
     <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
