@@ -76,12 +76,12 @@ export function initItemManager(dependencies) {
     if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.addEventListener('click', addEffectToItemList);
     if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.addEventListener('change', updateItemFormEffectUnitDisplay);
     if (DOMI.itemSearchAdminInput) DOMI.itemSearchAdminInput.addEventListener('input', _renderItemsAdminTableInternal);
-    
+
     if (DOMI.deleteItemFromFormButton) {
         DOMI.deleteItemFromFormButton.addEventListener('click', () => {
             const itemId = DOMI.itemIdToEditInput.value;
             const itemName = DOMI.itemNameInput.value || "(名称未設定アイテム)";
-            const itemImageUrl = DOMI.itemImageUrlInput.value || null; // Get current URL from input
+            const itemImageUrl = DOMI.itemImageUrlInput.value || null;
             if (itemId) {
                 deleteItem(itemId, itemName, itemImageUrl);
             } else {
@@ -89,12 +89,12 @@ export function initItemManager(dependencies) {
             }
         });
     }
+    // テーブル行へのクリックイベントは _renderItemsAdminTableInternal 内で直接設定
     console.log("[Item Manager] Initialized.");
 }
 
 function clearItemFormInternal() {
     if (DOMI.itemForm) DOMI.itemForm.reset();
-
     DOMI.itemIdToEditInput.value = '';
     DOMI.itemImageUrlInput.value = '';
     if (DOMI.itemImagePreview) {
@@ -107,21 +107,17 @@ function clearItemFormInternal() {
         if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
         if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '';
     }
-
     currentItemEffects = [];
     renderCurrentItemEffectsListUI();
     if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.value = '';
     if (DOMI.effectValueInput) DOMI.effectValueInput.value = '';
     if (DOMI.effectUnitDisplay) DOMI.effectUnitDisplay.textContent = '';
-
-    _populateTagCheckboxesForItemFormInternal(); 
-
+    _populateTagCheckboxesForItemFormInternal();
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
     if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none';
     if (DOMI.itemNameInput) DOMI.itemNameInput.focus();
     console.log("[Item Manager] Item form cleared.");
 }
-
 
 export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
     if(!DOMI.itemTagsSelectorCheckboxes) return;
@@ -156,7 +152,7 @@ function handleImageFileSelect(event) {
             }
         }
         reader.readAsDataURL(selectedImageFile);
-        if(DOMI.itemImageUrlInput) DOMI.itemImageUrlInput.value = ''; 
+        if(DOMI.itemImageUrlInput) DOMI.itemImageUrlInput.value = '';
         if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none';
     } else {
         selectedImageFile = null;
@@ -174,39 +170,35 @@ function updateItemFormEffectUnitDisplay() {
     if (!DOMI.effectUnitDisplay || !DOMI.effectTypeSelect) return;
     const selectedOption = DOMI.effectTypeSelect.options[DOMI.effectTypeSelect.selectedIndex];
     const unitName = selectedOption ? (selectedOption.dataset.unitName || '') : '';
-    DOMI.effectUnitDisplay.textContent = unitName ? `${unitName}` : ''; 
+    DOMI.effectUnitDisplay.textContent = unitName ? `${unitName}` : '';
 }
-
 
 function addEffectToItemList() {
     const typeId = DOMI.effectTypeSelect.value;
     const valueStr = DOMI.effectValueInput.value;
     if (!typeId) { alert("効果種類を選択してください。"); return; }
     if (valueStr.trim() === '' || isNaN(parseFloat(valueStr))) { alert("効果の値を数値で入力してください。"); return; }
-
     const value = parseFloat(valueStr);
     const selectedEffectType = getEffectTypesFuncCache().find(et => et.id === typeId);
-    const unitName = selectedEffectType ? (selectedEffectType.defaultUnit || '') : ''; 
-
-    currentItemEffects.push({ type: typeId, value: value, unit: unitName }); 
+    const unitName = selectedEffectType ? (selectedEffectType.defaultUnit || '') : '';
+    currentItemEffects.push({ type: typeId, value: value, unit: unitName });
     renderCurrentItemEffectsListUI();
     DOMI.effectTypeSelect.value = '';
     DOMI.effectValueInput.value = '';
     updateItemFormEffectUnitDisplay();
 }
 
-function renderCurrentItemEffectsListUI() { 
+function renderCurrentItemEffectsListUI() {
     if (!DOMI.currentEffectsList) return;
     DOMI.currentEffectsList.innerHTML = '';
     const effectTypesCache = getEffectTypesFuncCache();
-
     if (currentItemEffects.length === 0) {
         DOMI.currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>'; return;
     }
     currentItemEffects.forEach((effect, index) => {
         const effectType = effectTypesCache.find(et => et.id === effect.type);
         const typeName = effectType ? effectType.name : '不明な効果';
-        const unitText = effect.unit && effect.unit !== '' ? `${effect.unit}` : ''; 
+        const unitText = effect.unit && effect.unit !== '' ? `${effect.unit}` : '';
         const div = document.createElement('div');
         div.classList.add('effect-list-item');
         div.innerHTML = `
@@ -226,14 +218,11 @@ async function uploadImageToWorkerAndGetURL(file) {
     if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'block';
     if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
     if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード準備中... (0%)';
-    
     const formData = new FormData();
     formData.append('imageFile', file);
-
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', IMAGE_UPLOAD_WORKER_URL_CONST, true);
-
         xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
                 const percentComplete = Math.round((event.loaded / event.total) * 100);
@@ -241,7 +230,6 @@ async function uploadImageToWorkerAndGetURL(file) {
                 if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `アップロード中... (${percentComplete}%)`;
             }
         };
-
         xhr.onload = () => {
             if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '処理中...';
             if (xhr.status >= 200 && xhr.status < 300) {
@@ -256,7 +244,7 @@ async function uploadImageToWorkerAndGetURL(file) {
                         alert(`画像アップロードエラー(Worker): ${result.message || '予期せぬ応答'}`);
                         if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロードエラー。';
                         setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-                        resolve(null); 
+                        resolve(null);
                     }
                 } catch (e) {
                     console.error('[Image Upload] Error parsing worker response:', e, xhr.responseText);
@@ -269,7 +257,7 @@ async function uploadImageToWorkerAndGetURL(file) {
                 alert(`画像アップロードに失敗しました: ${xhr.statusText || 'サーバーエラー'}`);
                 if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `失敗 (${xhr.status})。`;
                 setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-                resolve(null); 
+                resolve(null);
             }
         };
         xhr.onerror = () => {
@@ -277,12 +265,11 @@ async function uploadImageToWorkerAndGetURL(file) {
             alert('画像アップロード中に通信エラーが発生しました。');
             if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '通信エラー。';
             setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-            resolve(null); 
+            resolve(null);
         };
         xhr.send(formData);
     });
 }
-
 
 async function saveItem(event) {
     event.preventDefault();
@@ -290,14 +277,12 @@ async function saveItem(event) {
         DOMI.saveItemButton.disabled = true;
         DOMI.saveItemButton.textContent = "保存中...";
     }
-
     const name = DOMI.itemNameInput.value.trim();
     const source = DOMI.itemSourceInput.value.trim();
     const priceStr = DOMI.itemPriceInput.value.trim();
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
     let finalImageUrl = DOMI.itemImageUrlInput.value || null;
-
     let price = null;
     if (priceStr !== "") {
         price = parseInt(priceStr, 10);
@@ -310,7 +295,6 @@ async function saveItem(event) {
             return;
         }
     }
-
     if (!name) {
         alert("アイテム名を入力してください。");
         if (DOMI.saveItemButton) {
@@ -319,7 +303,6 @@ async function saveItem(event) {
         }
         return;
     }
-
     try {
         if (selectedImageFile) {
             const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
@@ -339,24 +322,15 @@ async function saveItem(event) {
             selectedImageFile = null;
             if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
         }
-
         const itemData = {
-            name: name,
-            image: finalImageUrl,
-            structured_effects: currentItemEffects,
-            入手手段: source,
-            tags: selectedItemTagIds,
-            updatedAt: serverTimestamp()
+            name: name, image: finalImageUrl, structured_effects: currentItemEffects,
+            入手手段: source, tags: selectedItemTagIds, updatedAt: serverTimestamp()
         };
-
         if (price !== null) {
             itemData.price = price;
         } else {
-            if (editingDocId) {
-                 itemData.price = deleteField();
-            }
+            if (editingDocId) itemData.price = deleteField();
         }
-
         if (editingDocId) {
             await updateDoc(doc(dbInstance, "items", editingDocId), itemData);
             alert("アイテムが更新されました。");
@@ -367,7 +341,6 @@ async function saveItem(event) {
         }
         clearItemFormInternal();
         await refreshAllDataCallback();
-
     } catch (error) {
         console.error("[Item Manager] Error saving item:", error);
         alert(`アイテム保存エラー: ${error.message}`);
@@ -384,10 +357,8 @@ export function _renderItemsAdminTableInternal() {
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
     const effectTypesCache = getEffectTypesFuncCache();
-    // const effectUnitsCache = getEffectUnitsFuncCache(); // Now using effectType.defaultUnit which is name
 
     DOMI.itemsTableBody.innerHTML = '';
-
     const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
     const filteredItems = itemsCache.filter(item =>
         (item.name && item.name.toLowerCase().includes(searchTerm)) ||
@@ -397,7 +368,7 @@ export function _renderItemsAdminTableInternal() {
     if (filteredItems.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = 5; // Adjusted colspan
+        td.colSpan = 5;
         td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
         td.style.textAlign = 'center';
         return;
@@ -405,13 +376,19 @@ export function _renderItemsAdminTableInternal() {
 
     filteredItems.forEach(item => {
         const tr = document.createElement('tr');
+        // ★★★ tr全体をクリック可能にし、編集をトリガー ★★★
+        tr.classList.add('table-row-clickable'); // ホバーエフェクト用クラス
+        tr.dataset.itemDocId = item.docId; // 行にIDを持たせる
+        tr.addEventListener('click', () => {
+            loadItemForEdit(item.docId);
+        });
+
         const imageDisplayPath = item.image || './images/placeholder_item.png';
         const itemTagsString = (item.tags || [])
             .map(tagId => allTags.find(t => t.id === tagId)?.name)
             .filter(name => name)
             .sort((a,b) => a.localeCompare(b, 'ja'))
             .join(', ') || 'なし';
-
         let effectsDisplay = '効果なし';
         if (item.structured_effects && item.structured_effects.length > 0) {
             effectsDisplay = item.structured_effects.map(eff => {
@@ -420,25 +397,21 @@ export function _renderItemsAdminTableInternal() {
                 const unitName = typeInfo && typeInfo.defaultUnit ? typeInfo.defaultUnit : '';
                 return `${typeName}: ${eff.value}${unitName ? unitName : ''}`;
             }).join('; ');
-            // if (effectsDisplay.length > 50) effectsDisplay = effectsDisplay.substring(0, 47) + '...'; // text-overflow handles this now
         }
         const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
         const nameDisplay = item.name || '(名称未設定)';
 
+        // ★★★ アイテム名セルから clickable クラスと data属性を削除 (trに移行) ★★★
         tr.innerHTML = `
             <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/no_image_placeholder.png'; this.style.backgroundColor='#eee';"></td>
-            <td class="list-item-name-clickable" data-item-doc-id="${item.docId}" data-action="edit-item">${nameDisplay}</td>
+            <td>${nameDisplay}</td>
             <td>${priceDisplay}</td>
             <td>${effectsDisplay}</td>
             <td>${itemTagsString}</td>
-            `; // Removed last empty <td> for operation column
-        const nameCell = tr.querySelector('td.list-item-name-clickable');
-        if (nameCell) {
-            nameCell.addEventListener('click', () => loadItemForEdit(item.docId));
-        }
+            `;
         DOMI.itemsTableBody.appendChild(tr);
     });
-    console.log("[Item Manager] Items table rendered.");
+    console.log("[Item Manager] Items table rendered with clickable rows.");
 }
 
 
@@ -447,27 +420,21 @@ async function loadItemForEdit(docId) {
         const itemSnap = await getDoc(doc(dbInstance, "items", docId));
         if (itemSnap.exists()) {
             const itemData = itemSnap.data();
-            clearItemFormInternal(); 
-
+            clearItemFormInternal();
             DOMI.itemIdToEditInput.value = itemSnap.id;
             DOMI.itemNameInput.value = itemData.name || "";
             DOMI.itemSourceInput.value = itemData.入手手段 || "";
             DOMI.itemImageUrlInput.value = itemData.image || '';
             if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? String(itemData.price) : '';
-
             if (itemData.image && DOMI.itemImagePreview) {
                 DOMI.itemImagePreview.src = itemData.image;
                 DOMI.itemImagePreview.style.display = 'block';
             }
-
             _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
-
             currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : [];
             renderCurrentItemEffectsListUI();
-
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
             if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block';
-
             const itemFormSection = document.getElementById('item-management');
             if (itemFormSection) itemFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             DOMI.itemNameInput.focus();
@@ -479,7 +446,7 @@ async function deleteItem(docId, itemName, imageUrl) {
     if (confirm(`アイテム「${itemName}」を削除しますか？\nこの操作は元に戻せません。\n(Cloudflare R2上の画像は自動削除されません)`)) {
         try {
             await deleteDoc(doc(dbInstance, 'items', docId));
-            if (imageUrl && imageUrl.includes('workers.dev')) { // Simple check for worker URL
+            if (imageUrl && imageUrl.includes('workers.dev')) {
                 console.warn(`Image ${imageUrl} (associated with deleted item ${docId}) may need manual deletion from Cloudflare R2 or your image hosting.`);
             }
             if (DOMI.itemIdToEditInput.value === docId) {
