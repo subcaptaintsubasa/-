@@ -22,13 +22,14 @@
 
     <div id="admin-content" style="display:none;">
         <header class="admin-header">
-            <div class="admin-header-content">
+            <!-- ★★★ ヘッダー構造を変更 ★★★ -->
+            <div class="admin-header-main">
                 <h1 class="admin-site-title">管理ツール</h1>
-                <button id="adminHamburgerButton" class="admin-hamburger-button" aria-label="メニューを開く" aria-expanded="false" aria-controls="adminSideNav">☰</button>
             </div>
-            <div class="admin-header-user-info">
-                <span id="currentUserEmail" style="margin-right: 15px;"></span>
+            <div class="admin-header-actions">
+                <span id="currentUserEmail"></span>
                 <button id="logoutButton" type="button">ログアウト</button>
+                <button id="adminHamburgerButton" class="admin-hamburger-button" aria-label="メニューを開く" aria-expanded="false" aria-controls="adminSideNav">☰</button>
             </div>
         </header>
 
@@ -43,7 +44,6 @@
                 <li><button class="admin-nav-button" data-modal-target="characterBaseManagementModal">キャラクター基礎情報管理</button></li>
             </ul>
         </nav>
-
 
         <div class="container">
             <p class="info-message" style="text-align: center; margin-bottom: 20px;">
@@ -219,12 +219,10 @@
                  <label for="newEffectTypeName">新しい効果種類名:</label>
                  <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
              </div>
-             <!-- ★★★ 効果大分類選択プルダウンを追加 ★★★ -->
              <div class="form-group">
                 <label for="newEffectTypeSuperCategory">効果大分類:</label>
                 <select id="newEffectTypeSuperCategory" class="form-control-short">
                     <option value="">大分類を選択...</option>
-                    <!-- Options populated by JS -->
                 </select>
             </div>
              <div class="form-group">
@@ -358,12 +356,10 @@
                 <label for="editingEffectTypeName">効果種類名:</label>
                 <input type="text" id="editingEffectTypeName">
             </div>
-            <!-- ★★★ 効果大分類選択プルダウンを追加 ★★★ -->
             <div class="form-group">
                 <label for="editingEffectTypeSuperCategory">効果大分類:</label>
                 <select id="editingEffectTypeSuperCategory" class="form-control-short">
                     <option value="">大分類を選択...</option>
-                    <!-- Options populated by JS -->
                 </select>
             </div>
              <div class="form-group">
