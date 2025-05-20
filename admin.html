@@ -203,7 +203,12 @@
                 <input type="text" id="newEffectUnitName" placeholder="単位名 (例: ポイント, %, 秒)">
             </div>
             <button id="addEffectUnitButton" type="button">効果単位を追加</button>
-            <h3 style="margin-top: 20px;">既存の効果単位一覧</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>既存の効果単位一覧</h3>
+                <button type="button" id="enlargeEffectUnitListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果単位一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
             <div id="effectUnitListContainer" class="list-container">
             </div>
         </div>
