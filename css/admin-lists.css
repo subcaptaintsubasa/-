@@ -1,28 +1,28 @@
 /* css/admin-lists.css */
 /* Styles for various list displays in the admin panel */
 
+/* General container for lists of manageable items (categories, tags, etc.) */
 .list-container {
     margin-top: 1rem;
     border: 1px solid #dee2e6;
     border-radius: 0.25rem;
     padding: 0.5rem;
     max-height: 320px;
-    min-height: 150px; 
+    min-height: 150px;
     overflow-y: auto;
     background-color: #fdfdfd;
     display: flex;
     flex-direction: column;
 }
-.list-container > p { 
-    margin: auto; 
-    padding: 1rem; 
+.list-container > p {
+    margin: auto;
+    padding: 1rem;
     color: #6c757d;
     font-style: italic;
     text-align: center;
 }
 
-
-.list-item { 
+.list-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -142,8 +142,33 @@
     display: none;
 }
 
+/* ★★★ Styles for Effect Super Category Group View ★★★ */
+.effect-super-category-group {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed #e0e0e0;
+}
+.effect-super-category-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+.effect-super-category-header {
+    font-size: 1rem; /* h3相当のサイズ感 */
+    font-weight: 600;
+    color: #343a40; /* 少し濃いめの見出し色 */
+    margin-bottom: 0.5rem;
+    padding: 0.3rem 0.3rem;
+    background-color: #f8f9fa; /* グループヘッダーに薄い背景色 */
+    border-radius: 0.2rem;
+    border-left: 3px solid #007bff; /* アクセントボーダー */
+}
+.effect-super-category-group .list-item { /* Effect types within a group */
+    padding-left: 0.8rem; /* Indent effect types slightly under their group header */
+}
+/* 効果種類名に表示される [大分類名] のsmallタグはそのまま表示 */
 
-/* Checkbox groups (used for tag assignment, item tag selection) */
+
+/* Checkbox groups */
 .checkbox-group-container {
     display: flex;
     flex-direction: column;
@@ -173,11 +198,11 @@
 }
 .checkbox-item input[type="checkbox"]:focus {
     outline: 1px dotted #007bff;
-    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25); 
+    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25);
 }
-.checkbox-item input[type="checkbox"]:checked + label { 
-    color: #0056b3; 
-    font-weight: 600; 
+.checkbox-item input[type="checkbox"]:checked + label {
+    color: #0056b3;
+    font-weight: 600;
 }
 .checkbox-item label {
     font-weight: normal;
@@ -216,15 +241,15 @@
     border-color: #ccc;
 }
 .tag-button-container.admin .tag-filter.admin-tag-select.active {
-    background-color: #28a745; 
+    background-color: #28a745;
     color: white;
-    border-color: #1e7e34; 
-    box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3); 
+    border-color: #1e7e34;
+    box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3);
     font-weight: 500;
 }
 
 
-/* Effect input area and list (used in item form & char base option form) */
+/* Effect input area and list */
 .effect-input-area {
     border: 1px solid #dee2e6;
     padding: 1rem;
