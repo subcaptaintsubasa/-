@@ -191,7 +191,7 @@
 }
 .button-like-icon img.enlarge-icon-img /* For specific image icons */
 {
-    width: 20px;  /* アイコンの表示幅を大きく */
-    height: 20px; /* アイコンの表示高さを大きく */
+    width: 50px;  /* アイコンの表示幅を大きく */
+    height: 50px; /* アイコンの表示高さを大きく */
     vertical-align: middle;
 }
