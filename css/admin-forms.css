@@ -69,6 +69,7 @@
     margin-top: 0.25rem;
     margin-bottom: 0.75rem;
 }
+
 .category-button-group.admin .category-select-button { 
     padding: 0.4rem 0.9rem;
     background-color: #f8f9fa; 
@@ -79,12 +80,14 @@
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
     color: #495057; 
 }
+
 .category-button-group.admin .category-select-button:hover {
     background-color: #e9ecef;
     border-color: #ced4da;
     color: #343a40;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
+
 .category-button-group.admin .category-select-button.active {
     background-color: #007bff; 
     color: white;               
@@ -95,7 +98,7 @@
 /* Radio button groups */
 .radio-group {
     display: flex;
-    gap: 1.25rem; 
+    gap: 1.25rem; /* Increased gap */
     align-items: center;
     margin-top: 0.3rem;
     flex-wrap: wrap;
@@ -121,16 +124,17 @@
 }
 
 /* General Button Styles in Admin Forms */
-#admin-content button,
-#admin-content .button-like,
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter) { 
+/* Apply to general buttons, exclude specific styled buttons like .category-select-button, .tag-filter, and .admin-nav-button */
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button),
+#admin-content .button-like:not(.category-select-button):not(.tag-filter),
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button) {
     background-color: #007bff;
     color: white;
     padding: 0.6rem 1.1rem;
     border: none;
     border-radius: 0.25rem;
     cursor: pointer;
-    margin-right: 0.5rem;
+    margin-right: 0.5rem; /* Default margin, can be overridden by :last-child */
     font-size: 0.95rem;
     font-weight: 500;
     letter-spacing: 0.5px;
@@ -141,22 +145,25 @@
     line-height: 1.5;
     text-align: center;
 }
-#admin-content button:hover,
-#admin-content .button-like:hover,
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):hover {
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):hover,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):hover,
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):hover {
     background-color: #0069d9;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-#admin-content button:active,
-#admin-content .button-like:active,
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):active {
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):active,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):active,
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):active {
     background-color: #005cbf;
 }
-#admin-content button:last-child,
-#admin-content .button-like:last-child,
+
+/* Ensure last button in a group has no right margin, unless it's a special button */
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):last-child,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):last-child,
 .admin-management-modal .modal-actions button:last-child {
     margin-right: 0;
 }
+
 #admin-content button:disabled,
 #admin-content .button-like.disabled,
 .admin-management-modal button:disabled {
@@ -168,22 +175,22 @@
 
 
 /* Secondary/Utility Buttons */
-#admin-content button[type="button"],
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button),
 #admin-content #clearFormButton,
-.button-like.secondary,
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter) {
+.button-like.secondary:not(.category-select-button):not(.tag-filter),
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button) {
     background-color: #6c757d;
 }
-#admin-content button[type="button"]:hover,
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):hover,
 #admin-content #clearFormButton:hover,
-.button-like.secondary:hover,
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):hover {
+.button-like.secondary:not(.category-select-button):not(.tag-filter):hover,
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):hover {
     background-color: #5a6268;
 }
-#admin-content button[type="button"]:active,
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):active,
 #admin-content #clearFormButton:active,
-.button-like.secondary:active,
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):active {
+.button-like.secondary:not(.category-select-button):not(.tag-filter):active,
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):active {
     background-color: #545b62;
 }
 
@@ -301,7 +308,7 @@
     color: #495057;
 }
 
-/* Character Base Management specific form layout */
+/* Character Base Management specific form layout (within its modal) */
 #characterBaseManagementModal .form-group {
     display: flex;
     align-items: center;
@@ -312,19 +319,18 @@
     margin-bottom: 0;
     flex-shrink: 0;
 }
-#characterBaseManagementModal #charBaseTypeSelect {
-    flex-grow: 1;
-    min-width: 180px;
-    max-width: 320px;
+#characterBaseManagementModal #charBaseTypeButtons { /* Changed from #charBaseTypeSelect */
+    /* Uses .category-button-group styles already */
 }
 #characterBaseManagementModal #addNewCharBaseOptionButton {
-    margin-left: auto;
+    margin-left: auto; /* Keep it to the right if space allows */
     flex-shrink: 0;
 }
 
+
 /* Search bar style for lists within modals */
 .list-search-bar {
-    margin-bottom: 0.75rem; /* Space before the list container */
+    margin-bottom: 0.75rem;
 }
 .list-search-bar input[type="text"] {
     font-size: 0.9rem;
