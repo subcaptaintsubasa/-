@@ -18,7 +18,7 @@ const DOMCB = {
     addCharBaseOptionEffectButton: null,
     currentCharBaseOptionEffectsList: null,
     saveCharBaseOptionButton: null,
-    deleteCharBaseOptionFromEditModalButton: null, // New delete button
+    deleteCharBaseOptionFromEditModalButton: null, 
 };
 
 export const baseTypeMappings = {
@@ -30,17 +30,17 @@ export const baseTypeMappings = {
 
 let dbInstance = null;
 let getCharacterBasesFuncCache = () => ({});
-let getEffectTypesFuncCache = () => []; // For populating effect type select in modal
-let getEffectUnitsFuncCache = () => []; // For displaying unit names for effects
+let getEffectTypesFuncCache = () => []; 
+let getEffectUnitsFuncCache = () => []; 
 let refreshAllDataCallback = async () => {};
 
-let currentCharBaseOptionEffects = []; // Temp store for effects being edited in the modal
+let currentCharBaseOptionEffects = []; 
 
 export function initCharBaseManager(dependencies) {
     dbInstance = dependencies.db;
     getCharacterBasesFuncCache = dependencies.getCharacterBases;
     getEffectTypesFuncCache = dependencies.getEffectTypes;
-    getEffectUnitsFuncCache = dependencies.getEffectUnits; // Make sure this is passed from admin-main
+    getEffectUnitsFuncCache = dependencies.getEffectUnits; 
     refreshAllDataCallback = dependencies.refreshAllData;
 
     DOMCB.charBaseTypeSelect = document.getElementById('charBaseTypeSelect');
@@ -63,12 +63,12 @@ export function initCharBaseManager(dependencies) {
     DOMCB.deleteCharBaseOptionFromEditModalButton = document.getElementById('deleteCharBaseOptionFromEditModalButton');
 
     if (DOMCB.charBaseTypeSelect) {
-        DOMCB.charBaseTypeSelect.addEventListener('change', () => _renderCharacterBaseOptionsInternal()); // Re-render list on type change
+        DOMCB.charBaseTypeSelect.addEventListener('change', () => _renderCharacterBaseOptionsInternal()); 
     }
     if (DOMCB.addNewCharBaseOptionButton) {
         DOMCB.addNewCharBaseOptionButton.addEventListener('click', () => {
             const selectedType = DOMCB.charBaseTypeSelect.value;
-            openEditCharBaseOptionModal(null, selectedType); // null for optionData means new
+            openEditCharBaseOptionModal(null, selectedType); 
         });
     }
     if (DOMCB.addCharBaseOptionEffectButton) {
@@ -81,7 +81,7 @@ export function initCharBaseManager(dependencies) {
         DOMCB.deleteCharBaseOptionFromEditModalButton.addEventListener('click', () => {
             const optionId = DOMCB.editingCharBaseOptionDocIdInput.value;
             const baseType = DOMCB.editingCharBaseTypeInput.value;
-            const optionName = DOMCB.editingCharBaseOptionNameInput.value; // Get name from input for confirm message
+            const optionName = DOMCB.editingCharBaseOptionNameInput.value; 
             if (optionId && baseType) {
                 deleteCharBaseOption(optionId, baseType, optionName);
             } else {
@@ -92,7 +92,6 @@ export function initCharBaseManager(dependencies) {
     if (DOMCB.charBaseOptionEffectTypeSelect) {
         DOMCB.charBaseOptionEffectTypeSelect.addEventListener('change', updateCharBaseOptionEffectUnitDisplay);
     }
-    // Event delegation for list item clicks
     if (DOMCB.charBaseOptionListContainer) {
         DOMCB.charBaseOptionListContainer.addEventListener('click', handleCharBaseOptionListClick);
     }
@@ -104,7 +103,6 @@ export function _populateCharBaseEffectTypeSelectInternal() {
     const options = effectTypesCache.map(et => ({ 
         value: et.id, 
         text: et.name,
-        // Store unit info directly in option dataset for easier access later
         'data-unit-name': et.defaultUnit || '' 
     })).sort((a,b) => a.text.localeCompare(b.text, 'ja'));
     
@@ -124,7 +122,7 @@ export function _renderCharacterBaseOptionsInternal() {
     const characterBasesCache = getCharacterBasesFuncCache();
     const options = (characterBasesCache[selectedTypeKey] || []).sort((a,b) => a.name.localeCompare(b.name, 'ja'));
     const effectTypesCache = getEffectTypesFuncCache();
-    const effectUnitsCache = getEffectUnitsFuncCache(); // Needed to display unit names
+    const effectUnitsCache = getEffectUnitsFuncCache(); 
 
     if (options.length === 0) {
         DOMCB.charBaseOptionListContainer.innerHTML = `<p>${selectedTypeName} の選択肢はまだ登録されていません。</p>`;
@@ -135,9 +133,8 @@ export function _renderCharacterBaseOptionsInternal() {
         let effectsSummary = '効果なし';
         if (option.effects && option.effects.length > 0) {
             effectsSummary = option.effects.map(eff => {
-                const typeInfo = effectTypesCache.find(et => et.id === eff.type); // eff.type is effectTypeId
+                const typeInfo = effectTypesCache.find(et => et.id === eff.type); 
                 const typeName = typeInfo ? typeInfo.name : `不明`;
-                // Find unit NAME from effect type's defaultUnit (which stores the name)
                 const unitName = typeInfo && typeInfo.defaultUnit ? typeInfo.defaultUnit : '';
                 return `${typeName}: ${eff.value}${unitName ? unitName : ''}`;
             }).join('; ');
@@ -149,7 +146,6 @@ export function _renderCharacterBaseOptionsInternal() {
         div.innerHTML = `
             <span class="list-item-name-clickable" data-id="${option.id}" data-type="${selectedTypeKey}" data-action="edit">${option.name} <small>(${effectsSummary})</small></span>
             <div class="list-item-actions">
-                <!-- Buttons removed from here -->
             </div>
         `;
         DOMCB.charBaseOptionListContainer.appendChild(div);
@@ -172,14 +168,14 @@ function handleCharBaseOptionListClick(event) {
 function openEditCharBaseOptionModalById(optionId, baseType) {
     const characterBasesCache = getCharacterBasesFuncCache();
     const optionData = (characterBasesCache[baseType] || []).find(opt => opt.id === optionId);
-    if (!optionData && optionId) { // optionId exists means it's an edit, so data must be found
+    if (!optionData && optionId) { 
         alert("編集するキャラクター基礎情報オプションのデータが見つかりません。"); 
         return; 
     }
-    openEditCharBaseOptionModal(optionData, baseType); // Pass null if new, or found data if editing
+    openEditCharBaseOptionModal(optionData, baseType); 
 }
 
-function openEditCharBaseOptionModal(optionData, baseType) { // optionData can be null for new
+function openEditCharBaseOptionModal(optionData, baseType) { 
     if (!DOMCB.editingCharBaseTypeInput || !DOMCB.editCharBaseOptionModalTitle || 
         !DOMCB.editingCharBaseOptionDocIdInput || !DOMCB.editingCharBaseOptionNameInput ||
         !DOMCB.charBaseOptionEffectTypeSelect || !DOMCB.charBaseOptionEffectValueInput) {
@@ -194,18 +190,15 @@ function openEditCharBaseOptionModal(optionData, baseType) { // optionData can b
     DOMCB.editingCharBaseOptionDocIdInput.value = optionData ? optionData.id : '';
     DOMCB.editingCharBaseOptionNameInput.value = optionData ? optionData.name : '';
     
-    // Deep clone effects for editing to avoid modifying cache directly until save
     currentCharBaseOptionEffects = optionData && Array.isArray(optionData.effects) ? JSON.parse(JSON.stringify(optionData.effects)) : [];
 
     renderCurrentCharBaseOptionEffectsListModal();
     
-    // Populate effect type select if not already done, or if it needs refresh
-    // Assuming _populateCharBaseEffectTypeSelectInternal handles existing selection state correctly
     _populateCharBaseEffectTypeSelectInternal(); 
     
-    DOMCB.charBaseOptionEffectTypeSelect.value = ''; // Reset select
+    DOMCB.charBaseOptionEffectTypeSelect.value = ''; 
     DOMCB.charBaseOptionEffectValueInput.value = '';
-    updateCharBaseOptionEffectUnitDisplay(); // Update unit based on (now empty) selection
+    updateCharBaseOptionEffectUnitDisplay(); 
 
     openModal('editCharBaseOptionModal');
     DOMCB.editingCharBaseOptionNameInput.focus();
@@ -214,7 +207,7 @@ function openEditCharBaseOptionModal(optionData, baseType) { // optionData can b
 function updateCharBaseOptionEffectUnitDisplay() {
     if (!DOMCB.charBaseOptionEffectUnitDisplay || !DOMCB.charBaseOptionEffectTypeSelect) return;
     const selectedOption = DOMCB.charBaseOptionEffectTypeSelect.options[DOMCB.charBaseOptionEffectTypeSelect.selectedIndex];
-    const unitName = selectedOption ? (selectedOption.dataset.unitName || '') : ''; // Get unit name from data attribute
+    const unitName = selectedOption ? (selectedOption.dataset.unitName || '') : ''; 
     DOMCB.charBaseOptionEffectUnitDisplay.textContent = unitName ? `(${unitName})` : '';
 }
 
@@ -228,10 +221,9 @@ function addEffectToCharBaseOptionModalList() {
 
     const value = parseFloat(valueStr);
     const selectedEffectType = getEffectTypesFuncCache().find(et => et.id === typeId);
-    // The unit is now derived from the effect type's defaultUnit (which is the name)
     const unitName = selectedEffectType ? (selectedEffectType.defaultUnit || '') : '';
 
-    currentCharBaseOptionEffects.push({ type: typeId, value: value, unit: unitName }); // Store unit name
+    currentCharBaseOptionEffects.push({ type: typeId, value: value, unit: unitName }); 
     renderCurrentCharBaseOptionEffectsListModal();
     DOMCB.charBaseOptionEffectTypeSelect.value = '';
     DOMCB.charBaseOptionEffectValueInput.value = '';
@@ -248,9 +240,9 @@ function renderCurrentCharBaseOptionEffectsListModal() {
     }
 
     currentCharBaseOptionEffects.forEach((effect, index) => {
-        const effectType = effectTypesCache.find(et => et.id === effect.type); // effect.type is effectTypeId
+        const effectType = effectTypesCache.find(et => et.id === effect.type); 
         const typeName = effectType ? effectType.name : '不明な効果';
-        const unitText = effect.unit && effect.unit !== '' ? `${effect.unit}` : ''; // effect.unit is now unit name
+        const unitText = effect.unit && effect.unit !== '' ? `${effect.unit}` : ''; 
         const div = document.createElement('div');
         div.classList.add('effect-list-item');
         div.innerHTML = `
@@ -276,7 +268,6 @@ async function saveCharBaseOption() {
         alert(`「${baseTypeMappings[baseType]}」に同じ名前の選択肢「${name}」が既に存在します。`); return;
     }
 
-    // Effects are now { type: typeId, value: number, unit: string (unit name or empty) }
     const optionData = { 
         name, 
         effects: currentCharBaseOptionEffects, 
@@ -292,7 +283,7 @@ async function saveCharBaseOption() {
             await addDoc(optionsCollectionRef, optionData);
         }
         closeModal('editCharBaseOptionModal');
-        await refreshAllDataCallback(); // This will re-render the list in the management modal
+        await refreshAllDataCallback(); 
     } catch (error) {
         console.error(`[CharBase Manager] Error saving option for ${baseType}:`, error);
         alert("基礎情報オプションの保存に失敗しました。");
@@ -303,7 +294,7 @@ async function deleteCharBaseOption(optionId, baseType, optionName) {
     if (confirm(`基礎情報「${baseTypeMappings[baseType]}」のオプション「${optionName}」を削除しますか？\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, `character_bases/${baseType}/options`, optionId));
-            closeModal('editCharBaseOptionModal'); // Close the modal if deletion was from here
+            closeModal('editCharBaseOptionModal'); 
             await refreshAllDataCallback();
         } catch (error) {
             console.error(`[CharBase Manager] Error deleting option for ${baseType}:`, error);
