@@ -1,6 +1,6 @@
 // js/admin-modules/effect-type-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, deleteField } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { openModal, closeModal, populateSelect } from './ui-helpers.js';
+import { openModal, closeModal, populateSelect, openEnlargedListModal } from './ui-helpers.js'; // ★★★ openEnlargedListModal をインポート ★★★
 
 const DOMET = {
     newEffectTypeNameInput: null,
@@ -11,6 +11,7 @@ const DOMET = {
     newEffectTypeSumCapGroup: null,
     addEffectTypeButton: null,
     effectTypeListContainer: null,
+    enlargeEffectTypeListButton: null, // ★★★ 追加 ★★★
     editEffectTypeModal: null,
     editingEffectTypeDocIdInput: null,
     editingEffectTypeNameInput: null,
@@ -21,8 +22,8 @@ const DOMET = {
     editingEffectTypeSumCapGroup: null,
     saveEffectTypeEditButton: null,
     deleteEffectTypeFromEditModalButton: null,
-    itemFormEffectTypeSelect: null, // ID: effectTypeSelect
-    charBaseOptionEffectTypeSelect: null, // ID: charBaseOptionEffectTypeSelect
+    itemFormEffectTypeSelect: null,
+    charBaseOptionEffectTypeSelect: null,
 };
 
 let dbInstance = null;
@@ -50,6 +51,7 @@ export function initEffectTypeManager(dependencies) {
     DOMET.newEffectTypeSumCapGroup = document.getElementById('newEffectTypeSumCapGroup');
     DOMET.addEffectTypeButton = document.getElementById('addEffectTypeButton');
     DOMET.effectTypeListContainer = document.getElementById('effectTypeListContainer');
+    DOMET.enlargeEffectTypeListButton = document.getElementById('enlargeEffectTypeListButton'); // ★★★ 取得 ★★★
 
     DOMET.editEffectTypeModal = document.getElementById('editEffectTypeModal');
     DOMET.editingEffectTypeDocIdInput = document.getElementById('editingEffectTypeDocId');
@@ -62,8 +64,8 @@ export function initEffectTypeManager(dependencies) {
     DOMET.saveEffectTypeEditButton = document.getElementById('saveEffectTypeEditButton');
     DOMET.deleteEffectTypeFromEditModalButton = document.getElementById('deleteEffectTypeFromEditModalButton');
 
-    DOMET.itemFormEffectTypeSelect = document.getElementById('effectTypeSelect'); // アイテムフォーム用
-    DOMET.charBaseOptionEffectTypeSelect = document.getElementById('charBaseOptionEffectTypeSelect'); // キャラ基礎オプション用
+    DOMET.itemFormEffectTypeSelect = document.getElementById('effectTypeSelect');
+    DOMET.charBaseOptionEffectTypeSelect = document.getElementById('charBaseOptionEffectTypeSelect');
 
     if (DOMET.addEffectTypeButton) {
         DOMET.addEffectTypeButton.addEventListener('click', addEffectType);
@@ -86,9 +88,17 @@ export function initEffectTypeManager(dependencies) {
     if (DOMET.effectTypeListContainer) {
         DOMET.effectTypeListContainer.addEventListener('click', handleEffectTypeListClick);
     }
-
-    [
-        { radios: DOMET.newEffectTypeCalcMethodRadios, group: DOMET.newEffectTypeSumCapGroup, input: DOMET.newEffectTypeSumCapInput, sumRadioId: 'newCalcMethodSum' },
+    // ★★★ 拡大ボタンのイベントリスナー ★★★
+    if (DOMET.enlargeEffectTypeListButton) {
+        DOMET.enlargeEffectTypeListButton.addEventListener('click', () => {
+            openEnlargedListModal(
+                "効果種類一覧 (拡大)",
+                (container) => {
+                    const listContent = buildEffectTypeListDOMForEnlargement(true); // isEnlargedView = true
+                    if (listContent) {
+                        container.appendChild(listContent);
+                    } else {
+                        container.innerHTML = '<p>表示する効果種類がありません。</p>';: 'newCalcMethodSum' },
         { radios: DOMET.editingEffectTypeCalcMethodRadios, group: DOMET.editingEffectTypeSumCapGroup, input: DOMET.editingEffectTypeSumCapInput, sumRadioId: 'editCalcMethodSum' }
     ].forEach(({ radios, group, input, sumRadioId }) => {
         if (radios && group) {
@@ -111,6 +121,7 @@ export function initEffectTypeManager(dependencies) {
 }
 
 function populateEffectUnitSelectsForTypeFormsUI() {
+    // (この関数は変更なし)
     const effectUnitsCache = getEffectUnitsFuncCache();
     const options = [{ value: '', text: '単位なし' }, ...effectUnitsCache.map(u => ({ value: u.name, text: u.name })).sort((a,b) => a.text.localeCompare(b.text, 'ja'))];
     populateSelect(DOMET.newEffectTypeUnitSelect, options, null, '');
@@ -118,6 +129,7 @@ function populateEffectUnitSelectsForTypeFormsUI() {
 }
 
 function populateSuperCategorySelects() {
+    // (この関数は変更なし)
     const superCategories = getEffectSuperCategoriesFuncCache();
     const options = superCategories.map(sc => ({ value: sc.id, text: sc.name })).sort((a,b) => a.text.localeCompare(b.text, 'ja'));
     populateSelect(DOMET.newEffectTypeSuperCategorySelect, options, '大分類を選択...');
@@ -125,96 +137,69 @@ function populateSuperCategorySelects() {
     console.log("[Effect Type Manager] Super category selects populated.");
 }
 
-// ★★★ _populateEffectTypeSelectsInternal を修正 ★★★
 export function _populateEffectTypeSelectsInternal() {
+    // (この関数は変更なし)
     const effectTypesCache = getEffectTypesFuncCache();
     const superCategoriesCache = getEffectSuperCategoriesFuncCache();
-
-    // アイテムフォーム用の効果種類セレクト (#effectTypeSelect)
     if (DOMET.itemFormEffectTypeSelect) {
         const selectElement = DOMET.itemFormEffectTypeSelect;
         const currentValue = selectElement.value;
         selectElement.innerHTML = '<option value="">効果種類を選択...</option>';
-
-        // 大分類でグループ化
         superCategoriesCache.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(superCat => {
             const optgroup = document.createElement('optgroup');
             optgroup.label = superCat.name;
-            
-            effectTypesCache
-                .filter(et => et.superCategoryId === superCat.id)
-                .sort((a,b) => a.name.localeCompare(b.name, 'ja'))
+            effectTypesCache.filter(et => et.superCategoryId === superCat.id).sort((a,b) => a.name.localeCompare(b.name, 'ja'))
                 .forEach(et => {
                     const option = document.createElement('option');
-                    option.value = et.id;
-                    option.textContent = et.name;
-                    option.dataset.unitName = et.defaultUnit || ''; // 単位名をデータ属性として保持
-                    // dataset.superCategoryId は optgroup で表現されるので必須ではない
+                    option.value = et.id; option.textContent = et.name;
+                    option.dataset.unitName = et.defaultUnit || '';
                     optgroup.appendChild(option);
                 });
-            if (optgroup.childElementCount > 0) { // 効果種類がある場合のみoptgroupを追加
-                selectElement.appendChild(optgroup);
-            }
+            if (optgroup.childElementCount > 0) selectElement.appendChild(optgroup);
         });
-
-        // 未分類の効果種類
-        const unclassifiedTypes = effectTypesCache
-            .filter(et => !et.superCategoryId)
-            .sort((a,b) => a.name.localeCompare(b.name, 'ja'));
-        
+        const unclassifiedTypes = effectTypesCache.filter(et => !et.superCategoryId).sort((a,b) => a.name.localeCompare(b.name, 'ja'));
         if (unclassifiedTypes.length > 0) {
             const unclassifiedOptgroup = document.createElement('optgroup');
             unclassifiedOptgroup.label = "未分類";
             unclassifiedTypes.forEach(et => {
                 const option = document.createElement('option');
-                option.value = et.id;
-                option.textContent = et.name;
+                option.value = et.id; option.textContent = et.name;
                 option.dataset.unitName = et.defaultUnit || '';
                 unclassifiedOptgroup.appendChild(option);
             });
             selectElement.appendChild(unclassifiedOptgroup);
         }
-        
-        // 既存の値があれば再選択
         if (currentValue && Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
             selectElement.value = currentValue;
         }
     }
-
-    // キャラクター基礎情報オプション用の効果種類セレクト (#charBaseOptionEffectTypeSelect) - こちらはoptgroupなしのシンプルなリスト
     if (DOMET.charBaseOptionEffectTypeSelect) {
-        const optionsForCharBase = effectTypesCache.map(et => ({
-            value: et.id,
-            text: et.name,
-            'data-unit-name': et.defaultUnit || '',
-        })).sort((a,b) => a.text.localeCompare(b.text, 'ja'));
+        const optionsForCharBase = effectTypesCache.map(et => ({ value: et.id, text: et.name, 'data-unit-name': et.defaultUnit || '', }))
+                                                .sort((a,b) => a.text.localeCompare(b.text, 'ja'));
         populateSelect(DOMET.charBaseOptionEffectTypeSelect, optionsForCharBase, '効果種類を選択...');
     }
     console.log("[Effect Type Manager] Effect type selects in item/char-base forms populated (with optgroups for item form).");
 }
 
-
-export function _renderEffectTypesForManagementInternal() {
-    if (!DOMET.effectTypeListContainer) return;
+// ★★★ 効果種類リストのDOMを生成する共通関数 ★★★
+function buildEffectTypeListDOMForEnlargement(isEnlargedView = false) {
     const effectTypesCache = getEffectTypesFuncCache();
     const superCategoriesCache = getEffectSuperCategoriesFuncCache();
-    DOMET.effectTypeListContainer.innerHTML = '';
+    // 現状、検索機能はないので、全件表示
 
-    if (effectTypesCache.length === 0) {
-        DOMET.effectTypeListContainer.innerHTML = '<p>効果種類が登録されていません。</p>';
-        populateEffectUnitSelectsForTypeFormsUI();
-        populateSuperCategorySelects();
-        return;
+    if (!effectTypesCache || effectTypesCache.length === 0) {
+        const p = document.createElement('p');
+        p.textContent = '効果種類が登録されていません。';
+        return p;
     }
 
+    const fragment = document.createDocumentFragment();
     const typesBySuperCategory = new Map();
     const unclassifiedTypes = [];
 
     effectTypesCache.forEach(type => {
         if (type.superCategoryId) {
-            if (!typesBySuperCategory.has(type.superCategoryId)) {
-                typesBySuperCategory.set(type.superCategoryId, []);
-            }
+            if (!typesBySuperCategory.has(type.superCategoryId)) typesBySuperCategory.set(type.superCategoryId, []);
             typesBySuperCategory.get(type.superCategoryId).push(type);
         } else {
             unclassifiedTypes.push(type);
@@ -222,7 +207,6 @@ export function _renderEffectTypesForManagementInternal() {
     });
 
     let hasRenderedContent = false;
-
     superCategoriesCache.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(superCat => {
         const typesInThisSuperCat = (typesBySuperCategory.get(superCat.id) || []).sort((a,b) => a.name.localeCompare(b.name, 'ja'));
         if (typesInThisSuperCat.length > 0) {
@@ -233,11 +217,8 @@ export function _renderEffectTypesForManagementInternal() {
             groupHeader.classList.add('effect-super-category-header');
             groupHeader.textContent = `${superCat.name}:`;
             groupDiv.appendChild(groupHeader);
-
-            typesInThisSuperCat.forEach(effectType => {
-                appendEffectTypeToList(effectType, groupDiv); // superCategoriesCache は不要になった
-            });
-            DOMET.effectTypeListContainer.appendChild(groupDiv);
+            typesInThisSuperCat.forEach(effectType => appendEffectTypeToList(effectType, groupDiv, isEnlargedView));
+            fragment.appendChild(groupDiv);
         }
     });
 
@@ -250,41 +231,64 @@ export function _renderEffectTypesForManagementInternal() {
         groupHeader.textContent = '未分類の効果種類:';
         groupDiv.appendChild(groupHeader);
         unclassifiedTypes.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(effectType => {
-            appendEffectTypeToList(effectType, groupDiv); // superCategoriesCache は不要になった
+            appendEffectTypeToList(effectType, groupDiv, isEnlargedView);
         });
-        DOMET.effectTypeListContainer.appendChild(groupDiv);
+        fragment.appendChild(groupDiv);
     }
     
     if (!hasRenderedContent && effectTypesCache.length > 0) {
-         DOMET.effectTypeListContainer.innerHTML = '<p>表示できるグループ化された効果種類はありません。</p>';
+         const p = document.createElement('p');
+         p.textContent = '表示できるグループ化された効果種類はありません。';
+         fragment.appendChild(p);
     }
+    return fragment.childNodes.length > 0 ? fragment : null;
+}
 
+
+export function _renderEffectTypesForManagementInternal() {
+    if (!DOMET.effectTypeListContainer) return;
+    DOMET.effectTypeListContainer.innerHTML = '';
+
+    const listContent = buildEffectTypeListDOMForEnlargement(false); // 通常表示
+    if (listContent) {
+        DOMET.effectTypeListContainer.appendChild(listContent);
+    }
+    // メッセージは buildEffectTypeListDOMForEnlargement 内で処理される
+    
     populateEffectUnitSelectsForTypeFormsUI();
     populateSuperCategorySelects();
     console.log("[Effect Type Manager] Effect types rendered by super category group for management.");
 }
 
-// appendEffectTypeToList 関数の引数から superCategoriesCache を削除
-function appendEffectTypeToList(effectType, containerElement) {
+function appendEffectTypeToList(effectType, containerElement, isEnlargedView = false) {
+    // (この関数は変更なし)
     const unitText = effectType.defaultUnit && effectType.defaultUnit !== '' ? `(${effectType.defaultUnit})` : '(単位なし)';
     const calcText = effectType.calculationMethod === 'max' ? '(最大値)' : '(加算)';
     let sumCapText = '';
     if (effectType.calculationMethod === 'sum' && typeof effectType.sumCap === 'number' && !isNaN(effectType.sumCap)) {
         sumCapText = ` (上限: ${effectType.sumCap})`;
     }
-
     const div = document.createElement('div');
     div.classList.add('list-item');
-    div.innerHTML = `
-        <span class="list-item-name-clickable" data-id="${effectType.id}" data-action="edit">${effectType.name} <small>${unitText} ${calcText}${sumCapText}</small></span>
-        <div class="list-item-actions">
-        </div>
-    `;
+    const nameSpan = document.createElement('span');
+    nameSpan.classList.add('list-item-name-clickable');
+    nameSpan.innerHTML = `${effectType.name} <small>${unitText} ${calcText}${sumCapText}</small>`;
+    if (!isEnlargedView) {
+        nameSpan.dataset.id = effectType.id;
+        nameSpan.dataset.action = "edit";
+    }
+    div.appendChild(nameSpan);
+    if (!isEnlargedView) {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.classList.add('list-item-actions');
+        li.appendChild(actionsDiv); // ここで li は未定義なので div に変更
+    }
     containerElement.appendChild(div);
 }
 
 
 function handleEffectTypeListClick(event) {
+    // (この関数は変更なし)
     const target = event.target;
     const clickableName = target.closest('.list-item-name-clickable[data-id]');
     if (clickableName && clickableName.dataset.action === 'edit') {
@@ -293,6 +297,7 @@ function handleEffectTypeListClick(event) {
 }
 
 async function addEffectType() {
+    // (この関数は変更なし)
     const name = DOMET.newEffectTypeNameInput.value.trim();
     const superCategoryId = DOMET.newEffectTypeSuperCategorySelect.value;
     const unit = DOMET.newEffectTypeUnitSelect.value;
@@ -300,29 +305,16 @@ async function addEffectType() {
     const calcMethod = calcMethodRadio ? calcMethodRadio.value : 'sum';
     const sumCapStr = DOMET.newEffectTypeSumCapInput.value.trim();
     const effectTypesCache = getEffectTypesFuncCache();
-
     if (!name) { alert("効果種類名を入力してください。"); return; }
     if (effectTypesCache.some(et => et.name.toLowerCase() === name.toLowerCase())) {
         alert("同じ名前の効果種類が既に存在します。"); return;
     }
-
-    const effectData = {
-        name: name,
-        superCategoryId: superCategoryId || null,
-        defaultUnit: unit === '' ? null : unit,
-        calculationMethod: calcMethod,
-        createdAt: serverTimestamp()
-    };
-
+    const effectData = { name: name, superCategoryId: superCategoryId || null, defaultUnit: unit === '' ? null : unit, calculationMethod: calcMethod, createdAt: serverTimestamp() };
     if (calcMethod === 'sum' && sumCapStr !== "") {
         const sumCap = parseFloat(sumCapStr);
-        if (!isNaN(sumCap) && sumCap >= 0) {
-            effectData.sumCap = sumCap;
-        } else {
-            alert("加算時の最大値は0以上の数値を入力してください。"); return;
-        }
+        if (!isNaN(sumCap) && sumCap >= 0) { effectData.sumCap = sumCap; } 
+        else { alert("加算時の最大値は0以上の数値を入力してください。"); return; }
     }
-
     try {
         await addDoc(collection(dbInstance, 'effect_types'), effectData);
         DOMET.newEffectTypeNameInput.value = '';
@@ -330,9 +322,7 @@ async function addEffectType() {
         DOMET.newEffectTypeUnitSelect.value = '';
         if(DOMET.newEffectTypeCalcMethodRadios[0]) DOMET.newEffectTypeCalcMethodRadios[0].checked = true;
         DOMET.newEffectTypeSumCapInput.value = '';
-        if (DOMET.newEffectTypeSumCapGroup) {
-             DOMET.newEffectTypeSumCapGroup.style.display = 'block';
-        }
+        if (DOMET.newEffectTypeSumCapGroup) { DOMET.newEffectTypeSumCapGroup.style.display = 'block'; }
         await refreshAllDataCallback();
     } catch (error) {
         console.error("[Effect Type Manager] Error adding effect type:", error);
@@ -341,31 +331,29 @@ async function addEffectType() {
 }
 
 function openEditEffectTypeModalById(effectTypeId) {
+    // (この関数は変更なし)
     const effectTypesCache = getEffectTypesFuncCache();
     const effectTypeData = effectTypesCache.find(et => et.id === effectTypeId);
     if (!effectTypeData) { alert("編集する効果種類のデータが見つかりません。"); return; }
-
     DOMET.editingEffectTypeDocIdInput.value = effectTypeData.id;
     DOMET.editingEffectTypeNameInput.value = effectTypeData.name;
     DOMET.editingEffectTypeSuperCategorySelect.value = effectTypeData.superCategoryId || '';
     DOMET.editingEffectTypeUnitSelect.value = effectTypeData.defaultUnit || '';
-
     const calcMethod = effectTypeData.calculationMethod || 'sum';
     const radioToCheck = Array.from(DOMET.editingEffectTypeCalcMethodRadios).find(r => r.value === calcMethod);
     if (radioToCheck) radioToCheck.checked = true;
     else if (DOMET.editingEffectTypeCalcMethodRadios[0]) DOMET.editingEffectTypeCalcMethodRadios[0].checked = true;
-
     DOMET.editingEffectTypeSumCapInput.value = (typeof effectTypeData.sumCap === 'number' && !isNaN(effectTypeData.sumCap)) ? String(effectTypeData.sumCap) : '';
     if(DOMET.editingEffectTypeSumCapGroup) {
         const sumRadio = document.getElementById('editCalcMethodSum');
         DOMET.editingEffectTypeSumCapGroup.style.display = (sumRadio && sumRadio.checked) ? 'block' : 'none';
     }
-
     openModal('editEffectTypeModal');
     DOMET.editingEffectTypeNameInput.focus();
 }
 
 async function saveEffectTypeEdit() {
+    // (この関数は変更なし)
     const id = DOMET.editingEffectTypeDocIdInput.value;
     const newName = DOMET.editingEffectTypeNameInput.value.trim();
     const newSuperCategoryId = DOMET.editingEffectTypeSuperCategorySelect.value;
@@ -374,35 +362,18 @@ async function saveEffectTypeEdit() {
     const newCalcMethod = editCalcMethodRadio ? editCalcMethodRadio.value : 'sum';
     const newSumCapStr = DOMET.editingEffectTypeSumCapInput.value.trim();
     const effectTypesCache = getEffectTypesFuncCache();
-
     if (!newName) { alert("効果種類名は空にできません。"); return; }
     if (effectTypesCache.some(et => et.id !== id && et.name.toLowerCase() === newName.toLowerCase())) {
         alert("編集後の名前が他の効果種類と重複します。"); return;
     }
-
-    const updateData = {
-        name: newName,
-        superCategoryId: newSuperCategoryId || null,
-        defaultUnit: newUnit === '' ? null : newUnit,
-        calculationMethod: newCalcMethod,
-        updatedAt: serverTimestamp()
-    };
-
+    const updateData = { name: newName, superCategoryId: newSuperCategoryId || null, defaultUnit: newUnit === '' ? null : newUnit, calculationMethod: newCalcMethod, updatedAt: serverTimestamp() };
     if (newCalcMethod === 'sum') {
         if (newSumCapStr !== "") {
             const sumCap = parseFloat(newSumCapStr);
-            if (!isNaN(sumCap) && sumCap >= 0) {
-                updateData.sumCap = sumCap;
-            } else {
-                alert("加算時の最大値は0以上の数値を入力してください。"); return;
-            }
-        } else {
-            updateData.sumCap = deleteField();
-        }
-    } else {
-        updateData.sumCap = deleteField();
-    }
-
+            if (!isNaN(sumCap) && sumCap >= 0) { updateData.sumCap = sumCap; } 
+            else { alert("加算時の最大値は0以上の数値を入力してください。"); return; }
+        } else { updateData.sumCap = deleteField(); }
+    } else { updateData.sumCap = deleteField(); }
     try {
         await updateDoc(doc(dbInstance, 'effect_types', id), updateData);
         closeModal('editEffectTypeModal');
@@ -414,22 +385,15 @@ async function saveEffectTypeEdit() {
 }
 
 async function deleteEffectType(id, name) {
+    // (この関数は変更なし)
     const itemsCache = getItemsFuncCache();
     const charBasesCache = getCharacterBasesFuncCache();
-
     const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.type === id));
-    if (usedByItem) {
-        alert(`効果種類「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。`); return;
-    }
+    if (usedByItem) { alert(`効果種類「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。`); return; }
     for (const baseKey in charBasesCache) {
-        const usedInBase = (charBasesCache[baseKey] || []).find(option =>
-            option.effects && option.effects.some(eff => eff.type === id)
-        );
-        if (usedInBase) {
-            alert(`効果種類「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。`); return;
-        }
+        const usedInBase = (charBasesCache[baseKey] || []).find(option => option.effects && option.effects.some(eff => eff.type === id));
+        if (usedInBase) { alert(`効果種類「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。`); return; }
     }
-
     if (confirm(`効果種類「${name}」を削除しますか？\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'effect_types', id));
