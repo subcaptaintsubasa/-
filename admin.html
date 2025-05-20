@@ -10,8 +10,6 @@
     <link rel="stylesheet" href="css/admin-lists.css">
     <link rel="stylesheet" href="css/admin-modal.css">
     <link rel="stylesheet" href="css/admin-responsive.css">
-    <!-- SortableJS via CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" integrity="sha512-Eezs+g9Lq4TCCq0wae01s97wKTRRl7LD6qlIQAqyKu3rnDNe4PxqBUEXeoCRUXD59JVANdLXMZZRxREFP9HJQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- Consider adding a link to an icon library if using class-based icons (e.g., FontAwesome) -->
 </head>
 <body id="admin-page">
@@ -137,7 +135,7 @@
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
             <h2 id="categoryManagementModalTitle"><span class="icon" aria-hidden="true"></span> カテゴリ管理</h2>
-            <p class="info-message">カテゴリの変更は、保存ボタンを押すとFirebaseに直接保存されます。一覧内のカテゴリはドラッグ＆ドロップで並び替えや親子関係の変更が可能です（※順序・親子関係の保存処理は未実装です）。</p>
+            <p class="info-message">カテゴリの変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
             <div class="form-group">
                  <label for="newCategoryName">新しいカテゴリ名:</label>
                  <input type="text" id="newCategoryName" placeholder="カテゴリ名">
@@ -234,7 +232,7 @@
                      <label for="newCalcMethodMax">最大値</label>
                  </div>
              </div>
-             <div class="form-group" id="newEffectTypeSumCapGroup"> <!-- Container for sumCap -->
+             <div class="form-group" id="newEffectTypeSumCapGroup"> 
                  <label for="newEffectTypeSumCap">加算時の最大値 (任意):</label>
                  <input type="number" id="newEffectTypeSumCap" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short">
                  <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
