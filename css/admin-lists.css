@@ -166,7 +166,7 @@
     background-color: transparent !important; /* 強制的に透明 */
     border: 1px solid #adb5bd;           /* 少し濃いめのボーダーで見やすく */
     color: #495057;
-    padding: 0.25rem 0.4rem; /* パディングを少し調整 */
+    # padding: 0.25rem 0.4rem; /* パディングを少し調整 */
     font-size: 0.9rem;
     border-radius: 0.25rem;
     cursor: pointer;
