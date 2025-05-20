@@ -20,7 +20,6 @@ export function initUIHelpers() {
             return;
         }
         if (modal.dataset.uiHelperInit === 'true') {
-            // console.log(`[ui-helpers] Modal ${modal.id} already initialized. Skipping.`);
             return;
         }
         adminModals[modal.id] = modal;
@@ -81,7 +80,7 @@ export function closeModal(modalId) {
             modal.removeEventListener('transitionend', handleTransitionEnd);
         };
         const modalTransitionDuration = parseFloat(getComputedStyle(modal).transitionDuration) * 1000;
-        if (modalTransitionDuration > 0) {
+        if (modalTransitionDuration > 0 && !isNaN(modalTransitionDuration)) { // Ensure duration is a valid number
             modal.addEventListener('transitionend', handleTransitionEnd);
         } else {
              modal.style.display = 'none';
@@ -98,7 +97,7 @@ export function closeModal(modalId) {
 /**
  * Populates a select element with options.
  * @param {HTMLSelectElement | null} selectElement - The select DOM element.
- * @param {Array<Object>} optionsArray - Array of { value: string, text: string, [dataAttributes]: object } objects.
+ * @param {Array<Object>} optionsArray - Array of { value: string, text: string, [dataKey: string]: string } objects, where dataKey starts with 'data-'.
  * @param {string | null} [defaultText='選択してください...'] - Text for the default empty option. Pass null to omit.
  * @param {string} [selectedValue=''] - The value to pre-select.
  */
@@ -129,7 +128,9 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
         // Add any additional data attributes from the optData object
         for (const key in optData) {
             if (optData.hasOwnProperty(key) && key.startsWith('data-')) {
-                option.dataset[key.substring(5)] = optData[key];
+                // Convert 'data-foo-bar' to 'fooBar' for dataset property
+                const datasetKey = toCamelCase(key.substring(5));
+                option.dataset[datasetKey] = optData[key];
             }
         }
         selectElement.appendChild(option);
@@ -224,7 +225,6 @@ export function populateTagButtonSelector(containerElement, items, activeItemIds
         button.type = 'button';
         button.className = 'tag-filter admin-tag-select';
         button.textContent = item.name;
-        // dataset プロパティはキャメルケースでアクセス (例: data-tag-id -> dataset.tagId)
         button.dataset[toCamelCase(dataAttributeName)] = item.id;
         if (activeItemIds.includes(item.id)) {
             button.classList.add('active');
@@ -285,35 +285,31 @@ export function clearForm(formElement) {
                 case 'checkbox': case 'radio':
                     input.checked = false; break;
                 case 'select-one': case 'select-multiple': case 'select':
-                    input.selectedIndex = -1; // No selection
-                    if (input.options.length > 0 && input.options[0].value === "") { // If there's a placeholder/default empty option
+                    input.selectedIndex = -1;
+                    if (input.options.length > 0 && input.options[0].value === "") {
                         input.selectedIndex = 0;
                     }
                     break;
                 case 'file':
-                    input.value = null; // For file inputs
+                    input.value = null;
                     break;
                 default:
-                    // Potentially other input types or custom elements
                     break;
             }
-            // Trigger change event for selects to update any dependent UI
             if (input.tagName === 'SELECT') {
                 input.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
     }
-    // Clear custom active states for button groups etc.
     formElement.querySelectorAll('.active[data-tag-id], .active[data-parent-id], .category-select-button.active').forEach(activeEl => {
         activeEl.classList.remove('active');
     });
-    // Clear specific preview images or lists if needed, e.g., item image preview
-    const itemImagePreview = formElement.querySelector('#itemImagePreview'); // Assuming formElement can be the itemForm
+    const itemImagePreview = formElement.querySelector('#itemImagePreview');
     if (itemImagePreview) {
         itemImagePreview.style.display = 'none';
         itemImagePreview.src = '#';
     }
-    const currentEffectsList = formElement.querySelector('#currentEffectsList'); // Assuming formElement can be the itemForm
+    const currentEffectsList = formElement.querySelector('#currentEffectsList');
     if (currentEffectsList) {
         currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>';
     }
@@ -335,5 +331,6 @@ function simpleUID(prefix = 'uid-') {
  * @returns {string}
  */
 function toCamelCase(str) {
+    if (typeof str !== 'string') return '';
     return str.toLowerCase().replace(/-(.)/g, (match, group1) => group1.toUpperCase());
 }
