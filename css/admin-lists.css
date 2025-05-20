@@ -171,7 +171,7 @@
     border-radius: 0.25rem;
     cursor: pointer;
     transition: background-color 0.15s, border-color 0.15s, color 0.15s;
-    #line-height: 1;
+    line-height: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
