@@ -1,6 +1,6 @@
 // js/admin-modules/effect-super-category-manager.js
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { openModal as openAdminModal, closeModal as closeAdminModal } from './ui-helpers.js';
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, where, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { openModal as openAdminModal, closeModal as closeAdminModal, populateTagButtonSelector, getSelectedTagButtonValues } from './ui-helpers.js';
 
 const DOMESC = {
     newEffectSuperCategoryNameInput: null,
@@ -9,6 +9,7 @@ const DOMESC = {
     editModal: null,
     editingDocIdInput: null,
     editingNameInput: null,
+    editingEffectTypesSelector: null, // ★★★ 追加: 効果種類選択エリア ★★★
     saveEditButton: null,
     deleteFromEditModalButton: null,
 };
@@ -20,9 +21,9 @@ let refreshAllDataCallback = async () => {};
 
 export function initEffectSuperCategoryManager(dependencies) {
     dbInstance = dependencies.db;
-    // getEffectSuperCategoriesFuncCache will be set by data-loader-admin via refreshAllData
     getEffectTypesFuncCache = dependencies.getEffectTypes;
     refreshAllDataCallback = dependencies.refreshAllData;
+    // getEffectSuperCategoriesFuncCache は _render で設定
 
     DOMESC.newEffectSuperCategoryNameInput = document.getElementById('newEffectSuperCategoryName');
     DOMESC.addEffectSuperCategoryButton = document.getElementById('addEffectSuperCategoryButton');
@@ -31,6 +32,7 @@ export function initEffectSuperCategoryManager(dependencies) {
     DOMESC.editModal = document.getElementById('editEffectSuperCategoryModal');
     DOMESC.editingDocIdInput = document.getElementById('editingEffectSuperCategoryDocId');
     DOMESC.editingNameInput = document.getElementById('editingEffectSuperCategoryName');
+    DOMESC.editingEffectTypesSelector = document.getElementById('editingSuperCategoryEffectTypesSelector'); // ★★★ 取得 ★★★
     DOMESC.saveEditButton = document.getElementById('saveEffectSuperCategoryEditButton');
     DOMESC.deleteFromEditModalButton = document.getElementById('deleteEffectSuperCategoryFromEditModalButton');
 
@@ -117,9 +119,22 @@ async function addEffectSuperCategory() {
 
 function openEditModalById(docId) {
     const superCategory = getEffectSuperCategoriesFuncCache().find(sc => sc.id === docId);
-    if (superCategory && DOMESC.editingDocIdInput && DOMESC.editingNameInput && DOMESC.editModal) {
+    if (superCategory && DOMESC.editingDocIdInput && DOMESC.editingNameInput && DOMESC.editModal && DOMESC.editingEffectTypesSelector) {
         DOMESC.editingDocIdInput.value = superCategory.id;
         DOMESC.editingNameInput.value = superCategory.name;
+
+        // ★★★ 効果種類ボタンセレクタを生成・表示 ★★★
+        const allEffectTypes = getEffectTypesFuncCache();
+        const effectTypesInThisSuperCat = allEffectTypes.filter(et => et.superCategoryId === docId).map(et => et.id);
+        
+        // populateTagButtonSelector を流用するが、data属性を 'data-effect-type-id' にするなど、
+        // または専用の populateEffectTypeButtonSelector 関数を作成する。
+        // ここでは populateTagButtonSelector を使い、data属性は汎用的に扱えるようにする。
+        const effectTypeOptionsForButtons = allEffectTypes.map(et => ({ id: et.id, name: et.name }))
+                                                    .sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+        populateTagButtonSelector(DOMESC.editingEffectTypesSelector, effectTypeOptionsForButtons, effectTypesInThisSuperCat, 'effect-type-id');
+
+
         openAdminModal('editEffectSuperCategoryModal');
         DOMESC.editingNameInput.focus();
     } else {
@@ -140,23 +155,46 @@ async function saveEffectSuperCategoryEdit() {
         return;
     }
 
+    // ★★★ 選択された効果種類IDを取得 ★★★
+    const selectedEffectTypeIds = getSelectedTagButtonValues(DOMESC.editingEffectTypesSelector, 'effect-type-id');
+
     try {
-        await updateDoc(doc(dbInstance, 'effect_super_categories', docId), {
+        const batch = writeBatch(dbInstance);
+
+        // 1. 効果大分類自体の名前を更新
+        batch.update(doc(dbInstance, 'effect_super_categories', docId), {
             name: newName,
             updatedAt: serverTimestamp()
         });
+
+        // 2. 効果種類の superCategoryId を更新
+        const allEffectTypes = getEffectTypesFuncCache();
+        allEffectTypes.forEach(et => {
+            const effectTypeRef = doc(dbInstance, 'effect_types', et.id);
+            const isCurrentlySelected = selectedEffectTypeIds.includes(et.id);
+            const wasPreviouslyAssigned = et.superCategoryId === docId;
+
+            if (isCurrentlySelected && !wasPreviouslyAssigned) {
+                // 新しくこの大分類に割り当てられた
+                batch.update(effectTypeRef, { superCategoryId: docId });
+            } else if (!isCurrentlySelected && wasPreviouslyAssigned) {
+                // この大分類から割り当てが解除された
+                batch.update(effectTypeRef, { superCategoryId: null }); // または deleteField()
+            }
+        });
+
+        await batch.commit();
         closeAdminModal('editEffectSuperCategoryModal');
-        await refreshAllDataCallback();
+        await refreshAllDataCallback(); // 全データ再読み込みとUI再描画
     } catch (error) {
         console.error("[Effect Super Category Manager] Error updating:", error);
-        alert("効果大分類の更新に失敗しました。");
+        alert("効果大分類の更新または関連する効果種類の更新に失敗しました。");
     }
 }
 
 async function deleteEffectSuperCategory(docId, name) {
     const effectTypes = getEffectTypesFuncCache();
-    // ★★★ 依存関係チェックを `superCategoryId` フィールドで行う ★★★
-    const usedBy = effectTypes.find(et => et.superCategoryId === docId); 
+    const usedBy = effectTypes.find(et => et.superCategoryId === docId);
     
     if (usedBy) {
         alert(`効果大分類「${name}」は効果種類「${usedBy.name}」で使用されているため削除できません。先に効果種類からこの大分類の割り当てを解除してください。`);
