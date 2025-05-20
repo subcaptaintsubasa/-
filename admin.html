@@ -104,10 +104,9 @@
                         <div id="itemTagsSelectorCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="itemTagsLabel">
                         </div>
                     </div>
-                    <!-- ★★★ ボタンの配置と新しい削除ボタンの追加 ★★★ -->
                     <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
                         <button type="button" id="deleteItemFromFormButton" class="button-like delete" style="background-color: #dc3545; display: none;">このアイテムを削除</button>
-                        <div> <!-- 右寄せ用のコンテナ -->
+                        <div> 
                             <button type="button" id="clearFormButton" class="button-like secondary">フォームクリア</button>
                             <button type="submit" id="saveItemButton">アイテム保存</button>
                         </div>
@@ -122,6 +121,7 @@
                 <div style="overflow-x: auto;">
                     <table id="itemsTable">
                         <thead>
+                            <!-- ★★★ 「操作」列を削除 ★★★ -->
                             <tr><th>画像</th><th>名前</th><th>売値</th><th>効果</th><th>タグ</th></tr>
                         </thead>
                         <tbody>
