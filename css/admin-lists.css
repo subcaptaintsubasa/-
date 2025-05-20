@@ -71,7 +71,6 @@
 }
 
 /* Styles for Category Tree View */
-/* ... (既存のカテゴリツリースタイルは変更なし) ... */
 .category-tree-item { padding: 0.5rem 0.7rem; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
 .category-tree-item:last-child { border-bottom: none; }
 .category-tree-item:hover { background-color: #f8f9fa; }
@@ -117,7 +116,6 @@
 .tag-group .list-item .list-item-name-clickable small { display: none; }
 
 /* Checkbox groups */
-/* ... (既存のチェックボックススタイルは変更なし) ... */
 .checkbox-group-container { display: flex; flex-direction: column; gap: 0.3rem; max-height: 180px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.75rem; border-radius: 0.25rem; background-color: #ffffff; }
 .checkbox-item { display: flex; align-items: center; padding: 0.2rem 0; }
 .checkbox-item input[type="checkbox"] { margin-right: 0.5rem; width: auto; padding: initial; border: initial; box-shadow: none; vertical-align: middle; flex-shrink: 0; transform: scale(1.05); cursor: pointer; }
@@ -126,14 +124,12 @@
 .checkbox-item label { font-weight: normal; margin-bottom: 0; font-size: 0.9rem; color: #343a40; vertical-align: middle; cursor: pointer; line-height: 1.5; }
 
 /* Tag selection buttons within category edit modal */
-/* ... (既存のタグ選択ボタンスタイルは変更なし) ... */
 .tag-button-container.admin { display: flex; flex-wrap: wrap; gap: 0.5rem; max-height: 180px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.75rem; border-radius: 0.25rem; background-color: #ffffff; }
 .tag-button-container.admin .tag-filter.admin-tag-select { padding: 0.35rem 0.8rem; background-color: #f0f0f0; border: 1px solid #ddd; border-radius: 15px; cursor: pointer; font-size: 0.85em; transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out; color: #495057; }
 .tag-button-container.admin .tag-filter.admin-tag-select:hover { background-color: #e0e0e0; border-color: #ccc; }
 .tag-button-container.admin .tag-filter.admin-tag-select.active { background-color: #28a745; color: white; border-color: #1e7e34; box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3); font-weight: 500; }
 
 /* Effect input area and list */
-/* ... (既存の効果入力エリアスタイルは変更なし) ... */
 .effect-input-area { border: 1px solid #dee2e6; padding: 1rem; border-radius: 0.25rem; background-color: #f8f9fa; margin-top: 0.75rem; }
 .effect-input-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
 .effect-input-row select, .effect-input-row input[type="number"] { flex: 1 1 130px; }
@@ -145,7 +141,6 @@
 .effect-list-item span { flex-grow: 1; margin-right: 0.3rem; }
 
 /* Items Table for Admin */
-/* ... (既存のアイテムテーブルスタイルは変更なし) ... */
 #itemsTable { width: 100%; border-collapse: collapse; margin-top: 1.25rem; font-size: 0.9rem; table-layout: fixed; background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 0.25rem; overflow: hidden; border: 1px solid #dee2e6; }
 #itemsTable th, #itemsTable td { border-bottom: 1px solid #dee2e6; border-left: 1px solid #e9ecef; padding: 0.75rem 0.9rem; text-align: left; vertical-align: middle; word-break: break-word; overflow: hidden; text-overflow: ellipsis; }
 #itemsTable th:first-child, #itemsTable td:first-child { border-left: none; }
@@ -163,28 +158,37 @@
 #itemsTable tbody tr.table-row-clickable:nth-child(even):hover { background-color: #d3d9df; }
 
 /* Search input for admin item list */
-/* ... (既存の検索入力スタイルは変更なし) ... */
 #itemSearchAdmin { padding: 0.6rem 0.75rem; margin-bottom: 1rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 0.9rem; box-sizing: border-box; display: block; width: 100%; max-width: 450px; }
 #itemSearchAdmin:focus { border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
 
-/* ★★★ Style for list enlargement button ★★★ */
+/* Style for list enlargement button */
 .button-like-icon {
     background-color: transparent;
     border: 1px solid #ced4da;
     color: #495057;
-    padding: 0.3rem 0.5rem; /* Smaller padding for icon button */
-    font-size: 0.9rem; /* Adjust icon size if needed via font-size on span */
+    padding: 0.3rem 0.5rem;
+    font-size: 0.9rem;
     border-radius: 0.25rem;
     cursor: pointer;
     transition: background-color 0.15s, border-color 0.15s, color 0.15s;
-    line-height: 1; /* Ensure icon is centered */
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .button-like-icon:hover {
     background-color: #e9ecef;
     border-color: #adb5bd;
     color: #212529;
 }
-.button-like-icon .icon {
-    font-size: 1.1em; /* Make icon slightly larger than button text */
+.button-like-icon .icon, /* For text based icons like 🔎 */
+.button-like-icon i,    /* For Font Awesome icons */
+.button-like-icon img.enlarge-icon-img /* For specific image icons */
+{
+    font-size: 1.1em; /* Adjust if using text/font icon */
     vertical-align: middle;
+}
+.button-like-icon img.enlarge-icon-img {
+    width: 16px;  /* Specific size for the image icon */
+    height: 16px; /* Specific size for the image icon */
 }
