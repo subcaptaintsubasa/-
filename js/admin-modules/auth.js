@@ -1,6 +1,4 @@
 // js/admin-modules/auth.js
-// Handles Firebase Authentication for the admin panel.
-
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 
 const DOMA = {
@@ -11,6 +9,7 @@ const DOMA = {
     adminPasswordInput: null,
     passwordError: null,
     logoutButton: null,
+    currentUserEmailDisplay: null, // ★★★ ヘッダー変更に伴い追加 ★★★
 };
 
 let onLoginCallback = (user) => { console.warn("onLoginCallback not set in auth.js", user);};
@@ -29,12 +28,29 @@ export function initAuth(authInstance, onLogin, onLogout) {
     DOMA.adminPasswordInput = document.getElementById('adminPasswordInput');
     DOMA.passwordError = document.getElementById('passwordError');
     DOMA.logoutButton = document.getElementById('logoutButton');
+    DOMA.currentUserEmailDisplay = document.getElementById('currentUserEmail'); // ★★★ 取得 ★★★
 
     if (DOMA.loginButton) {
         DOMA.loginButton.addEventListener('click', handleLogin);
     } else {
         console.error("Login button not found in auth.js");
     }
+     // ★★★ Enterキーでのログインイベントリスナーを修正 ★★★
+    if(DOMA.adminEmailInput) {
+        DOMA.adminEmailInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && DOMA.loginButton) {
+                DOMA.loginButton.click();
+            }
+        });
+    }
+    if(DOMA.adminPasswordInput) {
+        DOMA.adminPasswordInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && DOMA.loginButton) {
+                DOMA.loginButton.click();
+            }
+        });
+    }
+
 
     if (DOMA.logoutButton) {
         DOMA.logoutButton.addEventListener('click', handleLogout);
@@ -45,9 +61,15 @@ export function initAuth(authInstance, onLogin, onLogout) {
     onAuthStateChanged(firebaseAuthInstance, (user) => {
         if (user) {
             console.log("[Auth] User is signed in:", user.email);
+            if (DOMA.currentUserEmailDisplay) { // ★★★ メールアドレス表示 ★★★
+                DOMA.currentUserEmailDisplay.textContent = `${user.email}`;
+            }
             onLoginCallback(user);
         } else {
             console.log("[Auth] User is signed out.");
+            if (DOMA.currentUserEmailDisplay) { // ★★★ メールアドレスクリア ★★★
+                DOMA.currentUserEmailDisplay.textContent = '';
+            }
             onLogoutCallback();
         }
     });
@@ -71,7 +93,6 @@ function handleLogin() {
 
     signInWithEmailAndPassword(firebaseAuthInstance, email, password)
         .then((userCredential) => {
-            // Signed in - onAuthStateChanged will trigger onLoginCallback
             console.log("[Auth] Admin login successful for:", userCredential.user.email);
         })
         .catch((error) => {
@@ -83,7 +104,7 @@ function handleLogin() {
                     break;
                 case 'auth/user-not-found':
                 case 'auth/wrong-password':
-                case 'auth/invalid-credential': // v9+ uses this for wrong password or user not found
+                case 'auth/invalid-credential': 
                     errorMessage = "メールアドレスまたはパスワードが間違っています。";
                     break;
                 case 'auth/too-many-requests':
@@ -99,8 +120,11 @@ function handleLogin() {
 function handleLogout() {
     signOut(firebaseAuthInstance)
         .then(() => {
-            // Sign-out successful - onAuthStateChanged will trigger onLogoutCallback
             console.log("[Auth] Admin logout successful.");
+             // ★★★ ログアウト時にフォームの値をクリア ★★★
+            if (DOMA.adminEmailInput) DOMA.adminEmailInput.value = '';
+            if (DOMA.adminPasswordInput) DOMA.adminPasswordInput.value = '';
+            if (DOMA.passwordError) DOMA.passwordError.textContent = '';
         })
         .catch((error) => {
             console.error("[Auth] Admin logout error:", error);
@@ -108,6 +132,7 @@ function handleLogout() {
         });
 }
 
-export function getCurrentUser() {
-    return firebaseAuthInstance ? firebaseAuthInstance.currentUser : null;
-}
+// getCurrentUser は admin-main.js からは直接呼ばれなくなったので、エクスポートは任意
+// export function getCurrentUser() {
+//     return firebaseAuthInstance ? firebaseAuthInstance.currentUser : null;
+// }
