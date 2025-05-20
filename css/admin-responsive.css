@@ -1,22 +1,21 @@
 /* css/admin-responsive.css */
 /* Responsive adjustments for the admin panel */
 
-@media (max-width: 992px) { /* Larger breakpoint for table adjustments */
+@media (max-width: 992px) { 
     #admin-content .container {
         padding: 20px 25px;
     }
-    .admin-site-title { /* Was #admin-content header h1 */
+    .admin-site-title { 
         font-size: 1.4rem;
     }
-    #admin-content h2, /* Item management H2 */
-    .admin-management-modal .modal-content h2 /* Management Modal H2 */ {
+    #admin-content h2, 
+    .admin-management-modal .modal-content h2 {
         font-size: 1.6rem;
     }
     #admin-content h3,
     .admin-management-modal .modal-content h3 {
         font-size: 1.3rem;
     }
-    /* Make table slightly more compact on medium screens */
     #itemsTable th,
     #itemsTable td {
         padding: 0.6rem 0.7rem;
@@ -27,7 +26,6 @@
         max-height: 45px;
     }
 
-    /* Management Modals on medium screens */
     body#admin-page div.modal.admin-management-modal div.modal-content {
         max-width: 90%;
         padding: 20px;
@@ -36,41 +34,40 @@
 
 
 @media (max-width: 768px) {
-    /* General Admin Layout */
     body#admin-page {
-        font-size: 15px; /* Slightly smaller base font for mobile */
+        font-size: 15px; 
     }
     #admin-content .container {
-        margin: 20px 15px; /* Adjusted margins */
+        margin: 20px 15px; 
         padding: 20px 15px;
         width: auto;
     }
-    .admin-header { /* Was #admin-content header */
-        padding: 0.6rem 1rem; /* Adjusted padding */
-        height: auto; /* Allow header to wrap if necessary */
+    .admin-header { 
+        padding: 0.6rem 1rem; 
+        height: auto; 
         flex-direction: column;
-        align-items: stretch; /* Stretch items to full width */
+        align-items: stretch; 
     }
     .admin-header-content {
         display: flex;
-        justify-content: space-between; /* Title left, hamburger right */
+        justify-content: space-between; 
         align-items: center;
         width: 100%;
-        margin-bottom: 0.5rem; /* Space between title/hamburger row and user info row */
+        margin-bottom: 0.5rem; 
     }
-    .admin-site-title { /* Was #admin-content header h1 */
+    .admin-site-title { 
         font-size: 1.3rem;
-        margin-bottom: 0; /* Handled by flex container */
+        margin-bottom: 0; 
     }
     .admin-hamburger-button {
-        margin-left: 10px; /* Adjust margin */
+        margin-left: 10px; 
     }
-    .admin-header-user-info { /* Container for user email and logout button */
+    .admin-header-user-info { 
         width: 100%;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 0.3rem; /* Reduced margin */
+        margin-top: 0.3rem; 
     }
     #logoutButton {
         padding: 0.4rem 0.7rem;
@@ -81,7 +78,7 @@
     }
 
     .admin-side-navigation.open {
-        width: 220px; /* Slightly narrower side nav */
+        width: 220px; 
     }
     .admin-side-navigation li .admin-nav-button {
         padding: 14px 20px;
@@ -102,7 +99,7 @@
     }
     #admin-content h2 .icon,
     .admin-management-modal .modal-content h2 .icon {
-        font-size: 0.9em; /* Adjust icon size relative to h2 */
+        font-size: 0.9em; 
         margin-right: 8px;
     }
     #admin-content h3,
@@ -112,8 +109,6 @@
         margin-bottom: 1rem;
     }
 
-
-    /* Admin Forms (applies to item management and forms within modals) */
     .form-group label {
         font-size: 0.9rem;
         margin-bottom: 0.4rem;
@@ -159,7 +154,7 @@
         justify-content: flex-start;
         gap: 0.4rem;
     }
-    .category-select-button {
+    .category-select-button { /* This is for .category-button-group.admin .category-select-button */
         font-size: 0.8rem;
         padding: 0.35rem 0.75rem;
     }
@@ -170,18 +165,16 @@
     }
     #admin-content button,
     #admin-content .button-like,
-    .admin-management-modal .modal-content button:not(.close-button) { /* Apply to modal buttons too */
+    .admin-management-modal .modal-content button:not(.close-button) { 
         font-size: 0.9rem;
-        padding: 0.6rem 1rem; /* Keep buttons reasonably sized */
-        width: auto; /* Ensure buttons in modals don't go full-width unless intended */
+        padding: 0.6rem 1rem; 
+        width: auto; 
     }
-    .admin-management-modal .modal-content button[id^="add"] { /* E.g. addCategoryButton, addTagButton */
-        width: 100%; /* Make "Add X" buttons full width on mobile */
+    .admin-management-modal .modal-content button[id^="add"] { 
+        width: 100%; 
         margin-bottom: 1rem;
     }
 
-
-    /* Effect Input Rows */
     .effect-input-row {
         flex-direction: column;
         gap: 0.6rem;
@@ -207,45 +200,42 @@
          width: 100%;
      }
 
-
-    /* Admin Lists and Tables */
     .list-container {
         padding: 0.5rem;
         max-height: 280px;
     }
-    .list-item {
+    .list-item, .category-tree-item { /* Apply to category tree items as well */
         flex-direction: column;
         align-items: flex-start;
-        padding: 0.6rem; /* Adjusted padding */
+        padding: 0.6rem; 
     }
-    .list-item > span {
+    .list-item > span, .category-tree-content > .category-name, .category-tree-content > small { /* Adjust category tree text parts */
         margin-bottom: 0.5rem;
         font-size: 0.85rem;
     }
-    .list-item div { /* Button container */
+    .list-item div.list-item-actions { 
         width: 100%;
         display: flex;
-        justify-content: flex-start; /* Align buttons to start for easier tap */
+        justify-content: flex-start; 
         gap: 0.5rem;
     }
     .action-button {
-        padding: 0.4rem 0.7rem; /* Slightly larger tap target */
+        padding: 0.4rem 0.7rem; 
         font-size: 0.8rem;
     }
 
-
     #itemsTable {
-        font-size: 0.8rem; /* Smaller font in table */
-        display: block; /* Allow horizontal scrolling for table */
+        font-size: 0.8rem; 
+        display: block; 
         overflow-x: auto;
-        white-space: nowrap; /* Prevent wrapping within cells that shouldn't wrap */
+        white-space: nowrap; 
     }
     #itemsTable th,
     #itemsTable td {
         padding: 0.5rem 0.4rem;
-        white-space: normal; /* Allow content within cells to wrap if needed */
+        white-space: normal; 
     }
-     #itemsTable th { /* Header cells can still be nowrap if preferred */
+     #itemsTable th { 
         white-space: nowrap;
         font-size: 0.75rem;
     }
@@ -258,23 +248,21 @@
         max-width: none;
         font-size: 0.85rem;
     }
-    #character-base-management .form-group #addNewCharBaseOptionButton {
-        margin-left: 0; /* Reset margin for stacking */
+    #characterBaseManagementModal .form-group #addNewCharBaseOptionButton { /* Target within modal */
+        margin-left: 0; 
     }
 
-
-    /* Admin Modals (General and Management Modals) */
-    body#admin-page div.modal { /* Use body#admin-page instead of #admin-content for modals */
+    body#admin-page div.modal { 
         padding: 10px !important;
     }
     body#admin-page div.modal div.modal-content {
-        width: calc(100% - 20px); /* Full width minus modal padding */
-        margin: 10px; /* Ensure it doesn't touch viewport edges */
+        width: calc(100% - 20px); 
+        margin: 10px; 
         padding: 20px 15px;
-        max-height: calc(100vh - 40px); /* Slightly more room */
+        max-height: calc(100vh - 40px); 
     }
-    body#admin-page div.modal div.modal-content h3, /* Edit Modals */
-    body#admin-page div.modal.admin-management-modal div.modal-content h2 /* Management Modals H2 */ {
+    body#admin-page div.modal div.modal-content h3, 
+    body#admin-page div.modal.admin-management-modal div.modal-content h2 {
         font-size: 1.3rem;
         margin-bottom: 1rem;
         padding-bottom: 0.75rem;
@@ -295,19 +283,17 @@
         font-size: 0.95rem;
     }
 
-
-    /* Character Base Management specific responsive (within its modal) */
-    #characterBaseManagementModal .form-group { /* Target specifically within its modal */
+    #characterBaseManagementModal .form-group { 
         flex-direction: column;
         align-items: stretch;
     }
     #characterBaseManagementModal .form-group label {
         margin-bottom: 0.4rem;
     }
-    #characterBaseManagementModal #charBaseTypeSelect { /* Target specifically */
+    #characterBaseManagementModal #charBaseTypeSelect { 
         max-width: none;
     }
-    #characterBaseManagementModal #addNewCharBaseOptionButton { /* Target specifically */
+    #characterBaseManagementModal #addNewCharBaseOptionButton { 
         margin-left: 0;
         margin-top: 0.75rem;
         width: 100%;
@@ -318,7 +304,7 @@
     body#admin-page {
         font-size: 14px;
     }
-    .admin-site-title { /* Was #admin-content header h1 */
+    .admin-site-title { 
         font-size: 1.1rem;
     }
     .admin-header-content {
@@ -350,7 +336,7 @@
         font-size: 0.85rem;
         padding: 0.5rem 0.8rem;
     }
-    .list-item > span {
+    .list-item > span, .category-tree-content > .category-name { /* Apply to category tree items as well */
         font-size: 0.8rem;
     }
     #itemsTable {
@@ -364,21 +350,24 @@
         padding: 0.25rem 0.5rem;
     }
 
-    body#admin-page div.modal div.modal-content { /* All modals */
+    body#admin-page div.modal div.modal-content { 
         padding: 15px 10px;
     }
-    body#admin-page div.modal div.modal-content h3, /* Edit modals h3 */
-    body#admin-page div.modal.admin-management-modal div.modal-content h2 /* Management modals h2 */ {
+    body#admin-page div.modal div.modal-content h3, 
+    body#admin-page div.modal.admin-management-modal div.modal-content h2 {
         font-size: 1.2rem;
     }
     body#admin-page div.modal div.modal-content button[type="submit"],
-    /* ... other save buttons ... */
+    body#admin-page div.modal div.modal-content #saveCategoryEditButton,
+    body#admin-page div.modal div.modal-content #saveTagEditButton,
+    body#admin-page div.modal div.modal-content #saveEffectTypeEditButton,
+    body#admin-page div.modal div.modal-content #saveEffectUnitEditButton,
     body#admin-page div.modal div.modal-content #saveCharBaseOptionButton {
         font-size: 0.9rem;
         padding: 0.6rem;
     }
 
     .admin-side-navigation.open {
-        width: 200px; /* Ensure it's not too wide on small screens */
+        width: 200px; 
     }
 }
