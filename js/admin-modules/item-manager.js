@@ -1,6 +1,6 @@
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, deleteField, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { populateCheckboxGroup, getSelectedCheckboxValues, populateSelect, openModal as openHelperModal, closeModal as closeHelperModal } from './ui-helpers.js'; // closeModal is not directly used here but good practice
+import { populateCheckboxGroup, getSelectedCheckboxValues, populateSelect, openModal as openHelperModal, closeModal as closeHelperModal } from './ui-helpers.js';
 
 const DOMI = {
     itemForm: null,
@@ -22,7 +22,7 @@ const DOMI = {
     itemTagsSelectorCheckboxes: null,
     saveItemButton: null,
     clearFormButton: null,
-    deleteItemFromFormButton: null, // ★★★ 追加 ★★★
+    deleteItemFromFormButton: null,
     itemsTableBody: null,
     itemSearchAdminInput: null,
 };
@@ -31,7 +31,7 @@ let dbInstance = null;
 let getAllItemsFuncCache = () => [];
 let getAllTagsFuncCache = () => [];
 let getEffectTypesFuncCache = () => [];
-let getEffectUnitsFuncCache = () => []; // ★★★ 追加: 単位名表示のため ★★★
+let getEffectUnitsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
 let currentItemEffects = [];
@@ -43,7 +43,7 @@ export function initItemManager(dependencies) {
     getAllItemsFuncCache = dependencies.getItems;
     getAllTagsFuncCache = dependencies.getAllTags;
     getEffectTypesFuncCache = dependencies.getEffectTypes;
-    getEffectUnitsFuncCache = dependencies.getEffectUnits; // ★★★ 取得 ★★★
+    getEffectUnitsFuncCache = dependencies.getEffectUnits;
     refreshAllDataCallback = dependencies.refreshAllData;
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
@@ -66,7 +66,7 @@ export function initItemManager(dependencies) {
     DOMI.itemTagsSelectorCheckboxes = document.getElementById('itemTagsSelectorCheckboxes');
     DOMI.saveItemButton = document.getElementById('saveItemButton');
     DOMI.clearFormButton = document.getElementById('clearFormButton');
-    DOMI.deleteItemFromFormButton = document.getElementById('deleteItemFromFormButton'); // ★★★ 取得 ★★★
+    DOMI.deleteItemFromFormButton = document.getElementById('deleteItemFromFormButton');
     DOMI.itemsTableBody = document.querySelector('#itemsTable tbody');
     DOMI.itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
@@ -77,12 +77,11 @@ export function initItemManager(dependencies) {
     if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.addEventListener('change', updateItemFormEffectUnitDisplay);
     if (DOMI.itemSearchAdminInput) DOMI.itemSearchAdminInput.addEventListener('input', _renderItemsAdminTableInternal);
     
-    // ★★★ 新しい削除ボタンのイベントリスナー ★★★
     if (DOMI.deleteItemFromFormButton) {
         DOMI.deleteItemFromFormButton.addEventListener('click', () => {
             const itemId = DOMI.itemIdToEditInput.value;
             const itemName = DOMI.itemNameInput.value || "(名称未設定アイテム)";
-            const itemImageUrl = DOMI.itemImageUrlInput.value || null;
+            const itemImageUrl = DOMI.itemImageUrlInput.value || null; // Get current URL from input
             if (itemId) {
                 deleteItem(itemId, itemName, itemImageUrl);
             } else {
@@ -90,9 +89,6 @@ export function initItemManager(dependencies) {
             }
         });
     }
-
-    // ★★★ テーブル行のアイテム名クリックイベントはテーブル生成時に直接付与する ★★★
-    // initItemManager での itemsTableBody へのイベントデリゲーションは削除
     console.log("[Item Manager] Initialized.");
 }
 
@@ -121,7 +117,7 @@ function clearItemFormInternal() {
     _populateTagCheckboxesForItemFormInternal(); 
 
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
-    if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none'; // 新規作成時は非表示
+    if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none';
     if (DOMI.itemNameInput) DOMI.itemNameInput.focus();
     console.log("[Item Manager] Item form cleared.");
 }
@@ -138,7 +134,6 @@ export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
         'itemTag',
         'item-tag-sel-'
     );
-    // console.log("[Item Manager] Tag checkboxes in item form populated."); // ログはrefreshAllDataでまとめられるので省略も可
 }
 
 function handleImageFileSelect(event) {
@@ -146,11 +141,11 @@ function handleImageFileSelect(event) {
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
             alert("ファイルサイズが大きすぎます。5MB以下の画像を選択してください。");
-            DOMI.itemImageFileInput.value = null; return;
+            if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null; return;
         }
         if (!file.type.startsWith('image/')) {
             alert("画像ファイルを選択してください (例: JPG, PNG, GIF)。");
-            DOMI.itemImageFileInput.value = null; return;
+            if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null; return;
         }
         selectedImageFile = file;
         const reader = new FileReader();
@@ -161,12 +156,11 @@ function handleImageFileSelect(event) {
             }
         }
         reader.readAsDataURL(selectedImageFile);
-        DOMI.itemImageUrlInput.value = '';
+        if(DOMI.itemImageUrlInput) DOMI.itemImageUrlInput.value = ''; 
         if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none';
     } else {
         selectedImageFile = null;
-        // ファイル選択がクリアされた場合、既存のURLがあればプレビューを維持
-        if (DOMI.itemImageUrlInput.value && DOMI.itemImagePreview) {
+        if (DOMI.itemImageUrlInput && DOMI.itemImageUrlInput.value && DOMI.itemImagePreview) {
             DOMI.itemImagePreview.src = DOMI.itemImageUrlInput.value;
             DOMI.itemImagePreview.style.display = 'block';
         } else if (DOMI.itemImagePreview) {
@@ -180,7 +174,7 @@ function updateItemFormEffectUnitDisplay() {
     if (!DOMI.effectUnitDisplay || !DOMI.effectTypeSelect) return;
     const selectedOption = DOMI.effectTypeSelect.options[DOMI.effectTypeSelect.selectedIndex];
     const unitName = selectedOption ? (selectedOption.dataset.unitName || '') : '';
-    DOMI.effectUnitDisplay.textContent = unitName ? `${unitName}` : ''; // 括弧を削除
+    DOMI.effectUnitDisplay.textContent = unitName ? `${unitName}` : ''; 
 }
 
 
@@ -192,16 +186,16 @@ function addEffectToItemList() {
 
     const value = parseFloat(valueStr);
     const selectedEffectType = getEffectTypesFuncCache().find(et => et.id === typeId);
-    const unitName = selectedEffectType ? (selectedEffectType.defaultUnit || '') : ''; // 単位名を取得
+    const unitName = selectedEffectType ? (selectedEffectType.defaultUnit || '') : ''; 
 
-    currentItemEffects.push({ type: typeId, value: value, unit: unitName }); // 単位名を保存
+    currentItemEffects.push({ type: typeId, value: value, unit: unitName }); 
     renderCurrentItemEffectsListUI();
     DOMI.effectTypeSelect.value = '';
     DOMI.effectValueInput.value = '';
     updateItemFormEffectUnitDisplay();
 }
 
-function renderCurrentItemEffectsListUI() {
+function renderCurrentItemEffectsListUI() { 
     if (!DOMI.currentEffectsList) return;
     DOMI.currentEffectsList.innerHTML = '';
     const effectTypesCache = getEffectTypesFuncCache();
@@ -212,7 +206,7 @@ function renderCurrentItemEffectsListUI() {
     currentItemEffects.forEach((effect, index) => {
         const effectType = effectTypesCache.find(et => et.id === effect.type);
         const typeName = effectType ? effectType.name : '不明な効果';
-        const unitText = effect.unit && effect.unit !== '' ? `${effect.unit}` : ''; // 保存された単位名を使用
+        const unitText = effect.unit && effect.unit !== '' ? `${effect.unit}` : ''; 
         const div = document.createElement('div');
         div.classList.add('effect-list-item');
         div.innerHTML = `
@@ -228,7 +222,6 @@ function renderCurrentItemEffectsListUI() {
 }
 
 async function uploadImageToWorkerAndGetURL(file) {
-    // ... (この関数は変更なし)
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) return null;
     if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'block';
     if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
@@ -303,13 +296,13 @@ async function saveItem(event) {
     const priceStr = DOMI.itemPriceInput.value.trim();
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
-    let finalImageUrl = DOMI.itemImageUrlInput.value || null; // Initialize with null if empty
+    let finalImageUrl = DOMI.itemImageUrlInput.value || null;
 
     let price = null;
     if (priceStr !== "") {
         price = parseInt(priceStr, 10);
         if (isNaN(price) || price < 0) {
-            alert("売値は0以上の数値を入力してください。");
+            alert("売値は0以上の数値を入力してください。未入力の場合は「未設定」として扱われます。");
             if (DOMI.saveItemButton) {
                 DOMI.saveItemButton.disabled = false;
                 DOMI.saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
@@ -318,26 +311,34 @@ async function saveItem(event) {
         }
     }
 
+    if (!name) {
+        alert("アイテム名を入力してください。");
+        if (DOMI.saveItemButton) {
+            DOMI.saveItemButton.disabled = false;
+            DOMI.saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
+        }
+        return;
+    }
+
     try {
         if (selectedImageFile) {
             const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
             if (uploadedUrl) {
                 finalImageUrl = uploadedUrl;
-            } else if (editingDocId) { // Upload failed, but we are editing, so retain old image if any
+            } else if (editingDocId) {
                 const oldItemSnap = await getDoc(doc(dbInstance, "items", editingDocId));
                 if (oldItemSnap.exists() && oldItemSnap.data().image) {
                     finalImageUrl = oldItemSnap.data().image;
                     alert("新しい画像のアップロードに失敗しました。既存の画像情報を保持します。");
                 } else {
-                    finalImageUrl = null; // No old image or upload failed for new item
+                    finalImageUrl = null;
                 }
-            } else { // New item and upload failed
+            } else {
                 finalImageUrl = null;
             }
-            selectedImageFile = null; // Clear selected file after attempting upload
-            if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null; // Reset file input
+            selectedImageFile = null;
+            if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
         }
-
 
         const itemData = {
             name: name,
@@ -348,16 +349,22 @@ async function saveItem(event) {
             updatedAt: serverTimestamp()
         };
 
-        if (price !== null) itemData.price = price;
-        else itemData.price = deleteField();
-
-        if (editingDocId) {
-            await updateDoc(doc(dbInstance, 'items', editingDocId), itemData);
+        if (price !== null) {
+            itemData.price = price;
         } else {
-            itemData.createdAt = serverTimestamp();
-            await addDoc(collection(dbInstance, 'items'), itemData);
+            if (editingDocId) {
+                 itemData.price = deleteField();
+            }
         }
 
+        if (editingDocId) {
+            await updateDoc(doc(dbInstance, "items", editingDocId), itemData);
+            alert("アイテムが更新されました。");
+        } else {
+            itemData.createdAt = serverTimestamp();
+            await addDoc(collection(dbInstance, "items"), itemData);
+            alert("アイテムが追加されました。");
+        }
         clearItemFormInternal();
         await refreshAllDataCallback();
 
@@ -377,7 +384,7 @@ export function _renderItemsAdminTableInternal() {
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
     const effectTypesCache = getEffectTypesFuncCache();
-    // const effectUnitsCache = getEffectUnitsFuncCache(); // 単位名表示に必要
+    // const effectUnitsCache = getEffectUnitsFuncCache(); // Now using effectType.defaultUnit which is name
 
     DOMI.itemsTableBody.innerHTML = '';
 
@@ -390,7 +397,7 @@ export function _renderItemsAdminTableInternal() {
     if (filteredItems.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = 6; // ★★★ 列数に合わせて調整 (操作列がなくなるので5になる) ★★★
+        td.colSpan = 5; // Adjusted colspan
         td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
         td.style.textAlign = 'center';
         return;
@@ -410,35 +417,27 @@ export function _renderItemsAdminTableInternal() {
             effectsDisplay = item.structured_effects.map(eff => {
                 const typeInfo = effectTypesCache.find(et => et.id === eff.type);
                 const typeName = typeInfo ? typeInfo.name : `不明`;
-                const unitName = typeInfo && typeInfo.defaultUnit ? typeInfo.defaultUnit : ''; // 単位名
+                const unitName = typeInfo && typeInfo.defaultUnit ? typeInfo.defaultUnit : '';
                 return `${typeName}: ${eff.value}${unitName ? unitName : ''}`;
             }).join('; ');
-            if (effectsDisplay.length > 50) effectsDisplay = effectsDisplay.substring(0, 47) + '...';
+            // if (effectsDisplay.length > 50) effectsDisplay = effectsDisplay.substring(0, 47) + '...'; // text-overflow handles this now
         }
         const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
         const nameDisplay = item.name || '(名称未設定)';
 
-        // ★★★ 操作列を削除し、アイテム名をクリック可能にする ★★★
         tr.innerHTML = `
             <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/no_image_placeholder.png'; this.style.backgroundColor='#eee';"></td>
             <td class="list-item-name-clickable" data-item-doc-id="${item.docId}" data-action="edit-item">${nameDisplay}</td>
             <td>${priceDisplay}</td>
             <td>${effectsDisplay}</td>
             <td>${itemTagsString}</td>
-            <td></td> <!-- 空の操作列、または完全に削除 -->
-            `;
-        // アイテム名クリックで編集フォームにロード
+            `; // Removed last empty <td> for operation column
         const nameCell = tr.querySelector('td.list-item-name-clickable');
         if (nameCell) {
             nameCell.addEventListener('click', () => loadItemForEdit(item.docId));
         }
         DOMI.itemsTableBody.appendChild(tr);
     });
-    // ★★★ itemsTable の thead から「操作」ヘッダーを削除する必要がある (HTML側またはJSで) ★★★
-    // ここではJSで列数を調整したため、HTML側のtheadの列数も合わせる必要があります。
-    // または、JSで動的にtheadを書き換えるか、最後の<td>を完全に削除します。
-    // 例: thead の <tr><th>画像</th><th>名前</th><th>売値</th><th>効果</th><th>タグ</th><!-- <th>操作</th> --></tr>
-
     console.log("[Item Manager] Items table rendered.");
 }
 
@@ -448,7 +447,7 @@ async function loadItemForEdit(docId) {
         const itemSnap = await getDoc(doc(dbInstance, "items", docId));
         if (itemSnap.exists()) {
             const itemData = itemSnap.data();
-            clearItemFormInternal(); // Clear form before populating
+            clearItemFormInternal(); 
 
             DOMI.itemIdToEditInput.value = itemSnap.id;
             DOMI.itemNameInput.value = itemData.name || "";
@@ -467,7 +466,7 @@ async function loadItemForEdit(docId) {
             renderCurrentItemEffectsListUI();
 
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
-            if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block'; // 編集時は表示
+            if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block';
 
             const itemFormSection = document.getElementById('item-management');
             if (itemFormSection) itemFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -480,12 +479,11 @@ async function deleteItem(docId, itemName, imageUrl) {
     if (confirm(`アイテム「${itemName}」を削除しますか？\nこの操作は元に戻せません。\n(Cloudflare R2上の画像は自動削除されません)`)) {
         try {
             await deleteDoc(doc(dbInstance, 'items', docId));
-            if (imageUrl) {
-                console.warn(`Image ${imageUrl} (associated with deleted item ${docId}) may need manual deletion from Cloudflare R2 or other storage if not using Firebase Storage directly managed by this app.`);
+            if (imageUrl && imageUrl.includes('workers.dev')) { // Simple check for worker URL
+                console.warn(`Image ${imageUrl} (associated with deleted item ${docId}) may need manual deletion from Cloudflare R2 or your image hosting.`);
             }
-            // フォームをクリアし、削除ボタンを非表示にする
-            if (DOMI.itemIdToEditInput.value === docId) { // 削除したアイテムが現在フォームに表示されている場合
-                clearItemFormInternal(); // これで削除ボタンも非表示になるはず
+            if (DOMI.itemIdToEditInput.value === docId) {
+                clearItemFormInternal();
             }
             await refreshAllDataCallback();
         } catch (error) {
