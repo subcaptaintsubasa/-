@@ -69,39 +69,33 @@
     margin-top: 0.25rem;
     margin-bottom: 0.75rem;
 }
-
-/* ★★★ セレクタの具体性を上げて、デフォルトスタイルが優先されるように変更 ★★★ */
-.category-button-group.admin .category-select-button { /* 親クラスも指定して具体性を上げる */
+.category-button-group.admin .category-select-button { 
     padding: 0.4rem 0.9rem;
-    background-color: #f8f9fa; /* 薄いグレーをデフォルトに */
-    border: 1px solid #dee2e6;   /* 薄いグレーのボーダー */
+    background-color: #f8f9fa; 
+    border: 1px solid #dee2e6;   
     border-radius: 50px;
     cursor: pointer;
     font-size: 0.875rem;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
-    color: #495057; /* やや濃いグレーの文字色 */
+    color: #495057; 
 }
-
-/* ★★★ ホバー時のスタイルも具体性を上げる ★★★ */
 .category-button-group.admin .category-select-button:hover {
     background-color: #e9ecef;
     border-color: #ced4da;
     color: #343a40;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
-
-/* ★★★ アクティブ時のスタイルも具体性を上げる ★★★ */
 .category-button-group.admin .category-select-button.active {
-    background-color: #007bff; /* アクティブ時の背景色 */
-    color: white;               /* アクティブ時の文字色 */
-    border-color: #007bff;      /* ボーダー色も背景色と合わせる */
+    background-color: #007bff; 
+    color: white;               
+    border-color: #007bff;      
     font-weight: 600;
 }
 
 /* Radio button groups */
 .radio-group {
     display: flex;
-    gap: 1.25rem; /* Increased gap */
+    gap: 1.25rem; 
     align-items: center;
     margin-top: 0.3rem;
     flex-wrap: wrap;
@@ -127,13 +121,9 @@
 }
 
 /* General Button Styles in Admin Forms */
-/* .admin-management-modal button:not(.close-button) のような指定で、
-   デフォルトのボタンスタイルが .category-select-button に影響しないように注意が必要。
-   .category-select-button のセレクタの具体性を上げたので、通常は問題ないはず。
-*/
 #admin-content button,
 #admin-content .button-like,
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter) { /* .category-select-button と .tag-filter を除外 */
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter) { 
     background-color: #007bff;
     color: white;
     padding: 0.6rem 1.1rem;
