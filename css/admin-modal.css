@@ -1,7 +1,6 @@
 /* css/admin-modal.css */
 /* Styles for modals used within the admin panel */
 
-/* General Admin Modal Structure */
 body#admin-page div.modal {
     position: fixed !important;
     z-index: 10001 !important;
@@ -9,113 +8,96 @@ body#admin-page div.modal {
     top: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    overflow: auto !important; 
-    background-color: rgba(33, 37, 41, 0.75) !important; 
-    display: none !important; 
+    overflow: auto !important;
+    background-color: rgba(33, 37, 41, 0.75) !important;
+    display: none !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 20px !important; 
+    padding: 20px !important;
     box-sizing: border-box !important;
 }
 
 body#admin-page div.modal.active-modal {
-    display: flex !important; 
+    display: flex !important;
 }
 
 body#admin-page div.modal div.modal-content {
     background-color: #fff;
     margin: auto;
-    padding: 30px 35px; 
+    padding: 30px 35px;
     border: none;
     width: 90%;
-    max-width: 580px; 
-    border-radius: 6px; 
+    max-width: 580px; /* Default for smaller edit modals */
+    border-radius: 6px;
     position: relative;
-    box-shadow: 0 7px 20px rgba(0,0,0,0.2); 
+    box-shadow: 0 7px 20px rgba(0,0,0,0.2);
     animation: fadeInAdminModal 0.25s ease-out;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 60px); 
+    max-height: calc(100vh - 60px);
 }
-
-/* Specific styles for the new, larger Management Modals */
-body#admin-page div.modal.admin-management-modal div.modal-content {
-    max-width: 800px; 
-    padding: 25px 30px; 
-}
-
-/* For content that needs internal scrolling within any modal */
 body#admin-page div.modal div.modal-content.scrollable-content {
     overflow-y: auto;
 }
 
+/* Specific styles for the larger Management Modals */
+body#admin-page div.modal.admin-management-modal div.modal-content {
+    max-width: 800px;
+    padding: 25px 30px;
+}
+
+/* ★★★ Styles for Enlarged List Modal ★★★ */
+body#admin-page div.modal.admin-enlarged-list-modal div.modal-content {
+    max-width: 90%; /* より広く */
+    width: 1000px;  /* 例: 固定幅、または max-width で制御 */
+    max-height: calc(100vh - 40px); /* 高さをより多く使う */
+    height: 90vh; /* または具体的な高さ */
+}
+/* 拡大モーダル内のリストコンテナのスタイルはHTMLのインラインで調整したが、こちらで定義も可 */
+/*
+#listEnlargementModalContent {
+    max-height: calc(80vh - 150px); // ヘッダーや他の要素の高さを考慮
+    min-height: 300px; // 最低限の高さを確保
+    flex-grow: 1; // 利用可能なスペースを埋める
+}
+*/
+
 
 @keyframes fadeInAdminModal {
-    from { opacity: 0; transform: translateY(-25px) scale(0.98); } 
+    from { opacity: 0; transform: translateY(-25px) scale(0.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Modal title for existing small edit modals */
 body#admin-page div.modal div.modal-content h3 {
-    margin-top: 0;
-    margin-bottom: 25px; 
-    font-size: 1.6rem; 
-    color: #212529; 
-    border-bottom: 1px solid #dee2e6; 
-    padding-bottom: 15px; 
-    flex-shrink: 0;
-    font-weight: 500; 
-    text-align: left; 
+    margin-top: 0; margin-bottom: 25px; font-size: 1.6rem; color: #212529;
+    border-bottom: 1px solid #dee2e6; padding-bottom: 15px;
+    flex-shrink: 0; font-weight: 500; text-align: left;
 }
 
-
-body#admin-page div.modal span.close-button { 
-    color: #6c757d;
-    position: absolute;
-    top: 20px; 
-    right: 20px; 
-    font-size: 32px; 
-    font-weight: bold;
-    line-height: 0.8; 
-    cursor: pointer;
-    z-index: 10;
+body#admin-page div.modal span.close-button {
+    color: #6c757d; position: absolute; top: 20px; right: 20px;
+    font-size: 32px; font-weight: bold; line-height: 0.8;
+    cursor: pointer; z-index: 10;
     transition: color 0.2s ease-in-out, transform 0.15s ease-in-out;
-    padding: 5px; 
-    background: transparent; 
-    border: none; 
+    padding: 5px; background: transparent; border: none;
 }
 body#admin-page div.modal.admin-management-modal span.close-button {
-    top: 15px;
-    right: 25px;
+    top: 15px; right: 25px;
 }
-
-
 body#admin-page div.modal span.close-button:hover,
 body#admin-page div.modal span.close-button:focus {
-    color: #343a40;
-    text-decoration: none;
-    transform: scale(1.1); 
+    color: #343a40; text-decoration: none; transform: scale(1.1);
 }
 
 /* Specific Modal Adjustments for existing edit modals */
-body#admin-page div.modal#editEffectUnitModal div.modal-content {
-    max-width: 420px; 
-}
-
+body#admin-page div.modal#editEffectUnitModal div.modal-content { max-width: 420px; }
+body#admin-page div.modal#editEffectSuperCategoryModal div.modal-content { max-width: 500px; } /* 編集モーダルの幅調整 */
 body#admin-page div.modal#editCharBaseOptionModal div.modal-content,
-body#admin-page div.modal#editItemModal div.modal-content { 
-    max-width: 620px; 
-}
-
+body#admin-page div.modal#editItemModal div.modal-content { max-width: 620px; }
 
 /* Form groups within modals */
-body#admin-page div.modal div.modal-content .form-group {
-    margin-bottom: 1.1rem; 
-}
-body#admin-page div.modal div.modal-content .form-group:last-of-type { 
-    margin-bottom: 1.5rem; 
-}
-
+body#admin-page div.modal div.modal-content .form-group { margin-bottom: 1.1rem; }
+body#admin-page div.modal div.modal-content .form-group:last-of-type { margin-bottom: 1.5rem; }
 
 /* Action buttons at the bottom of modals */
 body#admin-page div.modal div.modal-content button[type="submit"],
@@ -123,24 +105,13 @@ body#admin-page div.modal div.modal-content #saveCategoryEditButton,
 body#admin-page div.modal div.modal-content #saveTagEditButton,
 body#admin-page div.modal div.modal-content #saveEffectTypeEditButton,
 body#admin-page div.modal div.modal-content #saveEffectUnitEditButton,
+body#admin-page div.modal div.modal-content #saveEffectSuperCategoryEditButton,
 body#admin-page div.modal div.modal-content #saveCharBaseOptionButton {
-    margin-top: 1.25rem; 
-    width: 100%; 
-    padding: 0.7rem 1rem; 
-    font-size: 1rem;
+    margin-top: 1.25rem; width: 100%; padding: 0.7rem 1rem; font-size: 1rem;
 }
-body#admin-page div.modal.admin-management-modal div.modal-content button[type="button"]:not(.close-button):not(.button-like) {
-    /* Example: margin-top: 1rem; width: auto; padding: 0.6rem 1.2rem; */
-}
-
-
-/* If there are multiple buttons, e.g., Save and Cancel in a row */
 body#admin-page div.modal div.modal-content .modal-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end; 
-    margin-top: 1.5rem;
+    display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;
 }
 body#admin-page div.modal div.modal-content .modal-actions button {
-    width: auto; 
+    width: auto;
 }
