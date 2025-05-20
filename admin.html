@@ -148,11 +148,11 @@
                  <input type="hidden" id="selectedNewParentCategoryId" value="">
              </div>
             <button id="addCategoryButton" type="button">カテゴリ追加</button>
-
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
                 <h3>カテゴリ一覧</h3>
                 <button type="button" id="enlargeCategoryListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="カテゴリ一覧を拡大表示">
-                    <span class="icon" aria-hidden="true">🔎</span>
+                    <!-- ★★★ 画像アイコンに変更 ★★★ -->
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
                 </button>
             </div>
             <div class="form-group list-search-bar">
@@ -452,16 +452,13 @@
         </div>
     </div>
 
-    <!-- ★★★ 一覧拡大表示用モーダルを追加 ★★★ -->
     <div id="listEnlargementModal" class="modal admin-enlarged-list-modal" role="dialog" aria-modal="true" aria-labelledby="listEnlargementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
             <h2 id="listEnlargementModalTitle">一覧表示</h2>
             <div id="listEnlargementModalSearchContainer" style="margin-bottom: 1rem;">
-                <!-- Optional: Search bar for enlarged list could go here -->
             </div>
             <div id="listEnlargementModalContent" class="list-container" style="max-height: calc(80vh - 150px); min-height: 300px;">
-                <!-- Enlarged list content will be inserted here -->
             </div>
         </div>
     </div>
