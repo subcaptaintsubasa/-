@@ -28,8 +28,8 @@ const DOM = {
     adminSideNav: null,
     adminCloseNavButton: null,
     adminNavButtons: null,
-    adminNavOverlay: null, // ★★★ 追加: オーバーレイ用 ★★★
-    adminPageBody: null,    // ★★★ 追加: body要素参照用 ★★★
+    adminNavOverlay: null, 
+    adminPageBody: null,    
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,21 +39,17 @@ document.addEventListener('DOMContentLoaded', () => {
     DOM.adminSideNav = document.getElementById('adminSideNav');
     DOM.adminCloseNavButton = document.getElementById('adminCloseNavButton');
     DOM.adminNavButtons = document.querySelectorAll('.admin-nav-button');
-    DOM.adminPageBody = document.getElementById('admin-page'); // body要素
+    DOM.adminPageBody = document.getElementById('admin-page'); 
 
-    // ★★★ オーバーレイ要素を動的に作成またはHTMLに静的に追加して取得 ★★★
-    // 動的に作成する場合:
     DOM.adminNavOverlay = document.createElement('div');
     DOM.adminNavOverlay.id = 'admin-nav-overlay';
-    // document.body.appendChild(DOM.adminNavOverlay); // body直下に追加
-    // admin-content の直前に追加して、admin-content よりは手前、headerよりは奥になるように
     const adminContentElement = document.getElementById('admin-content');
     if (adminContentElement && adminContentElement.parentNode) {
         adminContentElement.parentNode.insertBefore(DOM.adminNavOverlay, adminContentElement);
     } else {
-        document.body.appendChild(DOM.adminNavOverlay); // フォールバック
+        document.body.appendChild(DOM.adminNavOverlay); 
+        console.warn("Could not find #admin-content to insert overlay before it. Appended to body as fallback.");
     }
-
 
     initUIHelpers();
 
@@ -62,8 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
             DOM.adminSideNav.classList.add('open');
             DOM.adminSideNav.setAttribute('aria-hidden', 'false');
             DOM.adminHamburgerButton.setAttribute('aria-expanded', 'true');
-            DOM.adminNavOverlay.classList.add('active'); // オーバーレイ表示
-            DOM.adminPageBody.classList.add('admin-nav-open'); // bodyにクラス追加 (スクロール禁止など)
+            DOM.adminNavOverlay.classList.add('active'); 
+            DOM.adminPageBody.classList.add('admin-nav-open'); 
         }
     }
 
@@ -72,14 +68,14 @@ document.addEventListener('DOMContentLoaded', () => {
             DOM.adminSideNav.classList.remove('open');
             DOM.adminSideNav.setAttribute('aria-hidden', 'true');
             DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
-            DOM.adminNavOverlay.classList.remove('active'); // オーバーレイ非表示
+            DOM.adminNavOverlay.classList.remove('active'); 
             DOM.adminPageBody.classList.remove('admin-nav-open');
         }
     }
 
     if (DOM.adminHamburgerButton) {
         DOM.adminHamburgerButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // 他のクリックイベントとの干渉を防ぐ
+            e.stopPropagation(); 
             if (DOM.adminSideNav.classList.contains('open')) {
                 closeAdminNav();
             } else {
@@ -92,25 +88,22 @@ document.addEventListener('DOMContentLoaded', () => {
         DOM.adminCloseNavButton.addEventListener('click', closeAdminNav);
     }
 
-    // ★★★ オーバーレイクリックで閉じる ★★★
     if (DOM.adminNavOverlay) {
         DOM.adminNavOverlay.addEventListener('click', closeAdminNav);
     }
     
-    // ★★★ Escキーで閉じる (オプション) ★★★
     document.addEventListener('keydown', (e) => {
         if (e.key === "Escape" && DOM.adminSideNav && DOM.adminSideNav.classList.contains('open')) {
             closeAdminNav();
         }
     });
 
-
     DOM.adminNavButtons.forEach(button => {
         button.addEventListener('click', () => {
             const modalId = button.dataset.modalTarget;
             if (modalId) {
                 openAdminModal(modalId);
-                closeAdminNav(); // モーダルを開いたらナビゲーションを閉じる
+                closeAdminNav(); 
                 triggerModalContentRefresh(modalId);
             }
         });
@@ -126,11 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (adminContentEl) adminContentEl.style.display = 'block';
             else console.error("#admin-content element not found!");
             
-            // currentUserEmailの表示はauth.jsで処理されるか、HTMLヘッダー内で直接行う想定
-            // ここでは、ログイン時にメールアドレスを表示するspan要素の内容を更新
             const currentUserEmailSpan = document.getElementById('currentUserEmail');
             if(user && currentUserEmailSpan) currentUserEmailSpan.textContent = user.email;
-
 
             loadAndInitializeAdminModules();
         },
@@ -157,7 +147,7 @@ function clearAdminUIAndData() {
     console.log("[admin-main] Clearing admin UI and data cache...");
     const listContainersIds = [
         'categoryListContainer', 'tagListContainer', 'effectUnitListContainer',
-        'effectSuperCategoryListContainer',
+        'effectSuperCategoryListContainer', 
         'effectTypeListContainer', 'charBaseOptionListContainer',
     ];
     listContainersIds.forEach(id => {
@@ -208,7 +198,7 @@ async function loadAndInitializeAdminModules() {
             getItems: getItemsCache,
             getEffectTypes: getEffectTypesCache,
             getEffectUnits: getEffectUnitsCache,
-            getEffectSuperCategories: getEffectSuperCategoriesCache,
+            getEffectSuperCategories: getEffectSuperCategoriesCache, 
             getCharacterBases: getCharacterBasesCache,
             refreshAllData: async () => {
                 console.log("[admin-main] Refreshing all data and UI (called from a manager)...");
@@ -228,7 +218,7 @@ async function loadAndInitializeAdminModules() {
         };
 
         initEffectUnitManager(commonDependencies);
-        initEffectSuperCategoryManager(commonDependencies);
+        initEffectSuperCategoryManager(commonDependencies); 
         initEffectTypeManager(commonDependencies);
         initCategoryManager(commonDependencies);
         initTagManager(commonDependencies);
@@ -236,7 +226,7 @@ async function loadAndInitializeAdminModules() {
         initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
         if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
-        if (typeof populateItemFormTags === 'function') populateItemFormTags();
+        if (typeof populateItemFormTags === 'function') populateItemFormTags(); 
         if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
 
         console.log("[admin-main] Admin modules initialized. Item management section rendered.");
@@ -266,7 +256,7 @@ function triggerModalContentRefresh(modalId) {
         case 'effectUnitManagementModal':
             if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
             break;
-        case 'effectSuperCategoryManagementModal':
+        case 'effectSuperCategoryManagementModal': 
             if (typeof renderEffectSuperCategoriesUI === 'function') {
                 renderEffectSuperCategoriesUI(getEffectSuperCategoriesCache());
             }
