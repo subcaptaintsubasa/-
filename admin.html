@@ -151,7 +151,6 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
                 <h3>カテゴリ一覧</h3>
                 <button type="button" id="enlargeCategoryListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="カテゴリ一覧を拡大表示">
-                    <!-- ★★★ 画像アイコンに変更 ★★★ -->
                     <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
                 </button>
             </div>
@@ -179,7 +178,12 @@
                 </div>
             </div>
             <button id="addTagButton" type="button">タグ追加</button>
-            <h3 style="margin-top: 20px;">既存タグ一覧</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>既存タグ一覧</h3>
+                <button type="button" id="enlargeTagListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="タグ一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
             <div class="form-group list-search-bar">
                 <label for="tagSearchInput" class="sr-only">タグ検索</label>
                 <input type="text" id="tagSearchInput" placeholder="タグ名で検索..." aria-label="タグを検索">
