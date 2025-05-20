@@ -28,21 +28,21 @@
     padding: 0.6rem 0.8rem;
     border-bottom: 1px solid #e9ecef;
     transition: background-color 0.15s ease-in-out;
-    cursor: pointer; /* ★★★ リストアイテム全体をクリック可能に ★★★ */
+    cursor: pointer;
 }
 .list-item:last-child {
     border-bottom: none;
 }
 .list-item:hover {
-    background-color: #e9ecef; /* ★★★ ホバー時の背景色を少し濃く ★★★ */
+    background-color: #e9ecef;
 }
-.list-item > .list-item-name-clickable { /* 項目名部分のスタイルは維持しつつ、行全体も反応するように */
+.list-item > .list-item-name-clickable {
     flex-grow: 1;
     margin-right: 0.75rem;
     word-break: break-word;
     font-size: 0.9rem;
     color: #0056b3;
-    /* cursor: pointer; 行に設定したので不要かも */
+    cursor: pointer;
     text-decoration: none;
     transition: color 0.15s ease-in-out;
 }
@@ -71,381 +71,120 @@
 }
 
 /* Styles for Category Tree View */
-.category-tree-item {
-    padding: 0.5rem 0.7rem;
-    border-bottom: 1px solid #f0f0f0;
-    display: flex;
-    align-items: center;
-    /* cursor: pointer; /* .category-tree-content に設定 */
-}
-.category-tree-item:hover {
-    background-color: #f8f9fa; /* ツリーアイテム全体のホバー色 */
-}
-.category-tree-item:last-child {
-    border-bottom: none;
-}
-.category-tree-expander {
-    cursor: pointer;
-    width: 20px;
-    display: inline-block;
-    text-align: center;
-    margin-right: 5px;
-    color: #6c757d;
-    font-size: 0.8em;
-    transition: transform 0.2s ease-in-out;
-}
-.category-tree-expander.expanded {
-    transform: rotate(90deg);
-}
-.category-tree-content {
-    flex-grow: 1;
-    cursor: pointer; /* コンテンツ部分（名前など）をクリック可能に */
-}
-.category-tree-content:hover .category-name {
-    text-decoration: underline;
-    color: #0056b3;
-}
-.category-name {
-    font-weight: 500;
-    color: #212529;
-    transition: color 0.15s ease-in-out;
-}
-.category-tree-item small {
-    font-size: 0.8em;
-    color: #6c757d;
-    margin-left: 0.5em;
-}
-.category-tree-children {
-    padding-left: 25px;
-}
-.category-tree-children.hidden {
-    display: none;
-}
+/* ... (既存のカテゴリツリースタイルは変更なし) ... */
+.category-tree-item { padding: 0.5rem 0.7rem; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
+.category-tree-item:last-child { border-bottom: none; }
+.category-tree-item:hover { background-color: #f8f9fa; }
+.category-tree-expander { cursor: pointer; width: 20px; display: inline-block; text-align: center; margin-right: 5px; color: #6c757d; font-size: 0.8em; transition: transform 0.2s ease-in-out; }
+.category-tree-expander.expanded { transform: rotate(90deg); }
+.category-tree-content { flex-grow: 1; cursor: pointer; }
+.category-tree-content:hover .category-name { text-decoration: underline; color: #0056b3; }
+.category-name { font-weight: 500; color: #212529; transition: color 0.15s ease-in-out; }
+.category-tree-item small { font-size: 0.8em; color: #6c757d; margin-left: 0.5em; }
+.category-tree-children { padding-left: 25px; }
+.category-tree-children.hidden { display: none; }
 
-/* Styles for Tag Group View */
-.tag-group {
+/* Styles for Tag Group View & Effect Super Category Group View */
+.tag-group, .effect-super-category-group {
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px dashed #e0e0e0;
 }
-.tag-group:last-child {
+.tag-group:last-child, .effect-super-category-group:last-child {
     border-bottom: none;
     margin-bottom: 0;
 }
-.tag-group-header {
+.tag-group-header, .effect-super-category-header {
     font-size: 1rem;
     font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    padding-left: 0.3rem;
-}
-.tag-group .list-item { /* タグ自体もクリック可能にする */
-    padding-left: 0.8rem;
-    cursor: pointer; /* ★★★ 追加 ★★★ */
-}
-.tag-group .list-item:hover {
-    background-color: #e9ecef; /* ★★★ 追加 ★★★ */
-}
-.tag-group .list-item .list-item-name-clickable small {
-    display: none;
-}
-
-/* Styles for Effect Super Category Group View */
-.effect-super-category-group {
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px dashed #e0e0e0;
-}
-.effect-super-category-group:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-.effect-super-category-header {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #343a40;
     margin-bottom: 0.5rem;
     padding: 0.3rem 0.3rem;
+}
+.tag-group-header { color: #495057; }
+.effect-super-category-header {
+    color: #343a40;
     background-color: #f8f9fa;
     border-radius: 0.2rem;
     border-left: 3px solid #007bff;
 }
-.effect-super-category-group .list-item { /* 効果種類もクリック可能にする */
+.tag-group .list-item, .effect-super-category-group .list-item {
     padding-left: 0.8rem;
-    cursor: pointer; /* ★★★ 追加 ★★★ */
+    cursor: pointer;
 }
-.effect-super-category-group .list-item:hover {
-    background-color: #e9ecef; /* ★★★ 追加 ★★★ */
+.tag-group .list-item:hover, .effect-super-category-group .list-item:hover {
+    background-color: #e9ecef;
 }
-
+.tag-group .list-item .list-item-name-clickable small { display: none; }
 
 /* Checkbox groups */
-.checkbox-group-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    max-height: 180px;
-    overflow-y: auto;
-    border: 1px solid #e0e0e0;
-    padding: 0.75rem;
-    border-radius: 0.25rem;
-    background-color: #ffffff;
-}
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    padding: 0.2rem 0;
-}
-.checkbox-item input[type="checkbox"] {
-    margin-right: 0.5rem;
-    width: auto;
-    padding: initial;
-    border: initial;
-    box-shadow: none;
-    vertical-align: middle;
-    flex-shrink: 0;
-    transform: scale(1.05);
-    cursor: pointer;
-}
-.checkbox-item input[type="checkbox"]:focus {
-    outline: 1px dotted #007bff;
-    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25);
-}
-.checkbox-item input[type="checkbox"]:checked + label {
-    color: #0056b3;
-    font-weight: 600;
-}
-.checkbox-item label {
-    font-weight: normal;
-    margin-bottom: 0;
-    font-size: 0.9rem;
-    color: #343a40;
-    vertical-align: middle;
-    cursor: pointer;
-    line-height: 1.5;
-}
+/* ... (既存のチェックボックススタイルは変更なし) ... */
+.checkbox-group-container { display: flex; flex-direction: column; gap: 0.3rem; max-height: 180px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.75rem; border-radius: 0.25rem; background-color: #ffffff; }
+.checkbox-item { display: flex; align-items: center; padding: 0.2rem 0; }
+.checkbox-item input[type="checkbox"] { margin-right: 0.5rem; width: auto; padding: initial; border: initial; box-shadow: none; vertical-align: middle; flex-shrink: 0; transform: scale(1.05); cursor: pointer; }
+.checkbox-item input[type="checkbox"]:focus { outline: 1px dotted #007bff; box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25); }
+.checkbox-item input[type="checkbox"]:checked + label { color: #0056b3; font-weight: 600; }
+.checkbox-item label { font-weight: normal; margin-bottom: 0; font-size: 0.9rem; color: #343a40; vertical-align: middle; cursor: pointer; line-height: 1.5; }
 
 /* Tag selection buttons within category edit modal */
-.tag-button-container.admin {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    max-height: 180px;
-    overflow-y: auto;
-    border: 1px solid #e0e0e0;
-    padding: 0.75rem;
-    border-radius: 0.25rem;
-    background-color: #ffffff;
-}
-.tag-button-container.admin .tag-filter.admin-tag-select {
-    padding: 0.35rem 0.8rem;
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 15px;
-    cursor: pointer;
-    font-size: 0.85em;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
-    color: #495057;
-}
-.tag-button-container.admin .tag-filter.admin-tag-select:hover {
-    background-color: #e0e0e0;
-    border-color: #ccc;
-}
-.tag-button-container.admin .tag-filter.admin-tag-select.active {
-    background-color: #28a745;
-    color: white;
-    border-color: #1e7e34;
-    box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3);
-    font-weight: 500;
-}
-
+/* ... (既存のタグ選択ボタンスタイルは変更なし) ... */
+.tag-button-container.admin { display: flex; flex-wrap: wrap; gap: 0.5rem; max-height: 180px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.75rem; border-radius: 0.25rem; background-color: #ffffff; }
+.tag-button-container.admin .tag-filter.admin-tag-select { padding: 0.35rem 0.8rem; background-color: #f0f0f0; border: 1px solid #ddd; border-radius: 15px; cursor: pointer; font-size: 0.85em; transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out; color: #495057; }
+.tag-button-container.admin .tag-filter.admin-tag-select:hover { background-color: #e0e0e0; border-color: #ccc; }
+.tag-button-container.admin .tag-filter.admin-tag-select.active { background-color: #28a745; color: white; border-color: #1e7e34; box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3); font-weight: 500; }
 
 /* Effect input area and list */
-.effect-input-area {
-    border: 1px solid #dee2e6;
-    padding: 1rem;
-    border-radius: 0.25rem;
-    background-color: #f8f9fa;
-    margin-top: 0.75rem;
-}
-.effect-input-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-.effect-input-row select,
-.effect-input-row input[type="number"] {
-    flex: 1 1 130px;
-}
-.effect-input-row button {
-    flex-shrink: 0;
-    margin-left: auto;
-}
-.unit-display {
-    display: inline-block;
-    min-width: 45px;
-    text-align: left;
-    font-style: italic;
-    color: #5a6268;
-    margin-left: -0.2rem;
-    margin-right: 0.5rem;
-    font-size: 0.875rem;
-    white-space: nowrap;
-}
-
-.effects-list-container {
-    margin-top: 0.75rem;
-    border-top: 1px dashed #ced4da;
-    padding-top: 0.75rem;
-    max-height: 160px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    min-height: 50px;
-}
-.effects-list-container > p {
-    margin: auto;
-    color: #6c757d;
-    font-style: italic;
-}
-
-.effect-list-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #fff;
-    padding: 0.4rem 0.7rem;
-    margin-bottom: 0.3rem;
-    border-radius: 0.2rem;
-    border: 1px solid #e9ecef;
-    font-size: 0.875rem;
-}
-.effect-list-item span {
-    flex-grow: 1;
-    margin-right: 0.3rem;
-}
-
+/* ... (既存の効果入力エリアスタイルは変更なし) ... */
+.effect-input-area { border: 1px solid #dee2e6; padding: 1rem; border-radius: 0.25rem; background-color: #f8f9fa; margin-top: 0.75rem; }
+.effect-input-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+.effect-input-row select, .effect-input-row input[type="number"] { flex: 1 1 130px; }
+.effect-input-row button { flex-shrink: 0; margin-left: auto; }
+.unit-display { display: inline-block; min-width: 45px; text-align: left; font-style: italic; color: #5a6268; margin-left: -0.2rem; margin-right: 0.5rem; font-size: 0.875rem; white-space: nowrap; }
+.effects-list-container { margin-top: 0.75rem; border-top: 1px dashed #ced4da; padding-top: 0.75rem; max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; min-height: 50px; }
+.effects-list-container > p { margin: auto; color: #6c757d; font-style: italic; }
+.effect-list-item { display: flex; justify-content: space-between; align-items: center; background-color: #fff; padding: 0.4rem 0.7rem; margin-bottom: 0.3rem; border-radius: 0.2rem; border: 1px solid #e9ecef; font-size: 0.875rem; }
+.effect-list-item span { flex-grow: 1; margin-right: 0.3rem; }
 
 /* Items Table for Admin */
-#itemsTable {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1.25rem;
-    font-size: 0.9rem;
-    table-layout: fixed;
-    background-color: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    border-radius: 0.25rem;
-    overflow: hidden;
-    border: 1px solid #dee2e6;
-}
-#itemsTable th,
-#itemsTable td {
-    border-bottom: 1px solid #dee2e6;
-    border-left: 1px solid #e9ecef;
-    padding: 0.75rem 0.9rem;
-    text-align: left;
-    vertical-align: middle;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-#itemsTable th:first-child,
-#itemsTable td:first-child {
-    border-left: none;
-}
-#itemsTable th {
-    background-color: #f1f3f5;
-    font-weight: 500;
-    color: #343a40;
-    white-space: nowrap;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom-width: 2px;
-}
-
-#itemsTable th:nth-child(1), 
-#itemsTable td:nth-child(1) {
-    width: 10%;
-    min-width: 60px;
-    text-align: center;
-}
-#itemsTable th:nth-child(2), 
-#itemsTable td:nth-child(2) { 
-    width: 25%;
-}
-#itemsTable th:nth-child(3), 
-#itemsTable td:nth-child(3) {
-    width: 15%;
-    white-space: nowrap;
-}
-#itemsTable th:nth-child(4), 
-#itemsTable td:nth-child(4) {
-    width: 30%;
-}
-#itemsTable th:nth-child(5), 
-#itemsTable td:nth-child(5) {
-    width: 20%;
-}
-
-#itemsTable img {
-    max-width: 50px;
-    max-height: 50px;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    background-color: #f0f0f0;
-    border-radius: 3px;
-    border: 1px solid #dee2e6;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 2px;
-}
-
-/* ★★★ アイテムテーブルの行全体をクリッカブルにするスタイル ★★★ */
-#itemsTable tbody tr.table-row-clickable {
-    cursor: pointer;
-}
-#itemsTable tbody tr.table-row-clickable:hover {
-    background-color: #e2e6ea; /* 通常のホバーより少し濃い色にするか、同じでも良い */
-}
-/* アイテム名セルに個別スタイルは不要になるか、または行ホバーと協調させる */
-/*
-#itemsTable td.list-item-name-clickable:hover {
-    color: #003d80;
-    text-decoration: underline;
-}
-*/
-
-#itemsTable tbody tr:nth-child(even) { /* ストライプは維持 */
-    background-color: #f8f9fa;
-}
-#itemsTable tbody tr:nth-child(even):hover { /* ストライプ時のホバーも考慮 */
-    background-color: #dde1e6; /* 通常ホバーより若干調整 */
-}
-#itemsTable tbody tr.table-row-clickable:nth-child(even):hover { /* クリッカブル行のストライプホバー */
-    background-color: #d3d9df;
-}
-
+/* ... (既存のアイテムテーブルスタイルは変更なし) ... */
+#itemsTable { width: 100%; border-collapse: collapse; margin-top: 1.25rem; font-size: 0.9rem; table-layout: fixed; background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 0.25rem; overflow: hidden; border: 1px solid #dee2e6; }
+#itemsTable th, #itemsTable td { border-bottom: 1px solid #dee2e6; border-left: 1px solid #e9ecef; padding: 0.75rem 0.9rem; text-align: left; vertical-align: middle; word-break: break-word; overflow: hidden; text-overflow: ellipsis; }
+#itemsTable th:first-child, #itemsTable td:first-child { border-left: none; }
+#itemsTable th { background-color: #f1f3f5; font-weight: 500; color: #343a40; white-space: nowrap; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom-width: 2px; }
+#itemsTable th:nth-child(1), #itemsTable td:nth-child(1) { width: 10%; min-width: 60px; text-align: center; }
+#itemsTable th:nth-child(2), #itemsTable td:nth-child(2) { width: 25%; }
+#itemsTable th:nth-child(3), #itemsTable td:nth-child(3) { width: 15%; white-space: nowrap; }
+#itemsTable th:nth-child(4), #itemsTable td:nth-child(4) { width: 30%; }
+#itemsTable th:nth-child(5), #itemsTable td:nth-child(5) { width: 20%; }
+#itemsTable img { max-width: 50px; max-height: 50px; width: auto; height: auto; object-fit: contain; background-color: #f0f0f0; border-radius: 3px; border: 1px solid #dee2e6; display: block; margin-left: auto; margin-right: auto; padding: 2px; }
+#itemsTable tbody tr.table-row-clickable { cursor: pointer; }
+#itemsTable tbody tr.table-row-clickable:hover { background-color: #e2e6ea; }
+#itemsTable tbody tr:nth-child(even) { background-color: #f8f9fa; }
+#itemsTable tbody tr:nth-child(even):hover { background-color: #dde1e6; }
+#itemsTable tbody tr.table-row-clickable:nth-child(even):hover { background-color: #d3d9df; }
 
 /* Search input for admin item list */
-#itemSearchAdmin {
-    padding: 0.6rem 0.75rem;
-    margin-bottom: 1rem;
+/* ... (既存の検索入力スタイルは変更なし) ... */
+#itemSearchAdmin { padding: 0.6rem 0.75rem; margin-bottom: 1rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 0.9rem; box-sizing: border-box; display: block; width: 100%; max-width: 450px; }
+#itemSearchAdmin:focus { border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
+
+/* ★★★ Style for list enlargement button ★★★ */
+.button-like-icon {
+    background-color: transparent;
     border: 1px solid #ced4da;
+    color: #495057;
+    padding: 0.3rem 0.5rem; /* Smaller padding for icon button */
+    font-size: 0.9rem; /* Adjust icon size if needed via font-size on span */
     border-radius: 0.25rem;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-    display: block;
-    width: 100%;
-    max-width: 450px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    line-height: 1; /* Ensure icon is centered */
 }
-#itemSearchAdmin:focus {
-    border-color: #80bdff;
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+.button-like-icon:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    color: #212529;
+}
+.button-like-icon .icon {
+    font-size: 1.1em; /* Make icon slightly larger than button text */
+    vertical-align: middle;
 }
