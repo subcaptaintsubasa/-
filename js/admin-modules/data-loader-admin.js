@@ -1,26 +1,21 @@
 // js/admin-modules/data-loader-admin.js
-// Handles loading all necessary data from Firestore for the admin panel
-// and acts as a central cache for this data.
-
 import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-// Cache variables for admin panel data
 let allCategoriesCache = [];
 let allTagsCache = [];
 let itemsCache = [];
 let effectTypesCache = [];
 let effectUnitsCache = [];
-let characterBasesCache = {}; // e.g., { headShape: [ {id, name, effects}, ... ], color: [...] }
+let effectSuperCategoriesCache = []; // ★★★ 追加: 効果大分類キャッシュ ★★★
+let characterBasesCache = {};
 
-// Constants
-export const baseTypeMappingsForLoader = { // Used internally and can be exported if needed elsewhere
+export const baseTypeMappingsForLoader = {
     headShape: "頭の形",
     correction: "補正",
     color: "色",
     pattern: "柄"
 };
-// This URL is specific to your Cloudflare Worker for image uploads
-export const IMAGE_UPLOAD_WORKER_URL = 'https://denpa-item-uploader.tsubasa-hsty-f58.workers.dev'; // Example URL
+export const IMAGE_UPLOAD_WORKER_URL = 'https://denpa-item-uploader.tsubasa-hsty-f58.workers.dev';
 
 
 async function loadCategoriesFromFirestore(db) {
@@ -32,7 +27,7 @@ async function loadCategoriesFromFirestore(db) {
         console.log("[Admin][Data Loader][Categories] Loaded:", allCategoriesCache.length);
     } catch (error) {
         console.error("[Admin][Data Loader][Categories] Error loading:", error);
-        allCategoriesCache = []; // Reset cache on error
+        allCategoriesCache = [];
     }
 }
 
@@ -52,12 +47,9 @@ async function loadTagsFromFirestore(db) {
 async function loadItemsFromFirestore(db) {
     console.log("[Admin][Data Loader][Items] Loading items...");
     try {
-        // Items might not always have a 'name' to order by if names can be empty.
-        // Consider ordering by a timestamp or another consistent field if 'name' is not reliable.
-        // For now, assuming 'name' exists for sorting. If not, remove orderBy or use a fallback.
-        const q = query(collection(db, 'items'), orderBy('name')); // Or orderBy('createdAt', 'desc')
+        const q = query(collection(db, 'items'), orderBy('name'));
         const snapshot = await getDocs(q);
-        itemsCache = snapshot.docs.map(docSnap => ({ docId: docSnap.id, ...docSnap.data() })); // Changed 'id' to 'docId' for items for clarity
+        itemsCache = snapshot.docs.map(docSnap => ({ docId: docSnap.id, ...docSnap.data() }));
         console.log("[Admin][Data Loader][Items] Loaded:", itemsCache.length);
     } catch (error) {
         console.error("[Admin][Data Loader][Items] Error loading:", error);
@@ -91,51 +83,55 @@ async function loadEffectUnitsFromFirestore(db) {
     }
 }
 
+// ★★★ 効果大分類をロードする関数を追加 ★★★
+async function loadEffectSuperCategoriesFromFirestore(db) {
+    console.log("[Admin][Data Loader][EffectSuperCategories] Loading effect super categories...");
+    try {
+        const q = query(collection(db, 'effect_super_categories'), orderBy('name'));
+        const snapshot = await getDocs(q);
+        effectSuperCategoriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("[Admin][Data Loader][EffectSuperCategories] Loaded:", effectSuperCategoriesCache.length);
+    } catch (error) {
+        console.error("[Admin][Data Loader][EffectSuperCategories] Error loading:", error);
+        effectSuperCategoriesCache = [];
+    }
+}
+
 async function loadCharacterBasesFromFirestore(db) {
     console.log("[Admin][Data Loader][CharBases] Loading character bases...");
-    const tempCache = {}; // Use a temporary cache for this load operation
+    characterBasesCache = {};
     const baseTypes = Object.keys(baseTypeMappingsForLoader);
     try {
         for (const baseType of baseTypes) {
-            // The collection path was `character_bases/${baseType}/options`
-            // Assuming it should be `charBaseOptions_${baseType}` as used in char-base-manager.js
-            const optionsCollectionRef = collection(db, `charBaseOptions_${baseType}`);
+            // Firestoreのコレクションパスが `character_bases/${baseType}/options` の場合
+            const optionsCollectionRef = collection(db, `character_bases/${baseType}/options`);
+            // もし `charBaseOptions_${baseType}` のようなトップレベルコレクションなら
+            // const optionsCollectionRef = collection(db, `charBaseOptions_${baseType}`);
             const q_opts = query(optionsCollectionRef, orderBy("name"));
             const snapshot = await getDocs(q_opts);
-            tempCache[baseType] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            characterBasesCache[baseType] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
         }
-        characterBasesCache = tempCache; // Assign to global cache only on successful load of all types
-        console.log("[Admin][Data Loader][CharBases] Loaded successfully:", characterBasesCache);
+        console.log("[Admin][Data Loader][CharBases] Loaded successfully.");
     } catch (error) {
         console.error("[Admin][Data Loader][CharBases] Error loading:", error);
-        // Decide on error strategy: clear all, or keep partially loaded?
-        // For now, if any fails, the global cache might not be updated or might be partially updated.
-        // To be safer, one might clear characterBasesCache if an error occurs.
-        characterBasesCache = {}; // Reset on error for consistency
     }
 }
 
 export async function loadInitialData(db) {
     console.log("[Admin][Data Loader] Starting initial data load sequence...");
-    // Load units first, as effect types might reference them (if defaultUnit was an ID)
-    // However, current effect_type stores unit name as string, so order is less critical here.
     try {
         await Promise.all([
-            loadEffectUnitsFromFirestore(db), // Load units
+            loadEffectUnitsFromFirestore(db),
+            loadEffectSuperCategoriesFromFirestore(db), // ★★★ ロード処理に追加 ★★★
+            loadEffectTypesFromFirestore(db),
             loadCategoriesFromFirestore(db),
             loadTagsFromFirestore(db),
-            loadCharacterBasesFromFirestore(db) 
-            // Effect types and Items are loaded after their dependencies if any were ID-based
+            loadCharacterBasesFromFirestore(db),
+            loadItemsFromFirestore(db)
         ]);
-        // Load effect types after units (if units were by ID, this order matters more)
-        await loadEffectTypesFromFirestore(db);
-        // Load items last as they reference tags, categories (implicitly), and effect types
-        await loadItemsFromFirestore(db);
-
         console.log("[Admin][Data Loader] All initial data load promises settled.");
     } catch (error) {
-        console.error("[Admin][Data Loader] Error during sequential/parallel data loading:", error);
-        // Individual loaders reset their caches. Consider a more global error state if needed.
+        console.error("[Admin][Data Loader] Error during parallel data loading:", error);
     }
     console.log("[Admin][Data Loader] Initial data load sequence complete.");
 }
@@ -146,14 +142,15 @@ export function clearAdminDataCache() {
     itemsCache = [];
     effectTypesCache = [];
     effectUnitsCache = [];
+    effectSuperCategoriesCache = []; // ★★★ キャッシュクリアに追加 ★★★
     characterBasesCache = {};
     console.log("[Admin][Data Loader] All admin data caches cleared.");
 }
 
-// Getter functions for the cached data
 export const getAllCategoriesCache = () => allCategoriesCache;
 export const getAllTagsCache = () => allTagsCache;
-export const getItemsCache = () => itemsCache; // Used by item-manager
+export const getItemsCache = () => itemsCache;
 export const getEffectTypesCache = () => effectTypesCache;
 export const getEffectUnitsCache = () => effectUnitsCache;
+export const getEffectSuperCategoriesCache = () => effectSuperCategoriesCache; // ★★★ エクスポート ★★★
 export const getCharacterBasesCache = () => characterBasesCache;
