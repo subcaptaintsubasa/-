@@ -163,10 +163,10 @@
 
 /* Style for list enlargement button */
 .button-like-icon {
-    background-color: transparent;
-    border: 1px solid #ced4da;
+    background-color: transparent !important; /* 強制的に透明 */
+    border: 1px solid #adb5bd;           /* 少し濃いめのボーダーで見やすく */
     color: #495057;
-    padding: 0.3rem 0.5rem;
+    padding: 0.25rem 0.4rem; /* パディングを少し調整 */
     font-size: 0.9rem;
     border-radius: 0.25rem;
     cursor: pointer;
@@ -175,20 +175,23 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-width: 30px; /* ボタンの最小幅 */
+    min-height: 30px; /* ボタンの最小高さ */
 }
 .button-like-icon:hover {
-    background-color: #e9ecef;
-    border-color: #adb5bd;
+    background-color: #e9ecef !important; /* ホバー時の背景も強制 */
+    border-color: #6c757d; /* ホバー時ボーダーをさらに濃く */
     color: #212529;
 }
-.button-like-icon .icon, /* For text based icons like 🔎 */
-.button-like-icon i,    /* For Font Awesome icons */
-.button-like-icon img.enlarge-icon-img /* For specific image icons */
+.button-like-icon .icon, /* For text based icons like 🔎 if used as fallback or primary */
+.button-like-icon i    /* For Font Awesome icons if used */
 {
-    font-size: 1.1em; /* Adjust if using text/font icon */
+    font-size: 1.2em; /* テキスト/フォントアイコンのサイズ */
     vertical-align: middle;
 }
-.button-like-icon img.enlarge-icon-img {
-    width: 16px;  /* Specific size for the image icon */
-    height: 16px; /* Specific size for the image icon */
+.button-like-icon img.enlarge-icon-img /* For specific image icons */
+{
+    width: 20px;  /* アイコンの表示幅を大きく */
+    height: 20px; /* アイコンの表示高さを大きく */
+    vertical-align: middle;
 }
