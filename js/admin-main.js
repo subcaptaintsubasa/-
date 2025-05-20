@@ -9,14 +9,14 @@ import {
     getItemsCache,
     getEffectTypesCache,
     getEffectUnitsCache,
-    getEffectSuperCategoriesCache, // ★★★ インポート ★★★
+    getEffectSuperCategoriesCache,
     getCharacterBasesCache
 } from './admin-modules/data-loader-admin.js';
 import { initUIHelpers, openModal as openAdminModal, closeModal as closeAdminModal } from './admin-modules/ui-helpers.js';
 import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI } from './admin-modules/category-manager.js';
 import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _populateCategoryCheckboxesForTagFormInternal as populateTagFormCategories } from './admin-modules/tag-manager.js';
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI } from './admin-modules/effect-unit-manager.js';
-import { initEffectSuperCategoryManager, _renderEffectSuperCategoriesForManagementInternal as renderEffectSuperCategoriesUI } from './admin-modules/effect-super-category-manager.js'; // ★★★ インポート ★★★
+import { initEffectSuperCategoryManager, _renderEffectSuperCategoriesForManagementInternal as renderEffectSuperCategoriesUI } from './admin-modules/effect-super-category-manager.js';
 import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms } from './admin-modules/effect-type-manager.js';
 import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings } from './admin-modules/char-base-manager.js';
 import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js';
@@ -28,6 +28,8 @@ const DOM = {
     adminSideNav: null,
     adminCloseNavButton: null,
     adminNavButtons: null,
+    adminNavOverlay: null, // ★★★ 追加: オーバーレイ用 ★★★
+    adminPageBody: null,    // ★★★ 追加: body要素参照用 ★★★
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,35 +39,78 @@ document.addEventListener('DOMContentLoaded', () => {
     DOM.adminSideNav = document.getElementById('adminSideNav');
     DOM.adminCloseNavButton = document.getElementById('adminCloseNavButton');
     DOM.adminNavButtons = document.querySelectorAll('.admin-nav-button');
+    DOM.adminPageBody = document.getElementById('admin-page'); // body要素
+
+    // ★★★ オーバーレイ要素を動的に作成またはHTMLに静的に追加して取得 ★★★
+    // 動的に作成する場合:
+    DOM.adminNavOverlay = document.createElement('div');
+    DOM.adminNavOverlay.id = 'admin-nav-overlay';
+    // document.body.appendChild(DOM.adminNavOverlay); // body直下に追加
+    // admin-content の直前に追加して、admin-content よりは手前、headerよりは奥になるように
+    const adminContentElement = document.getElementById('admin-content');
+    if (adminContentElement && adminContentElement.parentNode) {
+        adminContentElement.parentNode.insertBefore(DOM.adminNavOverlay, adminContentElement);
+    } else {
+        document.body.appendChild(DOM.adminNavOverlay); // フォールバック
+    }
+
 
     initUIHelpers();
 
-    if (DOM.adminHamburgerButton && DOM.adminSideNav) {
-        DOM.adminHamburgerButton.addEventListener('click', () => {
-            const isOpen = DOM.adminSideNav.classList.toggle('open');
-            DOM.adminSideNav.setAttribute('aria-hidden', String(!isOpen));
-            DOM.adminHamburgerButton.setAttribute('aria-expanded', String(isOpen));
-        });
+    function openAdminNav() {
+        if (DOM.adminSideNav && DOM.adminHamburgerButton && DOM.adminNavOverlay && DOM.adminPageBody) {
+            DOM.adminSideNav.classList.add('open');
+            DOM.adminSideNav.setAttribute('aria-hidden', 'false');
+            DOM.adminHamburgerButton.setAttribute('aria-expanded', 'true');
+            DOM.adminNavOverlay.classList.add('active'); // オーバーレイ表示
+            DOM.adminPageBody.classList.add('admin-nav-open'); // bodyにクラス追加 (スクロール禁止など)
+        }
     }
 
-    if (DOM.adminCloseNavButton && DOM.adminSideNav && DOM.adminHamburgerButton) {
-        DOM.adminCloseNavButton.addEventListener('click', () => {
+    function closeAdminNav() {
+        if (DOM.adminSideNav && DOM.adminHamburgerButton && DOM.adminNavOverlay && DOM.adminPageBody) {
             DOM.adminSideNav.classList.remove('open');
             DOM.adminSideNav.setAttribute('aria-hidden', 'true');
             DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+            DOM.adminNavOverlay.classList.remove('active'); // オーバーレイ非表示
+            DOM.adminPageBody.classList.remove('admin-nav-open');
+        }
+    }
+
+    if (DOM.adminHamburgerButton) {
+        DOM.adminHamburgerButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // 他のクリックイベントとの干渉を防ぐ
+            if (DOM.adminSideNav.classList.contains('open')) {
+                closeAdminNav();
+            } else {
+                openAdminNav();
+            }
         });
     }
+
+    if (DOM.adminCloseNavButton) {
+        DOM.adminCloseNavButton.addEventListener('click', closeAdminNav);
+    }
+
+    // ★★★ オーバーレイクリックで閉じる ★★★
+    if (DOM.adminNavOverlay) {
+        DOM.adminNavOverlay.addEventListener('click', closeAdminNav);
+    }
+    
+    // ★★★ Escキーで閉じる (オプション) ★★★
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape" && DOM.adminSideNav && DOM.adminSideNav.classList.contains('open')) {
+            closeAdminNav();
+        }
+    });
+
 
     DOM.adminNavButtons.forEach(button => {
         button.addEventListener('click', () => {
             const modalId = button.dataset.modalTarget;
             if (modalId) {
                 openAdminModal(modalId);
-                if (DOM.adminSideNav && DOM.adminHamburgerButton) {
-                    DOM.adminSideNav.classList.remove('open');
-                    DOM.adminSideNav.setAttribute('aria-hidden', 'true');
-                    DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
-                }
+                closeAdminNav(); // モーダルを開いたらナビゲーションを閉じる
                 triggerModalContentRefresh(modalId);
             }
         });
@@ -80,6 +125,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'block';
             else console.error("#admin-content element not found!");
+            
+            // currentUserEmailの表示はauth.jsで処理されるか、HTMLヘッダー内で直接行う想定
+            // ここでは、ログイン時にメールアドレスを表示するspan要素の内容を更新
+            const currentUserEmailSpan = document.getElementById('currentUserEmail');
+            if(user && currentUserEmailSpan) currentUserEmailSpan.textContent = user.email;
+
 
             loadAndInitializeAdminModules();
         },
@@ -90,11 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'none';
+            
+            const currentUserEmailSpan = document.getElementById('currentUserEmail');
+            if(currentUserEmailSpan) currentUserEmailSpan.textContent = '';
 
             if (DOM.adminSideNav && DOM.adminSideNav.classList.contains('open')) {
-                DOM.adminSideNav.classList.remove('open');
-                DOM.adminSideNav.setAttribute('aria-hidden', 'true');
-                if(DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+                closeAdminNav();
             }
             clearAdminUIAndData();
         }
@@ -105,7 +157,7 @@ function clearAdminUIAndData() {
     console.log("[admin-main] Clearing admin UI and data cache...");
     const listContainersIds = [
         'categoryListContainer', 'tagListContainer', 'effectUnitListContainer',
-        'effectSuperCategoryListContainer', // ★★★ 追加 ★★★
+        'effectSuperCategoryListContainer',
         'effectTypeListContainer', 'charBaseOptionListContainer',
     ];
     listContainersIds.forEach(id => {
@@ -156,7 +208,7 @@ async function loadAndInitializeAdminModules() {
             getItems: getItemsCache,
             getEffectTypes: getEffectTypesCache,
             getEffectUnits: getEffectUnitsCache,
-            getEffectSuperCategories: getEffectSuperCategoriesCache, // ★★★ 追加 ★★★
+            getEffectSuperCategories: getEffectSuperCategoriesCache,
             getCharacterBases: getCharacterBasesCache,
             refreshAllData: async () => {
                 console.log("[admin-main] Refreshing all data and UI (called from a manager)...");
@@ -176,7 +228,7 @@ async function loadAndInitializeAdminModules() {
         };
 
         initEffectUnitManager(commonDependencies);
-        initEffectSuperCategoryManager(commonDependencies); // ★★★ 初期化 ★★★
+        initEffectSuperCategoryManager(commonDependencies);
         initEffectTypeManager(commonDependencies);
         initCategoryManager(commonDependencies);
         initTagManager(commonDependencies);
@@ -214,10 +266,8 @@ function triggerModalContentRefresh(modalId) {
         case 'effectUnitManagementModal':
             if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
             break;
-        case 'effectSuperCategoryManagementModal': // ★★★ 追加 ★★★
+        case 'effectSuperCategoryManagementModal':
             if (typeof renderEffectSuperCategoriesUI === 'function') {
-                // _renderEffectSuperCategoriesForManagementInternal はキャッシュを引数に取るので、
-                // getEffectSuperCategoriesCache() から取得して渡す
                 renderEffectSuperCategoriesUI(getEffectSuperCategoriesCache());
             }
             break;
