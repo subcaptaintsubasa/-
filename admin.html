@@ -38,7 +38,7 @@
                 <li><button class="admin-nav-button" data-modal-target="categoryManagementModal">カテゴリ管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="tagManagementModal">タグ管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="effectUnitManagementModal">効果単位管理</button></li>
-                <li><button class="admin-nav-button" data-modal-target="effectSuperCategoryManagementModal">効果大分類管理</button></li> <!-- ★★★ 追加 ★★★ -->
+                <li><button class="admin-nav-button" data-modal-target="effectSuperCategoryManagementModal">効果大分類管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="effectTypeManagementModal">効果種類管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="characterBaseManagementModal">キャラクター基礎情報管理</button></li>
             </ul>
@@ -194,7 +194,6 @@
         </div>
     </div>
 
-    <!-- ★★★ 効果大分類管理モーダルを追加 ★★★ -->
     <div id="effectSuperCategoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectSuperCategoryManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -207,7 +206,6 @@
             <button id="addEffectSuperCategoryButton" type="button">効果大分類を追加</button>
             <h3 style="margin-top: 20px;">既存の効果大分類一覧</h3>
             <div id="effectSuperCategoryListContainer" class="list-container">
-                <!-- Effect Super Category list populated by JS -->
             </div>
         </div>
     </div>
@@ -221,7 +219,14 @@
                  <label for="newEffectTypeName">新しい効果種類名:</label>
                  <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
              </div>
-             <!-- (ここに効果大分類を選択するプルダウンを追加予定) -->
+             <!-- ★★★ 効果大分類選択プルダウンを追加 ★★★ -->
+             <div class="form-group">
+                <label for="newEffectTypeSuperCategory">効果大分類:</label>
+                <select id="newEffectTypeSuperCategory" class="form-control-short">
+                    <option value="">大分類を選択...</option>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
              <div class="form-group">
                  <label for="newEffectTypeUnit">デフォルト単位:</label>
                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
@@ -328,9 +333,8 @@
         </div>
     </div>
 
-    <!-- ★★★ 効果大分類編集モーダルを追加 ★★★ -->
     <div id="editEffectSuperCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectSuperCategoryModalTitle">
-        <div class="modal-content" style="max-width: 400px;"> <!-- 効果単位編集モーダルと似たサイズ感 -->
+        <div class="modal-content" style="max-width: 400px;">
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="editEffectSuperCategoryModalTitle">効果大分類編集</h3>
             <input type="hidden" id="editingEffectSuperCategoryDocId">
@@ -354,7 +358,14 @@
                 <label for="editingEffectTypeName">効果種類名:</label>
                 <input type="text" id="editingEffectTypeName">
             </div>
-            <!-- (ここに効果大分類を選択するプルダウンを追加予定) -->
+            <!-- ★★★ 効果大分類選択プルダウンを追加 ★★★ -->
+            <div class="form-group">
+                <label for="editingEffectTypeSuperCategory">効果大分類:</label>
+                <select id="editingEffectTypeSuperCategory" class="form-control-short">
+                    <option value="">大分類を選択...</option>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
              <div class="form-group">
                  <label for="editingEffectTypeUnit">デフォルト単位:</label>
                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
