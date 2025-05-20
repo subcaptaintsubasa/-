@@ -1,28 +1,28 @@
 /* css/admin-lists.css */
 /* Styles for various list displays in the admin panel */
 
-/* General container for lists of manageable items (categories, tags, etc.) */
 .list-container {
     margin-top: 1rem;
     border: 1px solid #dee2e6;
     border-radius: 0.25rem;
     padding: 0.5rem;
     max-height: 320px;
-    min-height: 150px;
+    min-height: 150px; 
     overflow-y: auto;
     background-color: #fdfdfd;
     display: flex;
     flex-direction: column;
 }
-.list-container > p {
-    margin: auto;
-    padding: 1rem;
+.list-container > p { 
+    margin: auto; 
+    padding: 1rem; 
     color: #6c757d;
     font-style: italic;
     text-align: center;
 }
 
-.list-item {
+
+.list-item { 
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -76,23 +76,10 @@
     border-bottom: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
-    background-color: #fff; /* 背景色を明示的に */
-    user-select: none; /* ドラッグ中のテキスト選択を防ぐ */
 }
 .category-tree-item:last-child {
     border-bottom: none;
 }
-/* ★★★ SortableJS ドラッグ中スタイル ★★★ */
-.category-tree-item.sortable-ghost {
-    opacity: 0.4;
-    background: #c8ebfb;
-}
-.category-tree-item.sortable-drag {
-    opacity: 0.9;
-    background: #e6f7ff; /* ドラッグ中のアイテムの背景を少し変える */
-}
-
-
 .category-tree-expander {
     cursor: pointer;
     width: 20px;
@@ -108,7 +95,7 @@
 }
 .category-tree-content {
     flex-grow: 1;
-    cursor: pointer; /* Make the name clickable for editing */
+    cursor: pointer;
 }
 .category-tree-content:hover .category-name {
     text-decoration: underline;
@@ -124,24 +111,12 @@
     color: #6c757d;
     margin-left: 0.5em;
 }
-.category-tree-children { /* This is a UL */
+.category-tree-children {
     padding-left: 25px;
-    list-style-type: none; /* Remove default ul styling if any */
 }
 .category-tree-children.hidden {
     display: none;
 }
-/* ★★★ SortableJSのためのリストのスタイル ★★★ */
-ul.category-sortable-list {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-    min-height: 10px; /* ドロップ可能なエリアであることを示すための最小の高さ */
-}
-ul.category-sortable-list.sortable-chosen { /* ドロップ先候補のリストのスタイル */
-    /* background-color: #f0f8ff; */ /* 薄い青でハイライトなど */
-}
-
 
 /* Styles for Tag Group View */
 .tag-group {
@@ -166,6 +141,7 @@ ul.category-sortable-list.sortable-chosen { /* ドロップ先候補のリスト
 .tag-group .list-item .list-item-name-clickable small {
     display: none;
 }
+
 
 /* Checkbox groups (used for tag assignment, item tag selection) */
 .checkbox-group-container {
@@ -197,11 +173,11 @@ ul.category-sortable-list.sortable-chosen { /* ドロップ先候補のリスト
 }
 .checkbox-item input[type="checkbox"]:focus {
     outline: 1px dotted #007bff;
-    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25);
+    box-shadow: 0 0 0 0.1rem rgba(0,123,255,.25); 
 }
-.checkbox-item input[type="checkbox"]:checked + label {
-    color: #0056b3;
-    font-weight: 600;
+.checkbox-item input[type="checkbox"]:checked + label { 
+    color: #0056b3; 
+    font-weight: 600; 
 }
 .checkbox-item label {
     font-weight: normal;
@@ -240,10 +216,10 @@ ul.category-sortable-list.sortable-chosen { /* ドロップ先候補のリスト
     border-color: #ccc;
 }
 .tag-button-container.admin .tag-filter.admin-tag-select.active {
-    background-color: #28a745;
+    background-color: #28a745; 
     color: white;
-    border-color: #1e7e34;
-    box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3);
+    border-color: #1e7e34; 
+    box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3); 
     font-weight: 500;
 }
 
