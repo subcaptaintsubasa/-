@@ -33,6 +33,7 @@ let dbInstance = null;
 let getCharacterBasesFuncCache = () => ({});
 let getEffectTypesFuncCache = () => [];
 let getEffectUnitsFuncCache = () => [];
+let getEffectSuperCategoriesFuncCache = () => []; // ★★★ 追加: ローカル変数として宣言 ★★★
 let refreshAllDataCallback = async () => {};
 
 let currentCharBaseOptionEffects = [];
@@ -42,6 +43,7 @@ export function initCharBaseManager(dependencies) {
     getCharacterBasesFuncCache = dependencies.getCharacterBases;
     getEffectTypesFuncCache = dependencies.getEffectTypes;
     getEffectUnitsFuncCache = dependencies.getEffectUnits;
+    getEffectSuperCategoriesFuncCache = dependencies.getEffectSuperCategories; // ★★★ 追加: dependencies から取得 ★★★
     refreshAllDataCallback = dependencies.refreshAllData;
 
     DOMCB.charBaseTypeButtons = document.getElementById('charBaseTypeButtons');
@@ -108,48 +110,60 @@ export function initCharBaseManager(dependencies) {
     console.log("[CharBase Manager] Initialized.");
 }
 
-//This function is now called from admin-main.js with optgroups logic
 export function _populateCharBaseEffectTypeSelectInternal() {
     const effectTypesCache = getEffectTypesFuncCache();
-    const superCategoriesCache = getEffectSuperCategoriesFuncCache(); // Assuming this is available from dependencies
+    const superCategoriesCache = getEffectSuperCategoriesFuncCache(); // ★★★ これが未定義だった ★★★
     const selectElement = DOMCB.charBaseOptionEffectTypeSelect;
 
-    if (!selectElement || !effectTypesCache) { // superCategoriesCache might be empty if not used
-        console.warn("Required elements or caches not found for populating char base effect type select.");
+    if (!selectElement || !effectTypesCache) {
+        console.warn("Required elements or caches not found for populating char base effect type select (effectTypesCache).");
         if(selectElement) selectElement.innerHTML = '<option value="">効果種類読込エラー</option>';
         return;
     }
+     if (!superCategoriesCache) { // superCategoriesCache が未定義または null の場合のフォールバック
+        console.warn("Super categories cache not available for populating char base effect type select. Displaying as flat list.");
+        // フォールバックとしてフラットリスト表示 (以前のロジック)
+        const optionsForCharBase = effectTypesCache.map(et => ({
+            value: et.id,
+            text: et.name,
+            'data-unit-name': (et.defaultUnit && et.defaultUnit !== 'none') ? et.defaultUnit : '',
+        })).sort((a, b) => a.text.localeCompare(b.text, 'ja'));
+        populateSelect(selectElement, optionsForCharBase, '効果種類を選択...');
+        return;
+    }
+
 
     const currentValue = selectElement.value;
     selectElement.innerHTML = '<option value="">効果種類を選択...</option>';
 
-    if (superCategoriesCache && superCategoriesCache.length > 0) {
-        superCategoriesCache.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-        superCategoriesCache.forEach(superCat => {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = superCat.name;
-            effectTypesCache
-                .filter(et => et.superCategoryId === superCat.id)
-                .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
-                .forEach(et => {
-                    const option = document.createElement('option');
-                    option.value = et.id;
-                    option.textContent = et.name;
-                    option.dataset.unitName = (et.defaultUnit && et.defaultUnit !== 'none') ? et.defaultUnit : '';
-                    optgroup.appendChild(option);
-                });
-            if (optgroup.childElementCount > 0) {
-                selectElement.appendChild(optgroup);
-            }
-        });
-    }
+    superCategoriesCache.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+    superCategoriesCache.forEach(superCat => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = superCat.name;
+        
+        effectTypesCache
+            .filter(et => et.superCategoryId === superCat.id)
+            .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
+            .forEach(et => {
+                const option = document.createElement('option');
+                option.value = et.id;
+                option.textContent = et.name;
+                option.dataset.unitName = (et.defaultUnit && et.defaultUnit !== 'none') ? et.defaultUnit : '';
+                optgroup.appendChild(option);
+            });
+
+        if (optgroup.childElementCount > 0) {
+            selectElement.appendChild(optgroup);
+        }
+    });
 
     const unclassifiedTypes = effectTypesCache
-        .filter(et => !et.superCategoryId || (superCategoriesCache && !superCategoriesCache.some(sc => sc.id === et.superCategoryId))) // Also include if superCat not found
+        .filter(et => !et.superCategoryId || !superCategoriesCache.some(sc => sc.id === et.superCategoryId))
         .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
     if (unclassifiedTypes.length > 0) {
-        const unclassifiedOptgroupLabel = (superCategoriesCache && superCategoriesCache.length > 0) ? "未分類" : "効果種類";
+        const unclassifiedOptgroupLabel = (superCategoriesCache.length > 0) ? "未分類" : "効果種類";
         const unclassifiedOptgroup = document.createElement('optgroup');
         unclassifiedOptgroup.label = unclassifiedOptgroupLabel;
         unclassifiedTypes.forEach(et => {
@@ -171,6 +185,7 @@ export function _populateCharBaseEffectTypeSelectInternal() {
 
 
 export function _renderCharacterBaseOptionsInternal() {
+    // ... (変更なし) ...
     if (!DOMCB.selectedCharBaseTypeInput || !DOMCB.charBaseOptionListContainer || !DOMCB.selectedCharBaseTypeDisplay) return;
 
     const selectedTypeKey = DOMCB.selectedCharBaseTypeInput.value;
@@ -208,7 +223,6 @@ export function _renderCharacterBaseOptionsInternal() {
                 } else {
                     effectTextPart = `${eff.value}`;
                 }
-                // ★★★ 「:」を削除し、半角スペースに変更 ★★★
                 return `${typeName} ${effectTextPart}`;
             }).join('; ');
             if (effectsSummary.length > 45) effectsSummary = effectsSummary.substring(0, 42) + "...";
@@ -229,6 +243,7 @@ export function _renderCharacterBaseOptionsInternal() {
 }
 
 function openEditCharBaseOptionModalById(optionId, baseType) {
+    // ... (変更なし) ...
     const characterBasesCache = getCharacterBasesFuncCache();
     const optionData = (characterBasesCache[baseType] || []).find(opt => opt.id === optionId);
     if (!optionData && optionId) { alert("編集するデータが見つかりません。"); return; }
@@ -236,6 +251,7 @@ function openEditCharBaseOptionModalById(optionId, baseType) {
 }
 
 function openEditCharBaseOptionModal(optionData, baseType) {
+    // ... (変更なし) ...
     DOMCB.editingCharBaseTypeInput.value = baseType;
     const typeName = baseTypeMappings[baseType] || "基礎情報";
     DOMCB.editCharBaseOptionModalTitle.textContent = optionData ? `${typeName}オプション編集` : `${typeName}オプション新規追加`;
@@ -257,6 +273,7 @@ function openEditCharBaseOptionModal(optionData, baseType) {
 }
 
 function updateCharBaseOptionEffectUnitDisplay() {
+    // ... (変更なし) ...
     if (!DOMCB.charBaseOptionEffectUnitDisplay || !DOMCB.charBaseOptionEffectTypeSelect) return;
     const selectedOption = DOMCB.charBaseOptionEffectTypeSelect.options[DOMCB.charBaseOptionEffectTypeSelect.selectedIndex];
     const unitName = selectedOption ? selectedOption.dataset.unitName : null;
@@ -264,6 +281,7 @@ function updateCharBaseOptionEffectUnitDisplay() {
 }
 
 function addEffectToCharBaseOptionModalList() {
+    // ... (変更なし) ...
     const typeId = DOMCB.charBaseOptionEffectTypeSelect.value;
     const valueStr = DOMCB.charBaseOptionEffectValueInput.value;
     if (!typeId) { alert("効果種類を選択してください。"); return; }
@@ -281,6 +299,7 @@ function addEffectToCharBaseOptionModalList() {
 }
 
 function renderCurrentCharBaseOptionEffectsListModal() {
+    // ... (変更なし、コロン削除は前回適用済み) ...
     if (!DOMCB.currentCharBaseOptionEffectsList) return;
     DOMCB.currentCharBaseOptionEffectsList.innerHTML = '';
     const effectTypesCache = getEffectTypesFuncCache();
@@ -310,7 +329,6 @@ function renderCurrentCharBaseOptionEffectsListModal() {
 
         const div = document.createElement('div');
         div.classList.add('effect-list-item');
-        // ★★★ 「:」を削除し、半角スペースに変更 ★★★
         div.innerHTML = `
             <span>${typeName} ${effectText}</span>
             <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="この効果を削除">×</button>
@@ -324,6 +342,7 @@ function renderCurrentCharBaseOptionEffectsListModal() {
 }
 
 async function saveCharBaseOption() {
+    // ... (変更なし) ...
     const baseType = DOMCB.editingCharBaseTypeInput.value;
     const optionId = DOMCB.editingCharBaseOptionDocIdInput.value;
     const name = DOMCB.editingCharBaseOptionNameInput.value.trim();
@@ -353,6 +372,7 @@ async function saveCharBaseOption() {
 }
 
 async function deleteCharBaseOption(optionId, baseType, optionName) {
+    // ... (変更なし) ...
     if (confirm(`基礎情報「${baseTypeMappings[baseType]}」のオプション「${optionName}」を削除しますか？\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, `character_bases/${baseType}/options`, optionId));
