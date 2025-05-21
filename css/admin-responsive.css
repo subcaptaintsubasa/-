@@ -119,9 +119,19 @@
     .inline-form button { width: 100%; margin-top: 0.3rem; margin-right: 0; }
     .category-button-group.admin { justify-content: flex-start; gap: 0.4rem; }
     .category-select-button { font-size: 0.8rem; padding: 0.35rem 0.75rem; }
-    .radio-group { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    
+    .radio-group { /* Default responsive behavior for all radio groups */
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .radio-group > div { /* Ensure radio-label pairs stay together on wrap */
+        margin-bottom: 0.3rem;
+    }
+
+
     #admin-content button, #admin-content .button-like,
-    .admin-management-modal button:not(.close-button) { font-size: 0.9rem; padding: 0.6rem 1rem; width: auto; }
+    .admin-management-modal button:not(.close-button):not(.button-like-icon) { font-size: 0.9rem; padding: 0.6rem 1rem; width: auto; }
     .admin-management-modal button[id^="add"] { width: 100%; margin-bottom: 1rem; }
     .effect-input-row { flex-direction: column; gap: 0.6rem; align-items: stretch; }
     .effect-input-row select, .effect-input-row input[type="number"], .effect-input-row button {
@@ -178,11 +188,14 @@
     #admin-content h3, .admin-management-modal .modal-content h3 { font-size: 1.1rem; }
     .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="url"],
     .form-group input[type="file"], .form-group textarea, .form-group select { font-size: 0.85rem; }
-    #admin-content button, #admin-content .button-like,
-    .admin-management-modal button:not(.close-button) { font-size: 0.85rem; padding: 0.5rem 0.8rem; }
+    #admin-content button:not(.button-like-icon), 
+    #admin-content .button-like:not(.button-like-icon),
+    .admin-management-modal button:not(.close-button):not(.button-like-icon) { 
+        font-size: 0.85rem; padding: 0.5rem 0.8rem; 
+    }
     .list-item > span, .list-item > .list-item-name-clickable { font-size: 0.8rem; }
     #itemsTable { font-size: 0.75rem; }
-    #itemsTable td:last-child { min-width: 60px; }
+    #itemsTable td:last-child { min-width: 60px; } /* Ensure action buttons have some space */
     .action-button { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
     body#admin-page div.modal div.modal-content { padding: 15px 10px; }
     body#admin-page div.modal div.modal-content h3,
@@ -192,4 +205,15 @@
         font-size: 0.9rem; padding: 0.6rem;
     }
     .admin-side-navigation.open { width: 200px; }
+
+    /* Specifically target .responsive-radio-group for more aggressive stacking if needed */
+    .radio-group.responsive-radio-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem; /* Reduce gap for very small screens */
+    }
+     .radio-group.responsive-radio-group > div {
+        width: 100%; /* Make each radio-label pair take full width if needed */
+        margin-bottom: 0.2rem;
+    }
 }
