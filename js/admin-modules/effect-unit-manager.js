@@ -4,13 +4,13 @@ import { openModal, closeModal } from './ui-helpers.js';
 
 const DOMEU = {
     newEffectUnitNameInput: null,
-    newEffectUnitPositionRadios: null, // Added
+    newEffectUnitPositionRadios: null,
     addEffectUnitButton: null,
     effectUnitListContainer: null,
     editEffectUnitModal: null,
     editingEffectUnitDocIdInput: null,
     editingEffectUnitNameInput: null,
-    editingEffectUnitPositionRadios: null, // Added
+    editingEffectUnitPositionRadios: null,
     saveEffectUnitEditButton: null,
     manageUnitsForNewEffectTypeButton: null,
     manageUnitsForEditingEffectTypeButton: null,
@@ -32,14 +32,14 @@ export function initEffectUnitManager(dependencies) {
     refreshAllDataCallback = dependencies.refreshAllData;
 
     DOMEU.newEffectUnitNameInput = document.getElementById('newEffectUnitName');
-    DOMEU.newEffectUnitPositionRadios = document.querySelectorAll('input[name="newEffectUnitPosition"]'); // Added
+    DOMEU.newEffectUnitPositionRadios = document.querySelectorAll('input[name="newEffectUnitPosition"]');
     DOMEU.addEffectUnitButton = document.getElementById('addEffectUnitButton');
     DOMEU.effectUnitListContainer = document.getElementById('effectUnitListContainer');
 
     DOMEU.editEffectUnitModal = document.getElementById('editEffectUnitModal');
     DOMEU.editingEffectUnitDocIdInput = document.getElementById('editingEffectUnitDocId');
     DOMEU.editingEffectUnitNameInput = document.getElementById('editingEffectUnitName');
-    DOMEU.editingEffectUnitPositionRadios = document.querySelectorAll('input[name="editEffectUnitPosition"]'); // Added
+    DOMEU.editingEffectUnitPositionRadios = document.querySelectorAll('input[name="editEffectUnitPosition"]');
     DOMEU.saveEffectUnitEditButton = document.getElementById('saveEffectUnitEditButton');
 
     DOMEU.manageUnitsForNewEffectTypeButton = document.getElementById('manageUnitsForNewEffectTypeButton');
@@ -63,26 +63,19 @@ export function initEffectUnitManager(dependencies) {
 }
 
 function scrollToUnitSection(context) {
-    // This function implementation seems fine, assuming effect-unit-management is the ID of the section.
-    const effectUnitManagementSection = document.querySelector('#effectUnitManagementModal').closest('section') || document.getElementById('effect-unit-management'); // Fallback if section ID changes.
+    const effectUnitManagementSection = document.querySelector('#effectUnitManagementModal').closest('section') || document.getElementById('effect-unit-management');
     if (effectUnitManagementSection) {
-         // Attempt to open the modal first if it's not already open, then scroll within it or to it.
-         // For simplicity, assuming the modal containing this section is opened by a nav button.
-         // This function is more about focusing the input within an already visible/soon-to-be-visible section.
         const modal = document.getElementById('effectUnitManagementModal');
-        if (modal && modal.style.display !== 'none') { // if modal is open
-            const inputToFocus = (context === 'new') ? DOMEU.newEffectUnitNameInput : DOMEU.editingEffectUnitNameInput;
-            if (inputToFocus) {
+        if (modal && modal.style.display !== 'none') {
+            const inputToFocus = (context === 'new') ? DOMEU.newEffectUnitNameInput : DOMEU.editingEffectUnitNameInput; // This would be for the edit modal, not the add form.
+            if (inputToFocus && context === 'new') { // Only focus for 'new' in the main modal. Edit modal focus handled separately.
                 inputToFocus.focus();
-                 // Simple scroll to top of modal content if input is not directly visible
                 modal.querySelector('.modal-content.scrollable-content').scrollTop = 0;
+            } else {
+                 modal.querySelector('.modal-content.scrollable-content').scrollTop = 0;
             }
         } else {
-            // If the modal is not open, the button that usually opens it should be used.
-            // This helper is more for internal navigation within the already opened modal/page.
-            // If we want this button to also open the modal, that logic needs to be added.
-            // For now, just focusing if section is visible.
-            const sectionContainer = document.getElementById('effect-unit-management'); // Assuming this is a section on main admin page
+            const sectionContainer = document.getElementById('effect-unit-management');
             if(sectionContainer) {
                 sectionContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
                  if (context === 'new' && DOMEU.newEffectUnitNameInput) DOMEU.newEffectUnitNameInput.focus();
@@ -99,48 +92,31 @@ export function _renderEffectUnitsForManagementInternal() {
 
     if (effectUnitsCache.length === 0) {
         DOMEU.effectUnitListContainer.innerHTML = '<p>効果単位が登録されていません。「なし」は自動的に利用可能です。</p>';
-        return; // No need to populate selects if no units, they default to "なし"
+        return;
     }
 
     const sortedUnits = [...effectUnitsCache].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
     sortedUnits.forEach(unit => {
-        const positionText = unit.position === 'prefix' ? '(前)' : '(後)'; // Display position
+        const positionText = unit.position === 'prefix' ? '(前)' : '(後)';
         const div = document.createElement('div');
-        div.classList.add('list-item');
-        // Make the unit name part clickable
-        const nameSpan = document.createElement('span');
-        nameSpan.classList.add('list-item-name-clickable');
-        nameSpan.textContent = `${unit.name} `;
-        nameSpan.dataset.id = unit.id; // Add data-id for click handling
-        nameSpan.addEventListener('click', () => openEditEffectUnitModalById(unit.id));
+        div.classList.add('list-item'); // Keeps the overall list item structure
 
+        const nameSpan = document.createElement('span');
+        nameSpan.classList.add('list-item-name-clickable'); // Make the name part clickable
+        nameSpan.textContent = `${unit.name} `;
+        nameSpan.dataset.id = unit.id;
+        nameSpan.addEventListener('click', () => openEditEffectUnitModalById(unit.id));
 
         const smallInfo = document.createElement('small');
         smallInfo.textContent = positionText;
         nameSpan.appendChild(smallInfo);
 
         div.appendChild(nameSpan);
-
-        const actionsDiv = document.createElement('div');
-        actionsDiv.classList.add('list-item-actions');
-        actionsDiv.innerHTML = `
-            <button class="edit-effect-unit action-button" data-id="${unit.id}" title="編集">✎</button>
-            <button class="delete-effect-unit action-button delete" data-id="${unit.id}" data-name="${unit.name}" title="削除">×</button>
-        `;
-        div.appendChild(actionsDiv);
+        // Action buttons (edit/delete) are removed from here as per instruction.
+        // Delete functionality is now only available within the edit modal.
 
         DOMEU.effectUnitListContainer.appendChild(div);
-    });
-
-    // Event listeners for edit/delete buttons (moved from individual item creation for efficiency if list is large)
-    // However, for clickable names, it's fine to add listener during creation or delegate.
-    // The existing querySelectorAll for buttons is fine too.
-    DOMEU.effectUnitListContainer.querySelectorAll('.edit-effect-unit').forEach(btn => {
-        btn.addEventListener('click', (e) => openEditEffectUnitModalById(e.currentTarget.dataset.id));
-    });
-    DOMEU.effectUnitListContainer.querySelectorAll('.delete-effect-unit').forEach(btn => {
-        btn.addEventListener('click', (e) => deleteEffectUnit(e.currentTarget.dataset.id, e.currentTarget.dataset.name));
     });
     console.log("[Effect Unit Manager] Effect units rendered for management.");
 }
@@ -149,7 +125,7 @@ async function addEffectUnit() {
     if (!DOMEU.newEffectUnitNameInput || !DOMEU.newEffectUnitPositionRadios) return;
     const name = DOMEU.newEffectUnitNameInput.value.trim();
     const selectedPositionRadio = Array.from(DOMEU.newEffectUnitPositionRadios).find(r => r.checked);
-    const position = selectedPositionRadio ? selectedPositionRadio.value : 'suffix'; // Default to suffix
+    const position = selectedPositionRadio ? selectedPositionRadio.value : 'suffix';
     const effectUnitsCache = getEffectUnitsFuncCache();
 
     if (!name) { alert("効果単位名を入力してください。"); return; }
@@ -161,11 +137,11 @@ async function addEffectUnit() {
     try {
         await addDoc(collection(dbInstance, 'effect_units'), {
             name: name,
-            position: position, // Save position
+            position: position,
             createdAt: serverTimestamp()
         });
         DOMEU.newEffectUnitNameInput.value = '';
-        if (DOMEU.newEffectUnitPositionRadios.length > 0) DOMEU.newEffectUnitPositionRadios[0].checked = true; // Reset to suffix
+        if (DOMEU.newEffectUnitPositionRadios.length > 0) DOMEU.newEffectUnitPositionRadios[0].checked = true;
         await refreshAllDataCallback();
     } catch (error) {
         console.error("[Effect Unit Manager] Error adding effect unit:", error);
@@ -180,7 +156,7 @@ function openEditEffectUnitModalById(unitId) {
         DOMEU.editingEffectUnitDocIdInput.value = unitData.id;
         DOMEU.editingEffectUnitNameInput.value = unitData.name;
 
-        const positionToSelect = unitData.position || 'suffix'; // Default to suffix if undefined
+        const positionToSelect = unitData.position || 'suffix';
         DOMEU.editingEffectUnitPositionRadios.forEach(radio => {
             radio.checked = radio.value === positionToSelect;
         });
@@ -209,16 +185,14 @@ async function saveEffectUnitEdit() {
         const oldUnitData = effectUnitsCache.find(u => u.id === id);
         const oldUnitName = oldUnitData ? oldUnitData.name : null;
 
-        // Prepare data for update
         const updateData = {
             name: newName,
-            position: newPosition, // Save new position
+            position: newPosition,
             updatedAt: serverTimestamp()
         };
 
         await updateDoc(doc(dbInstance, 'effect_units', id), updateData);
 
-        // If unit name changed, update related entities (this part seems correct as is)
         if (oldUnitName && oldUnitName !== newName) {
             const batch = writeBatch(dbInstance);
             let updatesMade = false;
@@ -269,31 +243,31 @@ async function deleteEffectUnit(id, name) {
     const itemsCache = getItemsFuncCache();
     const charBasesCache = getCharacterBasesFuncCache();
 
-    // Check usage in effect_types defaultUnit
     const usedByEffectType = effectTypesCache.find(et => et.defaultUnit === name);
     if (usedByEffectType) {
-        alert(`効果単位「${name}」は効果種類「${usedByEffectType.name}」のデフォルト単位として使用されているため削除できません。`); return;
+        alert(`効果単位「${name}」は効果種類「${usedByEffectType.name}」のデフォルト単位として使用されているため削除できません。\n先に効果種類「${usedByEffectType.name}」のデフォルト単位を変更してください。`); return;
     }
-    // Check usage in items structured_effects
     const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.unit === name));
     if (usedByItem) {
-        alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。`); return;
+        alert(`効果単位「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。\n先にアイテム「${usedByItem.name}」の効果からこの単位を削除するか、単位を変更してください。`); return;
     }
-    // Check usage in character_bases options effects
     for (const baseKey in charBasesCache) {
         const usedInBase = (charBasesCache[baseKey] || []).find(option =>
             option.effects && option.effects.some(eff => eff.unit === name)
         );
         if (usedInBase) {
-            // const typeDisplayName = baseTypeMappings[baseKey] || baseKey; // If baseTypeMappings is available
-            alert(`効果単位「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。`); return;
+            alert(`効果単位「${name}」はキャラクター基礎情報「${baseKey} - ${usedInBase.name}」の効果で使用されているため削除できません。\n先に該当の基礎情報オプションの効果からこの単位を削除するか、単位を変更してください。`); return;
         }
     }
 
     if (confirm(`効果単位「${name}」を削除しますか？\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'effect_units', id));
-            await refreshAllDataCallback(); // Refresh data and UI
+            await refreshAllDataCallback();
+            // Make sure the edit modal is closed if the currently edited item was deleted.
+            if (DOMEU.editEffectUnitModal.style.display !== 'none' && DOMEU.editingEffectUnitDocIdInput.value === id) {
+                closeModal('editEffectUnitModal');
+            }
         } catch (error) {
             console.error("[Effect Unit Manager] Error deleting effect unit:", error);
             alert("効果単位の削除に失敗しました。");
