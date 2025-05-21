@@ -1,18 +1,23 @@
 // js/modules/search-render.js
 // Handles rendering the item list and pagination.
 
-import { openItemDetailModal } from './ui-main.js'; // For item detail view
-// Dependencies from data-loader will be passed or accessed via getters
+import { openItemDetailModal } from './ui-main.js';
+// data-loaderから getEffectUnitsCache をインポート
+import { getEffectUnitsCache as getEffectUnitsCacheFromLoader } from './data-loader.js';
+
+
 let getAllItemsFunc = () => [];
 let getEffectTypesCacheFunc = () => [];
 let getAllTagsFunc = () => [];
+let getEffectUnitsCacheFunc = () => []; // ローカルのキャッシュ関数ポインタ
 
 // State/Config passed from search-filters or main
 let isSelectingForSimulatorState = false;
 let temporarilySelectedItemState = null;
-let currentSelectingSlotState = null; // Used for highlighting, if needed directly here
+// currentSelectingSlotState is not directly used here for rendering logic based on current code,
+// but kept if needed for future highlighting based on slot type.
 
-const DOMR = { // DOM elements relevant to rendering
+const DOMR = {
     itemList: null,
     itemCountDisplay: null,
     paginationControls: null,
@@ -22,12 +27,12 @@ export function initSearchRender(dependencies) {
     getAllItemsFunc = dependencies.getAllItems;
     getEffectTypesCacheFunc = dependencies.getEffectTypesCache;
     getAllTagsFunc = dependencies.getAllTags;
+    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader; // data-loaderから取得
 
     DOMR.itemList = document.getElementById('itemList');
     DOMR.itemCountDisplay = document.getElementById('itemCount');
     DOMR.paginationControls = document.getElementById('paginationControls');
 
-    // Event delegation for item card clicks if preferred, or direct binding in renderItems
     if (DOMR.itemList) {
         DOMR.itemList.addEventListener('click', (event) => {
             const card = event.target.closest('.item-card-compact');
@@ -37,16 +42,15 @@ export function initSearchRender(dependencies) {
                 if (!item) return;
 
                 if (isSelectingForSimulatorState) {
-                    // Notify search-filters or main script about temporary selection
                     if (dependencies.onItemTempSelect) {
                         dependencies.onItemTempSelect(itemId);
                     }
-                    // Visually update the selected card (could also be handled by renderItems based on state)
                     const allCards = DOMR.itemList.querySelectorAll('.item-card-compact');
                     allCards.forEach(c => c.classList.remove('selected-for-simulator'));
                     card.classList.add('selected-for-simulator');
                 } else {
-                    openItemDetailModal(item, getEffectTypesCacheFunc(), getAllTagsFunc());
+                    // openItemDetailModal に effectUnitsCache を渡す
+                    openItemDetailModal(item, getEffectTypesCacheFunc(), getAllTagsFunc(), getEffectUnitsCacheFunc());
                 }
             }
         });
@@ -60,16 +64,14 @@ export function updateRenderConfig(config) {
     if (config.temporarilySelectedItem !== undefined) {
         temporarilySelectedItemState = config.temporarilySelectedItem;
     }
-    if (config.currentSelectingSlot !== undefined) {
-        currentSelectingSlotState = config.currentSelectingSlot;
-    }
+    // currentSelectingSlotState update if needed
 }
 
 
 export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage, itemsPerPage) {
     if (!DOMR.itemList || !DOMR.itemCountDisplay) return;
 
-    DOMR.itemList.innerHTML = ''; // Clear previous items
+    DOMR.itemList.innerHTML = '';
 
     const countText = isSelectingForSimulatorState ?
         `該当部位のアイテム: ${totalFilteredCount} 件` :
@@ -80,11 +82,12 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
         DOMR.itemList.innerHTML = totalFilteredCount > 0 ?
             '<p>このページに表示するアイテムはありません。</p>' :
             '<p>該当するアイテムは見つかりませんでした。</p>';
-        renderPaginationControls(totalFilteredCount, currentPage, itemsPerPage); // Still render pagination if other pages exist
+        renderPaginationControls(totalFilteredCount, currentPage, itemsPerPage);
         return;
     }
 
     const effectTypesCache = getEffectTypesCacheFunc();
+    const effectUnitsCache = getEffectUnitsCacheFunc(); // ★★★ 追加 ★★★
 
     itemsToRenderOnPage.forEach(item => {
         const itemCardCompact = document.createElement('div');
@@ -107,7 +110,7 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
             imageElement.alt = item.name || 'アイテム画像';
             imageElement.onerror = function() {
                 this.onerror = null;
-                this.src = './images/placeholder_item.png';
+                this.src = './images/placeholder_item.png'; // Ensure this path is correct relative to index.html
                 this.alt = '画像読込エラー';
             };
         } else {
@@ -132,11 +135,24 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
             effectsSummary.textContent = item.structured_effects.map(eff => {
                 const effectType = effectTypesCache.find(et => et.id === eff.type);
                 const typeName = effectType ? effectType.name : `不明`;
-                const unitText = (eff.unit && eff.unit !== 'none') ? eff.unit : '';
-                return `${typeName}: ${eff.value}${unitText}`;
+                
+                let effectTextPart;
+                const unitName = eff.unit;
+                if (unitName && unitName !== 'none' && effectUnitsCache) { // ★★★ effectUnitsCache を確認 ★★★
+                    const unitData = effectUnitsCache.find(u => u.name === unitName);
+                    const position = unitData ? unitData.position : 'suffix';
+                    if (position === 'prefix') {
+                        effectTextPart = `${unitName}${eff.value}`;
+                    } else {
+                        effectTextPart = `${eff.value}${unitName}`;
+                    }
+                } else {
+                    effectTextPart = `${eff.value}`;
+                }
+                return `${typeName}: ${effectTextPart}`;
             }).slice(0, 2).join('; ') + (item.structured_effects.length > 2 ? '...' : '');
         } else {
-            effectsSummary.textContent = '効果: Coming Soon';
+            effectsSummary.textContent = '効果なし'; // Changed from "Coming Soon"
         }
         infoCompact.appendChild(effectsSummary);
         itemCardCompact.appendChild(infoCompact);
@@ -174,14 +190,12 @@ function renderPaginationControls(totalFilteredCount, currentPage, itemsPerPage)
     const nextButton = createButton('次へ', currentPage + 1, currentPage === totalPages);
     DOMR.paginationControls.appendChild(nextButton);
 
-    // Add event listener for pagination buttons
     DOMR.paginationControls.querySelectorAll('.pagination-button').forEach(button => {
         button.addEventListener('click', (e) => {
             if (e.currentTarget.disabled) return;
             const newPage = parseInt(e.currentTarget.dataset.page);
-            // Notify search-filters or main script to change page and re-filter/render
             const event = new CustomEvent('pageChange', { detail: { newPage } });
-            document.dispatchEvent(event); // Or call a passed callback
+            document.dispatchEvent(event);
         });
     });
 }
