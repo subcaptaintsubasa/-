@@ -1,6 +1,6 @@
 // js/admin-modules/item-manager.js
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, serverTimestamp, deleteField, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"; // orderBy は getDocs に含まれるので直接インポート不要
-import { populateCheckboxGroup, getSelectedCheckboxValues } from './ui-helpers.js'; // populateSelect は使わないので削除
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, serverTimestamp, deleteField, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { populateCheckboxGroup, getSelectedCheckboxValues } from './ui-helpers.js';
 
 const DOMI = {
     itemForm: null,
@@ -20,7 +20,7 @@ const DOMI = {
     currentEffectsList: null,
     itemSourceInput: null,
     itemTagsSelectorCheckboxes: null,
-    deleteItemFromFormButton: null, // Added for consistency, might be useful
+    deleteItemFromFormButton: null,
     saveItemButton: null,
     clearFormButton: null,
     itemsTableBody: null,
@@ -31,7 +31,7 @@ let dbInstance = null;
 let getAllItemsFuncCache = () => [];
 let getAllTagsFuncCache = () => [];
 let getEffectTypesFuncCache = () => [];
-let getEffectUnitsFuncCache = () => []; // ★★★ 追加 ★★★
+let getEffectUnitsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
 let currentItemEffects = [];
@@ -43,7 +43,7 @@ export function initItemManager(dependencies) {
     getAllItemsFuncCache = dependencies.getItems;
     getAllTagsFuncCache = dependencies.getAllTags;
     getEffectTypesFuncCache = dependencies.getEffectTypes;
-    getEffectUnitsFuncCache = dependencies.getEffectUnits; // ★★★ 追加 ★★★
+    getEffectUnitsFuncCache = dependencies.getEffectUnits;
     refreshAllDataCallback = dependencies.refreshAllData;
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
@@ -80,7 +80,7 @@ export function initItemManager(dependencies) {
         DOMI.deleteItemFromFormButton.addEventListener('click', () => {
             const itemId = DOMI.itemIdToEditInput.value;
             const itemName = DOMI.itemNameInput.value || '(名称未設定)';
-            const itemImageUrl = DOMI.itemImageUrlInput.value; // Get current image URL from form
+            const itemImageUrl = DOMI.itemImageUrlInput.value;
             if (itemId) {
                 deleteItem(itemId, itemName, itemImageUrl);
             } else {
@@ -117,7 +117,7 @@ function clearItemFormInternal() {
     _populateTagCheckboxesForItemFormInternal();
 
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
-    if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none'; // Hide delete button
+    if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none';
     if (DOMI.itemNameInput) DOMI.itemNameInput.focus();
     console.log("[Item Manager] Item form cleared.");
 }
@@ -134,7 +134,6 @@ export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
         'itemTag',
         'item-tag-sel-'
     );
-    // console.log("[Item Manager] Tag checkboxes in item form populated."); // Reduced logging
 }
 
 function handleImageFileSelect(event) {
@@ -178,12 +177,10 @@ function addEffectToItemList() {
     if (valueStr.trim() === '' || isNaN(parseFloat(valueStr))) { alert("効果の値を数値で入力してください。"); return; }
 
     const value = parseFloat(valueStr);
-    // const selectedEffectType = getEffectTypesFuncCache().find(et => et.id === typeId);
-    // const unit = selectedEffectType ? (selectedEffectType.defaultUnit || 'none') : 'none';
     const selectedOption = DOMI.effectTypeSelect.options[DOMI.effectTypeSelect.selectedIndex];
-    const unit = (selectedOption && selectedOption.dataset.unitName && selectedOption.dataset.unitName !== 'none') ? selectedOption.dataset.unitName : null ; // null or unit string
+    const unit = (selectedOption && selectedOption.dataset.unitName && selectedOption.dataset.unitName !== 'none') ? selectedOption.dataset.unitName : null ;
 
-    currentItemEffects.push({ type: typeId, value: value, unit: unit }); // Store null if no unit
+    currentItemEffects.push({ type: typeId, value: value, unit: unit });
     renderCurrentItemEffectsListUI();
     DOMI.effectTypeSelect.value = '';
     DOMI.effectValueInput.value = '';
@@ -194,7 +191,7 @@ function renderCurrentItemEffectsListUI() {
     if (!DOMI.currentEffectsList) return;
     DOMI.currentEffectsList.innerHTML = '';
     const effectTypesCache = getEffectTypesFuncCache();
-    const effectUnitsCache = getEffectUnitsFuncCache(); // ★★★ 追加 ★★★
+    const effectUnitsCache = getEffectUnitsFuncCache();
 
     if (currentItemEffects.length === 0) {
         DOMI.currentEffectsList.innerHTML = '<p>効果が追加されていません。</p>'; return;
@@ -204,23 +201,24 @@ function renderCurrentItemEffectsListUI() {
         const typeName = effectType ? effectType.name : '不明な効果';
         
         let effectText;
-        const unitName = effect.unit; // Can be null or the unit string
+        const unitName = effect.unit;
         if (unitName && unitName !== 'none') {
             const unitData = effectUnitsCache.find(u => u.name === unitName);
-            const position = unitData ? unitData.position : 'suffix'; // Default to suffix if unit not found or position undefined
+            const position = unitData ? unitData.position : 'suffix';
             if (position === 'prefix') {
                 effectText = `${unitName}${effect.value}`;
             } else {
                 effectText = `${effect.value}${unitName}`;
             }
         } else {
-            effectText = `${effect.value}`; // No unit
+            effectText = `${effect.value}`;
         }
 
         const div = document.createElement('div');
         div.classList.add('effect-list-item');
+        // ★★★ 「:」を削除し、半角スペースに変更 ★★★
         div.innerHTML = `
-            <span>${typeName}: ${effectText}</span>
+            <span>${typeName} ${effectText}</span>
             <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="この効果を削除">×</button>
         `;
         div.querySelector('.delete-effect-from-list').addEventListener('click', (e) => {
@@ -232,7 +230,6 @@ function renderCurrentItemEffectsListUI() {
 }
 
 async function uploadImageToWorkerAndGetURL(file) {
-    // ... (実装は変更なし) ...
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) return null;
     if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'block';
     if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
@@ -376,7 +373,7 @@ export function _renderItemsAdminTableInternal() {
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
     const effectTypesCache = getEffectTypesFuncCache();
-    const effectUnitsCache = getEffectUnitsFuncCache(); // ★★★ 追加 ★★★
+    const effectUnitsCache = getEffectUnitsFuncCache();
     DOMI.itemsTableBody.innerHTML = '';
 
     const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
@@ -388,7 +385,7 @@ export function _renderItemsAdminTableInternal() {
     if (filteredItems.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = 5; // Adjusted colspan
+        td.colSpan = 5;
         td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
         td.style.textAlign = 'center';
         return;
@@ -396,8 +393,8 @@ export function _renderItemsAdminTableInternal() {
 
     filteredItems.forEach(item => {
         const tr = document.createElement('tr');
-        tr.classList.add('table-row-clickable'); // Make row clickable
-        tr.dataset.itemDocId = item.docId; // Store docId for click handler
+        tr.classList.add('table-row-clickable');
+        tr.dataset.itemDocId = item.docId;
 
         const imageDisplayPath = item.image || './images/placeholder_item.png';
         const itemTagsString = (item.tags || [])
@@ -425,7 +422,8 @@ export function _renderItemsAdminTableInternal() {
                 } else {
                     effectTextPart = `${eff.value}`;
                 }
-                return `${typeName}: ${effectTextPart}`;
+                // ★★★ 「:」を削除し、半角スペースに変更 ★★★
+                return `${typeName} ${effectTextPart}`;
             }).join('; ');
             if (effectsDisplay.length > 50) effectsDisplay = effectsDisplay.substring(0, 47) + '...';
         }
@@ -438,12 +436,10 @@ export function _renderItemsAdminTableInternal() {
             <td>${priceDisplay}</td>
             <td>${effectsDisplay}</td>
             <td>${itemTagsString}</td>`;
-            // Action buttons removed from table row as per previous instruction
         
-        tr.addEventListener('click', () => loadItemForEdit(item.docId)); // Add click listener to the row
+        tr.addEventListener('click', () => loadItemForEdit(item.docId));
         DOMI.itemsTableBody.appendChild(tr);
     });
-    // console.log("[Item Manager] Items table rendered."); // Reduced logging
 }
 
 async function loadItemForEdit(docId) {
@@ -470,7 +466,7 @@ async function loadItemForEdit(docId) {
             renderCurrentItemEffectsListUI();
 
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
-            if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block'; // Show delete button
+            if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block';
 
             const itemFormSection = document.getElementById('item-management');
             if (itemFormSection) itemFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -480,14 +476,12 @@ async function loadItemForEdit(docId) {
 }
 
 async function deleteItem(docId, itemName, imageUrl) {
-    // This function is now primarily called from the form's delete button
     if (confirm(`アイテム「${itemName}」を削除しますか？\n注意: Cloudflare R2上の関連画像は、この操作では削除されません。\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'items', docId));
             if (imageUrl) {
                 console.warn(`Image ${imageUrl} (associated with deleted item ${docId}) may need manual deletion from Cloudflare R2.`);
             }
-            // If the deleted item was the one in the form, clear the form
             if (DOMI.itemIdToEditInput.value === docId) {
                 clearItemFormInternal();
             }
