@@ -2,20 +2,16 @@
 // Handles rendering the item list and pagination.
 
 import { openItemDetailModal } from './ui-main.js';
-// data-loaderから getEffectUnitsCache をインポート
 import { getEffectUnitsCache as getEffectUnitsCacheFromLoader } from './data-loader.js';
 
 
 let getAllItemsFunc = () => [];
 let getEffectTypesCacheFunc = () => [];
 let getAllTagsFunc = () => [];
-let getEffectUnitsCacheFunc = () => []; // ローカルのキャッシュ関数ポインタ
+let getEffectUnitsCacheFunc = () => [];
 
-// State/Config passed from search-filters or main
 let isSelectingForSimulatorState = false;
 let temporarilySelectedItemState = null;
-// currentSelectingSlotState is not directly used here for rendering logic based on current code,
-// but kept if needed for future highlighting based on slot type.
 
 const DOMR = {
     itemList: null,
@@ -27,7 +23,7 @@ export function initSearchRender(dependencies) {
     getAllItemsFunc = dependencies.getAllItems;
     getEffectTypesCacheFunc = dependencies.getEffectTypesCache;
     getAllTagsFunc = dependencies.getAllTags;
-    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader; // data-loaderから取得
+    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader;
 
     DOMR.itemList = document.getElementById('itemList');
     DOMR.itemCountDisplay = document.getElementById('itemCount');
@@ -49,7 +45,6 @@ export function initSearchRender(dependencies) {
                     allCards.forEach(c => c.classList.remove('selected-for-simulator'));
                     card.classList.add('selected-for-simulator');
                 } else {
-                    // openItemDetailModal に effectUnitsCache を渡す
                     openItemDetailModal(item, getEffectTypesCacheFunc(), getAllTagsFunc(), getEffectUnitsCacheFunc());
                 }
             }
@@ -64,7 +59,6 @@ export function updateRenderConfig(config) {
     if (config.temporarilySelectedItem !== undefined) {
         temporarilySelectedItemState = config.temporarilySelectedItem;
     }
-    // currentSelectingSlotState update if needed
 }
 
 
@@ -87,7 +81,7 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
     }
 
     const effectTypesCache = getEffectTypesCacheFunc();
-    const effectUnitsCache = getEffectUnitsCacheFunc(); // ★★★ 追加 ★★★
+    const effectUnitsCache = getEffectUnitsCacheFunc();
 
     itemsToRenderOnPage.forEach(item => {
         const itemCardCompact = document.createElement('div');
@@ -110,7 +104,7 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
             imageElement.alt = item.name || 'アイテム画像';
             imageElement.onerror = function() {
                 this.onerror = null;
-                this.src = './images/placeholder_item.png'; // Ensure this path is correct relative to index.html
+                this.src = './images/placeholder_item.png';
                 this.alt = '画像読込エラー';
             };
         } else {
@@ -138,7 +132,7 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
                 
                 let effectTextPart;
                 const unitName = eff.unit;
-                if (unitName && unitName !== 'none' && effectUnitsCache) { // ★★★ effectUnitsCache を確認 ★★★
+                if (unitName && unitName !== 'none' && effectUnitsCache) {
                     const unitData = effectUnitsCache.find(u => u.name === unitName);
                     const position = unitData ? unitData.position : 'suffix';
                     if (position === 'prefix') {
@@ -149,10 +143,11 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
                 } else {
                     effectTextPart = `${eff.value}`;
                 }
-                return `${typeName}: ${effectTextPart}`;
+                // ★★★ 「:」を削除し、半角スペースに変更 ★★★
+                return `${typeName} ${effectTextPart}`;
             }).slice(0, 2).join('; ') + (item.structured_effects.length > 2 ? '...' : '');
         } else {
-            effectsSummary.textContent = '効果なし'; // Changed from "Coming Soon"
+            effectsSummary.textContent = '効果なし';
         }
         infoCompact.appendChild(effectsSummary);
         itemCardCompact.appendChild(infoCompact);
@@ -164,6 +159,7 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
 }
 
 function renderPaginationControls(totalFilteredCount, currentPage, itemsPerPage) {
+    // ... (変更なし) ...
     if (!DOMR.paginationControls) return;
     DOMR.paginationControls.innerHTML = '';
     const totalPages = Math.ceil(totalFilteredCount / itemsPerPage);
