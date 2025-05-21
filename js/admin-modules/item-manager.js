@@ -16,7 +16,7 @@ const DOMI = {
     effectTypeSelect: null,
     effectValueInput: null,
     effectUnitDisplay: null,
-    addEffectToListButton: null, // このボタンのテキストと機能を変更する
+    addEffectToListButton: null,
     currentEffectsList: null,
     itemSourceInput: null,
     itemTagsSelectorCheckboxes: null,
@@ -38,7 +38,6 @@ let currentItemEffects = [];
 let selectedImageFile = null;
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
-// 効果編集モードの状態管理
 let itemEffectEditMode = false;
 let itemEffectEditingIndex = -1;
 
@@ -352,7 +351,6 @@ async function saveItem(event) {
         return;
     }
 
-
     let price = null;
     if (priceStr !== "") {
         price = parseInt(priceStr, 10);
@@ -381,8 +379,11 @@ async function saveItem(event) {
             updatedAt: serverTimestamp()
         };
         
-        if (price !== null) itemData.price = price;
-        else itemData.price = deleteField();
+        if (price !== null) {
+            itemData.price = price;
+        } else {
+            itemData.price = deleteField();
+        }
 
         if (editingDocId) {
             await updateDoc(doc(dbInstance, 'items', editingDocId), itemData);
@@ -400,7 +401,6 @@ async function saveItem(event) {
     } finally {
         if (DOMI.saveItemButton) {
             DOMI.saveItemButton.disabled = false;
-            // フォームクリア時に itemIdToEditInput がクリアされるので、それを見て判定
             DOMI.saveItemButton.textContent = DOMI.itemIdToEditInput.value ? "アイテム更新" : "アイテム保存";
         }
     }
