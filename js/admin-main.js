@@ -1,28 +1,27 @@
 // js/admin-main.js
 import { auth, db } from '../firebase-config.js';
-import { initAuth } from './admin-modules/auth.js'; // getCurrentUser は直接使わないので削除
+import { initAuth } from './admin-modules/auth.js';
 import {
     loadInitialData,
     clearAdminDataCache,
     IMAGE_UPLOAD_WORKER_URL,
     getAllCategoriesCache,
     getAllTagsCache,
-    getItemsCache, // ItemManager への依存としてgetItemsCacheは残す
+    getItemsCache,
     getEffectTypesCache,
     getEffectUnitsCache,
+    getEffectSuperCategoriesCache, // ★★★ 追加 ★★★
     getCharacterBasesCache
 } from './admin-modules/data-loader-admin.js';
-import { initUIHelpers, openModal as openModalHelper, closeModal as closeModalHelper, populateSelect as populateSelectHelper } from './admin-modules/ui-helpers.js'; // populateSelectHelper をインポート (未使用なら後で削除可)
+import { initUIHelpers, openModal as openModalHelper, closeModal as closeModalHelper } from './admin-modules/ui-helpers.js';
 import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI } from './admin-modules/category-manager.js';
 import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _populateCategoryCheckboxesForTagFormInternal as populateTagFormCategories } from './admin-modules/tag-manager.js';
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI } from './admin-modules/effect-unit-manager.js';
-// EffectSuperCategoryManager は今回未作成なのでコメントアウト (もしあれば)
-// import { initEffectSuperCategoryManager, _renderEffectSuperCategoriesForManagementInternal as renderEffectSuperCategoriesUI } from './admin-modules/effect-super-category-manager.js';
+// import { initEffectSuperCategoryManager, _renderEffectSuperCategoriesForManagementInternal as renderEffectSuperCategoriesUI } from './admin-modules/effect-super-category-manager.js'; // まだないのでコメントアウト
 import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms } from './admin-modules/effect-type-manager.js';
 import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings } from './admin-modules/char-base-manager.js';
 import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js';
 
-// DOM elements for modals and navigation that admin-main controls directly
 const DOM = {
     adminSideNav: null,
     adminHamburgerButton: null,
@@ -32,97 +31,34 @@ const DOM = {
     listEnlargementModalTitle: null,
     listEnlargementModalSearchContainer: null,
     listEnlargementModalContent: null,
-    // Management Modals
     categoryManagementModal: null,
     tagManagementModal: null,
     effectUnitManagementModal: null,
     effectSuperCategoryManagementModal: null,
     effectTypeManagementModal: null,
     characterBaseManagementModal: null,
-    // Enlargement buttons
     enlargeCategoryListButton: null,
     enlargeTagListButton: null,
     enlargeEffectUnitListButton: null,
     enlargeEffectSuperCategoryListButton: null,
     enlargeEffectTypeListButton: null,
     enlargeCharBaseOptionListButton: null,
-    // Character Base specific elements
-    charBaseTypeButtons: null, // Container for base type selection buttons
+    charBaseTypeButtons: null,
     selectedCharBaseTypeInput: null,
 };
 
-// Cache for manager instances - not strictly needed if we call exported functions directly
-// const managers = {};
-
-// Helper function to open specific edit modals (this might grow)
-// These need to be defined or imported if they are in separate manager files
-// For now, assuming they are exported from their respective manager modules.
-// These are called from the listEnlargementModal click listener.
-function openEditModal(type, id) {
-    switch (type) {
-        case 'category':
-            // Assuming categoryManager.openEditCategoryModalById is available
-            // This requires categoryManager to export this function or for initCategoryManager
-            // to return an object with this method.
-            // For simplicity, directly call if globally available or properly imported
-            if (window.categoryManager && typeof window.categoryManager.openEditCategoryModalById === 'function') { // Example if manager is global
-                window.categoryManager.openEditCategoryModalById(id);
-            } else { // Prefer direct import and call
-                const catManagerModule = getCategoryManagerModule(); // Placeholder, real import needed
-                if (catManagerModule && typeof catManagerModule.openEditCategoryModalById === 'function') {
-                     catManagerModule.openEditCategoryModalById(id);
-                } else { // Fallback if using older structure or directly calling globally exposed methods from managers
-                    // This part needs to ensure the functions are actually callable.
-                    // The best approach is to import these functions directly.
-                    // Let's assume the init functions made them available or they are exported.
-                    // This structure assumes the functions are globally available or exposed by the init functions.
-                    // A better way: each manager provides its openEditModal function.
-                    const { openEditCategoryModalById: openCatEdit } = categoryManagerModuleInstance; // Needs instance or direct import
-                    if (openCatEdit) openCatEdit(id);
-
-                }
-            }
-            break;
-        case 'tag':
-            // Similar logic for tags
-            const { openEditTagModalById: openTagEdit } = tagManagerModuleInstance;
-            if (openTagEdit) openTagEdit(id);
-            break;
-        case 'effectUnit':
-            const { openEditEffectUnitModalById: openEUEdit } = effectUnitManagerModuleInstance;
-            if (openEUEdit) openEUEdit(id);
-            break;
-        // case 'effectSuperCategory':
-        //     const { openEditEffectSuperCategoryModalById: openESCEdit } = effectSuperCategoryManagerModuleInstance;
-        //     if (openESCEdit) openESCEdit(id);
-        //     break;
-        case 'effectType':
-            const { openEditEffectTypeModalById: openETEdit } = effectTypeManagerModuleInstance;
-            if (openETEdit) openETEdit(id);
-            break;
-        case 'charBaseOption':
-            // Character base options need the baseType as well. This needs to be stored or passed.
-            // For now, this is a simplified call. The data-type attribute on the list item will be crucial.
-            const { openEditCharBaseOptionModalById: openCBOEdit } = charBaseManagerModuleInstance;
-            const baseType = document.querySelector(`[data-modal-target="characterBaseManagementModal"]`)?.dataset.activeBaseType || DOM.selectedCharBaseTypeInput.value; // Get active base type
-            if (openCBOEdit && baseType) openCBOEdit(id, baseType); // Requires baseType
-            break;
-        default:
-            console.warn(`Unknown type for edit modal: ${type}`);
-    }
-}
-// Placeholder instances (these would be set by init or functions returned by init)
-let categoryManagerModuleInstance = {};
-let tagManagerModuleInstance = {};
-let effectUnitManagerModuleInstance = {};
-// let effectSuperCategoryManagerModuleInstance = {};
-let effectTypeManagerModuleInstance = {};
-let charBaseManagerModuleInstance = {};
-
+// Manager instances or interfaces to call their methods
+// These will be populated by the init functions if they return an object of methods
+let categoryManagerInterface = {};
+let tagManagerInterface = {};
+let effectUnitManagerInterface = {};
+// let effectSuperCategoryManagerInterface = {}; // Not implemented yet
+let effectTypeManagerInterface = {};
+let charBaseManagerInterface = {};
+// itemManager doesn't need an interface here as its edit is handled differently
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("[admin-main] DOMContentLoaded, initializing admin panel...");
-
+    // ... (DOM element assignments remain the same) ...
     DOM.adminSideNav = document.getElementById('adminSideNav');
     DOM.adminHamburgerButton = document.getElementById('adminHamburgerButton');
     DOM.adminCloseNavButton = document.getElementById('adminCloseNavButton');
@@ -150,10 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
     DOM.selectedCharBaseTypeInput = document.getElementById('selectedCharBaseType');
 
 
-    initUIHelpers(); // Initialize generic UI helpers like modal closing
+    initUIHelpers();
 
     initAuth(auth,
-        (user) => { // onLogin
+        (user) => {
             console.log("[admin-main] User logged in, displaying admin content.");
             document.getElementById('password-prompt').style.display = 'none';
             const adminContentEl = document.getElementById('admin-content');
@@ -167,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setupAdminNav();
             loadAndInitializeAdminModules();
         },
-        () => { // onLogout
+        () => {
             console.log("[admin-main] User logged out, hiding admin content.");
             const passwordPromptEl = document.getElementById('password-prompt');
             if(passwordPromptEl) passwordPromptEl.style.display = 'flex';
@@ -185,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupAdminNav() {
+    // ... (same as previous version)
     if (DOM.adminHamburgerButton && DOM.adminSideNav) {
         DOM.adminHamburgerButton.addEventListener('click', () => {
             DOM.adminSideNav.classList.add('open');
@@ -205,10 +142,13 @@ function setupAdminNav() {
                     openModalHelper(targetModalId);
                     if (DOM.adminSideNav) DOM.adminSideNav.classList.remove('open');
                     if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
-                     // If opening char base manager, ensure its list is rendered for current type
                     if (targetModalId === 'characterBaseManagementModal' && typeof renderCharBaseOptionsUI === 'function') {
                         renderCharBaseOptionsUI();
                     }
+                    // If opening effect super category modal, and a manager existed, we might render its list
+                    // if (targetModalId === 'effectSuperCategoryManagementModal' && typeof renderEffectSuperCategoriesUI === 'function') {
+                    //     renderEffectSuperCategoriesUI();
+                    // }
                 }
             });
         });
@@ -219,12 +159,13 @@ function setupAdminNav() {
 }
 
 function setupCharBaseTypeButtons() {
+    // ... (same as previous version) ...
     if (!DOM.charBaseTypeButtons || !DOM.selectedCharBaseTypeInput) return;
-    DOM.charBaseTypeButtons.innerHTML = ''; // Clear any existing
+    DOM.charBaseTypeButtons.innerHTML = ''; 
 
     Object.entries(baseTypeMappings).forEach(([key, displayName]) => {
         const button = document.createElement('div');
-        button.className = 'category-select-button'; // Re-use style
+        button.className = 'category-select-button';
         button.textContent = displayName;
         button.dataset.baseTypeKey = key;
         if (DOM.selectedCharBaseTypeInput.value === key) {
@@ -244,11 +185,12 @@ function setupCharBaseTypeButtons() {
 
 
 function clearAdminUIAndData() {
+    // ... (same as previous version) ...
     console.log("[admin-main] Clearing admin UI and data cache...");
     const listContainersIds = [
         'categoryListContainer', 'tagListContainer', 'effectUnitListContainer',
         'effectTypeListContainer', 'charBaseOptionListContainer',
-        // 'effectSuperCategoryListContainer', // if added
+        'effectSuperCategoryListContainer', 
     ];
     listContainersIds.forEach(id => {
         const el = document.getElementById(id);
@@ -262,17 +204,14 @@ function clearAdminUIAndData() {
         if (typeof form.reset === 'function') form.reset();
     });
 
-    // Clear checkbox groups and button groups that aren't reset by form.reset()
     document.querySelectorAll('.checkbox-group-container, .category-button-group.admin, .tag-button-container.admin').forEach(container => {
-        container.innerHTML = ''; // Or more specific clearing if needed
+        container.innerHTML = ''; 
     });
-    // Clear effect lists
     const effectsLists = ['currentEffectsList', 'currentCharBaseOptionEffectsList'];
     effectsLists.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = '<p>効果が追加されていません。</p>';
     });
-    // Reset image previews
     const imagePreviews = ['itemImagePreview'];
     imagePreviews.forEach(id => {
         const el = document.getElementById(id);
@@ -299,6 +238,7 @@ async function loadAndInitializeAdminModules() {
             getItems: getItemsCache,
             getEffectTypes: getEffectTypesCache,
             getEffectUnits: getEffectUnitsCache,
+            getEffectSuperCategories: getEffectSuperCategoriesCache, // ★★★ 追加 ★★★
             getCharacterBases: getCharacterBasesCache,
             refreshAllData: async () => {
                 console.log("[admin-main] Refreshing all data and UI (called from a manager)...");
@@ -308,13 +248,13 @@ async function loadAndInitializeAdminModules() {
             }
         };
 
-        // Store module instances or init functions that return interfaces
-        categoryManagerModuleInstance = initCategoryManager(commonDependencies);
-        tagManagerModuleInstance = initTagManager(commonDependencies);
-        effectUnitManagerModuleInstance = initEffectUnitManager(commonDependencies);
-        // effectSuperCategoryManagerModuleInstance = initEffectSuperCategoryManager(commonDependencies);
-        effectTypeManagerModuleInstance = initEffectTypeManager(commonDependencies);
-        charBaseManagerModuleInstance = initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
+        // Assign the return value of init functions if they provide an interface of methods
+        categoryManagerInterface = initCategoryManager(commonDependencies) || {};
+        tagManagerInterface = initTagManager(commonDependencies) || {};
+        effectUnitManagerInterface = initEffectUnitManager(commonDependencies) || {};
+        // effectSuperCategoryManagerInterface = initEffectSuperCategoryManager(commonDependencies) || {}; // If implemented
+        effectTypeManagerInterface = initEffectTypeManager(commonDependencies) || {};
+        charBaseManagerInterface = initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings }) || {};
         initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
         renderAllAdminUISections();
@@ -336,10 +276,11 @@ function renderAllAdminUISections() {
     if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
     if (typeof renderTagsUI === 'function') renderTagsUI();
     if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
-    // if (typeof renderEffectSuperCategoriesUI === 'function') renderEffectSuperCategoriesUI();
+    // if (effectSuperCategoryManagerInterface.renderUI) effectSuperCategoryManagerInterface.renderUI(); // Example if manager returns object
+    // else if (typeof renderEffectSuperCategoriesUI === 'function') renderEffectSuperCategoriesUI();
+
     if (typeof renderEffectTypesUI === 'function') renderEffectTypesUI();
     if (typeof renderCharBaseOptionsUI === 'function') {
-        // Ensure the char base type selector is populated and current type is set before rendering options
         const currentBaseType = DOM.selectedCharBaseTypeInput ? DOM.selectedCharBaseTypeInput.value : 'headShape';
         const displaySpan = document.getElementById('selectedCharBaseTypeDisplay');
         if (displaySpan && baseTypeMappings[currentBaseType]) displaySpan.textContent = baseTypeMappings[currentBaseType];
@@ -356,15 +297,14 @@ function renderAllAdminUISections() {
 }
 
 
-// --- List Enlargement Modal Logic ---
 function setupEnlargementButtonListeners() {
     const buttonConfig = [
-        { btn: DOM.enlargeCategoryListButton, type: 'category', title: 'カテゴリ一覧', sourceFn: getAllCategoriesCache, searchInputId: 'categorySearchInput' },
-        { btn: DOM.enlargeTagListButton, type: 'tag', title: 'タグ一覧', sourceFn: getAllTagsCache, searchInputId: 'tagSearchInput' },
-        { btn: DOM.enlargeEffectUnitListButton, type: 'effectUnit', title: '効果単位一覧', sourceFn: getEffectUnitsCache, searchInputId: null }, // No search for units for now
-        { btn: DOM.enlargeEffectSuperCategoryListButton, type: 'effectSuperCategory', title: '効果大分類一覧', sourceFn: () => { /* getEffectSuperCategoriesCache */ return []; }, searchInputId: null },
-        { btn: DOM.enlargeEffectTypeListButton, type: 'effectType', title: '効果種類一覧', sourceFn: getEffectTypesCache, searchInputId: null }, // No search for types for now
-        { btn: DOM.enlargeCharBaseOptionListButton, type: 'charBaseOption', titleGetter: () => `${baseTypeMappings[DOM.selectedCharBaseTypeInput.value] || '基礎情報'} の選択肢一覧`, sourceFn: () => getCharacterBasesCache()[DOM.selectedCharBaseTypeInput.value] || [], searchInputId: null }
+        { btn: DOM.enlargeCategoryListButton, type: 'category', title: 'カテゴリ一覧', sourceFn: getAllCategoriesCache, searchInputId: 'categorySearchInput', editFn: categoryManagerInterface.openEditCategoryModalById },
+        { btn: DOM.enlargeTagListButton, type: 'tag', title: 'タグ一覧', sourceFn: getAllTagsCache, searchInputId: 'tagSearchInput', editFn: tagManagerInterface.openEditTagModalById },
+        { btn: DOM.enlargeEffectUnitListButton, type: 'effectUnit', title: '効果単位一覧', sourceFn: getEffectUnitsCache, searchInputId: null, editFn: effectUnitManagerInterface.openEditEffectUnitModalById },
+        // { btn: DOM.enlargeEffectSuperCategoryListButton, type: 'effectSuperCategory', title: '効果大分類一覧', sourceFn: getEffectSuperCategoriesCache, searchInputId: null, editFn: effectSuperCategoryManagerInterface.openEditModalById },
+        { btn: DOM.enlargeEffectTypeListButton, type: 'effectType', title: '効果種類一覧', sourceFn: getEffectTypesCache, searchInputId: null, editFn: effectTypeManagerInterface.openEditEffectTypeModalById },
+        { btn: DOM.enlargeCharBaseOptionListButton, type: 'charBaseOption', titleGetter: () => `${baseTypeMappings[DOM.selectedCharBaseTypeInput.value] || '基礎情報'} の選択肢一覧`, sourceFn: () => getCharacterBasesCache()[DOM.selectedCharBaseTypeInput.value] || [], searchInputId: null, editFn: (id) => charBaseManagerInterface.openEditCharBaseOptionModalById(id, DOM.selectedCharBaseTypeInput.value) }
     ];
 
     buttonConfig.forEach(config => {
@@ -372,24 +312,25 @@ function setupEnlargementButtonListeners() {
             config.btn.addEventListener('click', () => {
                 const items = config.sourceFn();
                 const title = typeof config.titleGetter === 'function' ? config.titleGetter() : config.title;
-                openEnlargedListModal(items, config.type, title, config.searchInputId);
+                openEnlargedListModal(items, config.type, title, config.searchInputId, config.editFn);
             });
         }
     });
 }
 
-function openEnlargedListModal(items, type, title, originalSearchInputId) {
+function openEnlargedListModal(items, type, title, originalSearchInputId, editFunction) {
     if (!DOM.listEnlargementModal || !DOM.listEnlargementModalTitle || !DOM.listEnlargementModalContent || !DOM.listEnlargementModalSearchContainer) return;
 
     DOM.listEnlargementModalTitle.textContent = title;
-    DOM.listEnlargementModalSearchContainer.innerHTML = ''; // Clear previous search
+    DOM.listEnlargementModalSearchContainer.innerHTML = '';
 
     let searchInputForEnlarged = null;
     if (originalSearchInputId) {
+        const originalInput = document.getElementById(originalSearchInputId);
         searchInputForEnlarged = document.createElement('input');
         searchInputForEnlarged.type = 'text';
-        searchInputForEnlarged.placeholder = `${title.replace('一覧','')}を検索...`;
-        searchInputForEnlarged.className = 'form-control'; // General styling
+        searchInputForEnlarged.placeholder = originalInput ? originalInput.placeholder : `${title.replace('一覧','')}を検索...`;
+        searchInputForEnlarged.className = 'form-control';
         searchInputForEnlarged.style.marginBottom = '1rem';
         searchInputForEnlarged.ariaLabel = `${title}内を検索`;
         DOM.listEnlargementModalSearchContainer.appendChild(searchInputForEnlarged);
@@ -410,49 +351,50 @@ function openEnlargedListModal(items, type, title, originalSearchInputId) {
 
         filteredItems.sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja')).forEach(item => {
             const itemDiv = document.createElement('div');
-            itemDiv.classList.add('list-item'); // Use existing list-item styling
+            itemDiv.classList.add('list-item');
 
             const nameSpan = document.createElement('span');
-            nameSpan.classList.add('list-item-name-clickable'); // Make it look clickable
-            nameSpan.textContent = item.name;
+            nameSpan.classList.add('list-item-name-clickable');
+            let displayText = item.name;
+            // Add specific details for different types
             if (type === 'category') {
                 const parentCat = getAllCategoriesCache().find(p => p.id === item.parentId);
-                nameSpan.textContent += parentCat ? ` (親: ${parentCat.name})` : (item.parentId ? ' (親:不明)' : ' (親カテゴリ)');
+                displayText += parentCat ? ` (親: ${parentCat.name})` : (item.parentId ? ' (親:不明)' : ' (親カテゴリ)');
             } else if (type === 'tag') {
                  const belongingCategoriesNames = (item.categoryIds || [])
                     .map(catId => getAllCategoriesCache().find(c => c.id === catId)?.name)
                     .filter(name => name).join(', ') || '未分類';
-                nameSpan.textContent += ` (所属: ${belongingCategoriesNames})`;
+                displayText += ` (所属: ${belongingCategoriesNames})`;
             } else if (type === 'effectUnit') {
-                nameSpan.textContent += item.position === 'prefix' ? ' (前)' : ' (後)';
-            }
-            // Add more type-specific info if needed
-
-            nameSpan.dataset.id = item.id;
-            nameSpan.dataset.type = type; // Store type for edit click
-
-            nameSpan.addEventListener('click', (e) => {
-                const itemId = e.target.dataset.id;
-                const itemType = e.target.dataset.type;
-                closeModalHelper('listEnlargementModal');
-
-                // This needs to call the correct openEdit function based on itemType
-                // We need to ensure these functions are accessible here.
-                // Option 1: Pass manager instances or specific functions to admin-main.
-                // Option 2: Make openEdit functions globally available (less ideal).
-                // Option 3: Have admin-main orchestrate, calling imported functions.
-                // Using a simplified approach for now, assuming functions can be called.
-                if (itemType === 'category') categoryManagerModuleInstance.openEditCategoryModalById(itemId);
-                else if (itemType === 'tag') tagManagerModuleInstance.openEditTagModalById(itemId);
-                else if (itemType === 'effectUnit') effectUnitManagerModuleInstance.openEditEffectUnitModalById(itemId);
-                // else if (itemType === 'effectSuperCategory') effectSuperCategoryManagerModuleInstance.openEditEffectSuperCategoryModalById(itemId);
-                else if (itemType === 'effectType') effectTypeManagerModuleInstance.openEditEffectTypeModalById(itemId);
-                else if (itemType === 'charBaseOption') {
-                    const activeBaseType = DOM.selectedCharBaseTypeInput.value; // Get current base type for char options
-                    charBaseManagerModuleInstance.openEditCharBaseOptionModalById(itemId, activeBaseType);
+                displayText += item.position === 'prefix' ? ' (前)' : ' (後)';
+            } else if (type === 'effectType') {
+                 const superCat = getEffectSuperCategoriesCache().find(sc => sc.id === item.superCategoryId);
+                 displayText += superCat ? ` (大分類: ${superCat.name})` : ' (大分類:未設定)';
+                 displayText += item.defaultUnit ? ` [${item.defaultUnit}]` : ' [単位なし]';
+            } else if (type === 'charBaseOption') {
+                // Character base options might have effects to summarize
+                if (item.effects && item.effects.length > 0) {
+                    const effectsSummary = item.effects.map(eff => {
+                        const typeInfo = getEffectTypesCache().find(et => et.id === eff.type);
+                        return `${typeInfo ? typeInfo.name : '不明効果'}: ${eff.value}${eff.unit && eff.unit !== 'none' ? eff.unit : ''}`;
+                    }).join('; ');
+                    displayText += ` (効果: ${effectsSummary.substring(0, 30)}${effectsSummary.length > 30 ? '...' : ''})`;
+                } else {
+                    displayText += ' (効果なし)';
                 }
+            }
+            nameSpan.textContent = displayText;
+            nameSpan.dataset.id = item.id; // Store ID for click
 
-            });
+            if (typeof editFunction === 'function') {
+                nameSpan.addEventListener('click', (e) => {
+                    const itemId = e.target.dataset.id;
+                    closeModalHelper('listEnlargementModal');
+                    editFunction(itemId); // Call the specific edit function passed
+                });
+            } else {
+                nameSpan.style.cursor = 'default'; // Not clickable if no edit function
+            }
 
             itemDiv.appendChild(nameSpan);
             DOM.listEnlargementModalContent.appendChild(itemDiv);
@@ -464,19 +406,6 @@ function openEnlargedListModal(items, type, title, originalSearchInputId) {
             renderContent(e.target.value);
         });
     }
-    renderContent(); // Initial render
+    renderContent();
     openModalHelper('listEnlargementModal');
 }
-
-// Stubs for manager modules if they return an interface (adjust as per actual implementation)
-// These are illustrative. The actual way to call manager functions would be via direct imports
-// or methods on instances returned by their init functions.
-function getCategoryManagerModule() { /* placeholder */ return categoryManagerModuleInstance; }
-function getTagManagerModule() { /* placeholder */ return tagManagerModuleInstance; }
-
-
-// Example of how manager instances might be stored IF their init functions return them.
-// This is one way to make their methods callable from admin-main.
-// The current approach is more direct calls to exported functions from managers.
-// initCategoryManager might return { openEditCategoryModalById: func, ... }
-// categoryManagerModuleInstance = initCategoryManager(commonDependencies);
