@@ -36,7 +36,7 @@ let refreshAllDataCallback = async () => {};
 
 let currentItemEffects = [];
 let selectedImageFile = null;
-let IMAGE_UPLOAD_WORKER_URL_CONST = ''; // これは initItemManager で設定される
+let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
 let itemEffectEditMode = false;
 let itemEffectEditingIndex = -1;
@@ -48,9 +48,8 @@ export function initItemManager(dependencies) {
     getEffectTypesFuncCache = dependencies.getEffectTypes;
     getEffectUnitsFuncCache = dependencies.getEffectUnits;
     refreshAllDataCallback = dependencies.refreshAllData;
-    IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl; // 正しく代入されているか確認
+    IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
-    // ... (DOM要素の取得とイベントリスナー設定は変更なし) ...
     DOMI.itemForm = document.getElementById('itemForm');
     DOMI.itemIdToEditInput = document.getElementById('itemIdToEdit');
     DOMI.itemNameInput = document.getElementById('itemName');
@@ -92,10 +91,9 @@ export function initItemManager(dependencies) {
             }
         });
     }
-    console.log("[Item Manager] Initialized. Worker URL:", IMAGE_UPLOAD_WORKER_URL_CONST); // Worker URLを確認
+    console.log("[Item Manager] Initialized.");
 }
 
-// ... (switchToAddEffectMode, clearItemFormInternal, _populateTagCheckboxesForItemFormInternal, handleImageFileSelect, updateItemFormEffectUnitDisplay, handleAddOrUpdateEffect, renderCurrentItemEffectsListUI は変更なし) ...
 function switchToAddEffectMode() {
     itemEffectEditMode = false;
     itemEffectEditingIndex = -1;
@@ -151,25 +149,13 @@ export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
 function handleImageFileSelect(event) {
     const file = event.target.files[0];
     if (file) {
-        if (file.size > 5 * 1024 * 1024) { // 5MB
+        if (file.size > 5 * 1024 * 1024) {
             alert("ファイルサイズが大きすぎます。5MB以下の画像を選択してください。");
-            DOMI.itemImageFileInput.value = null; // Reset file input
-            selectedImageFile = null;
-            if (DOMI.itemImagePreview) {
-                DOMI.itemImagePreview.src = '#';
-                DOMI.itemImagePreview.style.display = 'none';
-            }
-            return;
+            DOMI.itemImageFileInput.value = null; return;
         }
         if (!file.type.startsWith('image/')) {
             alert("画像ファイルを選択してください (例: JPG, PNG, GIF)。");
-            DOMI.itemImageFileInput.value = null; // Reset file input
-            selectedImageFile = null;
-            if (DOMI.itemImagePreview) {
-                DOMI.itemImagePreview.src = '#';
-                DOMI.itemImagePreview.style.display = 'none';
-            }
-            return;
+            DOMI.itemImageFileInput.value = null; return;
         }
         selectedImageFile = file;
         const reader = new FileReader();
@@ -180,15 +166,10 @@ function handleImageFileSelect(event) {
             }
         }
         reader.readAsDataURL(selectedImageFile);
-        DOMI.itemImageUrlInput.value = ''; // Clear manual URL if a file is selected
+        DOMI.itemImageUrlInput.value = '';
         if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none';
     } else {
         selectedImageFile = null;
-        // Optionally, if you want to clear preview when file selection is cancelled:
-        // if (DOMI.itemImagePreview) {
-        //     DOMI.itemImagePreview.src = '#';
-        //     DOMI.itemImagePreview.style.display = 'none';
-        // }
     }
 }
 
@@ -285,11 +266,7 @@ function renderCurrentItemEffectsListUI() {
 }
 
 async function uploadImageToWorkerAndGetURL(file) {
-    if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) {
-        console.warn("uploadImageToWorkerAndGetURL: No file or Worker URL provided.");
-        return null;
-    }
-    console.log("Starting image upload to:", IMAGE_UPLOAD_WORKER_URL_CONST);
+    if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) return null;
     if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'block';
     if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
     if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード準備中... (0%)';
@@ -297,7 +274,7 @@ async function uploadImageToWorkerAndGetURL(file) {
     const formData = new FormData();
     formData.append('imageFile', file);
 
-    return new Promise((resolve) => { // Removed reject for simplicity, resolve with null on error
+    return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', IMAGE_UPLOAD_WORKER_URL_CONST, true);
 
@@ -319,7 +296,7 @@ async function uploadImageToWorkerAndGetURL(file) {
                         setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 2000);
                         resolve(result.imageUrl);
                     } else {
-                        console.error('[Image Upload] Worker response error:', result.message || 'Unknown error from worker');
+                        console.error('[Image Upload] Worker response error:', result);
                         alert(`画像アップロードエラー(Worker): ${result.message || '予期せぬ応答'}`);
                         if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロードエラー。';
                         setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
@@ -333,7 +310,7 @@ async function uploadImageToWorkerAndGetURL(file) {
                 }
             } else {
                 console.error('[Image Upload] Upload failed with status:', xhr.status, xhr.statusText, xhr.responseText);
-                alert(`画像アップロードに失敗しました (HTTP ${xhr.status}): ${xhr.statusText || 'サーバーエラー'}`);
+                alert(`画像アップロードに失敗しました: ${xhr.statusText || 'サーバーエラー'}`);
                 if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `失敗 (${xhr.status})。`;
                 setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
                 resolve(null);
@@ -341,7 +318,7 @@ async function uploadImageToWorkerAndGetURL(file) {
         };
         xhr.onerror = () => {
             console.error('[Image Upload] Network error during upload.');
-            alert('画像アップロード中に通信エラーが発生しました。ネットワーク接続を確認してください。');
+            alert('画像アップロード中に通信エラーが発生しました。');
             if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '通信エラー。';
             setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
             resolve(null);
@@ -363,7 +340,7 @@ async function saveItem(event) {
     const priceStr = DOMI.itemPriceInput.value.trim();
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
-    let finalImageUrl = DOMI.itemImageUrlInput.value || ""; // Use existing URL if no new file
+    let finalImageUrl = DOMI.itemImageUrlInput.value || "";
 
     if (!name) {
         alert("アイテム名は必須です。");
@@ -374,10 +351,10 @@ async function saveItem(event) {
         return;
     }
 
-    let price = null; // Default to null (Firestore field will be absent or deleted)
+    let price = null;
     if (priceStr !== "") {
-        const parsedPrice = parseInt(priceStr, 10);
-        if (isNaN(parsedPrice) || parsedPrice < 0) {
+        price = parseInt(priceStr, 10);
+        if (isNaN(price) || price < 0) {
             alert("売値は0以上の数値を入力してください。");
             if (DOMI.saveItemButton) {
                 DOMI.saveItemButton.disabled = false;
@@ -385,53 +362,37 @@ async function saveItem(event) {
             }
             return;
         }
-        price = parsedPrice; // Set price only if valid
     }
 
-    // ★★★ 画像アップロード処理を try ブロックの先頭に移動 ★★★
     try {
         if (selectedImageFile) {
-            console.log("Attempting to upload new image file...");
             const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
-            if (uploadedUrl) {
-                finalImageUrl = uploadedUrl;
-                console.log("Image uploaded successfully, URL:", finalImageUrl);
-            } else {
-                // Upload failed, but we might proceed without changing the image if it's an update
-                // or with no image if it's a new item and upload failed.
-                // If image upload is critical, we could `return` here.
-                // For now, allow saving with old/no image if upload fails.
-                console.warn("Image upload failed or returned null. Proceeding with current finalImageUrl:", finalImageUrl);
-                // If it was a new item and upload failed, finalImageUrl might be "", which is fine.
-            }
+            if (uploadedUrl) finalImageUrl = uploadedUrl;
         }
 
         const itemData = {
             name: name,
-            image: finalImageUrl, // This will be new URL or existing/empty
+            image: finalImageUrl,
             structured_effects: currentItemEffects,
             入手手段: source,
             tags: selectedItemTagIds,
             updatedAt: serverTimestamp()
         };
         
-        if (price !== null) { // If price has a valid number
+        if (price !== null) {
             itemData.price = price;
-        } else { // If price is null (meaning it was empty or invalid and cleared)
-            // For existing items, this will remove the price. For new items, it won't be added.
-            itemData.price = deleteField(); 
+        } else {
+            itemData.price = deleteField();
         }
 
         if (editingDocId) {
             await updateDoc(doc(dbInstance, 'items', editingDocId), itemData);
-            console.log("Item updated:", editingDocId);
         } else {
             itemData.createdAt = serverTimestamp();
-            const newDocRef = await addDoc(collection(dbInstance, 'items'), itemData);
-            console.log("Item added with ID:", newDocRef.id);
+            await addDoc(collection(dbInstance, 'items'), itemData);
         }
 
-        clearItemFormInternal(); // Clears form, selectedImageFile, etc.
+        clearItemFormInternal();
         await refreshAllDataCallback();
 
     } catch (error) {
@@ -440,14 +401,12 @@ async function saveItem(event) {
     } finally {
         if (DOMI.saveItemButton) {
             DOMI.saveItemButton.disabled = false;
-            // Re-check itemIdToEditInput as clearItemFormInternal clears it
-            DOMI.saveItemButton.textContent = document.getElementById('itemIdToEdit').value ? "アイテム更新" : "アイテム保存";
+            DOMI.saveItemButton.textContent = DOMI.itemIdToEditInput.value ? "アイテム更新" : "アイテム保存";
         }
     }
 }
 
 export function _renderItemsAdminTableInternal() {
-    // ... (変更なし、コロン削除は適用済み) ...
     if (!DOMI.itemsTableBody) return;
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
@@ -530,16 +489,13 @@ async function loadItemForEdit(docId) {
             DOMI.itemIdToEditInput.value = itemSnap.id;
             DOMI.itemNameInput.value = itemData.name || "";
             DOMI.itemSourceInput.value = itemData.入手手段 || "";
-            DOMI.itemImageUrlInput.value = itemData.image || ''; // 既存の画像URLをセット
+            DOMI.itemImageUrlInput.value = itemData.image || '';
             if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? String(itemData.price) : '';
 
             if (itemData.image && DOMI.itemImagePreview) {
                 DOMI.itemImagePreview.src = itemData.image;
                 DOMI.itemImagePreview.style.display = 'block';
             }
-             // Ensure selectedImageFile is null when loading an existing item
-            selectedImageFile = null;
-            if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null; // Reset file input
 
             _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
 
