@@ -114,6 +114,7 @@
                 </form>
 
                 <h3 style="margin-top:30px;"><span class="icon" aria-hidden="true"></span> アイテム一覧</h3>
+                <p class="info-message-small">一覧の項目名（画像ではない）をクリックすると編集フォームに内容が読み込まれます。</p>
                 <div class="form-group">
                     <label for="itemSearchAdmin" class="sr-only">アイテム検索</label>
                     <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." aria-label="登録済みアイテムを検索">
@@ -121,7 +122,7 @@
                 <div style="overflow-x: auto;">
                     <table id="itemsTable">
                         <thead>
-                            <tr><th>画像</th><th>名前</th><th>売値</th><th>効果</th><th>タグ</th></tr>
+                            <tr><th>画像</th><th>名前</th><th>売値</th><th>効果</th><th>タグ</th><th>操作</th></tr>
                         </thead>
                         <tbody>
                         </tbody>
@@ -154,6 +155,7 @@
                     <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
                 </button>
             </div>
+            <p class="info-message-small">一覧の項目名（カテゴリ名部分）をクリックすると編集モーダルが開きます。</p>
             <div class="form-group list-search-bar">
                 <label for="categorySearchInput" class="sr-only">カテゴリ検索</label>
                 <input type="text" id="categorySearchInput" placeholder="カテゴリ名で検索..." aria-label="カテゴリを検索">
@@ -184,6 +186,7 @@
                     <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
                 </button>
             </div>
+            <p class="info-message-small">一覧の項目名（タグ名部分）をクリックすると編集モーダルが開きます。</p>
             <div class="form-group list-search-bar">
                 <label for="tagSearchInput" class="sr-only">タグ検索</label>
                 <input type="text" id="tagSearchInput" placeholder="タグ名で検索..." aria-label="タグを検索">
@@ -202,6 +205,19 @@
                 <label for="newEffectUnitName">新しい効果単位名:</label>
                 <input type="text" id="newEffectUnitName" placeholder="単位名 (例: ポイント, %, 秒)">
             </div>
+            <div class="form-group">
+                <label>単位の位置:</label>
+                <div class="radio-group responsive-radio-group">
+                    <div>
+                        <input type="radio" id="newEffectUnitPositionSuffix" name="newEffectUnitPosition" value="suffix" checked>
+                        <label for="newEffectUnitPositionSuffix">値の後 (例: 100 G)</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="newEffectUnitPositionPrefix" name="newEffectUnitPosition" value="prefix">
+                        <label for="newEffectUnitPositionPrefix">値の前 (例: ¥ 100)</label>
+                    </div>
+                </div>
+            </div>
             <button id="addEffectUnitButton" type="button">効果単位を追加</button>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
                 <h3>既存の効果単位一覧</h3>
@@ -209,6 +225,7 @@
                     <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
                 </button>
             </div>
+            <p class="info-message-small">一覧の項目名（単位名部分）をクリックすると編集モーダルが開きます。</p>
             <div id="effectUnitListContainer" class="list-container">
             </div>
         </div>
@@ -224,13 +241,13 @@
                 <input type="text" id="newEffectSuperCategoryName" placeholder="大分類名 (例: 攻撃系)">
             </div>
             <button id="addEffectSuperCategoryButton" type="button">効果大分類を追加</button>
-            <!-- ★★★ 「既存の効果大分類一覧」ヘッダーに拡大ボタンを追加 ★★★ -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
                 <h3>既存の効果大分類一覧</h3>
                 <button type="button" id="enlargeEffectSuperCategoryListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果大分類一覧を拡大表示">
                     <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
                 </button>
             </div>
+            <p class="info-message-small">一覧の項目名（大分類名部分）をクリックすると編集モーダルが開きます。</p>
             <div id="effectSuperCategoryListContainer" class="list-container">
             </div>
         </div>
@@ -260,11 +277,15 @@
              </div>
              <div class="form-group">
                  <label>計算方法:</label>
-                 <div class="radio-group">
-                     <input type="radio" id="newCalcMethodSum" name="newCalcMethod" value="sum" checked>
-                     <label for="newCalcMethodSum">加算</label>
-                     <input type="radio" id="newCalcMethodMax" name="newCalcMethod" value="max">
-                     <label for="newCalcMethodMax">最大値</label>
+                 <div class="radio-group responsive-radio-group">
+                     <div>
+                         <input type="radio" id="newCalcMethodSum" name="newCalcMethod" value="sum" checked>
+                         <label for="newCalcMethodSum">加算</label>
+                     </div>
+                     <div>
+                         <input type="radio" id="newCalcMethodMax" name="newCalcMethod" value="max">
+                         <label for="newCalcMethodMax">最大値</label>
+                     </div>
                  </div>
              </div>
              <div class="form-group" id="newEffectTypeSumCapGroup">
@@ -273,13 +294,13 @@
                  <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
              </div>
              <button id="addEffectTypeButton" type="button">効果種類を追加</button>
-            <!-- ★★★ 「既存の効果種類一覧」ヘッダーに拡大ボタンを追加 ★★★ -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
                 <h3>既存の効果種類一覧</h3>
                 <button type="button" id="enlargeEffectTypeListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果種類一覧を拡大表示">
                     <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
                 </button>
             </div>
+            <p class="info-message-small">一覧の項目名（効果種類名部分）をクリックすると編集モーダルが開きます。</p>
              <div id="effectTypeListContainer" class="list-container">
              </div>
         </div>
@@ -293,26 +314,26 @@
             <div class="form-group" style="align-items: baseline;">
                 <label id="charBaseTypeLabel" style="margin-bottom: 0.5rem; display: block;">基礎情報の種類:</label>
                 <div id="charBaseTypeButtons" class="category-button-group admin" role="group" aria-labelledby="charBaseTypeLabel">
+                     <!-- Buttons will be populated by JS -->
                 </div>
                 <input type="hidden" id="selectedCharBaseType" value="headShape">
                 <button type="button" id="addNewCharBaseOptionButton" class="button-like" style="margin-top: 0.5rem;">新しい選択肢を追加</button>
             </div>
-             <!-- ★★★ 「選択肢一覧」ヘッダーに拡大ボタンを追加 ★★★ -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
                 <h3><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
                 <button type="button" id="enlargeCharBaseOptionListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="キャラクター基礎情報オプション一覧を拡大表示">
                     <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
                 </button>
             </div>
+            <p class="info-message-small">一覧の項目名（選択肢名部分）をクリックすると編集モーダルが開きます。</p>
             <div id="charBaseOptionListContainer" class="list-container">
             </div>
         </div>
     </div>
 
 
-    <!-- 既存の編集モーダル群 (変更なしのため一部省略) -->
+    <!-- 既存の編集モーダル群 -->
     <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
-        <!-- ... カテゴリ編集モーダルの内容は変更なし ... -->
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="editCategoryModalTitle">カテゴリ編集</h3>
@@ -346,7 +367,6 @@
         </div>
     </div>
     <div id="editTagModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editTagModalTitle">
-        <!-- ... タグ編集モーダルの内容は変更なし ... -->
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="editTagModalTitle">タグ編集</h3>
@@ -367,7 +387,6 @@
         </div>
     </div>
     <div id="editEffectSuperCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectSuperCategoryModalTitle">
-        <!-- ... 効果大分類編集モーダルの内容は変更なし ... -->
         <div class="modal-content" style="max-width: 500px;">
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="editEffectSuperCategoryModalTitle">効果大分類編集</h3>
@@ -388,7 +407,6 @@
         </div>
     </div>
     <div id="editEffectTypeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectTypeModalTitle">
-        <!-- ... 効果種類編集モーダルの内容は変更なし ... -->
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="editEffectTypeModalTitle">効果種類編集</h3>
@@ -412,11 +430,15 @@
              </div>
              <div class="form-group">
                  <label>計算方法:</label>
-                 <div class="radio-group">
-                     <input type="radio" id="editCalcMethodSum" name="editCalcMethod" value="sum">
-                     <label for="editCalcMethodSum">加算</label>
-                     <input type="radio" id="editCalcMethodMax" name="editCalcMethod" value="max">
-                     <label for="editCalcMethodMax">最大値</label>
+                 <div class="radio-group responsive-radio-group">
+                     <div>
+                         <input type="radio" id="editCalcMethodSum" name="editCalcMethod" value="sum">
+                         <label for="editCalcMethodSum">加算</label>
+                     </div>
+                     <div>
+                         <input type="radio" id="editCalcMethodMax" name="editCalcMethod" value="max">
+                         <label for="editCalcMethodMax">最大値</label>
+                     </div>
                  </div>
              </div>
              <div class="form-group" id="editingEffectTypeSumCapGroup">
@@ -431,7 +453,6 @@
         </div>
     </div>
     <div id="editEffectUnitModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectUnitModalTitle">
-        <!-- ... 効果単位編集モーダルの内容は変更なし ... -->
         <div class="modal-content" style="max-width: 400px;">
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="editEffectUnitModalTitle">効果単位編集</h3>
@@ -440,6 +461,19 @@
                 <label for="editingEffectUnitName">単位名:</label>
                 <input type="text" id="editingEffectUnitName">
             </div>
+            <div class="form-group">
+                <label>単位の位置:</label>
+                <div class="radio-group responsive-radio-group">
+                    <div>
+                        <input type="radio" id="editEffectUnitPositionSuffix" name="editEffectUnitPosition" value="suffix">
+                        <label for="editEffectUnitPositionSuffix">値の後</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="editEffectUnitPositionPrefix" name="editEffectUnitPosition" value="prefix">
+                        <label for="editEffectUnitPositionPrefix">値の前</label>
+                    </div>
+                </div>
+            </div>
             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <button id="deleteEffectUnitFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この効果単位を削除</button>
                 <button id="saveEffectUnitEditButton" type="button">単位を保存</button>
@@ -447,7 +481,6 @@
         </div>
     </div>
     <div id="editCharBaseOptionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCharBaseOptionModalTitle">
-        <!-- ... キャラクター基礎情報オプション編集モーダルの内容は変更なし ... -->
         <div class="modal-content" style="max-width: 600px;">
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="editCharBaseOptionModalTitle">基礎情報オプション編集</h3>
