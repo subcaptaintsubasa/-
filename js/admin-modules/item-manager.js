@@ -6,13 +6,25 @@ const DOMI = {
     itemForm: null,
     itemIdToEditInput: null,
     itemNameInput: null,
-    // ... (他のDOM要素は変更なし) ...
+    itemImageFileInput: null,
+    itemImagePreview: null,
+    itemImageUrlInput: null,
+    itemPriceInput: null,
+    uploadProgressContainer: null,
+    uploadProgress: null,
+    uploadProgressText: null,
     effectTypeSelect: null,
     effectValueInput: null,
     effectUnitDisplay: null,
     addEffectToListButton: null, // このボタンのテキストと機能を変更する
     currentEffectsList: null,
-    // ... (他のDOM要素は変更なし) ...
+    itemSourceInput: null,
+    itemTagsSelectorCheckboxes: null,
+    deleteItemFromFormButton: null,
+    saveItemButton: null,
+    clearFormButton: null,
+    itemsTableBody: null,
+    itemSearchAdminInput: null,
 };
 
 let dbInstance = null;
@@ -26,12 +38,11 @@ let currentItemEffects = [];
 let selectedImageFile = null;
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
-// ★★★ 追加: 効果編集モードの状態管理 ★★★
+// 効果編集モードの状態管理
 let itemEffectEditMode = false;
 let itemEffectEditingIndex = -1;
 
 export function initItemManager(dependencies) {
-    // ... (依存性注入は変更なし) ...
     dbInstance = dependencies.db;
     getAllItemsFuncCache = dependencies.getItems;
     getAllTagsFuncCache = dependencies.getAllTags;
@@ -40,7 +51,6 @@ export function initItemManager(dependencies) {
     refreshAllDataCallback = dependencies.refreshAllData;
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
-    // DOM要素の取得 (変更なし)
     DOMI.itemForm = document.getElementById('itemForm');
     DOMI.itemIdToEditInput = document.getElementById('itemIdToEdit');
     DOMI.itemNameInput = document.getElementById('itemName');
@@ -64,11 +74,9 @@ export function initItemManager(dependencies) {
     DOMI.itemsTableBody = document.querySelector('#itemsTable tbody');
     DOMI.itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
-
     if (DOMI.itemForm) DOMI.itemForm.addEventListener('submit', saveItem);
     if (DOMI.clearFormButton) DOMI.clearFormButton.addEventListener('click', clearItemFormInternal);
     if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.addEventListener('change', handleImageFileSelect);
-    // ★★★ addEffectToListButton のリスナーを変更 ★★★
     if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.addEventListener('click', handleAddOrUpdateEffect);
     if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.addEventListener('change', updateItemFormEffectUnitDisplay);
     if (DOMI.itemSearchAdminInput) DOMI.itemSearchAdminInput.addEventListener('input', _renderItemsAdminTableInternal);
@@ -94,8 +102,6 @@ function switchToAddEffectMode() {
     if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.value = '';
     if (DOMI.effectValueInput) DOMI.effectValueInput.value = '';
     updateItemFormEffectUnitDisplay();
-    // Optionally, focus the effectTypeSelect
-    // if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.focus();
 }
 
 function clearItemFormInternal() {
@@ -115,14 +121,13 @@ function clearItemFormInternal() {
     }
 
     currentItemEffects = [];
-    // renderCurrentItemEffectsListUI(); // これは switchToAddEffectMode 内で呼ばれるか、ここでも呼ぶ
     _populateTagCheckboxesForItemFormInternal();
 
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
     if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none';
     
-    switchToAddEffectMode(); // ★★★ 効果フォームもリセット ★★★
-    renderCurrentItemEffectsListUI(); // リストを再描画して空にする
+    switchToAddEffectMode();
+    renderCurrentItemEffectsListUI();
 
     if (DOMI.itemNameInput) DOMI.itemNameInput.focus();
     console.log("[Item Manager] Item form cleared.");
@@ -130,7 +135,6 @@ function clearItemFormInternal() {
 
 
 export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
-    // ... (変更なし) ...
     if(!DOMI.itemTagsSelectorCheckboxes) return;
     const allTags = getAllTagsFuncCache().sort((a,b) => a.name.localeCompare(b.name, 'ja'));
     const tagOptions = allTags.map(tag => ({ id: tag.id, name: tag.name }));
@@ -144,7 +148,6 @@ export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
 }
 
 function handleImageFileSelect(event) {
-    // ... (変更なし) ...
     const file = event.target.files[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
@@ -172,14 +175,12 @@ function handleImageFileSelect(event) {
 }
 
 function updateItemFormEffectUnitDisplay() {
-    // ... (変更なし) ...
     if (!DOMI.effectUnitDisplay || !DOMI.effectTypeSelect) return;
     const selectedOption = DOMI.effectTypeSelect.options[DOMI.effectTypeSelect.selectedIndex];
     const unitName = selectedOption ? selectedOption.dataset.unitName : null;
     DOMI.effectUnitDisplay.textContent = (unitName && unitName !== '' && unitName !== 'none') ? `(${unitName})` : '';
 }
 
-// ★★★ 効果の追加または更新を処理する関数 ★★★
 function handleAddOrUpdateEffect() {
     const typeId = DOMI.effectTypeSelect.value;
     const valueStr = DOMI.effectValueInput.value;
@@ -193,15 +194,13 @@ function handleAddOrUpdateEffect() {
 
     const newEffect = { type: typeId, value: value, unit: unit };
 
-    if (itemEffectEditMode && itemEffectEditingIndex !== -1) {
-        // 更新モード
+    if (itemEffectEditMode && itemEffectEditingIndex >= 0 && itemEffectEditingIndex < currentItemEffects.length) {
         currentItemEffects[itemEffectEditingIndex] = newEffect;
     } else {
-        // 追加モード
         currentItemEffects.push(newEffect);
     }
     renderCurrentItemEffectsListUI();
-    switchToAddEffectMode(); // フォームをリセットし、追加モードに戻る
+    switchToAddEffectMode();
 }
 
 
@@ -234,7 +233,6 @@ function renderCurrentItemEffectsListUI() {
 
         const div = document.createElement('div');
         div.classList.add('effect-list-item');
-        // ★★★ 編集ボタンを追加 ★★★
         div.innerHTML = `
             <span>${typeName} ${effectText}</span>
             <div>
@@ -242,14 +240,13 @@ function renderCurrentItemEffectsListUI() {
                 <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="この効果を削除">×</button>
             </div>
         `;
-        // ★★★ 編集ボタンのリスナー ★★★
         div.querySelector('.edit-effect-in-list').addEventListener('click', (e) => {
             const editIndex = parseInt(e.currentTarget.dataset.index, 10);
             const effectToEdit = currentItemEffects[editIndex];
             if (effectToEdit) {
                 DOMI.effectTypeSelect.value = effectToEdit.type;
                 DOMI.effectValueInput.value = effectToEdit.value;
-                updateItemFormEffectUnitDisplay(); // 単位表示を更新
+                updateItemFormEffectUnitDisplay();
 
                 itemEffectEditMode = true;
                 itemEffectEditingIndex = editIndex;
@@ -261,7 +258,6 @@ function renderCurrentItemEffectsListUI() {
             const deleteIndex = parseInt(e.currentTarget.dataset.index, 10);
             currentItemEffects.splice(deleteIndex, 1);
             renderCurrentItemEffectsListUI();
-            // もし削除した効果が編集中だった場合、追加モードに戻す
             if (itemEffectEditMode && itemEffectEditingIndex === deleteIndex) {
                 switchToAddEffectMode();
             }
@@ -271,7 +267,6 @@ function renderCurrentItemEffectsListUI() {
 }
 
 async function uploadImageToWorkerAndGetURL(file) {
-    // ... (変更なし) ...
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) return null;
     if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'block';
     if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
@@ -335,7 +330,6 @@ async function uploadImageToWorkerAndGetURL(file) {
 
 
 async function saveItem(event) {
-    // ... (変更なし) ...
     event.preventDefault();
     if (DOMI.saveItemButton) {
         DOMI.saveItemButton.disabled = true;
@@ -406,13 +400,13 @@ async function saveItem(event) {
     } finally {
         if (DOMI.saveItemButton) {
             DOMI.saveItemButton.disabled = false;
+            // フォームクリア時に itemIdToEditInput がクリアされるので、それを見て判定
             DOMI.saveItemButton.textContent = DOMI.itemIdToEditInput.value ? "アイテム更新" : "アイテム保存";
         }
     }
 }
 
 export function _renderItemsAdminTableInternal() {
-    // ... (コロン削除は適用済み) ...
     if (!DOMI.itemsTableBody) return;
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
@@ -486,7 +480,6 @@ export function _renderItemsAdminTableInternal() {
 }
 
 async function loadItemForEdit(docId) {
-    // ... (変更なし) ...
     try {
         const itemSnap = await getDoc(doc(dbInstance, "items", docId));
         if (itemSnap.exists()) {
@@ -507,7 +500,7 @@ async function loadItemForEdit(docId) {
             _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
 
             currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : [];
-            renderCurrentItemEffectsListUI(); // This will now render edit buttons too
+            renderCurrentItemEffectsListUI(); 
 
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
             if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block';
@@ -520,7 +513,6 @@ async function loadItemForEdit(docId) {
 }
 
 async function deleteItem(docId, itemName, imageUrl) {
-    // ... (変更なし) ...
     if (confirm(`アイテム「${itemName}」を削除しますか？\n注意: Cloudflare R2上の関連画像は、この操作では削除されません。\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'items', docId));
