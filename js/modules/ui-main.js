@@ -17,7 +17,6 @@ const DOM = {
     simulatorModal: null,
     imagePreviewModal: null,
     generatedImagePreview: null,
-    // For search tool specific messages
     searchToolMessageElement: null,
     confirmSelectionButtonElement: null,
 };
@@ -68,16 +67,14 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     DOM.modals.forEach(modal => {
         const closeButton = modal.querySelector('.close-button');
         if (closeButton) {
-            // Check if a listener is already attached to avoid duplicates if initUIMain is called multiple times
             if (!closeButton.dataset.listenerAttached) {
                 closeButton.addEventListener('click', () => handleCloseButtonClick(modal));
                 closeButton.dataset.listenerAttached = 'true';
             }
         }
-        // Overlay click listener
         if (!modal.dataset.overlayListenerAttached) {
-            modal.addEventListener('click', function(event) { // Use function to preserve 'this'
-                if (event.target === this) { // Check if the click is directly on the modal overlay
+            modal.addEventListener('click', function(event) {
+                if (event.target === this) {
                     handleCloseButtonClick(this);
                 }
             });
@@ -85,14 +82,11 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
         }
     });
     
-    // Global click for side nav (if not handled by modal overlay logic already)
-    // This might be redundant if modal overlay logic correctly handles clicks outside.
-    // Let's refine to ensure it only closes sideNav and not modals.
     document.addEventListener('click', (event) => {
         if (DOM.sideNav && DOM.sideNav.classList.contains('open') && 
             !DOM.sideNav.contains(event.target) && 
             event.target !== DOM.hamburgerButton && 
-            !event.target.closest('.side-navigation')) { // Ensure click isn't inside nav content
+            !event.target.closest('.side-navigation')) {
             DOM.sideNav.classList.remove('open');
         }
     });
@@ -100,7 +94,6 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     console.log("[ui-main] UI Main Initialized.");
 }
 
-// ★★★ effectUnitsCache を引数に追加 ★★★
 export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
     if (!item || !DOM.itemDetailContent || !DOM.itemDetailModal) {
         console.error("[ui-main] Item data, detail content, or modal element missing for detail view:", item ? item.docId : 'unknown item');
@@ -120,9 +113,9 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
     }
 
-    let effectsHtml = '<p><strong>効果:</strong> なし</p>'; // Default if no effects
-    if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache && effectUnitsCache) { // ★★★ effectUnitsCache を確認 ★★★
-        effectsHtml = `<div class="structured-effects"><strong>効果詳細:</strong><ul>`;
+    let effectsHtml = '<p><strong>効果</strong> なし</p>'; // Default if no effects, removed colon
+    if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache && effectUnitsCache) {
+        effectsHtml = `<div class="structured-effects"><strong>効果詳細</strong><ul>`; // Removed colon
         item.structured_effects.forEach(eff => {
             const effectType = effectTypesCache.find(et => et.id === eff.type);
             const typeName = effectType ? effectType.name : `不明(${eff.type})`;
@@ -131,7 +124,7 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
             const unitName = eff.unit;
             if (unitName && unitName !== 'none') {
                 const unitData = effectUnitsCache.find(u => u.name === unitName);
-                const position = unitData ? unitData.position : 'suffix'; // Default to suffix
+                const position = unitData ? unitData.position : 'suffix';
                 if (position === 'prefix') {
                     effectTextPart = `${unitName}${eff.value}`;
                 } else {
@@ -140,7 +133,8 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
             } else {
                 effectTextPart = `${eff.value}`;
             }
-            effectsHtml += `<li>${typeName}: ${effectTextPart}</li>`;
+            // ★★★ 「:」を削除し、半角スペースに変更 ★★★
+            effectsHtml += `<li>${typeName} ${effectTextPart}</li>`;
         });
         effectsHtml += `</ul></div>`;
     }
@@ -154,7 +148,7 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         }).filter(Boolean);
 
         if (displayableTags.length > 0) {
-            tagsHtml = `<div class="tags">タグ: ${displayableTags.join(' ')}</div>`;
+            tagsHtml = `<div class="tags">タグ ${displayableTags.join(' ')}</div>`; // Removed colon
         }
     }
 
@@ -166,10 +160,10 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         ${imageElementHTML}
         <h3>${item.name || '名称未設定'}</h3>
         ${effectsHtml}
-        <p><strong>入手手段:</strong> ${sourceText}</p>
-        <p><strong>売値:</strong> ${priceText}</p>
+        <p><strong>入手手段</strong> ${sourceText}</p> 
+        <p><strong>売値</strong> ${priceText}</p>
         ${tagsHtml}
-    `;
+    `; // Removed colons from labels
     DOM.itemDetailContent.appendChild(cardFull);
     DOM.itemDetailModal.style.display = 'flex';
 }
@@ -188,9 +182,6 @@ export function handleCloseButtonClick(modalElement) {
         DOM.itemDetailContent.innerHTML = '';
     }
 }
-
-// handleGlobalClick is removed as overlay click is handled per modal now.
-// A general document click listener is kept for sideNav.
 
 export function displaySearchToolMessage(message, show = true) {
     if (DOM.searchToolMessageElement) {
