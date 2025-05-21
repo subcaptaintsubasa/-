@@ -1,15 +1,12 @@
 // js/modules/simulator-ui.js
 // Handles UI updates and interactions for the equipment simulator modal.
-// data-loaderから getEffectUnitsCache をインポート
 import { getEffectUnitsCache as getEffectUnitsCacheFromLoader } from './data-loader.js';
 
 
 let getAllItemsFunc = () => [];
 let getEffectTypesCacheFunc = () => [];
-let getEffectUnitsCacheFunc = () => []; // ローカルのキャッシュ関数ポインタ
+let getEffectUnitsCacheFunc = () => [];
 let getCharacterBasesCacheFunc = () => ({});
-// getCharacterBaseOptionDataFunc is not directly used in this file after refactor,
-// but kept if other parts of simulator-logic or elsewhere might need it via this module.
 let getCharacterBaseOptionDataFunc = (baseType, optionId) => null;
 let onSlotSelectStartCb = (slotName) => {};
 let onSlotClearCb = (slotName) => {};
@@ -45,10 +42,10 @@ export function initSimulatorUI(db, dependencies) {
     getAllItemsFunc = dependencies.getAllItems;
     getEffectTypesCacheFunc = dependencies.getEffectTypesCache;
     getCharacterBasesCacheFunc = dependencies.getCharacterBasesCache;
-    getCharacterBaseOptionDataFunc = dependencies.getCharacterBaseOptionData; // Kept for potential use
+    getCharacterBaseOptionDataFunc = dependencies.getCharacterBaseOptionData;
     onSlotSelectStartCb = dependencies.onSlotSelectStart;
     onSlotClearCb = dependencies.onSlotClear;
-    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader; // ★★★ data-loaderから取得 ★★★
+    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader;
 
 
     DOMS.simulatorModal = document.getElementById('simulatorModal');
@@ -149,13 +146,12 @@ function populateSingleCharacterBaseSelector(baseType, selectElement, options) {
             opt.textContent = option.name;
             selectElement.appendChild(opt);
         });
-    } else {
-        // console.warn(`No data found for character base type: ${baseType} to populate selector.`);
     }
 }
 
 
 export function updateSimulatorSlotDisplay(slotName) {
+    // ... (変更なし) ...
     const slotElement = document.getElementById(`slot-${slotName.replace(/\s/g, '')}`);
     if (!slotElement) {
         console.error(`Slot element for "${slotName}" not found.`);
@@ -171,7 +167,7 @@ export function updateSimulatorSlotDisplay(slotName) {
     if (itemId) {
         const item = allItems.find(i => i.docId === itemId);
         if (item) {
-            imgElement.src = item.image || './images/placeholder_item.png'; // Ensure this path is correct
+            imgElement.src = item.image || './images/placeholder_item.png';
             imgElement.alt = item.name || 'アイテム画像';
             nameElement.textContent = item.name || '(名称未設定)';
             if (clearButton) clearButton.style.display = 'inline-block';
@@ -182,7 +178,6 @@ export function updateSimulatorSlotDisplay(slotName) {
             nameElement.textContent = 'エラー(データ不整合)';
             if (clearButton) clearButton.style.display = 'none';
             if (selectButton) selectButton.textContent = '選択';
-            // console.warn(`Item data for ID ${itemId} not found in slot ${slotName}.`); // Can be noisy
         }
     } else {
         imgElement.src = './images/placeholder_slot.png';
@@ -198,13 +193,13 @@ export function calculateAndDisplayTotalEffects() {
 
     const totalEffectsMap = new Map();
     const effectTypesCache = getEffectTypesCacheFunc();
-    const effectUnitsCache = getEffectUnitsCacheFunc(); // ★★★ 追加 ★★★
+    const effectUnitsCache = getEffectUnitsCacheFunc();
     const allItems = getAllItemsFunc();
 
     Object.values(selectedCharacterBase).forEach(baseOption => {
         if (baseOption && baseOption.effects && Array.isArray(baseOption.effects)) {
             baseOption.effects.forEach(effect => {
-                processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache); // ★★★ effectUnitsCache を渡す ★★★
+                processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache);
             });
         }
     });
@@ -214,7 +209,7 @@ export function calculateAndDisplayTotalEffects() {
         const item = allItems.find(i => i.docId === itemId);
         if (item && item.structured_effects && Array.isArray(item.structured_effects)) {
             item.structured_effects.forEach(effect => {
-                processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache); // ★★★ effectUnitsCache を渡す ★★★
+                processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache);
             });
         }
     });
@@ -230,7 +225,6 @@ export function calculateAndDisplayTotalEffects() {
     } else {
         let html = '<ul>';
         totalEffectsMap.forEach(effData => {
-            // ★★★ 表示文字列生成ロジックを修正 ★★★
             let effectValueText;
             const unitName = effData.unit;
             if (unitName && unitName !== 'none' && effectUnitsCache) {
@@ -246,7 +240,8 @@ export function calculateAndDisplayTotalEffects() {
             } else {
                 effectValueText = `${Math.round(effData.value * 1000) / 1000}`;
             }
-            html += `<li>${effData.typeName}: ${effectValueText}</li>`;
+            // ★★★ 「:」を削除し、半角スペースに変更 ★★★
+            html += `<li>${effData.typeName} ${effectValueText}</li>`;
         });
         html += '</ul>';
         DOMS.totalEffectsDisplay.innerHTML = html;
@@ -254,25 +249,19 @@ export function calculateAndDisplayTotalEffects() {
     if(DOMS.exportEffects) DOMS.exportEffects.innerHTML = DOMS.totalEffectsDisplay.innerHTML;
 }
 
-// ★★★ effectUnitsCache を引数に追加 ★★★
 function processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache) {
+    // ... (変更なし) ...
     const { type: effectTypeId, value, unit } = effect;
     if (!effectTypeId || typeof value !== 'number') return;
 
     const effectTypeInfo = effectTypesCache.find(et => et.id === effectTypeId);
     if (!effectTypeInfo) {
-        // console.warn(`Effect type info not found for ID: ${effectTypeId}`); // Can be noisy
         return;
     }
 
     const calculationMethod = effectTypeInfo.calculationMethod || 'sum';
     const sumCap = typeof effectTypeInfo.sumCap === 'number' ? effectTypeInfo.sumCap : Infinity;
-    
-    // ★★★ 単位名決定ロジックを修正 ★★★
-    // structured_effects から来る unit はそのまま使う。
-    // もし effect オブジェクトに unit がなければ、effectTypeInfo.defaultUnit を使う。
     const currentUnitName = unit || effectTypeInfo.defaultUnit || 'none';
-    
     const effectKey = `${effectTypeId}_${currentUnitName}`;
 
     if (!totalEffectsMap.has(effectKey)) {
@@ -280,7 +269,7 @@ function processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCac
             typeId: effectTypeId,
             typeName: effectTypeInfo.name,
             value: 0,
-            unit: currentUnitName, // ★★★ 保存する単位名も修正 ★★★
+            unit: currentUnitName,
             calculationMethod: calculationMethod,
             sumCap: sumCap,
             valuesForMax: []
