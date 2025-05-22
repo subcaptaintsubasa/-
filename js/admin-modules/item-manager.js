@@ -8,7 +8,7 @@ const DOMI = {
     itemNameInput: null,
     itemImageFileInput: null,
     itemImagePreview: null,
-    itemImageUrlInput: null,
+    itemImageUrlInput: null, // Hidden input for existing/uploaded URL
     itemPriceInput: null,
     uploadProgressContainer: null,
     uploadProgress: null,
@@ -35,7 +35,7 @@ let getEffectUnitsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
 let currentItemEffects = [];
-let selectedImageFile = null; // This will hold the File object if a new image is selected
+let selectedImageFile = null; // Stores the File object for a new upload
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
 let itemEffectEditMode = false;
@@ -50,12 +50,13 @@ export function initItemManager(dependencies) {
     refreshAllDataCallback = dependencies.refreshAllData;
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
+    // DOM assignments (same as before)
     DOMI.itemForm = document.getElementById('itemForm');
     DOMI.itemIdToEditInput = document.getElementById('itemIdToEdit');
     DOMI.itemNameInput = document.getElementById('itemName');
     DOMI.itemImageFileInput = document.getElementById('itemImageFile');
     DOMI.itemImagePreview = document.getElementById('itemImagePreview');
-    DOMI.itemImageUrlInput = document.getElementById('itemImageUrl'); // Hidden input for URL
+    DOMI.itemImageUrlInput = document.getElementById('itemImageUrl');
     DOMI.itemPriceInput = document.getElementById('itemPrice');
     DOMI.uploadProgressContainer = document.getElementById('uploadProgressContainer');
     DOMI.uploadProgress = document.getElementById('uploadProgress');
@@ -73,6 +74,7 @@ export function initItemManager(dependencies) {
     DOMI.itemsTableBody = document.querySelector('#itemsTable tbody');
     DOMI.itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
+    // Event listeners (same as before)
     if (DOMI.itemForm) DOMI.itemForm.addEventListener('submit', saveItem);
     if (DOMI.clearFormButton) DOMI.clearFormButton.addEventListener('click', clearItemFormInternal);
     if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.addEventListener('change', handleImageFileSelect);
@@ -95,6 +97,7 @@ export function initItemManager(dependencies) {
 }
 
 function switchToAddEffectMode() {
+    // ... (変更なし) ...
     itemEffectEditMode = false;
     itemEffectEditingIndex = -1;
     if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '効果を追加';
@@ -104,15 +107,18 @@ function switchToAddEffectMode() {
 }
 
 function clearItemFormInternal() {
-    if (DOMI.itemForm) DOMI.itemForm.reset(); // Resets file input among others
+    if (DOMI.itemForm) DOMI.itemForm.reset(); 
 
     DOMI.itemIdToEditInput.value = '';
-    DOMI.itemImageUrlInput.value = ''; // Clear hidden URL field
+    DOMI.itemImageUrlInput.value = ''; 
     if (DOMI.itemImagePreview) {
-        DOMI.itemImagePreview.src = '#'; // Placeholder or empty
+        DOMI.itemImagePreview.src = '#'; 
         DOMI.itemImagePreview.style.display = 'none';
     }
-    selectedImageFile = null; // Crucial: clear the selected file object
+    selectedImageFile = null; 
+    // Ensure file input is visually cleared (form.reset() should do this)
+    if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
+
     if (DOMI.uploadProgressContainer) {
         DOMI.uploadProgressContainer.style.display = 'none';
         if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
@@ -134,6 +140,7 @@ function clearItemFormInternal() {
 
 
 export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
+    // ... (変更なし) ...
     if(!DOMI.itemTagsSelectorCheckboxes) return;
     const allTags = getAllTagsFuncCache().sort((a,b) => a.name.localeCompare(b.name, 'ja'));
     const tagOptions = allTags.map(tag => ({ id: tag.id, name: tag.name }));
@@ -151,19 +158,19 @@ function handleImageFileSelect(event) {
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
             alert("ファイルサイズが大きすぎます。5MB以下の画像を選択してください。");
-            DOMI.itemImageFileInput.value = null;
+            event.target.value = null; // Clear the file input
             selectedImageFile = null;
             if (DOMI.itemImagePreview) { DOMI.itemImagePreview.style.display = 'none'; DOMI.itemImagePreview.src = '#';}
             return;
         }
         if (!file.type.startsWith('image/')) {
             alert("画像ファイルを選択してください (例: JPG, PNG, GIF)。");
-            DOMI.itemImageFileInput.value = null;
+            event.target.value = null; // Clear the file input
             selectedImageFile = null;
             if (DOMI.itemImagePreview) { DOMI.itemImagePreview.style.display = 'none'; DOMI.itemImagePreview.src = '#';}
             return;
         }
-        selectedImageFile = file; // Store the File object
+        selectedImageFile = file;
         const reader = new FileReader();
         reader.onload = (e) => {
             if (DOMI.itemImagePreview) {
@@ -172,16 +179,16 @@ function handleImageFileSelect(event) {
             }
         }
         reader.readAsDataURL(selectedImageFile);
-        DOMI.itemImageUrlInput.value = ''; // Clear any existing URL in the hidden field
+        DOMI.itemImageUrlInput.value = ''; // A new file means we won't use an old URL
         if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none';
     } else {
-        selectedImageFile = null; // No file selected or selection cancelled
-        // If editing, and user cancels file selection, we might want to keep the existing image.
-        // The current logic in saveItem uses itemImageUrlInput.value if selectedImageFile is null.
+        selectedImageFile = null; // No file selected
+        // Keep itemImageUrlInput.value as is, in case it's an existing item and user just cancelled file dialog
     }
 }
 
 function updateItemFormEffectUnitDisplay() {
+    // ... (変更なし) ...
     if (!DOMI.effectUnitDisplay || !DOMI.effectTypeSelect) return;
     const selectedOption = DOMI.effectTypeSelect.options[DOMI.effectTypeSelect.selectedIndex];
     const unitName = selectedOption ? selectedOption.dataset.unitName : null;
@@ -189,6 +196,7 @@ function updateItemFormEffectUnitDisplay() {
 }
 
 function handleAddOrUpdateEffect() {
+    // ... (変更なし) ...
     const typeId = DOMI.effectTypeSelect.value;
     const valueStr = DOMI.effectValueInput.value;
 
@@ -275,6 +283,7 @@ function renderCurrentItemEffectsListUI() {
 }
 
 async function uploadImageToWorkerAndGetURL(file) {
+    // ... (変更なし - XHR版のまま) ...
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) {
         console.warn("uploadImageToWorkerAndGetURL: No file or Worker URL provided. URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
         return null;
@@ -340,7 +349,6 @@ async function uploadImageToWorkerAndGetURL(file) {
     });
 }
 
-
 async function saveItem(event) {
     event.preventDefault();
     if (DOMI.saveItemButton) {
@@ -353,7 +361,9 @@ async function saveItem(event) {
     const priceStr = DOMI.itemPriceInput.value.trim();
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
-    let finalImageUrl = DOMI.itemImageUrlInput.value || ""; // Start with existing or manually entered URL
+    
+    // ★★★ 画像URLの決定ロジックを origin.js に近づける ★★★
+    let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; // Start with current hidden input value
 
     if (!name) {
         alert("アイテム名は必須です。");
@@ -364,7 +374,7 @@ async function saveItem(event) {
         return;
     }
 
-    let priceToSave = null; // Use null to indicate field should be absent or deleted
+    let priceToSave = null;
     if (priceStr !== "") {
         const parsedPrice = parseInt(priceStr, 10);
         if (!isNaN(parsedPrice) && parsedPrice >= 0) {
@@ -380,48 +390,50 @@ async function saveItem(event) {
     }
 
     try {
-        if (selectedImageFile) { // If a new file was selected by the user
+        if (selectedImageFile) { // A new file was chosen by the user
             console.log("New image file selected, attempting upload...");
             const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
             if (uploadedUrl) {
-                finalImageUrl = uploadedUrl; // Update to the new URL
-                console.log("Image uploaded, new URL:", finalImageUrl);
+                imageUrlToSave = uploadedUrl; // Prioritize uploaded URL
+                console.log("Image uploaded successfully, URL:", imageUrlToSave);
             } else {
-                console.warn("Image upload failed. If editing, existing image URL will be used if not cleared. If new, no image will be set.");
-                // If it's a new item and upload failed, finalImageUrl will remain "" (or whatever it was before)
-                // If it's an existing item, and user didn't clear itemImageUrlInput, it will use that.
-                // If image upload is critical, you might want to stop here:
-                // alert("画像アップロードに失敗したため、アイテムの保存を中止しました。");
-                // if (DOMI.saveItemButton) { /* reset button state */ }
-                // return;
+                // Upload failed. Decide if we should proceed.
+                // For now, if upload fails, we'll use whatever was in itemImageUrlInput (could be empty or old URL)
+                // or "" if it was a new item.
+                alert("画像アップロードに失敗しました。画像なしでアイテムを保存します。");
+                // imageUrlToSave remains as itemImageUrlInput.value or ""
             }
         }
-        // If selectedImageFile is null, finalImageUrl will be the value from itemImageUrlInput (either existing or manually typed)
+        // If selectedImageFile is null, imageUrlToSave is already set to DOMI.itemImageUrlInput.value
 
         const itemData = {
             name: name,
-            image: finalImageUrl, // Use the determined finalImageUrl
+            image: imageUrlToSave, // Use the determined URL
             structured_effects: currentItemEffects,
             入手手段: source,
             tags: selectedItemTagIds,
             updatedAt: serverTimestamp()
         };
         
-        if (priceToSave !== null) {
-            itemData.price = priceToSave;
-        } else {
-            // If priceToSave is null (meaning input was empty or invalid then cleared),
-            // we want to remove the field from Firestore if it exists.
-            itemData.price = deleteField();
-        }
-
-        if (editingDocId) {
-            await updateDoc(doc(dbInstance, 'items', editingDocId), itemData);
+        if (editingDocId) { // Update existing item
+            const updatePayload = { ...itemData };
+            if (priceToSave !== null) {
+                updatePayload.price = priceToSave;
+            } else {
+                // If price input is empty, remove the price field from Firestore
+                updatePayload.price = deleteField();
+            }
+            await updateDoc(doc(dbInstance, 'items', editingDocId), updatePayload);
             console.log("Item updated:", editingDocId);
-        } else {
+        } else { // Add new item
             itemData.createdAt = serverTimestamp();
-            const newDocRef = await addDoc(collection(dbInstance, 'items'), itemData);
-            console.log("Item added with ID:", newDocRef.id);
+            const dataToAdd = { ...itemData };
+            if (priceToSave !== null) {
+                dataToAdd.price = priceToSave;
+            }
+            // If priceToSave is null for a new item, the 'price' field simply won't be added.
+            await addDoc(collection(dbInstance, 'items'), dataToAdd);
+            console.log("Item added.");
         }
 
         clearItemFormInternal();
@@ -433,14 +445,13 @@ async function saveItem(event) {
     } finally {
         if (DOMI.saveItemButton) {
             DOMI.saveItemButton.disabled = false;
-            // Check the hidden input field's value directly after clearItemFormInternal
             DOMI.saveItemButton.textContent = document.getElementById('itemIdToEdit').value ? "アイテム更新" : "アイテム保存";
         }
     }
 }
 
 export function _renderItemsAdminTableInternal() {
-    // ... (変更なし、コロン削除は適用済み) ...
+    // ... (変更なし) ...
     if (!DOMI.itemsTableBody) return;
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
@@ -518,20 +529,19 @@ async function loadItemForEdit(docId) {
         const itemSnap = await getDoc(doc(dbInstance, "items", docId));
         if (itemSnap.exists()) {
             const itemData = itemSnap.data();
-            clearItemFormInternal(); // This also clears selectedImageFile
+            clearItemFormInternal(); 
 
             DOMI.itemIdToEditInput.value = itemSnap.id;
             DOMI.itemNameInput.value = itemData.name || "";
             DOMI.itemSourceInput.value = itemData.入手手段 || "";
-            DOMI.itemImageUrlInput.value = itemData.image || ''; // Set existing image URL
+            DOMI.itemImageUrlInput.value = itemData.image || ''; 
             if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? String(itemData.price) : '';
 
-            if (itemData.image && DOMI.itemImagePreview) { // Display existing image
+            if (itemData.image && DOMI.itemImagePreview) { 
                 DOMI.itemImagePreview.src = itemData.image;
                 DOMI.itemImagePreview.style.display = 'block';
             }
-             // Ensure file input is clear and selectedImageFile is null
-            selectedImageFile = null;
+            selectedImageFile = null; // Always reset this when loading an item
             if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
 
             _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
@@ -550,6 +560,7 @@ async function loadItemForEdit(docId) {
 }
 
 async function deleteItem(docId, itemName, imageUrl) {
+    // ... (変更なし) ...
     if (confirm(`アイテム「${itemName}」を削除しますか？\n注意: Cloudflare R2上の関連画像は、この操作では削除されません。\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'items', docId));
