@@ -16,7 +16,7 @@ const DOMI = {
     effectTypeSelect: null,
     effectValueInput: null,
     effectUnitDisplay: null,
-    addEffectToListButton: null, // このボタンのテキストと機能を変更する
+    addEffectToListButton: null,
     currentEffectsList: null,
     itemSourceInput: null,
     itemTagsSelectorCheckboxes: null,
@@ -37,10 +37,6 @@ let refreshAllDataCallback = async () => {};
 let currentItemEffects = [];
 let selectedImageFile = null;
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
-
-// 効果編集モードの状態管理
-let itemEffectEditMode = false;
-let itemEffectEditingIndex = -1;
 
 export function initItemManager(dependencies) {
     dbInstance = dependencies.db;
@@ -77,7 +73,7 @@ export function initItemManager(dependencies) {
     if (DOMI.itemForm) DOMI.itemForm.addEventListener('submit', saveItem);
     if (DOMI.clearFormButton) DOMI.clearFormButton.addEventListener('click', clearItemFormInternal);
     if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.addEventListener('change', handleImageFileSelect);
-    if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.addEventListener('click', handleAddOrUpdateEffect);
+    if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.addEventListener('click', addEffectToItemList);
     if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.addEventListener('change', updateItemFormEffectUnitDisplay);
     if (DOMI.itemSearchAdminInput) DOMI.itemSearchAdminInput.addEventListener('input', _renderItemsAdminTableInternal);
     if (DOMI.deleteItemFromFormButton) {
@@ -92,16 +88,8 @@ export function initItemManager(dependencies) {
             }
         });
     }
-    console.log("[Item Manager] Initialized.");
-}
 
-function switchToAddEffectMode() {
-    itemEffectEditMode = false;
-    itemEffectEditingIndex = -1;
-    if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '効果を追加';
-    if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.value = '';
-    if (DOMI.effectValueInput) DOMI.effectValueInput.value = '';
-    updateItemFormEffectUnitDisplay();
+    console.log("[Item Manager] Initialized.");
 }
 
 function clearItemFormInternal() {
@@ -121,14 +109,15 @@ function clearItemFormInternal() {
     }
 
     currentItemEffects = [];
+    renderCurrentItemEffectsListUI();
+    if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.value = '';
+    if (DOMI.effectValueInput) DOMI.effectValueInput.value = '';
+    if (DOMI.effectUnitDisplay) DOMI.effectUnitDisplay.textContent = '';
+
     _populateTagCheckboxesForItemFormInternal();
 
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
     if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none';
-    
-    switchToAddEffectMode();
-    renderCurrentItemEffectsListUI();
-
     if (DOMI.itemNameInput) DOMI.itemNameInput.focus();
     console.log("[Item Manager] Item form cleared.");
 }
@@ -181,28 +170,22 @@ function updateItemFormEffectUnitDisplay() {
     DOMI.effectUnitDisplay.textContent = (unitName && unitName !== '' && unitName !== 'none') ? `(${unitName})` : '';
 }
 
-function handleAddOrUpdateEffect() {
+function addEffectToItemList() {
     const typeId = DOMI.effectTypeSelect.value;
     const valueStr = DOMI.effectValueInput.value;
-
     if (!typeId) { alert("効果種類を選択してください。"); return; }
     if (valueStr.trim() === '' || isNaN(parseFloat(valueStr))) { alert("効果の値を数値で入力してください。"); return; }
 
     const value = parseFloat(valueStr);
     const selectedOption = DOMI.effectTypeSelect.options[DOMI.effectTypeSelect.selectedIndex];
-    const unit = (selectedOption && selectedOption.dataset.unitName && selectedOption.dataset.unitName !== 'none') ? selectedOption.dataset.unitName : null;
+    const unit = (selectedOption && selectedOption.dataset.unitName && selectedOption.dataset.unitName !== 'none') ? selectedOption.dataset.unitName : null ;
 
-    const newEffect = { type: typeId, value: value, unit: unit };
-
-    if (itemEffectEditMode && itemEffectEditingIndex >= 0 && itemEffectEditingIndex < currentItemEffects.length) {
-        currentItemEffects[itemEffectEditingIndex] = newEffect;
-    } else {
-        currentItemEffects.push(newEffect);
-    }
+    currentItemEffects.push({ type: typeId, value: value, unit: unit });
     renderCurrentItemEffectsListUI();
-    switchToAddEffectMode();
+    DOMI.effectTypeSelect.value = '';
+    DOMI.effectValueInput.value = '';
+    updateItemFormEffectUnitDisplay();
 }
-
 
 function renderCurrentItemEffectsListUI() {
     if (!DOMI.currentEffectsList) return;
@@ -233,34 +216,14 @@ function renderCurrentItemEffectsListUI() {
 
         const div = document.createElement('div');
         div.classList.add('effect-list-item');
+        // ★★★ 「:」を削除し、半角スペースに変更 ★★★
         div.innerHTML = `
             <span>${typeName} ${effectText}</span>
-            <div>
-                <button type="button" class="edit-effect-in-list action-button edit" data-index="${index}" title="この効果を編集">✎</button>
-                <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="この効果を削除">×</button>
-            </div>
+            <button type="button" class="delete-effect-from-list action-button delete" data-index="${index}" title="この効果を削除">×</button>
         `;
-        div.querySelector('.edit-effect-in-list').addEventListener('click', (e) => {
-            const editIndex = parseInt(e.currentTarget.dataset.index, 10);
-            const effectToEdit = currentItemEffects[editIndex];
-            if (effectToEdit) {
-                DOMI.effectTypeSelect.value = effectToEdit.type;
-                DOMI.effectValueInput.value = effectToEdit.value;
-                updateItemFormEffectUnitDisplay();
-
-                itemEffectEditMode = true;
-                itemEffectEditingIndex = editIndex;
-                if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '効果を更新';
-                if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.focus();
-            }
-        });
         div.querySelector('.delete-effect-from-list').addEventListener('click', (e) => {
-            const deleteIndex = parseInt(e.currentTarget.dataset.index, 10);
-            currentItemEffects.splice(deleteIndex, 1);
+            currentItemEffects.splice(parseInt(e.currentTarget.dataset.index, 10), 1);
             renderCurrentItemEffectsListUI();
-            if (itemEffectEditMode && itemEffectEditingIndex === deleteIndex) {
-                switchToAddEffectMode();
-            }
         });
         DOMI.currentEffectsList.appendChild(div);
     });
@@ -400,7 +363,6 @@ async function saveItem(event) {
     } finally {
         if (DOMI.saveItemButton) {
             DOMI.saveItemButton.disabled = false;
-            // フォームクリア時に itemIdToEditInput がクリアされるので、それを見て判定
             DOMI.saveItemButton.textContent = DOMI.itemIdToEditInput.value ? "アイテム更新" : "アイテム保存";
         }
     }
@@ -460,6 +422,7 @@ export function _renderItemsAdminTableInternal() {
                 } else {
                     effectTextPart = `${eff.value}`;
                 }
+                // ★★★ 「:」を削除し、半角スペースに変更 ★★★
                 return `${typeName} ${effectTextPart}`;
             }).join('; ');
             if (effectsDisplay.length > 50) effectsDisplay = effectsDisplay.substring(0, 47) + '...';
@@ -500,7 +463,7 @@ async function loadItemForEdit(docId) {
             _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
 
             currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : [];
-            renderCurrentItemEffectsListUI(); 
+            renderCurrentItemEffectsListUI();
 
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
             if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block';
