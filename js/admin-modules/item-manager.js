@@ -8,7 +8,7 @@ const DOMI = {
     itemNameInput: null,
     itemImageFileInput: null,
     itemImagePreview: null,
-    itemImageUrlInput: null, // Hidden input for existing/uploaded URL
+    itemImageUrlInput: null,
     itemPriceInput: null,
     uploadProgressContainer: null,
     uploadProgress: null,
@@ -35,7 +35,7 @@ let getEffectUnitsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
 let currentItemEffects = [];
-let selectedImageFile = null; // Stores the File object for a new upload
+let selectedImageFile = null;
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
 let itemEffectEditMode = false;
@@ -107,6 +107,7 @@ function switchToAddEffectMode() {
 }
 
 function clearItemFormInternal() {
+    // ... (変更なし) ...
     if (DOMI.itemForm) DOMI.itemForm.reset(); 
 
     DOMI.itemIdToEditInput.value = '';
@@ -116,7 +117,6 @@ function clearItemFormInternal() {
         DOMI.itemImagePreview.style.display = 'none';
     }
     selectedImageFile = null; 
-    // Ensure file input is visually cleared (form.reset() should do this)
     if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
 
     if (DOMI.uploadProgressContainer) {
@@ -154,18 +154,19 @@ export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
 }
 
 function handleImageFileSelect(event) {
+    // ... (変更なし) ...
     const file = event.target.files[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
             alert("ファイルサイズが大きすぎます。5MB以下の画像を選択してください。");
-            event.target.value = null; // Clear the file input
+            event.target.value = null; 
             selectedImageFile = null;
             if (DOMI.itemImagePreview) { DOMI.itemImagePreview.style.display = 'none'; DOMI.itemImagePreview.src = '#';}
             return;
         }
         if (!file.type.startsWith('image/')) {
             alert("画像ファイルを選択してください (例: JPG, PNG, GIF)。");
-            event.target.value = null; // Clear the file input
+            event.target.value = null; 
             selectedImageFile = null;
             if (DOMI.itemImagePreview) { DOMI.itemImagePreview.style.display = 'none'; DOMI.itemImagePreview.src = '#';}
             return;
@@ -179,11 +180,10 @@ function handleImageFileSelect(event) {
             }
         }
         reader.readAsDataURL(selectedImageFile);
-        DOMI.itemImageUrlInput.value = ''; // A new file means we won't use an old URL
+        DOMI.itemImageUrlInput.value = ''; 
         if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none';
     } else {
-        selectedImageFile = null; // No file selected
-        // Keep itemImageUrlInput.value as is, in case it's an existing item and user just cancelled file dialog
+        selectedImageFile = null; 
     }
 }
 
@@ -282,72 +282,89 @@ function renderCurrentItemEffectsListUI() {
     });
 }
 
+// ★★★ 画像アップロード関数を origin.js 準拠の fetch を使う形に戻す ★★★
 async function uploadImageToWorkerAndGetURL(file) {
-    // ... (変更なし - XHR版のまま) ...
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) {
         console.warn("uploadImageToWorkerAndGetURL: No file or Worker URL provided. URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
         return null;
     }
-    console.log("Starting image upload to:", IMAGE_UPLOAD_WORKER_URL_CONST);
+    console.log("Starting image upload to (fetch):", IMAGE_UPLOAD_WORKER_URL_CONST);
     if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'block';
     if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
-    if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード準備中... (0%)';
-    
+    if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード準備中...';
+
     const formData = new FormData();
     formData.append('imageFile', file);
 
-    return new Promise((resolve) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', IMAGE_UPLOAD_WORKER_URL_CONST, true);
-
-        xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-                const percentComplete = Math.round((event.loaded / event.total) * 100);
-                if (DOMI.uploadProgress) DOMI.uploadProgress.value = percentComplete;
-                if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `アップロード中... (${percentComplete}%)`;
-            }
-        };
-
-        xhr.onload = () => {
-            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '処理中...';
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    const result = JSON.parse(xhr.responseText);
-                    if (result.success && result.imageUrl) {
-                        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード完了!';
-                        setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 2000);
-                        resolve(result.imageUrl);
-                    } else {
-                        console.error('[Image Upload] Worker response error:', result.message || 'Unknown error from worker', result);
-                        alert(`画像アップロードエラー(Worker): ${result.message || '予期せぬ応答'}`);
-                        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロードエラー。';
-                        setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-                        resolve(null);
-                    }
-                } catch (e) {
-                    console.error('[Image Upload] Error parsing worker response:', e, xhr.responseText);
-                    alert('画像アップロード応答の解析に失敗しました。');
-                    if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '応答解析エラー。';
-                    resolve(null);
+    let intervalId; // For simulated progress
+    try {
+        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード中... (0%)';
+        // Simulate progress (fetch API doesn't have native progress for uploads like XHR)
+        // This is a very basic simulation.
+        let progress = 0;
+        if (DOMI.uploadProgress) { // Only run interval if progress bar exists
+            intervalId = setInterval(() => {
+                progress += 10;
+                if (progress <= 90) { // Stop at 90% before fetch completes
+                    if (DOMI.uploadProgress) DOMI.uploadProgress.value = progress;
+                    if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `アップロード中... (${progress}%)`;
+                } else {
+                    clearInterval(intervalId);
                 }
-            } else {
-                console.error('[Image Upload] Upload failed with status:', xhr.status, xhr.statusText, xhr.responseText);
-                alert(`画像アップロードに失敗しました (HTTP ${xhr.status}): ${xhr.statusText || 'サーバーエラー'}`);
-                if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `失敗 (${xhr.status})。`;
-                setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-                resolve(null);
+            }, 150); // Adjust timing for simulation
+        }
+
+        const response = await fetch(IMAGE_UPLOAD_WORKER_URL_CONST, {
+            method: 'POST',
+            body: formData,
+            // fetch doesn't need 'Content-Type': 'multipart/form-data' to be set manually for FormData,
+            // the browser sets it correctly along with the boundary.
+        });
+
+        if (intervalId) clearInterval(intervalId); // Clear interval once fetch is done
+        if (DOMI.uploadProgress) DOMI.uploadProgress.value = 100; // Mark as complete
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Get raw text for more details
+            console.error('[Image Upload] Upload failed with status:', response.status, errorText);
+            let errorMessage = `画像のアップロードに失敗しました (HTTP ${response.status})`;
+            try { // Try to parse as JSON for more specific error from worker
+                const errorData = JSON.parse(errorText);
+                if (errorData && errorData.message) errorMessage = `画像アップロードエラー: ${errorData.message}`;
+                else if (errorData && errorData.error) errorMessage = `画像アップロードエラー: ${errorData.error}`;
+            } catch (e) {
+                // If not JSON, use the raw text or statusText
+                if(errorText) errorMessage += `: ${errorText.substring(0,100)}`; // Limit length
+                else if(response.statusText) errorMessage += `: ${response.statusText}`;
             }
-        };
-        xhr.onerror = () => {
-            console.error('[Image Upload] Network error during upload.');
-            alert('画像アップロード中に通信エラーが発生しました。ネットワーク接続を確認してください。');
-            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '通信エラー。';
+            alert(errorMessage);
+            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード失敗。';
             setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
-            resolve(null);
-        };
-        xhr.send(formData);
-    });
+            return null;
+        }
+
+        const result = await response.json();
+        if (result.success && result.imageUrl) {
+            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード完了!';
+            setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 2000);
+            return result.imageUrl;
+        } else {
+            console.error('[Image Upload] Worker response error:', result.message || 'Unknown error from worker', result);
+            alert(`画像アップロードエラー(Worker): ${result.message || '予期せぬ応答'}`);
+            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロードエラー。';
+            setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
+            return null;
+        }
+    } catch (error) {
+        if (intervalId) clearInterval(intervalId);
+        console.error('[Image Upload] Error uploading image:', error);
+        alert(`画像のアップロード中に予期せぬエラーが発生しました: ${error.message}`);
+        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '通信/処理エラー。';
+        setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
+        return null;
+    }
 }
+
 
 async function saveItem(event) {
     event.preventDefault();
@@ -362,8 +379,7 @@ async function saveItem(event) {
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
     
-    // ★★★ 画像URLの決定ロジックを origin.js に近づける ★★★
-    let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; // Start with current hidden input value
+    let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; // Default to existing/manual URL
 
     if (!name) {
         alert("アイテム名は必須です。");
@@ -374,7 +390,7 @@ async function saveItem(event) {
         return;
     }
 
-    let priceToSave = null;
+    let priceToSave = null; 
     if (priceStr !== "") {
         const parsedPrice = parseInt(priceStr, 10);
         if (!isNaN(parsedPrice) && parsedPrice >= 0) {
@@ -390,48 +406,44 @@ async function saveItem(event) {
     }
 
     try {
-        if (selectedImageFile) { // A new file was chosen by the user
-            console.log("New image file selected, attempting upload...");
+        if (selectedImageFile) { 
             const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
             if (uploadedUrl) {
-                imageUrlToSave = uploadedUrl; // Prioritize uploaded URL
-                console.log("Image uploaded successfully, URL:", imageUrlToSave);
+                imageUrlToSave = uploadedUrl; 
             } else {
-                // Upload failed. Decide if we should proceed.
-                // For now, if upload fails, we'll use whatever was in itemImageUrlInput (could be empty or old URL)
-                // or "" if it was a new item.
-                alert("画像アップロードに失敗しました。画像なしでアイテムを保存します。");
-                // imageUrlToSave remains as itemImageUrlInput.value or ""
+                // If upload failed and it's a NEW item, we might want to stop.
+                // If it's an UPDATE, maybe we allow saving without changing the image.
+                // origin.js didn't explicitly stop, so we'll allow proceeding.
+                // The alert inside uploadImageToWorkerAndGetURL would have notified the user.
+                console.warn("Image upload failed. Current imageUrlToSave:", imageUrlToSave);
             }
         }
-        // If selectedImageFile is null, imageUrlToSave is already set to DOMI.itemImageUrlInput.value
 
         const itemData = {
             name: name,
-            image: imageUrlToSave, // Use the determined URL
+            image: imageUrlToSave, // This will be new URL, or existing URL, or ""
             structured_effects: currentItemEffects,
             入手手段: source,
             tags: selectedItemTagIds,
             updatedAt: serverTimestamp()
         };
         
-        if (editingDocId) { // Update existing item
+        if (editingDocId) {
             const updatePayload = { ...itemData };
             if (priceToSave !== null) {
                 updatePayload.price = priceToSave;
             } else {
-                // If price input is empty, remove the price field from Firestore
-                updatePayload.price = deleteField();
+                updatePayload.price = deleteField(); // Remove price if empty
             }
             await updateDoc(doc(dbInstance, 'items', editingDocId), updatePayload);
             console.log("Item updated:", editingDocId);
-        } else { // Add new item
+        } else { // New item
             itemData.createdAt = serverTimestamp();
             const dataToAdd = { ...itemData };
             if (priceToSave !== null) {
                 dataToAdd.price = priceToSave;
             }
-            // If priceToSave is null for a new item, the 'price' field simply won't be added.
+            // If priceToSave is null, 'price' field is not added to dataToAdd
             await addDoc(collection(dbInstance, 'items'), dataToAdd);
             console.log("Item added.");
         }
@@ -525,6 +537,7 @@ export function _renderItemsAdminTableInternal() {
 }
 
 async function loadItemForEdit(docId) {
+    // ... (変更なし) ...
     try {
         const itemSnap = await getDoc(doc(dbInstance, "items", docId));
         if (itemSnap.exists()) {
@@ -541,7 +554,7 @@ async function loadItemForEdit(docId) {
                 DOMI.itemImagePreview.src = itemData.image;
                 DOMI.itemImagePreview.style.display = 'block';
             }
-            selectedImageFile = null; // Always reset this when loading an item
+            selectedImageFile = null;
             if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
 
             _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
