@@ -102,7 +102,7 @@ export function initCharBaseManager(dependencies) {
             const clickableName = event.target.closest('.list-item-name-clickable[data-id]');
             if (clickableName) {
                 const optionId = clickableName.dataset.id;
-                const baseType = clickableName.dataset.type;
+                const baseType = clickableName.dataset.type; // This needs to be set when rendering list items
                 if (optionId && baseType) {
                     openEditCharBaseOptionModalById(optionId, baseType);
                 }
@@ -124,7 +124,7 @@ function switchToAddCharBaseEffectMode() {
 
 export function _populateCharBaseEffectTypeSelectInternal() {
     const effectTypesCache = getEffectTypesFuncCache();
-    const superCategoriesCache = getEffectSuperCategoriesFuncCache();
+    const superCategoriesCache = getEffectSuperCategoriesFuncCache(); 
     const selectElement = DOMCB.charBaseOptionEffectTypeSelect;
 
     if (!selectElement || !effectTypesCache) {
@@ -146,9 +146,9 @@ export function _populateCharBaseEffectTypeSelectInternal() {
     const currentValue = selectElement.value;
     selectElement.innerHTML = '<option value="">効果種類を選択...</option>';
 
-    superCategoriesCache.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    const sortedSuperCats = [...superCategoriesCache].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
-    superCategoriesCache.forEach(superCat => {
+    sortedSuperCats.forEach(superCat => {
         const optgroup = document.createElement('optgroup');
         optgroup.label = superCat.name;
         effectTypesCache
@@ -249,10 +249,14 @@ export function _renderCharacterBaseOptionsInternal() {
     });
 }
 
-function openEditCharBaseOptionModalById(optionId, baseType) {
+// ★★★ EXPORTED FOR admin-main.js ★★★
+export function openEditCharBaseOptionModalById(optionId, baseType) {
     const characterBasesCache = getCharacterBasesFuncCache();
     const optionData = (characterBasesCache[baseType] || []).find(opt => opt.id === optionId);
-    if (!optionData && optionId) { alert("編集するデータが見つかりません。"); return; }
+    if (!optionData && optionId) {
+        alert("編集するデータが見つかりません。"); 
+        return; 
+    }
     openEditCharBaseOptionModal(optionData, baseType);
 }
 
@@ -268,12 +272,12 @@ function openEditCharBaseOptionModal(optionData, baseType) {
     switchToAddCharBaseEffectMode();
     renderCurrentCharBaseOptionEffectsListModal();
 
-    if (DOMCB.charBaseOptionEffectTypeSelect.options.length <=1 || DOMCB.charBaseOptionEffectTypeSelect.options[0].value === "") {
+    if (DOMCB.charBaseOptionEffectTypeSelect.options.length <=1 || (DOMCB.charBaseOptionEffectTypeSelect.options[0] && DOMCB.charBaseOptionEffectTypeSelect.options[0].value === "")) {
         _populateCharBaseEffectTypeSelectInternal();
     }
     
     openModal('editCharBaseOptionModal');
-    DOMCB.editingCharBaseOptionNameInput.focus();
+    if(DOMCB.editingCharBaseOptionNameInput) DOMCB.editingCharBaseOptionNameInput.focus();
 }
 
 function updateCharBaseOptionEffectUnitDisplay() {
