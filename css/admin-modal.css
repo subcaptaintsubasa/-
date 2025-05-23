@@ -3,7 +3,7 @@
 
 body#admin-page div.modal {
     position: fixed !important;
-    z-index: 10001 !important;
+    z-index: 1050 !important; /* Base z-index for general modals */
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
@@ -40,27 +40,23 @@ body#admin-page div.modal div.modal-content.scrollable-content {
     overflow-y: auto;
 }
 
-/* Specific styles for the larger Management Modals */
+/* Specific styles for the larger Management Modals (e.g., Category, Tag management) */
+/* These will also use the base z-index of 1050 unless overridden for a specific case */
 body#admin-page div.modal.admin-management-modal div.modal-content {
     max-width: 800px;
     padding: 25px 30px;
 }
 
-/* ★★★ Styles for Enlarged List Modal ★★★ */
+/* Styles for Enlarged List Modal */
+body#admin-page div.modal.admin-enlarged-list-modal {
+    z-index: 1055 !important; /* Higher than base, but lower than specific edit modals */
+}
 body#admin-page div.modal.admin-enlarged-list-modal div.modal-content {
-    max-width: 90%; /* より広く */
-    width: 1000px;  /* 例: 固定幅、または max-width で制御 */
-    max-height: calc(100vh - 40px); /* 高さをより多く使う */
-    height: 90vh; /* または具体的な高さ */
+    max-width: 90%; 
+    width: 1000px; 
+    max-height: calc(100vh - 40px); 
+    height: 90vh; 
 }
-/* 拡大モーダル内のリストコンテナのスタイルはHTMLのインラインで調整したが、こちらで定義も可 */
-/*
-#listEnlargementModalContent {
-    max-height: calc(80vh - 150px); // ヘッダーや他の要素の高さを考慮
-    min-height: 300px; // 最低限の高さを確保
-    flex-grow: 1; // 利用可能なスペースを埋める
-}
-*/
 
 
 @keyframes fadeInAdminModal {
@@ -68,20 +64,22 @@ body#admin-page div.modal.admin-enlarged-list-modal div.modal-content {
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-body#admin-page div.modal div.modal-content h3 {
+body#admin-page div.modal div.modal-content h3 { /* For specific edit modals like #editCategoryModal */
     margin-top: 0; margin-bottom: 25px; font-size: 1.6rem; color: #212529;
     border-bottom: 1px solid #dee2e6; padding-bottom: 15px;
     flex-shrink: 0; font-weight: 500; text-align: left;
 }
+/* Note: h2 in .admin-management-modal is styled in admin-base.css */
+
 
 body#admin-page div.modal span.close-button {
     color: #6c757d; position: absolute; top: 20px; right: 20px;
     font-size: 32px; font-weight: bold; line-height: 0.8;
-    cursor: pointer; z-index: 10;
+    cursor: pointer; z-index: 10; /* z-index relative to its own modal-content */
     transition: color 0.2s ease-in-out, transform 0.15s ease-in-out;
     padding: 5px; background: transparent; border: none;
 }
-body#admin-page div.modal.admin-management-modal span.close-button {
+body#admin-page div.modal.admin-management-modal span.close-button { /* Style for close button in larger management modals */
     top: 15px; right: 25px;
 }
 body#admin-page div.modal span.close-button:hover,
@@ -89,11 +87,22 @@ body#admin-page div.modal span.close-button:focus {
     color: #343a40; text-decoration: none; transform: scale(1.1);
 }
 
-/* Specific Modal Adjustments for existing edit modals */
+/* Ensure specific EDIT modals are on top of the enlarged list modal */
+body#admin-page div.modal#editCategoryModal,
+body#admin-page div.modal#editTagModal,
+body#admin-page div.modal#editEffectUnitModal,
+body#admin-page div.modal#editEffectSuperCategoryModal,
+body#admin-page div.modal#editEffectTypeModal,
+body#admin-page div.modal#editCharBaseOptionModal {
+    z-index: 1060 !important; /* Higher than admin-enlarged-list-modal (1055) */
+}
+
+
+/* Specific Modal Adjustments for existing edit modals (width, etc.) */
 body#admin-page div.modal#editEffectUnitModal div.modal-content { max-width: 420px; }
-body#admin-page div.modal#editEffectSuperCategoryModal div.modal-content { max-width: 500px; } /* 編集モーダルの幅調整 */
+body#admin-page div.modal#editEffectSuperCategoryModal div.modal-content { max-width: 500px; }
 body#admin-page div.modal#editCharBaseOptionModal div.modal-content,
-body#admin-page div.modal#editItemModal div.modal-content { max-width: 620px; }
+body#admin-page div.modal#editItemModal div.modal-content { max-width: 620px; } /* Assuming editItemModal ID exists if used */
 
 /* Form groups within modals */
 body#admin-page div.modal div.modal-content .form-group { margin-bottom: 1.1rem; }
@@ -107,11 +116,14 @@ body#admin-page div.modal div.modal-content #saveEffectTypeEditButton,
 body#admin-page div.modal div.modal-content #saveEffectUnitEditButton,
 body#admin-page div.modal div.modal-content #saveEffectSuperCategoryEditButton,
 body#admin-page div.modal div.modal-content #saveCharBaseOptionButton {
-    margin-top: 1.25rem; width: 100%; padding: 0.7rem 1rem; font-size: 1rem;
+    margin-top: 1.25rem; 
+    /* width: 100%; */ /* Removed to allow flex-end to work better with auto width */
+    padding: 0.7rem 1rem; 
+    font-size: 1rem;
 }
 body#admin-page div.modal div.modal-content .modal-actions {
     display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;
 }
 body#admin-page div.modal div.modal-content .modal-actions button {
-    width: auto;
+    width: auto; /* Buttons size to content */
 }
