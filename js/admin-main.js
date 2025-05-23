@@ -19,8 +19,7 @@ import { initUIHelpers, openModal as openModalHelper, closeModal as closeModalHe
 import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI, openEditCategoryModalById } from './admin-modules/category-manager.js';
 import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _populateCategoryCheckboxesForTagFormInternal as populateTagFormCategories, openEditTagModalById } from './admin-modules/tag-manager.js';
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI, openEditEffectUnitModalById } from './admin-modules/effect-unit-manager.js';
-// EffectSuperCategoryManager is not yet implemented
-// import { initEffectSuperCategoryManager, _renderEffectSuperCategoriesForManagementInternal as renderEffectSuperCategoriesUI, openEditEffectSuperCategoryModalById } from './admin-modules/effect-super-category-manager.js';
+// EffectSuperCategoryManager is not yet implemented - corresponding openEdit function would be imported here if it existed
 import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms, openEditEffectTypeModalById } from './admin-modules/effect-type-manager.js';
 import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings, openEditCharBaseOptionModalById } from './admin-modules/char-base-manager.js';
 import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js';
@@ -49,7 +48,6 @@ const DOM = {
     charBaseTypeButtons: null,
     selectedCharBaseTypeInput: null,
 };
-
 
 document.addEventListener('DOMContentLoaded', () => {
     DOM.adminSideNav = document.getElementById('adminSideNav');
@@ -120,7 +118,7 @@ function setupAdminNav() {
                     if (DOM.adminSideNav) DOM.adminSideNav.classList.remove('open');
                     if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
                     if (targetModalId === 'characterBaseManagementModal' && typeof renderCharBaseOptionsUI === 'function') {
-                        renderCharBaseOptionsUI();
+                        renderCharBaseOptionsUI(); // Ensure list is rendered for current type
                     }
                 }
             });
@@ -152,6 +150,7 @@ function setupCharBaseTypeButtons() {
 }
 
 function clearAdminUIAndData() {
+    // ... (same as previous) ...
     console.log("[admin-main] Clearing admin UI and data cache...");
     const listContainersIds = ['categoryListContainer', 'tagListContainer', 'effectUnitListContainer', 'effectSuperCategoryListContainer', 'effectTypeListContainer', 'charBaseOptionListContainer'];
     listContainersIds.forEach(id => {
@@ -191,9 +190,7 @@ async function loadAndInitializeAdminModules() {
                 renderAllAdminUISections();
                 console.log("[admin-main] All data and UI refreshed.");
             },
-            // ★★★ Pass openEnlargedListModal to category manager ★★★
-            // (and potentially others if they also need to trigger generic list enlargement)
-            openEnlargedListModal: openEnlargedListModal // Pass the function itself
+            openEnlargedListModal: openEnlargedListModal 
         };
 
         initCategoryManager(commonDependencies);
@@ -215,6 +212,7 @@ async function loadAndInitializeAdminModules() {
 }
 
 function renderAllAdminUISections() {
+    // ... (same as previous) ...
     console.log("[admin-main] Rendering all admin UI sections...");
     if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
     if (typeof renderTagsUI === 'function') renderTagsUI();
@@ -250,15 +248,12 @@ function setupEnlargementButtonListeners() {
             config.btn.addEventListener('click', () => {
                 const items = config.sourceFn();
                 const title = typeof config.titleGetter === 'function' ? config.titleGetter() : config.title;
-                // ★★★ displayRenderer は openEnlargedListModal 側で type に応じて分岐させる ★★★
                 openEnlargedListModal(items, config.type, title, config.searchInputId, config.editFn);
             });
         }
     });
 }
 
-// ★★★ openEnlargedListModal の引数から displayRenderer を削除 ★★★
-// ★★★ contentGenerator は内部で呼び出すように変更 ★★★
 function openEnlargedListModal(items, type, title, originalSearchInputId, editFunction) {
     if (!DOM.listEnlargementModal || !DOM.listEnlargementModalTitle || !DOM.listEnlargementModalContent || !DOM.listEnlargementModalSearchContainer) return;
 
@@ -275,11 +270,11 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
         searchInputForEnlarged.style.marginBottom = '1rem';
         searchInputForEnlarged.ariaLabel = `${title}内を検索`;
         DOM.listEnlargementModalSearchContainer.appendChild(searchInputForEnlarged);
-        if (originalInput) searchInputForEnlarged.value = originalInput.value; // Copy current search term
+        if (originalInput) searchInputForEnlarged.value = originalInput.value;
     }
 
     const renderContent = (filterTerm = '') => {
-        DOM.listEnlargementModalContent.innerHTML = ''; // Clear previous content
+        DOM.listEnlargementModalContent.innerHTML = '';
         let itemsToRender = items;
         if (filterTerm) {
             itemsToRender = items.filter(item => item.name && item.name.toLowerCase().includes(filterTerm.toLowerCase()));
@@ -290,29 +285,25 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
             return;
         }
         
-        // ★★★ type に応じてリストアイテムのレンダリング方法を分岐 ★★★
-        // ここでは単純なリスト表示をデフォルトとし、カテゴリの場合はツリー表示を試みる
         if (type === 'category') {
-            // category-manager の buildCategoryTreeDOM を再利用するか、ここで同様のDOMを構築
-            // 簡略化のため、ここでは buildCategoryTreeDOM が allCategoriesData を引数に取ることを想定
-            const treeRootElement = categoryManager_buildCategoryTreeDOMForEnlarged(itemsToRender, getAllCategoriesCache());
+            // category-manager.js の buildCategoryTreeDOM を利用
+            // この関数は DOM 要素 (UL) を返す想定
+            const treeRootElement = categoryManager_buildCategoryTreeDOMForEnlarged(itemsToRender, getAllCategoriesCache()); // itemsToRender はフィルタリング後のカテゴリ
             if (treeRootElement) {
                 DOM.listEnlargementModalContent.appendChild(treeRootElement);
-                 // Add click listeners for enlarged category tree items
+                // カテゴリツリー内の各項目にクリックイベントリスナーを追加
                 DOM.listEnlargementModalContent.querySelectorAll('.category-tree-item[data-category-id]').forEach(li => {
-                    const contentDiv = li.querySelector('.category-tree-content');
+                    const contentDiv = li.querySelector('.category-tree-content'); // クリック対象は contentDiv
                     if (contentDiv && typeof editFunction === 'function') {
-                        contentDiv.classList.add('list-item-name-clickable'); // Make it look clickable
+                        contentDiv.classList.add('list-item-name-clickable');
                         contentDiv.addEventListener('click', (e) => {
-                             // Ensure click is not on expander if expanders were added
-                            if (e.target.closest('.category-tree-expander')) return;
+                            if (e.target.closest('.category-tree-expander')) return; // Exclude expander clicks
                             const catId = li.dataset.categoryId;
                             closeModalHelper('listEnlargementModal');
                             editFunction(catId);
                         });
                     }
                 });
-
             } else {
                 DOM.listEnlargementModalContent.innerHTML = '<p>カテゴリの表示に失敗しました。</p>';
             }
@@ -320,11 +311,10 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
             itemsToRender.sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja')).forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.classList.add('list-item');
-
                 const nameSpan = document.createElement('span');
                 nameSpan.classList.add('list-item-name-clickable');
                 let displayText = item.name || '(名称未設定)';
-                // Add specific details for other types if needed, similar to previous version
+                // Add specific details for other types
                 if (type === 'tag') {
                     const belongingCategoriesNames = (item.categoryIds || [])
                        .map(catId => getAllCategoriesCache().find(c => c.id === catId)?.name)
@@ -374,49 +364,54 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
         searchInputForEnlarged.addEventListener('input', (e) => {
             renderContent(e.target.value);
         });
-        renderContent(searchInputForEnlarged.value); // Initial render with current search term
+        renderContent(searchInputForEnlarged.value);
     } else {
-        renderContent(); // Initial render without search
+        renderContent();
     }
     openModalHelper('listEnlargementModal');
 }
 
-// Helper function to build category tree specifically for enlarged modal
-// This avoids making category-manager's buildCategoryTreeDOM too complex with isEnlargedView flag
-// or re-uses it if it's generic enough.
-// For now, assuming a simplified renderer for enlarged categories or that category-manager handles it.
-// This is a placeholder; ideally, category-manager would provide this rendering logic if needed.
+// This helper needs to be defined or imported from category-manager.js
+// Assuming category-manager.js's buildCategoryTreeDOM is suitable for reuse
+// or a specific version is created.
+// For now, this is a direct call placeholder.
 function categoryManager_buildCategoryTreeDOMForEnlarged(categoriesToDisplay, allCategoriesData) {
-    // This function should replicate the tree structure rendering from category-manager's
-    // buildCategoryTreeDOM, but without the interactive elements like expanders if they are not needed,
-    // or ensuring that click events on names are handled by the editFunction passed to openEnlargedListModal.
-    // For simplicity, let's assume category-manager.js's buildCategoryTreeDOM can be reused
-    // by passing `isEnlargedView = true` if that flag is implemented there to disable expanders/internal edit.
-    // If not, a similar DOM building logic is needed here.
-
-    // Simplified Example:
-    const rootUl = document.createElement('ul');
+    // This function should be the one from category-manager.js (or a copy adapted for here)
+    // that builds and returns the UL element for the category tree.
+    // It needs to be modified to not add its own event listeners if `isEnlargedView` is true,
+    // as `openEnlargedListModal` will add them.
+    // Referencing the one from the provided category-manager.js:
     const buildNode = (parentId = "") => {
         const children = categoriesToDisplay
             .filter(cat => (cat.parentId || "") === parentId)
             .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
         if (children.length === 0) return null;
 
-        const ul = (parentId === "") ? rootUl : document.createElement('ul');
-        if (parentId !== "") ul.classList.add('category-tree-children'); // Indent children
+        const ul = document.createElement('ul');
+        if (parentId !== "") {
+            ul.classList.add('category-tree-children');
+            // In enlarged view, always show children (no expand/collapse state here)
+        }
 
         children.forEach(category => {
             const li = document.createElement('li');
-            li.classList.add('category-tree-item'); // For styling
-            li.dataset.categoryId = category.id; // For click handling via delegation in openEnlargedListModal
+            li.classList.add('category-tree-item');
+            li.dataset.categoryId = category.id; // For click handling in openEnlargedListModal
 
-            const contentDiv = document.createElement('div'); // Wrapper for name and info
-            contentDiv.classList.add('category-tree-content'); // Apply similar class for styling
+            const expander = document.createElement('span'); // Keep for structure, but no action
+            expander.classList.add('category-tree-expander');
+            const hasActualChildren = allCategoriesData.some(c => c.parentId === category.id);
+            if (hasActualChildren) expander.textContent = '▼'; // Always show as if expanded
+            else expander.innerHTML = ' ';
+            li.appendChild(expander);
+
+            const content = document.createElement('div');
+            content.classList.add('category-tree-content'); // Click target
 
             const nameSpan = document.createElement('span');
-            nameSpan.classList.add('category-name'); // Can be styled as clickable
+            nameSpan.classList.add('category-name');
             nameSpan.textContent = category.name;
-            contentDiv.appendChild(nameSpan);
+            content.appendChild(nameSpan);
 
             const smallInfo = document.createElement('small');
             let infoText = "";
@@ -427,18 +422,16 @@ function categoryManager_buildCategoryTreeDOMForEnlarged(categoriesToDisplay, al
                 if (category.tagSearchMode) infoText += ` [${category.tagSearchMode.toUpperCase()}検索]`;
             }
             smallInfo.textContent = infoText;
-            contentDiv.appendChild(smallInfo);
-            li.appendChild(contentDiv);
-            
-            const childrenUl = buildNode(category.id);
-            if (childrenUl) {
-                li.appendChild(childrenUl);
+            content.appendChild(smallInfo);
+            li.appendChild(content);
+
+            if (hasActualChildren) {
+                const childrenUl = buildNode(category.id);
+                if (childrenUl) li.appendChild(childrenUl);
             }
             ul.appendChild(li);
         });
         return ul;
     };
-    
-    const tree = buildNode();
-    return tree === rootUl ? tree : null; // return rootUl only if it has children
+    return buildNode("");
 }
