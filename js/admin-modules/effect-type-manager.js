@@ -32,8 +32,7 @@ let getEffectSuperCategoriesFuncCache = () => [];
 let getItemsFuncCache = () => [];
 let getCharacterBasesFuncCache = () => ({});
 let refreshAllDataCallback = async () => {};
-let openEnlargedListModalCallbackFromMain = (config) => { console.warn("openEnlargedListModalCallbackFromMain not set in ETM");};
-
+// let openEnlargedListModalCallbackFromMain = (config) => {}; // Not directly used by this manager
 
 export function initEffectTypeManager(dependencies) {
     dbInstance = dependencies.db;
@@ -43,9 +42,7 @@ export function initEffectTypeManager(dependencies) {
     getItemsFuncCache = dependencies.getItems;
     getCharacterBasesFuncCache = dependencies.getCharacterBases;
     refreshAllDataCallback = dependencies.refreshAllData;
-    if (typeof dependencies.openEnlargedListModal === 'function') {
-        openEnlargedListModalCallbackFromMain = dependencies.openEnlargedListModal;
-    }
+    // openEnlargedListModalCallbackFromMain = dependencies.openEnlargedListModal;
 
     DOMET.newEffectTypeNameInput = document.getElementById('newEffectTypeName');
     DOMET.newEffectTypeSuperCategorySelect = document.getElementById('newEffectTypeSuperCategory');
@@ -55,7 +52,6 @@ export function initEffectTypeManager(dependencies) {
     DOMET.newEffectTypeSumCapGroup = document.getElementById('newEffectTypeSumCapGroup');
     DOMET.addEffectTypeButton = document.getElementById('addEffectTypeButton');
     DOMET.effectTypeListContainer = document.getElementById('effectTypeListContainer');
-    // enlargeEffectTypeListButton is in admin.html, event listener in admin-main.js
 
     DOMET.editEffectTypeModal = document.getElementById('editEffectTypeModal');
     DOMET.editingEffectTypeDocIdInput = document.getElementById('editingEffectTypeDocId');
@@ -80,11 +76,10 @@ export function initEffectTypeManager(dependencies) {
     if (DOMET.deleteEffectTypeFromEditModalButton) {
         DOMET.deleteEffectTypeFromEditModalButton.addEventListener('click', () => {
             const typeId = DOMET.editingEffectTypeDocIdInput.value;
-            // ★★★ name はキャッシュから取得 ★★★
             const type = getEffectTypesFuncCache().find(et => et.id === typeId);
-            const name = type ? type.name : DOMET.editingEffectTypeNameInput.value; // Fallback
+            const name = type ? type.name : DOMET.editingEffectTypeNameInput.value;
 
-            if (typeId && name) { // Nameも必須としてチェック
+            if (typeId && name) {
                 deleteEffectType(typeId, name);
             } else if (!typeId) {
                 alert("削除対象の効果種類IDが見つかりません。");
@@ -126,7 +121,6 @@ export function initEffectTypeManager(dependencies) {
 }
 
 function populateEffectUnitSelectsForTypeFormsUI() {
-    // ... (変更なし) ...
     const effectUnitsCache = getEffectUnitsFuncCache();
     const options = [{ value: '', text: '単位なし' }, ...effectUnitsCache.map(u => ({ value: u.name, text: u.name })).sort((a,b) => a.text.localeCompare(b.text, 'ja'))];
     populateSelect(DOMET.newEffectTypeUnitSelect, options, null, '');
@@ -134,7 +128,6 @@ function populateEffectUnitSelectsForTypeFormsUI() {
 }
 
 function populateSuperCategorySelects() {
-    // ... (変更なし) ...
     const superCategories = getEffectSuperCategoriesFuncCache() || [];
     const options = superCategories.map(sc => ({ value: sc.id, text: sc.name })).sort((a,b) => a.text.localeCompare(b.text, 'ja'));
     populateSelect(DOMET.newEffectTypeSuperCategorySelect, options, '大分類を選択...');
@@ -142,7 +135,6 @@ function populateSuperCategorySelects() {
 }
 
 export function _populateEffectTypeSelectsInternal() {
-    // ... (変更なし) ...
     const effectTypesCache = getEffectTypesFuncCache();
     const superCategoriesCache = getEffectSuperCategoriesFuncCache() || [];
 
@@ -150,9 +142,7 @@ export function _populateEffectTypeSelectsInternal() {
         const selectElement = DOMET.itemFormEffectTypeSelect;
         const currentValue = selectElement.value;
         selectElement.innerHTML = '<option value="">効果種類を選択...</option>';
-        
         const sortedSuperCats = [...superCategoriesCache].sort((a,b) => a.name.localeCompare(b.name, 'ja'));
-
         sortedSuperCats.forEach(superCat => {
             const optgroup = document.createElement('optgroup');
             optgroup.label = superCat.name;
@@ -165,7 +155,6 @@ export function _populateEffectTypeSelectsInternal() {
                 });
             if (optgroup.childElementCount > 0) selectElement.appendChild(optgroup);
         });
-        
         const unclassifiedTypes = effectTypesCache.filter(et => !et.superCategoryId || !superCategoriesCache.some(sc => sc.id === et.superCategoryId)).sort((a,b) => a.name.localeCompare(b.name, 'ja'));
         if (unclassifiedTypes.length > 0) {
             const unclassifiedOptgroup = document.createElement('optgroup');
@@ -185,7 +174,6 @@ export function _populateEffectTypeSelectsInternal() {
 }
 
 function buildEffectTypeListDOM() {
-    // ... (変更なし) ...
     const effectTypesCache = getEffectTypesFuncCache();
     const superCategoriesCache = getEffectSuperCategoriesFuncCache() || [];
     if (!effectTypesCache || effectTypesCache.length === 0) {
@@ -217,7 +205,7 @@ function buildEffectTypeListDOM() {
             groupDiv.classList.add('effect-super-category-group');
             const groupHeader = document.createElement('h5');
             groupHeader.classList.add('effect-super-category-header');
-            groupHeader.textContent = `${superCat.name}:`; // No colon if using flex layout for header items
+            groupHeader.textContent = `${superCat.name}`; // Removed colon
             groupDiv.appendChild(groupHeader);
             typesInThisSuperCat.forEach(effectType => appendEffectTypeToList(effectType, groupDiv));
             fragment.appendChild(groupDiv);
@@ -230,7 +218,7 @@ function buildEffectTypeListDOM() {
         groupDiv.classList.add('effect-super-category-group');
         const groupHeader = document.createElement('h5');
         groupHeader.classList.add('effect-super-category-header');
-        groupHeader.textContent = superCategoriesCache.length > 0 ? '未分類の効果種類:' : '効果種類:';
+        groupHeader.textContent = superCategoriesCache.length > 0 ? '未分類の効果種類' : '効果種類'; // Removed colon
         groupDiv.appendChild(groupHeader);
         unclassifiedTypes.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(effectType => {
             appendEffectTypeToList(effectType, groupDiv);
@@ -247,7 +235,6 @@ function buildEffectTypeListDOM() {
 }
 
 export function _renderEffectTypesForManagementInternal() {
-    // ... (変更なし) ...
     if (!DOMET.effectTypeListContainer) return;
     DOMET.effectTypeListContainer.innerHTML = '';
     const listContent = buildEffectTypeListDOM();
@@ -261,7 +248,6 @@ export function _renderEffectTypesForManagementInternal() {
 }
 
 function appendEffectTypeToList(effectType, containerElement) {
-    // ... (変更なし) ...
     const unitText = effectType.defaultUnit && effectType.defaultUnit !== '' && effectType.defaultUnit !== 'none' ? `(${effectType.defaultUnit})` : '(単位なし)';
     const calcText = effectType.calculationMethod === 'max' ? '(最大値)' : '(加算)';
     let sumCapText = '';
@@ -278,9 +264,7 @@ function appendEffectTypeToList(effectType, containerElement) {
     containerElement.appendChild(div);
 }
 
-
 function handleEffectTypeListClick(event) {
-    // ... (変更なし) ...
     const target = event.target;
     const clickableName = target.closest('.list-item-name-clickable[data-id]');
     if (clickableName) {
@@ -387,21 +371,34 @@ async function deleteEffectType(id, name) {
     const charBasesCache = getCharacterBasesFuncCache();
     const usedByItem = itemsCache.find(item => item.structured_effects && item.structured_effects.some(eff => eff.type === id));
     if (usedByItem) { alert(`効果種類「${name}」はアイテム「${usedByItem.name}」の効果で使用されているため削除できません。`); return; }
+    
+    // ★★★ baseTypeMappings への依存を削除 ★★★
     for (const baseKey in charBasesCache) {
-        const displayNameKey = baseTypeMappings[baseKey] || baseKey; // ★★★ baseTypeMappings を参照 (admin-mainから渡される想定) ★★★
         const usedInBase = (charBasesCache[baseKey] || []).find(option => 
             option.effects && option.effects.some(eff => eff.type === id)
         );
-        if (usedInBase) { alert(`効果種類「${name}」はキャラクター基礎情報「${displayNameKey} - ${usedInBase.name}」の効果で使用されているため削除できません。`); return; }
+        // baseTypeMappings[baseKey] が未定義の場合があるので、直接 baseKey を使うか、
+        // もし表示名が必要なら admin-main から渡されたマッピングを使う (今回はメッセージを簡略化)
+        if (usedInBase) { 
+            alert(`効果種類「${name}」はキャラクター基礎情報「${baseKey} タイプ の ${usedInBase.name}」の効果で使用されているため削除できません。`); 
+            return; 
+        }
     }
+
     if (confirm(`効果種類「${name}」を削除しますか？\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'effect_types', id));
-            // ★★★ モーダルを閉じる前にイベント発行 ★★★
             if (DOMET.editEffectTypeModal.style.display !== 'none' && DOMET.editingEffectTypeDocIdInput.value === id) {
-                closeModal('editEffectTypeModal'); // This will trigger the event if ui-helpers is modified
+                closeModal('editEffectTypeModal'); // This will now dispatch the event
+            } else {
+                // If not closing the edit modal, manually dispatch if needed for other listeners,
+                // but usually a delete action from within a modal implies the modal closes.
+                // Forcing event dispatch if modal wasn't closed by the closeModal helper
+                // document.dispatchEvent(new CustomEvent('adminEditModalClosed', { detail: { modalId: 'editEffectTypeModal_directDelete' } }));
             }
-            document.dispatchEvent(new CustomEvent('adminEditModalClosed', { detail: { modalId: 'editEffectTypeModal' } }));
+            // The closeModal above should trigger the event that admin-main listens to.
+            // If a delete happens NOT from the modal, then a manual dispatch might be needed here if specific logic depends on it.
+            // However, for consistency, delete actions are usually within the edit modal.
             await refreshAllDataCallback();
         } catch (error) {
             console.error("[Effect Type Manager] Error deleting effect type:", error);
