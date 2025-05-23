@@ -15,6 +15,7 @@ import {
 } from './admin-modules/data-loader-admin.js';
 import { initUIHelpers, openModal as openModalHelper, closeModal as closeModalHelper } from './admin-modules/ui-helpers.js';
 
+// Import manager init functions AND their specific openEditModalById functions
 import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI, openEditCategoryModalById, buildCategoryTreeDOM as buildCategoryTreeDOMFromManager } from './admin-modules/category-manager.js';
 import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _populateCategoryCheckboxesForTagFormInternal as populateTagFormCategories, openEditTagModalById } from './admin-modules/tag-manager.js';
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI, openEditEffectUnitModalById } from './admin-modules/effect-unit-manager.js';
@@ -41,9 +42,6 @@ const DOM = {
     charBaseTypeButtons: null,
     selectedCharBaseTypeInput: null,
 };
-
-// let wasEnlargedModalOpen = false; // ★★★ 削除: 不要になった ★★★
-// let lastEnlargedModalConfig = null; // ★★★ 削除: 不要になった ★★★
 
 document.addEventListener('DOMContentLoaded', () => {
     DOM.adminSideNav = document.getElementById('adminSideNav');
@@ -88,14 +86,77 @@ document.addEventListener('DOMContentLoaded', () => {
             clearAdminUIAndData();
         }
     );
-
-    // ★★★ adminEditModalClosed イベントリスナーを削除 (またはコメントアウト) ★★★
-    // document.addEventListener('adminEditModalClosed', (e) => { ... });
+    // adminEditModalClosed イベントリスナーは削除
 });
 
-function setupAdminNav() { /* ... (変更なし) ... */ }
-function setupCharBaseTypeButtons() { /* ... (変更なし) ... */ }
-function clearAdminUIAndData() { /* ... (変更なし) ... */ }
+function setupAdminNav() {
+    if (DOM.adminHamburgerButton && DOM.adminSideNav) {
+        DOM.adminHamburgerButton.addEventListener('click', () => {
+            DOM.adminSideNav.classList.add('open');
+            DOM.adminHamburgerButton.setAttribute('aria-expanded', 'true');
+        });
+    }
+    if (DOM.adminCloseNavButton && DOM.adminSideNav) {
+        DOM.adminCloseNavButton.addEventListener('click', () => {
+            DOM.adminSideNav.classList.remove('open');
+            if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+        });
+    }
+    if (DOM.adminNavButtons) {
+        DOM.adminNavButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const targetModalId = e.currentTarget.dataset.modalTarget;
+                if (targetModalId) {
+                    openModalHelper(targetModalId);
+                    if (DOM.adminSideNav) DOM.adminSideNav.classList.remove('open');
+                    if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+                    if (targetModalId === 'characterBaseManagementModal' && typeof renderCharBaseOptionsUI === 'function') {
+                        renderCharBaseOptionsUI();
+                    } else if (targetModalId === 'effectSuperCategoryManagementModal' && typeof renderEffectSuperCategoriesUI === 'function') {
+                        renderEffectSuperCategoriesUI();
+                    }
+                }
+            });
+        });
+    }
+    setupEnlargementButtonListeners();
+    setupCharBaseTypeButtons();
+}
+
+function setupCharBaseTypeButtons() {
+    if (!DOM.charBaseTypeButtons || !DOM.selectedCharBaseTypeInput) return;
+    DOM.charBaseTypeButtons.innerHTML = ''; 
+    Object.entries(baseTypeMappings).forEach(([key, displayName]) => {
+        const button = document.createElement('div');
+        button.className = 'category-select-button';
+        button.textContent = displayName;
+        button.dataset.baseTypeKey = key;
+        if (DOM.selectedCharBaseTypeInput.value === key) button.classList.add('active');
+        button.addEventListener('click', () => {
+            DOM.charBaseTypeButtons.querySelectorAll('.active').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+            DOM.selectedCharBaseTypeInput.value = key;
+            const displaySpan = document.getElementById('selectedCharBaseTypeDisplay');
+            if (displaySpan) displaySpan.textContent = displayName;
+            if (typeof renderCharBaseOptionsUI === 'function') renderCharBaseOptionsUI();
+        });
+        DOM.charBaseTypeButtons.appendChild(button);
+    });
+}
+
+function clearAdminUIAndData() {
+    console.log("[admin-main] Clearing admin UI and data cache...");
+    const listContainersIds = ['categoryListContainer', 'tagListContainer', 'effectUnitListContainer', 'effectSuperCategoryListContainer', 'effectTypeListContainer', 'charBaseOptionListContainer'];
+    listContainersIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p>ログアウトしました。</p>'; });
+    const itemsTableBody = document.querySelector('#itemsTable tbody');
+    if (itemsTableBody) itemsTableBody.innerHTML = '';
+    document.querySelectorAll('#admin-content form').forEach(form => { if (typeof form.reset === 'function') form.reset(); });
+    document.querySelectorAll('.checkbox-group-container, .category-button-group.admin, .tag-button-container.admin').forEach(c => c.innerHTML = '');
+    ['currentEffectsList', 'currentCharBaseOptionEffectsList'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p>効果が追加されていません。</p>'; });
+    ['itemImagePreview'].forEach(id => { const el = document.getElementById(id); if (el) { el.src = '#'; el.style.display = 'none'; } });
+    clearAdminDataCache();
+    console.log("[admin-main] Admin UI cleared.");
+}
 
 async function loadAndInitializeAdminModules() {
     console.log("[admin-main] Starting to load data and initialize modules...");
@@ -110,19 +171,21 @@ async function loadAndInitializeAdminModules() {
             getEffectUnits: getEffectUnitsCache,
             getEffectSuperCategories: getEffectSuperCategoriesCache,
             getCharacterBases: getCharacterBasesCache,
-            refreshAllData: async () => { /* ... */ },
-            // ★★★ openEnlargedListModalCallbackFromMain に渡す関数を修正 ★★★
-            openEnlargedListModal: (config) => { // This is the function passed to managers
-                const items = typeof config.sourceFn === 'function' ? config.sourceFn() : config.sourceItems || [];
-                const searchTerm = config.searchInputId ? document.getElementById(config.searchInputId)?.value || "" : config.currentSearchTerm || "";
-                openEnlargedListModal( // Calls the admin-main's openEnlargedListModal
-                    items,
+            refreshAllData: async () => {
+                console.log("[admin-main] Refreshing all data and UI...");
+                await loadInitialData(db);
+                renderAllAdminUISections();
+                console.log("[admin-main] All data and UI refreshed.");
+            },
+            openEnlargedListModal: (config) => {
+                openEnlargedListModal(
+                    config.sourceItems || (typeof config.sourceFn === 'function' ? config.sourceFn() : []),
                     config.itemType,
                     config.title,
                     config.searchInputId || null,
                     config.editFunction,
-                    config.displayRenderer, // This should be a function
-                    searchTerm
+                    config.displayRenderer,
+                    config.currentSearchTerm || ""
                 );
             }
         };
@@ -137,17 +200,21 @@ async function loadAndInitializeAdminModules() {
 
         renderAllAdminUISections();
         console.log("[admin-main] Admin modules initialized and initial UI rendered successfully.");
-    } catch (error) { /* ... (変更なし) ... */ }
+    } catch (error) {
+        console.error("[admin-main] CRITICAL ERROR during admin panel initialization:", error);
+        alert("管理パネルの初期化中に重大なエラーが発生しました。コンソールを確認してください。");
+        const adminContainer = document.getElementById('admin-content')?.querySelector('.container');
+        if (adminContainer) adminContainer.innerHTML = `<p class="error-message" style="text-align:center;padding:20px;color:red;">管理データの読み込みまたは表示に失敗しました。</p>`;
+    }
 }
 
-function renderAllAdminUISections() { /* ... (変更なし、効果大分類のレンダリング呼び出し確認) ... */ 
+function renderAllAdminUISections() {
     console.log("[admin-main] Rendering all admin UI sections...");
     if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
     if (typeof renderTagsUI === 'function') renderTagsUI();
     if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
-    if (typeof renderEffectSuperCategoriesUI === 'function') renderEffectSuperCategoriesUI(); // Ensure this is called
+    if (typeof renderEffectSuperCategoriesUI === 'function') renderEffectSuperCategoriesUI();
     if (typeof renderEffectTypesUI === 'function') renderEffectTypesUI();
-    // ... (rest is same)
     if (typeof renderCharBaseOptionsUI === 'function') {
         const currentBaseType = DOM.selectedCharBaseTypeInput ? DOM.selectedCharBaseTypeInput.value : 'headShape';
         const displaySpan = document.getElementById('selectedCharBaseTypeDisplay');
@@ -175,13 +242,17 @@ function setupEnlargementButtonListeners() {
     buttonConfig.forEach(config => {
         if (config.btn) {
             const newBtn = config.btn.cloneNode(true);
-            config.btn.parentNode.replaceChild(newBtn, config.btn);
-            newBtn.addEventListener('click', () => { // Add listener to the new button
+            if (config.btn.parentNode) { // Check if parentNode exists before replacing
+                 config.btn.parentNode.replaceChild(newBtn, config.btn);
+            }
+            // config.btn = newBtn; // Reassign to the new button if needed elsewhere
+
+            newBtn.addEventListener('click', () => {
                 const items = config.sourceFn();
                 const title = typeof config.titleGetter === 'function' ? config.titleGetter() : config.title;
                 const currentSearchTerm = config.searchInputId ? document.getElementById(config.searchInputId)?.value || "" : "";
                 
-                // lastEnlargedModalConfig は不要になったため削除
+                // lastEnlargedModalConfig is no longer used for re-opening
                 openEnlargedListModal(
                     items, 
                     config.type, 
@@ -202,7 +273,7 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
         return;
     }
 
-    // wasEnlargedModalOpen フラグと lastEnlargedModalConfig は不要になったため削除
+    // wasEnlargedModalOpen and lastEnlargedModalConfig are no longer used for this logic
 
     DOM.listEnlargementModalTitle.textContent = title;
     DOM.listEnlargementModalSearchContainer.innerHTML = '';
@@ -222,12 +293,11 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
     const renderContent = (filterTerm = '') => {
         DOM.listEnlargementModalContent.innerHTML = '';
         let itemsToRender = items; 
-        if (filterTerm && items) { // Ensure items is not null/undefined
+        if (filterTerm && items) {
             itemsToRender = items.filter(item => item.name && item.name.toLowerCase().includes(filterTerm.toLowerCase()));
         } else if (!items) {
-            itemsToRender = []; // Handle case where items might be undefined
+            itemsToRender = [];
         }
-
 
         if (!itemsToRender || itemsToRender.length === 0) {
             DOM.listEnlargementModalContent.innerHTML = filterTerm ? '<p>検索条件に一致する項目はありません。</p>' : '<p>表示する項目がありません。</p>';
@@ -242,12 +312,13 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
                     const contentDiv = li.querySelector('.category-tree-content');
                     if (contentDiv && typeof editFunction === 'function') {
                         contentDiv.classList.add('list-item-name-clickable');
+                        // Clone and replace to ensure clean listeners, though direct add is usually fine if not re-rendering often
                         const newContentDiv = contentDiv.cloneNode(true);
                         contentDiv.parentNode.replaceChild(newContentDiv, contentDiv);
                         newContentDiv.addEventListener('click', (e) => {
                             if (e.target.closest('.category-tree-expander')) return;
                             const catId = li.dataset.categoryId;
-                            // ★★★ 拡大モーダルは閉じない ★★★
+                            // Do NOT close enlarged modal here
                             editFunction(catId); 
                         });
                     }
@@ -262,21 +333,43 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
                 const nameSpan = document.createElement('span');
                 nameSpan.classList.add('list-item-name-clickable');
                 let displayText = item.name || '(名称未設定)';
-                if (type === 'tag') { /* ... */ }
-                else if (type === 'effectUnit') { /* ... */ }
-                else if (type === 'effectSuperCategory') {
+                if (type === 'tag') {
+                    const belongingCategoriesNames = (item.categoryIds || [])
+                       .map(catId => getAllCategoriesCache().find(c => c.id === catId)?.name)
+                       .filter(name => name).join(', ') || '未分類';
+                   displayText += ` (所属: ${belongingCategoriesNames})`;
+                } else if (type === 'effectUnit') {
+                   displayText += item.position === 'prefix' ? ' (前)' : ' (後)';
+                } else if (type === 'effectSuperCategory') {
                     const typesCount = (getEffectTypesCache() || []).filter(et => et.superCategoryId === item.id).length;
                     displayText += ` (${typesCount} 効果種類)`;
+                } else if (type === 'effectType') {
+                    const superCat = (getEffectSuperCategoriesCache() || []).find(sc => sc.id === item.superCategoryId);
+                    displayText += superCat ? ` (大分類: ${superCat.name})` : ' (大分類:未設定)';
+                    displayText += item.defaultUnit && item.defaultUnit !== 'none' ? ` [${item.defaultUnit}]` : ' [単位なし]';
+                } else if (type === 'charBaseOption') {
+                   if (item.effects && item.effects.length > 0) {
+                       const effectsSummary = item.effects.map(eff => {
+                           const typeInfo = getEffectTypesCache().find(et => et.id === eff.type);
+                           const unitInfo = getEffectUnitsCache().find(u => u.name === eff.unit);
+                           const unitPos = unitInfo ? unitInfo.position : 'suffix';
+                           const unitStr = eff.unit && eff.unit !== 'none' ? eff.unit : '';
+                           const valStr = eff.value;
+                           const effectValDisplay = unitPos === 'prefix' ? `${unitStr}${valStr}` : `${valStr}${unitStr}`;
+                           return `${typeInfo ? typeInfo.name : '不明'} ${effectValDisplay}`;
+                       }).join('; ');
+                       displayText += ` (効果: ${effectsSummary.substring(0, 30)}${effectsSummary.length > 30 ? '...' : ''})`;
+                   } else {
+                       displayText += ' (効果なし)';
+                   }
                 }
-                else if (type === 'effectType') { /* ... */ }
-                else if (type === 'charBaseOption') { /* ... */ }
                 nameSpan.textContent = displayText;
                 nameSpan.dataset.id = item.id;
 
                 if (typeof editFunction === 'function') {
                     nameSpan.addEventListener('click', (e) => {
                         const itemId = e.target.dataset.id;
-                        // ★★★ 拡大モーダルは閉じない ★★★
+                        // Do NOT close enlarged modal here
                         editFunction(itemId);
                     });
                 } else { nameSpan.style.cursor = 'default'; }
