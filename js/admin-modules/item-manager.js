@@ -13,6 +13,10 @@ const DOMI = {
     uploadProgressContainer: null,
     uploadProgress: null,
     uploadProgressText: null,
+    // --- レア度関連のDOM要素 ---
+    itemRaritySelector: null,
+    itemRarityValueInput: null,
+    // --- ここまで ---
     effectTypeSelect: null,
     effectValueInput: null,
     effectUnitDisplay: null,
@@ -41,6 +45,8 @@ let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 let itemEffectEditMode = false;
 let itemEffectEditingIndex = -1;
 
+const MAX_RARITY = 5; // 星の最大数
+
 export function initItemManager(dependencies) {
     dbInstance = dependencies.db;
     getAllItemsFuncCache = dependencies.getItems;
@@ -50,7 +56,6 @@ export function initItemManager(dependencies) {
     refreshAllDataCallback = dependencies.refreshAllData;
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
-    // DOM assignments (same as before)
     DOMI.itemForm = document.getElementById('itemForm');
     DOMI.itemIdToEditInput = document.getElementById('itemIdToEdit');
     DOMI.itemNameInput = document.getElementById('itemName');
@@ -61,6 +66,12 @@ export function initItemManager(dependencies) {
     DOMI.uploadProgressContainer = document.getElementById('uploadProgressContainer');
     DOMI.uploadProgress = document.getElementById('uploadProgress');
     DOMI.uploadProgressText = document.getElementById('uploadProgressText');
+
+    // --- レア度関連のDOM要素の取得 ---
+    DOMI.itemRaritySelector = document.getElementById('itemRaritySelector');
+    DOMI.itemRarityValueInput = document.getElementById('itemRarityValue');
+    // --- ここまで ---
+
     DOMI.effectTypeSelect = document.getElementById('effectTypeSelect');
     DOMI.effectValueInput = document.getElementById('effectValueInput');
     DOMI.effectUnitDisplay = document.getElementById('effectUnitDisplay');
@@ -74,7 +85,6 @@ export function initItemManager(dependencies) {
     DOMI.itemsTableBody = document.querySelector('#itemsTable tbody');
     DOMI.itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
-    // Event listeners (same as before)
     if (DOMI.itemForm) DOMI.itemForm.addEventListener('submit', saveItem);
     if (DOMI.clearFormButton) DOMI.clearFormButton.addEventListener('click', clearItemFormInternal);
     if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.addEventListener('change', handleImageFileSelect);
@@ -93,11 +103,54 @@ export function initItemManager(dependencies) {
             }
         });
     }
+    
+    // --- レア度UIの初期化 ---
+    initializeRaritySelector();
+    // --- ここまで ---
+
     console.log("[Item Manager] Initialized. Worker URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
 }
 
+// --- レア度設定UIの初期化とイベントリスナー ---
+function initializeRaritySelector() {
+    if (!DOMI.itemRaritySelector || !DOMI.itemRarityValueInput) return;
+    DOMI.itemRaritySelector.innerHTML = ''; // 既存の星をクリア
+    for (let i = 1; i <= MAX_RARITY; i++) {
+        const star = document.createElement('span');
+        star.classList.add('star');
+        star.dataset.value = i;
+        star.textContent = '★'; // Unicode star character
+        star.addEventListener('click', () => handleRarityStarClick(i));
+        DOMI.itemRaritySelector.appendChild(star);
+    }
+    setRarityUI(0); // 初期は0に設定
+}
+
+function handleRarityStarClick(value) {
+    const currentValue = parseInt(DOMI.itemRarityValueInput.value, 10);
+    const newValue = (currentValue === value) ? 0 : value; // 同じ星をクリックしたら0に戻すか、値そのままか。ここでは0に戻す仕様。
+                                                        // もし「クリックした星の図形より右側の図形が既に黄色い場合は、それらを選択されていない状態とする」を厳密に解釈するなら、
+                                                        // 常に `value` を設定する。
+                                                        // ここでは、ユーザーの意図を汲み「右側をクリア」の挙動を優先する。
+    setRarityUI(value); // 常にクリックされた値で更新
+}
+
+function setRarityUI(value) {
+    if (!DOMI.itemRaritySelector || !DOMI.itemRarityValueInput) return;
+    DOMI.itemRarityValueInput.value = value;
+    const stars = DOMI.itemRaritySelector.querySelectorAll('.star');
+    stars.forEach(star => {
+        if (parseInt(star.dataset.value, 10) <= value) {
+            star.classList.add('selected');
+        } else {
+            star.classList.remove('selected');
+        }
+    });
+}
+// --- ここまでレア度関連処理 ---
+
+
 function switchToAddEffectMode() {
-    // ... (変更なし) ...
     itemEffectEditMode = false;
     itemEffectEditingIndex = -1;
     if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '効果を追加';
@@ -107,7 +160,6 @@ function switchToAddEffectMode() {
 }
 
 function clearItemFormInternal() {
-    // ... (変更なし) ...
     if (DOMI.itemForm) DOMI.itemForm.reset(); 
 
     DOMI.itemIdToEditInput.value = '';
@@ -125,6 +177,10 @@ function clearItemFormInternal() {
         if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '';
     }
 
+    // --- レア度を0にリセット ---
+    setRarityUI(0);
+    // --- ここまで ---
+
     currentItemEffects = [];
     _populateTagCheckboxesForItemFormInternal();
 
@@ -140,7 +196,6 @@ function clearItemFormInternal() {
 
 
 export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
-    // ... (変更なし) ...
     if(!DOMI.itemTagsSelectorCheckboxes) return;
     const allTags = getAllTagsFuncCache().sort((a,b) => a.name.localeCompare(b.name, 'ja'));
     const tagOptions = allTags.map(tag => ({ id: tag.id, name: tag.name }));
@@ -154,7 +209,6 @@ export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
 }
 
 function handleImageFileSelect(event) {
-    // ... (変更なし) ...
     const file = event.target.files[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
@@ -188,7 +242,6 @@ function handleImageFileSelect(event) {
 }
 
 function updateItemFormEffectUnitDisplay() {
-    // ... (変更なし) ...
     if (!DOMI.effectUnitDisplay || !DOMI.effectTypeSelect) return;
     const selectedOption = DOMI.effectTypeSelect.options[DOMI.effectTypeSelect.selectedIndex];
     const unitName = selectedOption ? selectedOption.dataset.unitName : null;
@@ -196,7 +249,6 @@ function updateItemFormEffectUnitDisplay() {
 }
 
 function handleAddOrUpdateEffect() {
-    // ... (変更なし) ...
     const typeId = DOMI.effectTypeSelect.value;
     const valueStr = DOMI.effectValueInput.value;
 
@@ -220,7 +272,6 @@ function handleAddOrUpdateEffect() {
 
 
 function renderCurrentItemEffectsListUI() {
-    // ... (変更なし、コロン削除は適用済み) ...
     if (!DOMI.currentEffectsList) return;
     DOMI.currentEffectsList.innerHTML = '';
     const effectTypesCache = getEffectTypesFuncCache();
@@ -282,7 +333,6 @@ function renderCurrentItemEffectsListUI() {
     });
 }
 
-// ★★★ 画像アップロード関数を origin.js 準拠の fetch を使う形に戻す ★★★
 async function uploadImageToWorkerAndGetURL(file) {
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) {
         console.warn("uploadImageToWorkerAndGetURL: No file or Worker URL provided. URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
@@ -296,45 +346,40 @@ async function uploadImageToWorkerAndGetURL(file) {
     const formData = new FormData();
     formData.append('imageFile', file);
 
-    let intervalId; // For simulated progress
+    let intervalId; 
     try {
         if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード中... (0%)';
-        // Simulate progress (fetch API doesn't have native progress for uploads like XHR)
-        // This is a very basic simulation.
         let progress = 0;
-        if (DOMI.uploadProgress) { // Only run interval if progress bar exists
+        if (DOMI.uploadProgress) { 
             intervalId = setInterval(() => {
                 progress += 10;
-                if (progress <= 90) { // Stop at 90% before fetch completes
+                if (progress <= 90) { 
                     if (DOMI.uploadProgress) DOMI.uploadProgress.value = progress;
                     if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `アップロード中... (${progress}%)`;
                 } else {
                     clearInterval(intervalId);
                 }
-            }, 150); // Adjust timing for simulation
+            }, 150); 
         }
 
         const response = await fetch(IMAGE_UPLOAD_WORKER_URL_CONST, {
             method: 'POST',
             body: formData,
-            // fetch doesn't need 'Content-Type': 'multipart/form-data' to be set manually for FormData,
-            // the browser sets it correctly along with the boundary.
         });
 
-        if (intervalId) clearInterval(intervalId); // Clear interval once fetch is done
-        if (DOMI.uploadProgress) DOMI.uploadProgress.value = 100; // Mark as complete
+        if (intervalId) clearInterval(intervalId); 
+        if (DOMI.uploadProgress) DOMI.uploadProgress.value = 100; 
 
         if (!response.ok) {
-            const errorText = await response.text(); // Get raw text for more details
+            const errorText = await response.text(); 
             console.error('[Image Upload] Upload failed with status:', response.status, errorText);
             let errorMessage = `画像のアップロードに失敗しました (HTTP ${response.status})`;
-            try { // Try to parse as JSON for more specific error from worker
+            try { 
                 const errorData = JSON.parse(errorText);
                 if (errorData && errorData.message) errorMessage = `画像アップロードエラー: ${errorData.message}`;
                 else if (errorData && errorData.error) errorMessage = `画像アップロードエラー: ${errorData.error}`;
             } catch (e) {
-                // If not JSON, use the raw text or statusText
-                if(errorText) errorMessage += `: ${errorText.substring(0,100)}`; // Limit length
+                if(errorText) errorMessage += `: ${errorText.substring(0,100)}`; 
                 else if(response.statusText) errorMessage += `: ${response.statusText}`;
             }
             alert(errorMessage);
@@ -379,7 +424,11 @@ async function saveItem(event) {
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
     
-    let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; // Default to existing/manual URL
+    // --- レア度を取得 ---
+    const rarity = parseInt(DOMI.itemRarityValueInput.value, 10) || 0;
+    // --- ここまで ---
+
+    let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; 
 
     if (!name) {
         alert("アイテム名は必須です。");
@@ -411,17 +460,14 @@ async function saveItem(event) {
             if (uploadedUrl) {
                 imageUrlToSave = uploadedUrl; 
             } else {
-                // If upload failed and it's a NEW item, we might want to stop.
-                // If it's an UPDATE, maybe we allow saving without changing the image.
-                // origin.js didn't explicitly stop, so we'll allow proceeding.
-                // The alert inside uploadImageToWorkerAndGetURL would have notified the user.
                 console.warn("Image upload failed. Current imageUrlToSave:", imageUrlToSave);
             }
         }
 
         const itemData = {
             name: name,
-            image: imageUrlToSave, // This will be new URL, or existing URL, or ""
+            image: imageUrlToSave, 
+            rarity: rarity, // --- レア度を保存データに追加 ---
             structured_effects: currentItemEffects,
             入手手段: source,
             tags: selectedItemTagIds,
@@ -433,17 +479,16 @@ async function saveItem(event) {
             if (priceToSave !== null) {
                 updatePayload.price = priceToSave;
             } else {
-                updatePayload.price = deleteField(); // Remove price if empty
+                updatePayload.price = deleteField(); 
             }
             await updateDoc(doc(dbInstance, 'items', editingDocId), updatePayload);
             console.log("Item updated:", editingDocId);
-        } else { // New item
+        } else { 
             itemData.createdAt = serverTimestamp();
             const dataToAdd = { ...itemData };
             if (priceToSave !== null) {
                 dataToAdd.price = priceToSave;
             }
-            // If priceToSave is null, 'price' field is not added to dataToAdd
             await addDoc(collection(dbInstance, 'items'), dataToAdd);
             console.log("Item added.");
         }
@@ -462,8 +507,19 @@ async function saveItem(event) {
     }
 }
 
+// --- レア度表示用のヘルパー関数 ---
+function getRarityStarsHTML(rarityValue, maxStars = MAX_RARITY) {
+    let starsHtml = '<div class="rarity-display-stars">';
+    for (let i = 1; i <= maxStars; i++) {
+        starsHtml += `<span class="star-icon ${i <= rarityValue ? 'selected' : ''}">★</span>`;
+    }
+    starsHtml += '</div>';
+    return starsHtml;
+}
+// --- ここまで ---
+
+
 export function _renderItemsAdminTableInternal() {
-    // ... (変更なし) ...
     if (!DOMI.itemsTableBody) return;
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
@@ -480,7 +536,7 @@ export function _renderItemsAdminTableInternal() {
     if (filteredItems.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = 5;
+        td.colSpan = 6; // --- 列数変更 ---
         td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
         td.style.textAlign = 'center';
         return;
@@ -523,10 +579,15 @@ export function _renderItemsAdminTableInternal() {
         }
         const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
         const nameDisplay = item.name || '(名称未設定)';
+        
+        // --- レア度表示の追加 ---
+        const rarityDisplay = getRarityStarsHTML(item.rarity || 0);
+        // --- ここまで ---
 
         tr.innerHTML = `
             <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/no_image_placeholder.png'; this.style.backgroundColor='#eee';"></td>
             <td>${nameDisplay}</td>
+            <td>${rarityDisplay}</td> <!-- レア度列の追加 -->
             <td>${priceDisplay}</td>
             <td>${effectsDisplay}</td>
             <td>${itemTagsString}</td>`;
@@ -537,7 +598,6 @@ export function _renderItemsAdminTableInternal() {
 }
 
 async function loadItemForEdit(docId) {
-    // ... (変更なし) ...
     try {
         const itemSnap = await getDoc(doc(dbInstance, "items", docId));
         if (itemSnap.exists()) {
@@ -549,6 +609,10 @@ async function loadItemForEdit(docId) {
             DOMI.itemSourceInput.value = itemData.入手手段 || "";
             DOMI.itemImageUrlInput.value = itemData.image || ''; 
             if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? String(itemData.price) : '';
+            
+            // --- レア度をフォームに反映 ---
+            setRarityUI(itemData.rarity || 0);
+            // --- ここまで ---
 
             if (itemData.image && DOMI.itemImagePreview) { 
                 DOMI.itemImagePreview.src = itemData.image;
@@ -573,7 +637,6 @@ async function loadItemForEdit(docId) {
 }
 
 async function deleteItem(docId, itemName, imageUrl) {
-    // ... (変更なし) ...
     if (confirm(`アイテム「${itemName}」を削除しますか？\n注意: Cloudflare R2上の関連画像は、この操作では削除されません。\nこの操作は元に戻せません。`)) {
         try {
             await deleteDoc(doc(dbInstance, 'items', docId));
