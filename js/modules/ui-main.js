@@ -94,6 +94,18 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     console.log("[ui-main] UI Main Initialized.");
 }
 
+// --- レア度表示用のヘルパー関数 (item-manager.js から移植/共通化も検討) ---
+function getRarityStarsHTML(rarityValue, maxStars = 5) {
+    let starsHtml = '<div class="rarity-display-stars" style="margin-bottom: 10px;"><strong>レア度:</strong> '; // ラベル追加
+    for (let i = 1; i <= maxStars; i++) {
+        starsHtml += `<span class="star-icon ${i <= rarityValue ? 'selected' : ''}" style="font-size: 1.2em; color: ${i <= rarityValue ? '#ffc107' : '#ccc'}; margin-right: 2px;">★</span>`; // インラインスタイルで色指定
+    }
+    starsHtml += '</div>';
+    return starsHtml;
+}
+// --- ここまで ---
+
+
 export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
     if (!item || !DOM.itemDetailContent || !DOM.itemDetailModal) {
         console.error("[ui-main] Item data, detail content, or modal element missing for detail view:", item ? item.docId : 'unknown item');
@@ -113,9 +125,13 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
     }
 
-    let effectsHtml = '<p><strong>効果</strong> なし</p>'; // Default if no effects, removed colon
+    // --- レア度表示HTMLの生成 ---
+    const rarityHtml = getRarityStarsHTML(item.rarity || 0);
+    // --- ここまで ---
+
+    let effectsHtml = '<p><strong>効果</strong> なし</p>'; 
     if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache && effectUnitsCache) {
-        effectsHtml = `<div class="structured-effects"><strong>効果詳細</strong><ul>`; // Removed colon
+        effectsHtml = `<div class="structured-effects"><strong>効果詳細</strong><ul>`; 
         item.structured_effects.forEach(eff => {
             const effectType = effectTypesCache.find(et => et.id === eff.type);
             const typeName = effectType ? effectType.name : `不明(${eff.type})`;
@@ -133,7 +149,6 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
             } else {
                 effectTextPart = `${eff.value}`;
             }
-            // ★★★ 「:」を削除し、半角スペースに変更 ★★★
             effectsHtml += `<li>${typeName} ${effectTextPart}</li>`;
         });
         effectsHtml += `</ul></div>`;
@@ -148,7 +163,7 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         }).filter(Boolean);
 
         if (displayableTags.length > 0) {
-            tagsHtml = `<div class="tags">タグ ${displayableTags.join(' ')}</div>`; // Removed colon
+            tagsHtml = `<div class="tags">タグ ${displayableTags.join(' ')}</div>`; 
         }
     }
 
@@ -159,11 +174,12 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     cardFull.innerHTML = `
         ${imageElementHTML}
         <h3>${item.name || '名称未設定'}</h3>
+        ${rarityHtml} <!-- レア度表示の挿入 -->
         ${effectsHtml}
         <p><strong>入手手段</strong> ${sourceText}</p> 
         <p><strong>売値</strong> ${priceText}</p>
         ${tagsHtml}
-    `; // Removed colons from labels
+    `; 
     DOM.itemDetailContent.appendChild(cardFull);
     DOM.itemDetailModal.style.display = 'flex';
 }
