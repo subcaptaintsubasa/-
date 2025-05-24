@@ -354,3 +354,36 @@
     font-size: 0.9rem;
     padding: 0.4rem 0.6rem;
 }
+
+/* Rarity Selector Styles */
+.rarity-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Space between stars */
+    cursor: default; /* Default cursor for the container */
+}
+.rarity-selector-container .star {
+    font-size: 2rem; /* Adjust star size */
+    color: #ccc; /* Default (unselected) star color */
+    cursor: pointer; /* Pointer cursor for individual stars */
+    transition: color 0.1s ease-in-out, transform 0.1s ease-in-out;
+    user-select: none; /* Prevent text selection */
+}
+.rarity-selector-container .star:hover {
+    transform: scale(1.1); /* Slight zoom on hover */
+}
+.rarity-selector-container .star.selected {
+    color: #ffc107; /* Selected star color (yellow) */
+}
+/* Styles for rarity display in lists/modals (can be shared or specific) */
+.rarity-display-stars {
+    display: inline-flex; /* To keep stars in a line */
+    gap: 2px;
+}
+.rarity-display-stars .star-icon {
+    font-size: 1em; /* Adjust based on context */
+    color: #ccc; /* Default unselected */
+}
+.rarity-display-stars .star-icon.selected {
+    color: #ffc107; /* Selected */
+}
