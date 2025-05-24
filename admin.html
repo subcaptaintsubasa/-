@@ -78,6 +78,15 @@
                         <input type="number" id="itemPrice" placeholder="例: 100 (未入力で「未設定」)" min="0" step="1">
                     </div>
 
+                    <!-- レア度設定 -->
+                    <div class="form-group">
+                        <label for="itemRaritySelector">レア度:</label>
+                        <div id="itemRaritySelector" class="rarity-selector-container">
+                            <!-- 星はJSで生成 -->
+                        </div>
+                        <input type="hidden" id="itemRarityValue" value="0">
+                    </div>
+
                     <div class="form-group">
                         <label>効果設定:</label>
                         <div class="effect-input-area">
@@ -122,7 +131,7 @@
                 <div style="overflow-x: auto;">
                     <table id="itemsTable">
                         <thead>
-                            <tr><th>画像</th><th>名前</th><th>売値</th><th>効果</th><th>タグ</th></tr>
+                            <tr><th>画像</th><th>名前</th><th>レア度</th><th>売値</th><th>効果</th><th>タグ</th></tr>
                         </thead>
                         <tbody>
                         </tbody>
