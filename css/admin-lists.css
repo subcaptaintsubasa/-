@@ -146,25 +146,21 @@
     border-collapse: collapse;
     margin-top: 1.25rem;
     font-size: 0.9rem;
-    /* table-layout: fixed; */ /* ★いったんコメントアウト。幅指定で調整し、必要なら有効化 */
+    /* table-layout: fixed; */ 
     background-color: #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border-radius: 0.25rem;
-    overflow: hidden; /* border-radiusを効かせるため */
+    overflow: hidden; 
     border: 1px solid #dee2e6;
 }
 
 #itemsTable th, #itemsTable td {
     border-bottom: 1px solid #dee2e6;
-    border-left: 1px solid #e9ecef; /* 縦線の色を少し薄く */
+    border-left: 1px solid #e9ecef; 
     padding: 0.75rem 0.9rem;
     text-align: left;
-    vertical-align: middle; /* ★中央揃えに変更 */
-    /* word-break: break-word; */ /* ★いったんコメントアウト、下のoverflow-wrapで試す */
-    overflow-wrap: break-word; /* ★長い単語でも改行を許容 */
-    /* overflow: hidden; */ /* ★text-overflow とセットで使うが、まずは改行で対応 */
-    /* text-overflow: ellipsis; */ /* ★必要に応じて */
-    /* white-space: normal; */ /* ★通常はこれで良いはず */
+    vertical-align: top; /* ★上揃えに変更して、複数行表示時の整合性を高める */
+    overflow-wrap: break-word; 
 }
 #itemsTable th:first-child, #itemsTable td:first-child {
     border-left: none;
@@ -174,46 +170,52 @@
     background-color: #f1f3f5;
     font-weight: 500;
     color: #343a40;
-    white-space: nowrap; /* ヘッダーは折り返さない */
+    white-space: nowrap; 
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom-width: 2px;
+    vertical-align: middle; /* ヘッダーは中央揃えのまま */
 }
 
 /* 各列の幅指定の調整例 */
 #itemsTable th:nth-child(1), #itemsTable td:nth-child(1) { /* 画像 */
-    width: 8%;
+    width: 7%;
     min-width: 50px;
     text-align: center;
+    vertical-align: middle; /* 画像は中央 */
 }
 #itemsTable th:nth-child(2), #itemsTable td:nth-child(2) { /* 名前 */
-    width: 20%;
+    width: 18%;
     min-width: 120px;
 }
 #itemsTable th:nth-child(3), #itemsTable td:nth-child(3) { /* レア度 */
-    width: 10%;
-    min-width: 80px; /* 星5つが入る程度の幅 */
+    width: 7%;
+    min-width: 60px; 
     text-align: center;
 }
 #itemsTable th:nth-child(4), #itemsTable td:nth-child(4) { /* 売値 */
-    width: 10%;
-    min-width: 70px;
-    white-space: nowrap; /* 売値は折り返さない */
+    width: 8%;
+    min-width: 65px; /* 5桁Gが入る程度 */
+    white-space: nowrap; 
 }
 #itemsTable th:nth-child(5), #itemsTable td:nth-child(5) { /* 効果 */
-    width: 30%; /* ★効果列の幅を増やす */
-    min-width: 200px; /* ★最小幅も設定 */
+    width: 25%; 
+    min-width: 180px; 
 }
 #itemsTable th:nth-child(6), #itemsTable td:nth-child(6) { /* タグ */
-    width: 22%; /* ★タグ列の幅を増やす */
-    min-width: 150px; /* ★最小幅も設定 */
+    width: 20%; 
+    min-width: 150px; 
+}
+#itemsTable th:nth-child(7), #itemsTable td:nth-child(7) { /* 入手経路 */
+    width: 15%;
+    min-width: 120px;
 }
 
 
 #itemsTable img {
-    max-width: 50px; /* 最大幅を少し大きく */
-    max-height: 50px; /* 最大高さを少し大きく */
+    max-width: 50px; 
+    max-height: 50px; 
     width: auto;
     height: auto;
     object-fit: contain;
@@ -229,17 +231,39 @@
     cursor: pointer;
 }
 #itemsTable tbody tr.table-row-clickable:hover {
-    background-color: #e2e6ea; /* 少し濃いめに */
+    background-color: #e2e6ea; 
 }
 
-#itemsTable tbody tr:nth-child(even) { /* 縞模様は維持 */
+#itemsTable tbody tr:nth-child(even) { 
     background-color: #f8f9fa;
 }
 #itemsTable tbody tr:nth-child(even):hover {
-    background-color: #dde1e6; /* Even行のホバーも少し濃く */
+    background-color: #dde1e6; 
 }
 #itemsTable tbody tr.table-row-clickable:nth-child(even):hover {
     background-color: #d3d9df;
+}
+
+/* ★テーブル内のタグ表示用スタイル */
+#itemsTable .tag-display-in-table {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    margin: 2px;
+    font-size: 0.85em;
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 15px; /* Pill shape */
+    color: #495057;
+    white-space: nowrap; /* タグ自体は折り返さない */
+}
+/* ★テーブル内の効果リスト表示用スタイル */
+#itemsTable .effect-list-in-table {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+#itemsTable .effect-list-in-table li {
+    margin-bottom: 0.2em;
 }
 
 
@@ -263,10 +287,10 @@
 
 /* Style for list enlargement button */
 .button-like-icon {
-    background-color: transparent !important; /* 強制的に透明 */
-    border: 1px solid #adb5bd;           /* 少し濃いめのボーダーで見やすく */
+    background-color: transparent !important; 
+    border: 1px solid #adb5bd;           
     color: #495057;
-    padding: 0.25rem 0.4rem; /* パディングを少し調整 */
+    padding: 0.25rem 0.4rem; 
     font-size: 0.9rem;
     border-radius: 0.25rem;
     cursor: pointer;
@@ -275,23 +299,23 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 30px; /* ボタンの最小幅 */
-    min-height: 30px; /* ボタンの最小高さ */
+    min-width: 30px; 
+    min-height: 30px; 
 }
 .button-like-icon:hover {
-    background-color: #e9ecef !important; /* ホバー時の背景も強制 */
-    border-color: #6c757d; /* ホバー時ボーダーをさらに濃く */
+    background-color: #e9ecef !important; 
+    border-color: #6c757d; 
     color: #212529;
 }
-.button-like-icon .icon, /* For text based icons like 🔎 if used as fallback or primary */
-.button-like-icon i    /* For Font Awesome icons if used */
+.button-like-icon .icon, 
+.button-like-icon i    
 {
-    font-size: 1.2em; /* テキスト/フォントアイコンのサイズ */
+    font-size: 1.2em; 
     vertical-align: middle;
 }
-.button-like-icon img.enlarge-icon-img /* For specific image icons */
+.button-like-icon img.enlarge-icon-img 
 {
-    width: 50px;  /* アイコンの表示幅を大きく */
-    height: 50px; /* アイコンの表示高さを大きく */
+    width: 50px;  
+    height: 50px; 
     vertical-align: middle;
 }
