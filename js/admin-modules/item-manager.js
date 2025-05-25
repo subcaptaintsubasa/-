@@ -67,10 +67,8 @@ export function initItemManager(dependencies) {
     DOMI.uploadProgress = document.getElementById('uploadProgress');
     DOMI.uploadProgressText = document.getElementById('uploadProgressText');
 
-    // --- レア度関連のDOM要素の取得 ---
     DOMI.itemRaritySelector = document.getElementById('itemRaritySelector');
     DOMI.itemRarityValueInput = document.getElementById('itemRarityValue');
-    // --- ここまで ---
 
     DOMI.effectTypeSelect = document.getElementById('effectTypeSelect');
     DOMI.effectValueInput = document.getElementById('effectValueInput');
@@ -104,35 +102,27 @@ export function initItemManager(dependencies) {
         });
     }
     
-    // --- レア度UIの初期化 ---
     initializeRaritySelector();
-    // --- ここまで ---
 
     console.log("[Item Manager] Initialized. Worker URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
 }
 
-// --- レア度設定UIの初期化とイベントリスナー ---
 function initializeRaritySelector() {
     if (!DOMI.itemRaritySelector || !DOMI.itemRarityValueInput) return;
-    DOMI.itemRaritySelector.innerHTML = ''; // 既存の星をクリア
+    DOMI.itemRaritySelector.innerHTML = ''; 
     for (let i = 1; i <= MAX_RARITY; i++) {
         const star = document.createElement('span');
         star.classList.add('star');
         star.dataset.value = i;
-        star.textContent = '★'; // Unicode star character
+        star.textContent = '★'; 
         star.addEventListener('click', () => handleRarityStarClick(i));
         DOMI.itemRaritySelector.appendChild(star);
     }
-    setRarityUI(0); // 初期は0に設定
+    setRarityUI(0); 
 }
 
 function handleRarityStarClick(value) {
-    const currentValue = parseInt(DOMI.itemRarityValueInput.value, 10);
-    const newValue = (currentValue === value) ? 0 : value; // 同じ星をクリックしたら0に戻すか、値そのままか。ここでは0に戻す仕様。
-                                                        // もし「クリックした星の図形より右側の図形が既に黄色い場合は、それらを選択されていない状態とする」を厳密に解釈するなら、
-                                                        // 常に `value` を設定する。
-                                                        // ここでは、ユーザーの意図を汲み「右側をクリア」の挙動を優先する。
-    setRarityUI(value); // 常にクリックされた値で更新
+    setRarityUI(value); 
 }
 
 function setRarityUI(value) {
@@ -147,7 +137,6 @@ function setRarityUI(value) {
         }
     });
 }
-// --- ここまでレア度関連処理 ---
 
 
 function switchToAddEffectMode() {
@@ -177,9 +166,7 @@ function clearItemFormInternal() {
         if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '';
     }
 
-    // --- レア度を0にリセット ---
     setRarityUI(0);
-    // --- ここまで ---
 
     currentItemEffects = [];
     _populateTagCheckboxesForItemFormInternal();
@@ -424,9 +411,7 @@ async function saveItem(event) {
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
     
-    // --- レア度を取得 ---
     const rarity = parseInt(DOMI.itemRarityValueInput.value, 10) || 0;
-    // --- ここまで ---
 
     let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; 
 
@@ -467,9 +452,9 @@ async function saveItem(event) {
         const itemData = {
             name: name,
             image: imageUrlToSave, 
-            rarity: rarity, // --- レア度を保存データに追加 ---
+            rarity: rarity, 
             structured_effects: currentItemEffects,
-            入手手段: source,
+            入手手段: source, // ★ フィールド名を合わせる
             tags: selectedItemTagIds,
             updatedAt: serverTimestamp()
         };
@@ -507,17 +492,6 @@ async function saveItem(event) {
     }
 }
 
-// --- レア度表示用のヘルパー関数 ---
-function getRarityStarsHTML(rarityValue, maxStars = MAX_RARITY) {
-    let starsHtml = '<div class="rarity-display-stars">';
-    for (let i = 1; i <= maxStars; i++) {
-        starsHtml += `<span class="star-icon ${i <= rarityValue ? 'selected' : ''}">★</span>`;
-    }
-    starsHtml += '</div>';
-    return starsHtml;
-}
-// --- ここまで ---
-
 
 export function _renderItemsAdminTableInternal() {
     if (!DOMI.itemsTableBody) return;
@@ -536,7 +510,7 @@ export function _renderItemsAdminTableInternal() {
     if (filteredItems.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = 6; // --- 列数変更 ---
+        td.colSpan = 7; // --- 列数変更 (画像、名前、レア度、売値、効果、タグ、入手経路) ---
         td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
         td.style.textAlign = 'center';
         return;
@@ -548,49 +522,59 @@ export function _renderItemsAdminTableInternal() {
         tr.dataset.itemDocId = item.docId;
 
         const imageDisplayPath = item.image || './images/placeholder_item.png';
-        const itemTagsString = (item.tags || [])
-            .map(tagId => allTags.find(t => t.id === tagId)?.name)
-            .filter(name => name)
-            .sort((a,b) => a.localeCompare(b, 'ja'))
-            .join(', ') || 'なし';
+        const nameDisplay = item.name || '(名称未設定)';
+        const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
+        const itemSourceDisplay = item.入手手段 || '不明'; // ★ フィールド名を合わせる
+        
+        // レア度表示（テキスト形式）
+        const rarityDisplay = `星${item.rarity || 0}`;
 
-        let effectsDisplay = '効果なし';
+        // 効果表示（リスト形式）
+        let effectsHtml = '<ul class="effect-list-in-table">';
         if (item.structured_effects && item.structured_effects.length > 0) {
-            effectsDisplay = item.structured_effects.map(eff => {
+            item.structured_effects.forEach(eff => {
                 const typeInfo = effectTypesCache.find(et => et.id === eff.type);
                 const typeName = typeInfo ? typeInfo.name : `不明(${eff.type.substring(0, 6)}...)`;
-                
                 let effectTextPart;
                 const unitName = eff.unit;
                 if (unitName && unitName !== 'none') {
                     const unitData = effectUnitsCache.find(u => u.name === unitName);
                     const position = unitData ? unitData.position : 'suffix';
-                    if (position === 'prefix') {
-                        effectTextPart = `${unitName}${eff.value}`;
-                    } else {
-                        effectTextPart = `${eff.value}${unitName}`;
-                    }
+                    effectTextPart = position === 'prefix' ? `${unitName}${eff.value}` : `${eff.value}${unitName}`;
                 } else {
                     effectTextPart = `${eff.value}`;
                 }
-                return `${typeName} ${effectTextPart}`;
-            }).join('; ');
-            if (effectsDisplay.length > 50) effectsDisplay = effectsDisplay.substring(0, 47) + '...';
+                effectsHtml += `<li>・${typeName} ${effectTextPart}</li>`;
+            });
+        } else {
+            effectsHtml += '<li>効果なし</li>';
         }
-        const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
-        const nameDisplay = item.name || '(名称未設定)';
+        effectsHtml += '</ul>';
+
+        // タグ表示（ボタン風）
+        let tagsHtml = '';
+        if (item.tags && item.tags.length > 0) {
+            tagsHtml = (item.tags || [])
+                .map(tagId => {
+                    const tag = allTags.find(t => t.id === tagId);
+                    return tag ? `<span class="tag-display-in-table">${tag.name}</span>` : '';
+                })
+                .filter(name => name)
+                .sort((a,b) => a.localeCompare(b, 'ja')) // Note: sorting HTML strings might not be ideal
+                .join(' ');
+        } else {
+            tagsHtml = 'なし';
+        }
         
-        // --- レア度表示の追加 ---
-        const rarityDisplay = getRarityStarsHTML(item.rarity || 0);
-        // --- ここまで ---
 
         tr.innerHTML = `
             <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/no_image_placeholder.png'; this.style.backgroundColor='#eee';"></td>
             <td>${nameDisplay}</td>
-            <td>${rarityDisplay}</td> <!-- レア度列の追加 -->
+            <td>${rarityDisplay}</td>
             <td>${priceDisplay}</td>
-            <td>${effectsDisplay}</td>
-            <td>${itemTagsString}</td>`;
+            <td>${effectsHtml}</td>
+            <td>${tagsHtml}</td>
+            <td>${itemSourceDisplay}</td>`;
         
         tr.addEventListener('click', () => loadItemForEdit(item.docId));
         DOMI.itemsTableBody.appendChild(tr);
@@ -606,13 +590,11 @@ async function loadItemForEdit(docId) {
 
             DOMI.itemIdToEditInput.value = itemSnap.id;
             DOMI.itemNameInput.value = itemData.name || "";
-            DOMI.itemSourceInput.value = itemData.入手手段 || "";
+            DOMI.itemSourceInput.value = itemData.入手手段 || ""; // ★ フィールド名を合わせる
             DOMI.itemImageUrlInput.value = itemData.image || ''; 
             if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? String(itemData.price) : '';
             
-            // --- レア度をフォームに反映 ---
             setRarityUI(itemData.rarity || 0);
-            // --- ここまで ---
 
             if (itemData.image && DOMI.itemImagePreview) { 
                 DOMI.itemImagePreview.src = itemData.image;
