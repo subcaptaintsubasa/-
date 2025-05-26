@@ -13,16 +13,17 @@ const DOMI = {
     uploadProgressContainer: null,
     uploadProgress: null,
     uploadProgressText: null,
-    // --- レア度関連のDOM要素 ---
     itemRaritySelector: null,
     itemRarityValueInput: null,
-    // --- ここまで ---
     effectTypeSelect: null,
     effectValueInput: null,
     effectUnitDisplay: null,
     addEffectToListButton: null,
     currentEffectsList: null,
-    itemSourceInput: null,
+    // itemSourceInput: null, // 削除
+    itemSourceDisplay: null,
+    selectedItemSourceNodeIdInput: null,
+    selectItemSourceButton: null,
     itemTagsSelectorCheckboxes: null,
     deleteItemFromFormButton: null,
     saveItemButton: null,
@@ -36,6 +37,7 @@ let getAllItemsFuncCache = () => [];
 let getAllTagsFuncCache = () => [];
 let getEffectTypesFuncCache = () => [];
 let getEffectUnitsFuncCache = () => [];
+let getItemSourcesFuncCache = () => []; // <<< 追加
 let refreshAllDataCallback = async () => {};
 
 let currentItemEffects = [];
@@ -45,7 +47,7 @@ let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 let itemEffectEditMode = false;
 let itemEffectEditingIndex = -1;
 
-const MAX_RARITY = 5; // 星の最大数
+const MAX_RARITY = 5;
 
 export function initItemManager(dependencies) {
     dbInstance = dependencies.db;
@@ -53,6 +55,7 @@ export function initItemManager(dependencies) {
     getAllTagsFuncCache = dependencies.getAllTags;
     getEffectTypesFuncCache = dependencies.getEffectTypes;
     getEffectUnitsFuncCache = dependencies.getEffectUnits;
+    getItemSourcesFuncCache = dependencies.getItemSources; // <<< 追加
     refreshAllDataCallback = dependencies.refreshAllData;
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
@@ -75,7 +78,12 @@ export function initItemManager(dependencies) {
     DOMI.effectUnitDisplay = document.getElementById('effectUnitDisplay');
     DOMI.addEffectToListButton = document.getElementById('addEffectToListButton');
     DOMI.currentEffectsList = document.getElementById('currentEffectsList');
-    DOMI.itemSourceInput = document.getElementById('itemSource');
+    
+    // DOMI.itemSourceInput = document.getElementById('itemSource'); // 削除
+    DOMI.itemSourceDisplay = document.getElementById('itemSourceDisplay');
+    DOMI.selectedItemSourceNodeIdInput = document.getElementById('selectedItemSourceNodeId');
+    DOMI.selectItemSourceButton = document.getElementById('selectItemSourceButton');
+
     DOMI.itemTagsSelectorCheckboxes = document.getElementById('itemTagsSelectorCheckboxes');
     DOMI.deleteItemFromFormButton = document.getElementById('deleteItemFromFormButton');
     DOMI.saveItemButton = document.getElementById('saveItemButton');
@@ -89,6 +97,20 @@ export function initItemManager(dependencies) {
     if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.addEventListener('click', handleAddOrUpdateEffect);
     if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.addEventListener('change', updateItemFormEffectUnitDisplay);
     if (DOMI.itemSearchAdminInput) DOMI.itemSearchAdminInput.addEventListener('input', _renderItemsAdminTableInternal);
+    
+    if (DOMI.selectItemSourceButton) {
+        DOMI.selectItemSourceButton.addEventListener('click', () => {
+            // itemSourceManagerの関数を呼び出す
+            if (window.adminModules && window.adminModules.itemSourceManager && 
+                typeof window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm === 'function') {
+                window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm();
+            } else {
+                console.error("ItemSourceManager's openSelectItemSourceModalForItemForm function not found on window.adminModules.itemSourceManager");
+                alert("入手経路選択機能の読み込みに失敗しました。");
+            }
+        });
+    }
+
     if (DOMI.deleteItemFromFormButton) {
         DOMI.deleteItemFromFormButton.addEventListener('click', () => {
             const itemId = DOMI.itemIdToEditInput.value;
@@ -170,6 +192,9 @@ function clearItemFormInternal() {
 
     currentItemEffects = [];
     _populateTagCheckboxesForItemFormInternal();
+
+    if (DOMI.itemSourceDisplay) DOMI.itemSourceDisplay.value = "";
+    if (DOMI.selectedItemSourceNodeIdInput) DOMI.selectedItemSourceNodeIdInput.value = "";
 
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
     if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none';
@@ -406,7 +431,8 @@ async function saveItem(event) {
     }
 
     const name = DOMI.itemNameInput.value.trim();
-    const source = DOMI.itemSourceInput.value.trim();
+    // const source = DOMI.itemSourceInput.value.trim(); // 削除
+    const selectedSourceNodeId = DOMI.selectedItemSourceNodeIdInput.value; // <<< 追加
     const priceStr = DOMI.itemPriceInput.value.trim();
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
@@ -446,6 +472,8 @@ async function saveItem(event) {
                 imageUrlToSave = uploadedUrl; 
             } else {
                 console.warn("Image upload failed. Current imageUrlToSave:", imageUrlToSave);
+                 // 画像アップロードに失敗しても、既存の画像URLがあればそれを使うか、
+                 // もしくはエラーとして処理を中断するかは要件次第。ここでは続行する。
             }
         }
 
@@ -454,10 +482,13 @@ async function saveItem(event) {
             image: imageUrlToSave, 
             rarity: rarity, 
             structured_effects: currentItemEffects,
-            入手手段: source, // ★ フィールド名を合わせる
+            // 入手手段: source, // 削除
+            sourceNodeId: selectedSourceNodeId || null, // <<< 追加
             tags: selectedItemTagIds,
             updatedAt: serverTimestamp()
         };
+        // `入手手段` フィールドは削除 (もし存在したら null や deleteField() で更新時に消す)
+        // itemData.入手手段 = deleteField(); // 更新時のみ必要
         
         if (editingDocId) {
             const updatePayload = { ...itemData };
@@ -466,6 +497,14 @@ async function saveItem(event) {
             } else {
                 updatePayload.price = deleteField(); 
             }
+            
+            if (selectedSourceNodeId) {
+                updatePayload.sourceNodeId = selectedSourceNodeId;
+            } else {
+                updatePayload.sourceNodeId = deleteField();
+            }
+            updatePayload.入手手段 = deleteField(); // 古いフィールドを確実に削除
+
             await updateDoc(doc(dbInstance, 'items', editingDocId), updatePayload);
             console.log("Item updated:", editingDocId);
         } else { 
@@ -474,6 +513,9 @@ async function saveItem(event) {
             if (priceToSave !== null) {
                 dataToAdd.price = priceToSave;
             }
+            // dataToAdd.sourceNodeId は itemData に含まれている
+            // dataToAdd.入手手段 は itemData に含まれていないので、追加されない
+
             await addDoc(collection(dbInstance, 'items'), dataToAdd);
             console.log("Item added.");
         }
@@ -499,18 +541,19 @@ export function _renderItemsAdminTableInternal() {
     const allTags = getAllTagsFuncCache();
     const effectTypesCache = getEffectTypesFuncCache();
     const effectUnitsCache = getEffectUnitsFuncCache();
+    const itemSourcesCache = getItemSourcesFuncCache(); // <<< 追加
     DOMI.itemsTableBody.innerHTML = '';
 
     const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
     const filteredItems = itemsCache.filter(item =>
         (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-        (!searchTerm && (item.name === "" || !item.name))
+        (!searchTerm && (item.name === "" || !item.name)) // 検索語がない場合は空の名前も含む
     ).sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja'));
 
     if (filteredItems.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = 7; // --- 列数変更 (画像、名前、レア度、売値、効果、タグ、入手経路) ---
+        td.colSpan = 7;
         td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
         td.style.textAlign = 'center';
         return;
@@ -524,12 +567,31 @@ export function _renderItemsAdminTableInternal() {
         const imageDisplayPath = item.image || './images/placeholder_item.png';
         const nameDisplay = item.name || '(名称未設定)';
         const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
-        const itemSourceDisplay = item.入手手段 || '不明'; // ★ フィールド名を合わせる
         
-        // レア度表示（テキスト形式）
+        let itemSourcePathDisplay = '不明'; // <<< 入手経路表示用
+        if (item.sourceNodeId) {
+            const pathParts = [];
+            let currentId = item.sourceNodeId;
+            let sanityCheck = 0;
+            while(currentId && sanityCheck < 10) {
+                const node = itemSourcesCache.find(s => s.id === currentId);
+                if (node) {
+                    pathParts.unshift(node.name);
+                    currentId = node.parentId;
+                } else {
+                    pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`);
+                    break;
+                }
+                sanityCheck++;
+            }
+            if (pathParts.length > 0) itemSourcePathDisplay = pathParts.join(' > ');
+            else if (item.sourceNodeId) itemSourcePathDisplay = `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
+        } else if (item.入手手段) { // 古いデータ形式のフォールバック
+             itemSourcePathDisplay = item.入手手段;
+        }
+        
         const rarityDisplay = `星${item.rarity || 0}`;
 
-        // 効果表示（リスト形式）
         let effectsHtml = '<ul class="effect-list-in-table">';
         if (item.structured_effects && item.structured_effects.length > 0) {
             item.structured_effects.forEach(eff => {
@@ -551,7 +613,6 @@ export function _renderItemsAdminTableInternal() {
         }
         effectsHtml += '</ul>';
 
-        // タグ表示（ボタン風）
         let tagsHtml = '';
         if (item.tags && item.tags.length > 0) {
             tagsHtml = (item.tags || [])
@@ -560,7 +621,7 @@ export function _renderItemsAdminTableInternal() {
                     return tag ? `<span class="tag-display-in-table">${tag.name}</span>` : '';
                 })
                 .filter(name => name)
-                .sort((a,b) => a.localeCompare(b, 'ja')) // Note: sorting HTML strings might not be ideal
+                .sort((a,b) => a.localeCompare(b, 'ja'))
                 .join(' ');
         } else {
             tagsHtml = 'なし';
@@ -574,7 +635,7 @@ export function _renderItemsAdminTableInternal() {
             <td>${priceDisplay}</td>
             <td>${effectsHtml}</td>
             <td>${tagsHtml}</td>
-            <td>${itemSourceDisplay}</td>`;
+            <td>${itemSourcePathDisplay}</td>`;
         
         tr.addEventListener('click', () => loadItemForEdit(item.docId));
         DOMI.itemsTableBody.appendChild(tr);
@@ -590,7 +651,21 @@ async function loadItemForEdit(docId) {
 
             DOMI.itemIdToEditInput.value = itemSnap.id;
             DOMI.itemNameInput.value = itemData.name || "";
-            DOMI.itemSourceInput.value = itemData.入手手段 || ""; // ★ フィールド名を合わせる
+            // DOMI.itemSourceInput.value = itemData.入手手段 || ""; // 削除
+            const sourceNodeId = itemData.sourceNodeId || ""; // <<< 追加
+            DOMI.selectedItemSourceNodeIdInput.value = sourceNodeId; // <<< 追加
+            
+            // itemSourceManager の displaySelectedItemSourcePathOnLoad を呼び出す
+            if (window.adminModules && window.adminModules.itemSourceManager && 
+                typeof window.adminModules.itemSourceManager.displaySelectedItemSourcePathOnLoad === 'function') {
+                await window.adminModules.itemSourceManager.displaySelectedItemSourcePathOnLoad(sourceNodeId);
+            } else {
+                console.warn("ItemSourceManager's displaySelectedItemSourcePathOnLoad function not found.");
+                if (DOMI.itemSourceDisplay) { // フォールバック表示
+                    DOMI.itemSourceDisplay.value = sourceNodeId ? `(選択済ID: ${sourceNodeId})` : "";
+                }
+            }
+
             DOMI.itemImageUrlInput.value = itemData.image || ''; 
             if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? String(itemData.price) : '';
             
