@@ -1,10 +1,6 @@
 // js/admin-modules/data-loader-admin.js
-// Handles loading all necessary data from Firestore for the admin panel
-// and acts as a central cache for this data.
-
 import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-// Cache variables for admin panel data
 let allCategoriesCache = [];
 let allTagsCache = [];
 let itemsCache = [];
@@ -12,16 +8,14 @@ let effectTypesCache = [];
 let effectUnitsCache = [];
 let effectSuperCategoriesCache = [];
 let characterBasesCache = {};
-let itemSourcesCache = []; // <<< 追加
+let itemSourcesCache = [];
 
-// Constants
 export const baseTypeMappingsForLoader = {
     headShape: "頭の形",
     correction: "補正",
     color: "色",
     pattern: "柄"
 };
-// This URL is specific to your Cloudflare Worker for image uploads
 export const IMAGE_UPLOAD_WORKER_URL = 'https://denpa-item-uploader.tsubasa-hsty-f58.workers.dev';
 
 
@@ -124,8 +118,6 @@ async function loadCharacterBasesFromFirestore(db) {
 async function loadItemSourcesFromFirestore(db) {
     console.log("[Admin][Data Loader][ItemSources] Loading item sources...");
     try {
-        // Firestoreで階層構造を効率的にソートするのは難しいため、一旦nameでソートし、クライアント側で再構築します。
-        // 必要であれば、depthフィールドとnameフィールドで複合ソートすることも検討できます。
         const q = query(collection(db, 'item_sources'), orderBy('depth'), orderBy('name'));
         const snapshot = await getDocs(q);
         itemSourcesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -146,7 +138,7 @@ export async function loadInitialData(db) {
             loadCategoriesFromFirestore(db),
             loadTagsFromFirestore(db),
             loadCharacterBasesFromFirestore(db),
-            loadItemSourcesFromFirestore(db), // <<< 追加
+            loadItemSourcesFromFirestore(db),
             loadItemsFromFirestore(db)
         ]);
         console.log("[Admin][Data Loader] All initial data load promises settled.");
@@ -164,7 +156,7 @@ export function clearAdminDataCache() {
     effectUnitsCache = [];
     effectSuperCategoriesCache = [];
     characterBasesCache = {};
-    itemSourcesCache = []; // <<< 追加
+    itemSourcesCache = [];
     console.log("[Admin][Data Loader] All admin data caches cleared.");
 }
 
@@ -175,4 +167,4 @@ export const getEffectTypesCache = () => effectTypesCache;
 export const getEffectUnitsCache = () => effectUnitsCache;
 export const getEffectSuperCategoriesCache = () => effectSuperCategoriesCache;
 export const getCharacterBasesCache = () => characterBasesCache;
-export const getItemSourcesCache = () => itemSourcesCache; // <<< 追加
+export const getItemSourcesCache = () => itemSourcesCache;
