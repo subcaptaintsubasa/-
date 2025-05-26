@@ -66,6 +66,7 @@ export function initItemSourceManager(dependencies) {
     for (let i = 1; i <= 4; i++) {
         const selector = document.getElementById(`sourceLevel${i}`);
         if (selector) DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors.push(selector);
+        // sourceLevelGroupDivs は Level 2, 3, 4 のグループを格納するので、インデックスは 0, 1, 2
         if (i > 1) { 
             const groupDiv = document.getElementById(`sourceLevel${i}Group`);
             if (groupDiv) DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs.push(groupDiv);
@@ -174,7 +175,7 @@ function selectParentSourceButtonUI(container, hiddenInput, clickedButton, paren
 }
 
 export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlargedView = false) {
-    const buildNode = (parentId = "", currentDisplayDepth = 0) => {
+    const buildNode = (parentId = "", currentDisplayDepth = 0) => { // currentDisplayDepth is for visual indent if needed, not strict depth
         const children = sourcesToDisplay
             .filter(source => (source.parentId || "") === parentId)
             .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
@@ -224,7 +225,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
             li.appendChild(content);
 
             if (hasActualChildren) {
-                const childrenUl = buildNode(source.id, actualDepth + 1);
+                const childrenUl = buildNode(source.id, actualDepth + 1); 
                 if (childrenUl) {
                     if (!isEnlargedView && !isExpanded && !currentItemSourceSearchTerm) {
                         childrenUl.classList.add('hidden');
@@ -475,9 +476,13 @@ function openSelectItemSourceModalForItemForm() {
     
     DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors.forEach((sel, index) => {
         sel.innerHTML = ''; 
-        const groupDiv = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[index-1]; 
-        if (index > 0 && groupDiv) {
-            groupDiv.style.display = 'none';
+        // sourceLevelGroupDivs は L2, L3, L4 のグループ (index 0, 1, 2)
+        // index 0 は L1 のセレクタなので、対応するグループはない
+        if (index > 0) { // L2, L3, L4 のセレクタの場合
+             const groupDivIndex = index -1; // L2セレクタ(index=1)ならgroupDivs[0]
+             if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupDivIndex]) {
+                DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupDivIndex].style.display = 'none';
+            }
         }
     });
 
@@ -491,7 +496,6 @@ function populateSourceLevelSelectForItemForm(level, parentId) {
     const selector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[selectorIndex];
     if (!selector) return;
     const allSources = getItemSourcesFuncCache();
-    // Ensure children are filtered by the correct depth for that level
     const children = allSources.filter(s => (s.parentId || "") === parentId && (s.depth !== undefined && s.depth === selectorIndex)).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
     
     selector.innerHTML = '<option value="">選択してください</option>';
@@ -501,39 +505,69 @@ function populateSourceLevelSelectForItemForm(level, parentId) {
         selector.appendChild(option);
     });
 
-    for (let i = level; i < 4; i++) { // Start hiding from the *next* level
+    // 後続レベルのセレクタをリセットし、グループを非表示にする
+    for (let i = level; i < 4; i++) { // i は selectorIndex
         const nextSelector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
         if (nextSelector) nextSelector.innerHTML = '<option value="">選択してください</option>';
-        // Groups are for levels 2, 3, 4. Their indices in sourceLevelGroupDivs are 0, 1, 2.
-        // So for level `i+1`, the group index is `i`.
-        const nextGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[i]; 
-        if (nextGroup) nextGroup.style.display = 'none';
+        // sourceLevelGroupDivs は L2, L3, L4 のグループ (index 0, 1, 2)
+        // 次のレベルのグループ (level i+1 に対応) のインデックスは i-1 (iが1から始まる場合)
+        // ここでは i が selectorIndex (0から始まる) なので、
+        // L(i+1) のセレクタに対応するグループは、sourceLevelGroupDivs[i] ではない。
+        // selectorIndex i に対応するグループは sourceLevelGroupDivs[i-1] (iが1以上の場合)
+        if (i > 0) { // L1のセレクタには対応するグループDivはないので、i>0 (L2以降のセレクタ)で処理
+            const groupDivIndex = i - 1;
+            if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupDivIndex]) {
+                DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupDivIndex].style.display = 'none';
+            }
+        }
     }
 }
 
 function handleSourceLevelChangeForItemForm(event) {
-    const currentLevel = parseInt(event.target.dataset.level, 10);
+    const currentLevel = parseInt(event.target.dataset.level, 10); // 1-indexed level (1, 2, 3, 4)
     const selectedValue = event.target.value;
 
+    // Reset and hide subsequent levels
+    // currentLevel が 1 の場合、i は 1, 2, 3 となる。
+    // これらは level 2, 3, 4 の selector index (0-indexed) に対応する。
     for (let i = currentLevel; i < 4; i++) {
-        const nextSelector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
-        // For groups: if currentLevel is 1, next group is L2 (index 0 in sourceLevelGroupDivs).
-        // So, group for level `i+1` is at index `i`.
-        const nextGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[i]; 
-        if (nextSelector) nextSelector.innerHTML = '<option value="">選択してください</option>';
-        if (nextGroup) nextGroup.style.display = 'none';
+        const selectorToReset = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i]; // index i (next level's selector)
+        if (selectorToReset) {
+            selectorToReset.innerHTML = '<option value="">選択してください</option>';
+        }
+        // The group for level i+1 (selectorToReset is for level i+1)
+        // sourceLevelGroupDivs stores groups for L2, L3, L4 at indices 0, 1, 2.
+        // If selectorToReset is L2 (i=1), its group is sourceLevelGroupDivs[0].
+        // If selectorToReset is L3 (i=2), its group is sourceLevelGroupDivs[1].
+        // So, the group index is `i-1`.
+        if (i > 0) { // Only for L2, L3, L4 selectors
+            const groupToHide = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[i - 1];
+            if (groupToHide) {
+                groupToHide.style.display = 'none';
+            }
+        }
     }
 
     if (selectedValue && currentLevel < 4) {
-        // Group for *next* level (currentLevel+1) is at index currentLevel in sourceLevelGroupDivs
-        const nextLevelGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[currentLevel]; 
-        if (nextLevelGroup) {
+        // Populate and show the next level's group
+        // The group for the next level (currentLevel + 1)
+        // If currentLevel is 1 (L1 changed), next level is L2. L2's group is sourceLevelGroupDivs[0].
+        // If currentLevel is 2 (L2 changed), next level is L3. L3's group is sourceLevelGroupDivs[1].
+        // So, the group index is `currentLevel - 1`.
+        const nextLevelGroupIndex = currentLevel -1; // This is wrong.
+                                                // If currentLevel=1, next group is L2Group (index 0).
+                                                // If currentLevel=2, next group is L3Group (index 1).
+                                                // So it should be currentLevel for the group index if groups are L2,L3,L4
+                                                // No, it is currentLevel-1 for the group index in sourceLevelGroupDivs
+        const groupToShow = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[currentLevel -1]; // Corrected: if currentLevel=1, groupDivs[0] is L2.
+        if (groupToShow) {
             populateSourceLevelSelectForItemForm(currentLevel + 1, selectedValue);
-            nextLevelGroup.style.display = 'block';
+            groupToShow.style.display = 'block';
         }
     }
     updateSelectionPathDisplayForItemForm();
 }
+
 
 function updateSelectionPathDisplayForItemForm() {
     if (!DOM_ITEM_FORM_SOURCE_SELECT.currentSelectionPathDisplay || !DOM_ITEM_FORM_SOURCE_SELECT.confirmItemSourceSelectionButton) return;
