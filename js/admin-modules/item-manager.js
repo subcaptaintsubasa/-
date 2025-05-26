@@ -16,9 +16,8 @@ const DOMI = {
     itemRaritySelector: null,
     itemRarityValueInput: null,
     
-    // 効果設定関連
     toggleEffectsInputModeButton: null,
-    effectsInputModeHiddenInput: null, // Hidden input for effects mode
+    effectsInputModeHiddenInput: null,
     structuredEffectsArea: null,
     manualEffectsArea: null,
     manualEffectsStringTextarea: null,
@@ -28,9 +27,8 @@ const DOMI = {
     addEffectToListButton: null,
     currentEffectsList: null,
     
-    // 入手手段関連
     toggleSourceInputModeButton: null,
-    sourceInputModeHiddenInput: null, // Hidden input for source mode
+    sourceInputModeHiddenInput: null,
     treeSourceArea: null,
     manualSourceArea: null,
     manualSourceStringTextarea: null,
@@ -54,7 +52,7 @@ let getEffectUnitsFuncCache = () => [];
 let getItemSourcesFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
-let currentItemEffects = []; // For structured_effects
+let currentItemEffects = [];
 let selectedImageFile = null;
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
@@ -87,7 +85,6 @@ export function initItemManager(dependencies) {
     DOMI.itemRaritySelector = document.getElementById('itemRaritySelector');
     DOMI.itemRarityValueInput = document.getElementById('itemRarityValue');
 
-    // 効果設定 DOM
     DOMI.toggleEffectsInputModeButton = document.getElementById('toggleEffectsInputModeButton');
     DOMI.effectsInputModeHiddenInput = document.getElementById('effectsInputMode');
     DOMI.structuredEffectsArea = document.getElementById('structuredEffectsArea');
@@ -99,7 +96,6 @@ export function initItemManager(dependencies) {
     DOMI.addEffectToListButton = document.getElementById('addEffectToListButton');
     DOMI.currentEffectsList = document.getElementById('currentEffectsList');
     
-    // 入手手段 DOM
     DOMI.toggleSourceInputModeButton = document.getElementById('toggleSourceInputModeButton');
     DOMI.sourceInputModeHiddenInput = document.getElementById('sourceInputMode');
     DOMI.treeSourceArea = document.getElementById('treeSourceArea');
@@ -129,7 +125,7 @@ export function initItemManager(dependencies) {
                 typeof window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm === 'function') {
                 window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm();
             } else {
-                console.error("ItemSourceManager's openSelectItemSourceModalForItemForm function not found.");
+                console.error("ItemSourceManager's openSelectItemSourceModalForItemForm function not found on window.adminModules.itemSourceManager");
                 alert("入手経路選択機能の読み込みに失敗しました。");
             }
         });
@@ -148,7 +144,6 @@ export function initItemManager(dependencies) {
         });
     }
     
-    // 切り替えボタンのイベントリスナー
     if (DOMI.toggleEffectsInputModeButton) {
         DOMI.toggleEffectsInputModeButton.addEventListener('click', () => {
             const currentMode = DOMI.effectsInputModeHiddenInput.value;
@@ -202,7 +197,7 @@ function initializeRaritySelector() {
 
 function handleRarityStarClick(value) {
     const currentValue = parseInt(DOMI.itemRarityValueInput.value, 10);
-    if (currentValue === value) { // 同じ星を再度クリックしたら0に戻す
+    if (currentValue === value) { 
         setRarityUI(0);
     } else {
         setRarityUI(value);
@@ -251,7 +246,6 @@ function clearItemFormInternal() {
 
     setRarityUI(0);
 
-    // 効果設定リセット
     currentItemEffects = [];
     if (DOMI.effectsInputModeHiddenInput) DOMI.effectsInputModeHiddenInput.value = 'structured';
     if (DOMI.structuredEffectsArea) DOMI.structuredEffectsArea.style.display = 'block';
@@ -261,7 +255,6 @@ function clearItemFormInternal() {
     switchToAddEffectMode();
     renderCurrentItemEffectsListUI();
 
-    // 入手手段リセット
     if (DOMI.sourceInputModeHiddenInput) DOMI.sourceInputModeHiddenInput.value = 'tree';
     if (DOMI.treeSourceArea) DOMI.treeSourceArea.style.display = 'block';
     if (DOMI.manualSourceArea) DOMI.manualSourceArea.style.display = 'none';
@@ -295,7 +288,7 @@ export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
 function handleImageFileSelect(event) {
     const file = event.target.files[0];
     if (file) {
-        if (file.size > 5 * 1024 * 1024) { // 5MB
+        if (file.size > 5 * 1024 * 1024) {
             alert("ファイルサイズが大きすぎます。5MB以下の画像を選択してください。");
             event.target.value = null; 
             selectedImageFile = null;
@@ -497,7 +490,6 @@ async function saveItem(event) {
     const selectedSourceNodeId = DOMI.selectedItemSourceNodeIdInput.value;
     const manualSourceString = DOMI.manualSourceStringTextarea.value.trim();
 
-
     if (!name) {
         alert("アイテム名は必須です。");
         if (DOMI.saveItemButton) { DOMI.saveItemButton.disabled = false; DOMI.saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存"; }
@@ -522,28 +514,26 @@ async function saveItem(event) {
             rarity: rarity, 
             tags: selectedItemTagIds,
             updatedAt: serverTimestamp(),
-            effectsInputMode: effectsInputMode,
-            sourceInputMode: sourceInputMode,
+            effectsInputMode: effectsInputMode, // 'structured' or 'manual'
+            sourceInputMode: sourceInputMode,   // 'tree' or 'manual'
         };
 
-        // 効果データの処理
         if (effectsInputMode === 'manual') {
             itemData.manualEffectsString = manualEffectsString;
-            itemData.structured_effects = deleteField(); // 構造化データは削除
-        } else { // structured
+            itemData.structured_effects = deleteField(); 
+        } else {
             itemData.structured_effects = currentItemEffects;
-            itemData.manualEffectsString = deleteField(); // 手動入力データは削除
+            itemData.manualEffectsString = deleteField(); 
         }
 
-        // 入手手段データの処理
         if (sourceInputMode === 'manual') {
             itemData.manualSourceString = manualSourceString;
-            itemData.sourceNodeId = deleteField(); // ツリー選択IDは削除
-            itemData.入手手段 = deleteField(); // 古いフィールドも削除
-        } else { // tree
+            itemData.sourceNodeId = deleteField(); 
+            itemData.入手手段 = deleteField(); 
+        } else {
             itemData.sourceNodeId = selectedSourceNodeId || null;
-            itemData.manualSourceString = deleteField(); // 手動入力データは削除
-            itemData.入手手段 = deleteField(); // 古いフィールドも削除
+            itemData.manualSourceString = deleteField(); 
+            itemData.入手手段 = deleteField(); 
         }
         
         if (priceToSave !== null) itemData.price = priceToSave;
@@ -630,16 +620,21 @@ export function _renderItemsAdminTableInternal() {
         if (item.sourceInputMode === 'manual') {
             sourceDisplayHtml = item.manualSourceString ? item.manualSourceString.replace(/\n/g, '<br>') : '不明 (手動)';
         } else if (item.sourceNodeId) {
-            const pathParts = [];
-            let currentId = item.sourceNodeId;
-            let sanityCheck = 0;
-            while(currentId && sanityCheck < 10) {
-                const node = itemSourcesCache.find(s => s.id === currentId);
-                if (node) { pathParts.unshift(node.name); currentId = node.parentId; }
-                else { pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); break; }
-                sanityCheck++;
+            const selectedSourceNode = itemSourcesCache.find(s => s.id === item.sourceNodeId);
+            if (selectedSourceNode && selectedSourceNode.displayString) {
+                sourceDisplayHtml = selectedSourceNode.displayString;
+            } else {
+                const pathParts = [];
+                let currentId = item.sourceNodeId;
+                let sanityCheck = 0;
+                while(currentId && sanityCheck < 10) {
+                    const node = itemSourcesCache.find(s => s.id === currentId);
+                    if (node) { pathParts.unshift(node.name); currentId = node.parentId; }
+                    else { pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); break; }
+                    sanityCheck++;
+                }
+                sourceDisplayHtml = pathParts.length > 0 ? pathParts.join(' > ') : `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
             }
-            sourceDisplayHtml = pathParts.length > 0 ? pathParts.join(' > ') : `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
         } else { sourceDisplayHtml = '不明'; }
 
         let tagsHtml = '';
@@ -682,7 +677,6 @@ async function loadItemForEdit(docId) {
             selectedImageFile = null;
             if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
 
-            // 効果設定の読み込み
             const effectsMode = itemData.effectsInputMode || 'structured';
             DOMI.effectsInputModeHiddenInput.value = effectsMode;
             if (effectsMode === 'manual') {
@@ -690,8 +684,8 @@ async function loadItemForEdit(docId) {
                 DOMI.structuredEffectsArea.style.display = 'none';
                 DOMI.manualEffectsArea.style.display = 'block';
                 DOMI.toggleEffectsInputModeButton.textContent = '構造化入力に戻す';
-                currentItemEffects = []; // structured_effects は使わない
-            } else { // structured or undefined
+                currentItemEffects = []; 
+            } else { 
                 currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : [];
                 DOMI.manualEffectsStringTextarea.value = "";
                 DOMI.structuredEffectsArea.style.display = 'block';
@@ -700,7 +694,6 @@ async function loadItemForEdit(docId) {
             }
             renderCurrentItemEffectsListUI(); 
 
-            // 入手手段の読み込み
             const sourceMode = itemData.sourceInputMode || 'tree';
             DOMI.sourceInputModeHiddenInput.value = sourceMode;
             if (sourceMode === 'manual') {
@@ -710,7 +703,7 @@ async function loadItemForEdit(docId) {
                 DOMI.toggleSourceInputModeButton.textContent = '選択式に切り替え';
                 DOMI.selectedItemSourceNodeIdInput.value = "";
                 DOMI.itemSourceDisplay.value = "";
-            } else { // tree or undefined
+            } else { 
                 const sourceNodeId = itemData.sourceNodeId || "";
                 DOMI.selectedItemSourceNodeIdInput.value = sourceNodeId;
                 if (window.adminModules && window.adminModules.itemSourceManager && 
