@@ -79,40 +79,58 @@
                         <input type="number" id="itemPrice" placeholder="例: 100 (未入力で「未設定」)" min="0" step="1">
                     </div>
 
-                    <!-- レア度設定 -->
                     <div class="form-group">
                         <label for="itemRaritySelector">レア度:</label>
                         <div id="itemRaritySelector" class="rarity-selector-container">
-                            <!-- 星はJSで生成 -->
                         </div>
                         <input type="hidden" id="itemRarityValue" value="0">
                     </div>
 
                     <div class="form-group">
-                        <label>効果設定:</label>
-                        <div class="effect-input-area">
-                             <div class="effect-input-row">
-                                 <select id="effectTypeSelect" class="form-control-short" aria-label="効果種類">
-                                     <option value="">効果種類を選択...</option>
-                                 </select>
-                                 <input type="number" id="effectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
-                                 <span id="effectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
-                                 <button type="button" id="addEffectToListButton">効果を追加</button>
-                             </div>
-                             <div id="currentEffectsList" class="effects-list-container">
-                                <p>効果が追加されていません。</p>
-                             </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="margin-bottom: 0;">効果設定:</label>
+                            <button type="button" id="toggleEffectsInputModeButton" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">入力欄に切り替え</button>
+                        </div>
+                        <input type="hidden" id="effectsInputMode" value="structured">
+                        <div id="structuredEffectsArea">
+                            <div class="effect-input-area">
+                                 <div class="effect-input-row">
+                                     <select id="effectTypeSelect" class="form-control-short" aria-label="効果種類">
+                                         <option value="">効果種類を選択...</option>
+                                     </select>
+                                     <input type="number" id="effectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
+                                     <span id="effectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
+                                     <button type="button" id="addEffectToListButton">効果を追加</button>
+                                 </div>
+                                 <div id="currentEffectsList" class="effects-list-container">
+                                    <p>効果が追加されていません。</p>
+                                 </div>
+                            </div>
+                        </div>
+                        <div id="manualEffectsArea" style="display:none;">
+                            <textarea id="manualEffectsString" rows="4" placeholder="効果を自由記述形式で入力 (例: 攻撃力+10、HP自動回復)"></textarea>
+                            <p class="info">ユーザー側にはこのテキストがそのまま表示されます（改行は反映）。</p>
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label for="itemSourceDisplay">入手手段:</label>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="text" id="itemSourceDisplay" readonly placeholder="選択されていません" style="flex-grow: 1;" aria-label="選択された入手経路">
-                            <input type="hidden" id="selectedItemSourceNodeId">
-                            <button type="button" id="selectItemSourceButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">入手経路を選択</button>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label for="itemSourceDisplay" style="margin-bottom: 0;">入手手段:</label>
+                             <button type="button" id="toggleSourceInputModeButton" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">入力欄に切り替え</button>
                         </div>
-                        <p class="info">上記のボタンから入手経路の末端ノードを選択してください。</p>
+                        <input type="hidden" id="sourceInputMode" value="tree">
+                        <div id="treeSourceArea">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="text" id="itemSourceDisplay" readonly placeholder="選択されていません" style="flex-grow: 1;" aria-label="選択された入手経路">
+                                <input type="hidden" id="selectedItemSourceNodeId">
+                                <button type="button" id="selectItemSourceButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">入手経路を選択</button>
+                            </div>
+                            <p class="info">上記のボタンから入手経路の末端ノードを選択してください。</p>
+                        </div>
+                        <div id="manualSourceArea" style="display:none;">
+                            <textarea id="manualSourceString" rows="3" placeholder="入手手段を自由記述形式で入力"></textarea>
+                            <p class="info">ユーザー側にはこのテキストがそのまま表示されます（改行は反映）。</p>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -148,7 +166,7 @@
         </div><!-- closing .container -->
     </div><!-- closing #admin-content -->
 
-    <!-- 管理機能モーダル群 -->
+    <!-- 管理機能モーダル群 (省略なし) -->
     <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -330,7 +348,6 @@
             <div class="form-group" style="align-items: baseline;">
                 <label id="charBaseTypeLabel" style="margin-bottom: 0.5rem; display: block;">基礎情報の種類:</label>
                 <div id="charBaseTypeButtons" class="category-button-group admin" role="group" aria-labelledby="charBaseTypeLabel">
-                     <!-- Buttons will be populated by JS -->
                 </div>
                 <input type="hidden" id="selectedCharBaseType" value="headShape">
                 <button type="button" id="addNewCharBaseOptionButton" class="button-like" style="margin-top: 0.5rem;">新しい選択肢を追加</button>
@@ -361,6 +378,11 @@
                  <div id="newItemSourceParentSelector" class="category-button-group admin item-source-parent-selector" role="group" aria-labelledby="newItemSourceParentLabel" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
                  </div>
                  <input type="hidden" id="selectedNewParentSourceId" value="">
+             </div>
+             <div class="form-group" id="newItemSourceDisplayStringGroup" style="display: none;"> <!-- 初期非表示 -->
+                <label for="newItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
+                <input type="text" id="newItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
+                <p class="info">末端の経路に設定すると、アイテムの入手手段としてこの文字列が表示されます。</p>
              </div>
             <button id="addItemSourceButton" type="button">入手経路追加</button>
 
@@ -577,6 +599,11 @@
                  </div>
                  <input type="hidden" id="selectedEditingParentSourceId">
             </div>
+            <div class="form-group" id="editingItemSourceDisplayStringGroup" style="display: none;"> <!-- 初期非表示 -->
+                <label for="editingItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
+                <input type="text" id="editingItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
+                <p class="info">末端の経路の場合、アイテムの入手手段としてこの文字列が表示されます。</p>
+            </div>
              <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <button id="deleteItemSourceFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この入手経路を削除</button>
                 <button id="saveItemSourceEditButton" type="button">変更を保存</button>
@@ -589,27 +616,12 @@
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="selectItemSourceModalTitle">入手経路の選択</h3>
             <p class="info-message-small">最大4階層まで選択できます。リストの末端（それ以上子がない）経路を選択してください。</p>
-            <div id="itemSourceSelectionArea" class="item-source-selection-levels">
-                <div class="form-group source-level-selector-group">
-                    <label for="sourceLevel1">第1階層:</label>
-                    <select id="sourceLevel1" data-level="1" class="form-control-short item-source-level-select"></select>
-                </div>
-                <div class="form-group source-level-selector-group" id="sourceLevel2Group" style="display:none;">
-                    <label for="sourceLevel2">第2階層:</label>
-                    <select id="sourceLevel2" data-level="2" class="form-control-short item-source-level-select"></select>
-                </div>
-                <div class="form-group source-level-selector-group" id="sourceLevel3Group" style="display:none;">
-                    <label for="sourceLevel3">第3階層:</label>
-                    <select id="sourceLevel3" data-level="3" class="form-control-short item-source-level-select"></select>
-                </div>
-                <div class="form-group source-level-selector-group" id="sourceLevel4Group" style="display:none;">
-                    <label for="sourceLevel4">第4階層:</label>
-                    <select id="sourceLevel4" data-level="4" class="form-control-short item-source-level-select"></select>
-                </div>
+            <div id="itemSourceSelectionUiContainer" style="border: 1px solid #eee; padding: 15px; border-radius: 4px;">
+                {/* ここに item-source-manager.js がUIを動的に構築 */}
             </div>
-            <div class="form-group">
+            <div class="form-group" style="margin-top: 15px;">
                 <label>現在の選択パス:</label>
-                <p id="currentSelectionPathDisplay" style="font-weight: bold; min-height: 1.2em;">未選択</p>
+                <p id="currentSelectionPathDisplayForItemForm" style="font-weight: bold; min-height: 1.2em; background-color: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #e9ecef;">未選択</p>
             </div>
             <div class="modal-actions" style="margin-top: 20px; text-align: right;">
                 <button id="confirmItemSourceSelectionButton" type="button" disabled>この経路に決定</button>
