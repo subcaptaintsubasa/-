@@ -9,7 +9,6 @@ const DOMISM = { // DOM Item Source Manager
     addItemSourceButton: null,
     itemSourceListContainer: null,
     itemSourceSearchInput: null,
-    // enlargeItemSourceListButton: (handled by admin-main.js)
 
     editItemSourceModal: null,
     editingItemSourceDocIdInput: null,
@@ -20,27 +19,26 @@ const DOMISM = { // DOM Item Source Manager
     deleteItemSourceFromEditModalButton: null,
 };
 
-// アイテムフォーム内の入手経路選択モーダル関連のDOM
 const DOM_ITEM_FORM_SOURCE_SELECT = {
     selectItemSourceModal: null,
     itemSourceSelectionArea: null,
-    sourceLevelSelectors: [], // [selectElLevel1, selectElLevel2, ...]
-    sourceLevelGroupDivs: [], // [groupDivLevel2, groupDivLevel3, ...]
+    sourceLevelSelectors: [], 
+    sourceLevelGroupDivs: [], 
     currentSelectionPathDisplay: null,
     confirmItemSourceSelectionButton: null,
-    itemSourceDisplayInputForItemForm: null, // アイテムフォーム側の表示用input (readonly)
-    selectedItemSourceNodeIdInputForItemForm: null, // アイテムフォーム側のID保持用hidden input
+    itemSourceDisplayInputForItemForm: null, 
+    selectedItemSourceNodeIdInputForItemForm: null, 
 };
 
 
 let dbInstance = null;
-let getItemSourcesFuncCache = () => []; // From data-loader-admin
-let getItemsFuncCache = () => []; // To check usage before delete
+let getItemSourcesFuncCache = () => []; 
+let getItemsFuncCache = () => []; 
 let refreshAllDataCallback = async () => {};
 
 const itemSourceExpansionState = new Map();
 let currentItemSourceSearchTerm = "";
-const MAX_SOURCE_DEPTH = 3; // 0-indexed depth (0, 1, 2, 3 for 4 levels)
+const MAX_SOURCE_DEPTH = 3; 
 
 export function initItemSourceManager(dependencies) {
     dbInstance = dependencies.db;
@@ -48,7 +46,6 @@ export function initItemSourceManager(dependencies) {
     getItemsFuncCache = dependencies.getItems; 
     refreshAllDataCallback = dependencies.refreshAllData;
 
-    // DOMISMの要素を取得
     DOMISM.newItemSourceNameInput = document.getElementById('newItemSourceName');
     DOMISM.newItemSourceParentSelector = document.getElementById('newItemSourceParentSelector');
     DOMISM.selectedNewParentSourceIdInput = document.getElementById('selectedNewParentSourceId');
@@ -64,7 +61,6 @@ export function initItemSourceManager(dependencies) {
     DOMISM.saveItemSourceEditButton = document.getElementById('saveItemSourceEditButton');
     DOMISM.deleteItemSourceFromEditModalButton = document.getElementById('deleteItemSourceFromEditModalButton');
 
-    // DOM_ITEM_FORM_SOURCE_SELECT の要素を取得
     DOM_ITEM_FORM_SOURCE_SELECT.selectItemSourceModal = document.getElementById('selectItemSourceModal');
     DOM_ITEM_FORM_SOURCE_SELECT.itemSourceSelectionArea = document.getElementById('itemSourceSelectionArea');
     for (let i = 1; i <= 4; i++) {
@@ -80,8 +76,6 @@ export function initItemSourceManager(dependencies) {
     DOM_ITEM_FORM_SOURCE_SELECT.itemSourceDisplayInputForItemForm = document.getElementById('itemSourceDisplay');
     DOM_ITEM_FORM_SOURCE_SELECT.selectedItemSourceNodeIdInputForItemForm = document.getElementById('selectedItemSourceNodeId');
 
-
-    // イベントリスナー（入手経路管理モーダル用）
     if (DOMISM.addItemSourceButton) DOMISM.addItemSourceButton.addEventListener('click', addItemSourceNode);
     if (DOMISM.saveItemSourceEditButton) DOMISM.saveItemSourceEditButton.addEventListener('click', saveItemSourceNodeEdit);
     if (DOMISM.deleteItemSourceFromEditModalButton) {
@@ -180,19 +174,6 @@ function selectParentSourceButtonUI(container, hiddenInput, clickedButton, paren
 }
 
 export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlargedView = false) {
-    const getSourceDepth = (sourceId, sources) => {
-        let depth = 0;
-        let current = sources.find(s => s.id === sourceId);
-        let visited = new Set();
-        while (current && current.parentId && !visited.has(current.id)) {
-            visited.add(current.id);
-            depth++;
-            current = sources.find(s => s.id === current.parentId);
-            if (depth > MAX_SOURCE_DEPTH + 5) return -1; 
-        }
-        return depth;
-    };
-    
     const buildNode = (parentId = "", currentDisplayDepth = 0) => {
         const children = sourcesToDisplay
             .filter(source => (source.parentId || "") === parentId)
@@ -211,7 +192,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
             const li = document.createElement('li');
             li.classList.add('category-tree-item');
             li.dataset.sourceId = source.id;
-            const actualDepth = source.depth !== undefined ? source.depth : getSourceDepth(source.id, allSourcesData);
+            const actualDepth = source.depth !== undefined ? source.depth : 0; 
             li.dataset.depth = actualDepth;
 
             const hasActualChildren = allSourcesData.some(s => s.parentId === source.id);
@@ -243,7 +224,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
             li.appendChild(content);
 
             if (hasActualChildren) {
-                const childrenUl = buildNode(source.id, currentDisplayDepth + 1);
+                const childrenUl = buildNode(source.id, actualDepth + 1);
                 if (childrenUl) {
                     if (!isEnlargedView && !isExpanded && !currentItemSourceSearchTerm) {
                         childrenUl.classList.add('hidden');
@@ -259,8 +240,13 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
 }
 
 export function _renderItemSourcesForManagementInternal() {
-    if (!DOMISM.itemSourceListContainer) return;
+    console.log("[ItemSource Manager] Rendering item sources for management..."); 
+    if (!DOMISM.itemSourceListContainer) {
+        console.error("[ItemSource Manager] itemSourceListContainer is null!"); 
+        return;
+    }
     const allSources = getItemSourcesFuncCache();
+    console.log("[ItemSource Manager] All sources from cache:", JSON.parse(JSON.stringify(allSources))); 
     DOMISM.itemSourceListContainer.innerHTML = '';
 
     let sourcesToDisplay = allSources;
@@ -277,6 +263,7 @@ export function _renderItemSourcesForManagementInternal() {
         searchResults.forEach(s => addWithParents(s.id));
         sourcesToDisplay = allSources.filter(s => displaySet.has(s.id));
     }
+    console.log("[ItemSource Manager] Sources to display in tree:", sourcesToDisplay.length);
 
     if (sourcesToDisplay.length === 0) {
         DOMISM.itemSourceListContainer.innerHTML = currentItemSourceSearchTerm ?
@@ -284,8 +271,13 @@ export function _renderItemSourcesForManagementInternal() {
             '<p>入手経路が登録されていません。</p>';
     } else {
         const treeRoot = buildItemSourceTreeDOM(sourcesToDisplay, allSources, false);
-        if (treeRoot) DOMISM.itemSourceListContainer.appendChild(treeRoot);
-        else DOMISM.itemSourceListContainer.innerHTML = '<p>入手経路の表示に失敗しました。</p>';
+        if (treeRoot) {
+            DOMISM.itemSourceListContainer.appendChild(treeRoot);
+            console.log("[ItemSource Manager] Tree appended to container.");
+        } else {
+            DOMISM.itemSourceListContainer.innerHTML = '<p>入手経路の表示に失敗しました。</p>';
+            console.log("[ItemSource Manager] Tree root was null.");
+        }
     }
     populateParentSourceSelectorUI(DOMISM.newItemSourceParentSelector, DOMISM.selectedNewParentSourceIdInput, { selectedParentId: DOMISM.selectedNewParentSourceIdInput.value || "" });
 }
@@ -483,7 +475,7 @@ function openSelectItemSourceModalForItemForm() {
     
     DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors.forEach((sel, index) => {
         sel.innerHTML = ''; 
-        const groupDiv = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[index-1]; // Groups are for L2, L3, L4
+        const groupDiv = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[index-1]; 
         if (index > 0 && groupDiv) {
             groupDiv.style.display = 'none';
         }
@@ -499,6 +491,7 @@ function populateSourceLevelSelectForItemForm(level, parentId) {
     const selector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[selectorIndex];
     if (!selector) return;
     const allSources = getItemSourcesFuncCache();
+    // Ensure children are filtered by the correct depth for that level
     const children = allSources.filter(s => (s.parentId || "") === parentId && (s.depth !== undefined && s.depth === selectorIndex)).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
     
     selector.innerHTML = '<option value="">選択してください</option>';
@@ -508,10 +501,12 @@ function populateSourceLevelSelectForItemForm(level, parentId) {
         selector.appendChild(option);
     });
 
-    for (let i = level; i < 4; i++) {
+    for (let i = level; i < 4; i++) { // Start hiding from the *next* level
         const nextSelector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
         if (nextSelector) nextSelector.innerHTML = '<option value="">選択してください</option>';
-        const nextGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[i-1]; 
+        // Groups are for levels 2, 3, 4. Their indices in sourceLevelGroupDivs are 0, 1, 2.
+        // So for level `i+1`, the group index is `i`.
+        const nextGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[i]; 
         if (nextGroup) nextGroup.style.display = 'none';
     }
 }
@@ -522,14 +517,16 @@ function handleSourceLevelChangeForItemForm(event) {
 
     for (let i = currentLevel; i < 4; i++) {
         const nextSelector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
-        const nextGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[i-1]; // Groups are L2, L3, L4 (index i-1)
+        // For groups: if currentLevel is 1, next group is L2 (index 0 in sourceLevelGroupDivs).
+        // So, group for level `i+1` is at index `i`.
+        const nextGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[i]; 
         if (nextSelector) nextSelector.innerHTML = '<option value="">選択してください</option>';
         if (nextGroup) nextGroup.style.display = 'none';
     }
 
     if (selectedValue && currentLevel < 4) {
-        // currentLevelが1なら、nextGroupはDOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[0] (これがLevel2Group)
-        const nextLevelGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[currentLevel -1]; 
+        // Group for *next* level (currentLevel+1) is at index currentLevel in sourceLevelGroupDivs
+        const nextLevelGroup = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[currentLevel]; 
         if (nextLevelGroup) {
             populateSourceLevelSelectForItemForm(currentLevel + 1, selectedValue);
             nextLevelGroup.style.display = 'block';
