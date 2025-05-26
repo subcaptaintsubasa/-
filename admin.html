@@ -379,10 +379,10 @@
                  </div>
                  <input type="hidden" id="selectedNewParentSourceId" value="">
              </div>
-             <div class="form-group" id="newItemSourceDisplayStringGroup" style="display: none;"> <!-- 初期非表示 -->
+             <div class="form-group"> {/* displayStringは常に表示して任意入力に */}
                 <label for="newItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
                 <input type="text" id="newItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
-                <p class="info">末端の経路に設定すると、アイテムの入手手段としてこの文字列が表示されます。</p>
+                <p class="info">アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。</p>
              </div>
             <button id="addItemSourceButton" type="button">入手経路追加</button>
 
@@ -599,10 +599,10 @@
                  </div>
                  <input type="hidden" id="selectedEditingParentSourceId">
             </div>
-            <div class="form-group" id="editingItemSourceDisplayStringGroup" style="display: none;"> <!-- 初期非表示 -->
+            <div class="form-group"> <!-- displayStringは常に表示 -->
                 <label for="editingItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
                 <input type="text" id="editingItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
-                <p class="info">末端の経路の場合、アイテムの入手手段としてこの文字列が表示されます。</p>
+                <p class="info">アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。</p>
             </div>
              <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <button id="deleteItemSourceFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この入手経路を削除</button>
@@ -615,9 +615,32 @@
         <div class="modal-content" style="max-width: 700px;">
             <span class="close-button" aria-label="閉じる">×</span>
             <h3 id="selectItemSourceModalTitle">入手経路の選択</h3>
-            <p class="info-message-small">最大4階層まで選択できます。リストの末端（それ以上子がない）経路を選択してください。</p>
+            <p class="info-message-small">各階層で選択し、目的の入手経路（それ以上子がない、またはここで確定したい経路）で「この経路に決定」を押してください。</p>
             <div id="itemSourceSelectionUiContainer" style="border: 1px solid #eee; padding: 15px; border-radius: 4px;">
-                {/* ここに item-source-manager.js がUIを動的に構築 */}
+                <div class="form-group source-level-selector-group" id="sourceLevel1Group">
+                    <label for="sourceLevel1">第1階層:</label>
+                    <select id="sourceLevel1" data-level="1" class="form-control-short item-source-level-select">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+                <div class="form-group source-level-selector-group" id="sourceLevel2Group" style="display:none;">
+                    <label for="sourceLevel2">第2階層:</label>
+                    <select id="sourceLevel2" data-level="2" class="form-control-short item-source-level-select">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+                <div class="form-group source-level-selector-group" id="sourceLevel3Group" style="display:none;">
+                    <label for="sourceLevel3">第3階層:</label>
+                    <select id="sourceLevel3" data-level="3" class="form-control-short item-source-level-select">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+                <div class="form-group source-level-selector-group" id="sourceLevel4Group" style="display:none;">
+                    <label for="sourceLevel4">第4階層:</label>
+                    <select id="sourceLevel4" data-level="4" class="form-control-short item-source-level-select">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
             </div>
             <div class="form-group" style="margin-top: 15px;">
                 <label>現在の選択パス:</label>
