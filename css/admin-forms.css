@@ -328,8 +328,7 @@
 /* Character Base Management specific form layout (within its modal) */
 #characterBaseManagementModal .form-group {
     display: flex;
-    /* align-items: center; Removed for baseline alignment for label */
-    align-items: baseline; /* Align label with button group top */
+    align-items: baseline; 
     gap: 0.75rem;
     flex-wrap: wrap;
 }
@@ -337,11 +336,8 @@
     margin-bottom: 0;
     flex-shrink: 0;
 }
-#characterBaseManagementModal #charBaseTypeButtons { /* Changed from #charBaseTypeSelect */
-    /* Uses .category-button-group styles already */
-}
 #characterBaseManagementModal #addNewCharBaseOptionButton {
-    margin-left: auto; /* Keep it to the right if space allows */
+    margin-left: auto; 
     flex-shrink: 0;
 }
 
@@ -386,4 +382,50 @@
 }
 .rarity-display-stars .star-icon.selected {
     color: #ffc107; /* Selected */
+}
+
+/* 入手経路管理の親選択ボタン */
+.item-source-parent-selector .category-select-button {
+    display: block; 
+    width: 100%;
+    text-align: left;
+    margin-bottom: 4px;
+    padding-left: 10px; 
+    box-sizing: border-box;
+}
+.item-source-parent-selector .category-select-button:hover {
+    background-color: #e9ecef; /* Consistent hover with other category buttons */
+}
+.item-source-parent-selector .category-select-button.active {
+    background-color: #007bff; /* Consistent active with other category buttons */
+    color: white;
+}
+
+/* アイテムフォームの入手経路選択モーダル */
+.item-source-selection-levels .form-group {
+    margin-bottom: 0.8rem;
+    display: flex; /* ラベルとセレクトを横並びにする */
+    align-items: center;
+}
+.item-source-selection-levels .form-group label {
+    font-weight: normal; /* 通常のフォントウェイト */
+    margin-right: 0.5rem;
+    margin-bottom: 0; /* flex align-items で調整するので不要 */
+    min-width: 70px; /* ラベル幅を揃える */
+    flex-shrink: 0; /* ラベルが縮まないように */
+}
+.item-source-selection-levels .form-control-short.item-source-level-select {
+    max-width: none; /* 親要素に合わせる */
+    flex-grow: 1; /* 利用可能なスペースを埋める */
+    width: auto; /* flex-grow で幅を調整 */
+    margin-right: 0; /* .form-control-short のデフォルトマージンをリセット */
+}
+#currentSelectionPathDisplay {
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    min-height: 1.5em; 
+    margin-top: 5px; /* 上の要素との間隔 */
+    word-break: break-all; /* 長いパスの場合に折り返す */
 }
