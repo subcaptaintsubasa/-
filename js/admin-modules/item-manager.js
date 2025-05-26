@@ -15,15 +15,29 @@ const DOMI = {
     uploadProgressText: null,
     itemRaritySelector: null,
     itemRarityValueInput: null,
+    
+    // 効果設定関連
+    toggleEffectsInputModeButton: null,
+    effectsInputModeHiddenInput: null, // Hidden input for effects mode
+    structuredEffectsArea: null,
+    manualEffectsArea: null,
+    manualEffectsStringTextarea: null,
     effectTypeSelect: null,
     effectValueInput: null,
     effectUnitDisplay: null,
     addEffectToListButton: null,
     currentEffectsList: null,
-    // itemSourceInput: null, // 削除
+    
+    // 入手手段関連
+    toggleSourceInputModeButton: null,
+    sourceInputModeHiddenInput: null, // Hidden input for source mode
+    treeSourceArea: null,
+    manualSourceArea: null,
+    manualSourceStringTextarea: null,
     itemSourceDisplay: null,
     selectedItemSourceNodeIdInput: null,
     selectItemSourceButton: null,
+
     itemTagsSelectorCheckboxes: null,
     deleteItemFromFormButton: null,
     saveItemButton: null,
@@ -37,10 +51,10 @@ let getAllItemsFuncCache = () => [];
 let getAllTagsFuncCache = () => [];
 let getEffectTypesFuncCache = () => [];
 let getEffectUnitsFuncCache = () => [];
-let getItemSourcesFuncCache = () => []; // <<< 追加
+let getItemSourcesFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
-let currentItemEffects = [];
+let currentItemEffects = []; // For structured_effects
 let selectedImageFile = null;
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
@@ -55,7 +69,7 @@ export function initItemManager(dependencies) {
     getAllTagsFuncCache = dependencies.getAllTags;
     getEffectTypesFuncCache = dependencies.getEffectTypes;
     getEffectUnitsFuncCache = dependencies.getEffectUnits;
-    getItemSourcesFuncCache = dependencies.getItemSources; // <<< 追加
+    getItemSourcesFuncCache = dependencies.getItemSources;
     refreshAllDataCallback = dependencies.refreshAllData;
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
@@ -73,13 +87,24 @@ export function initItemManager(dependencies) {
     DOMI.itemRaritySelector = document.getElementById('itemRaritySelector');
     DOMI.itemRarityValueInput = document.getElementById('itemRarityValue');
 
+    // 効果設定 DOM
+    DOMI.toggleEffectsInputModeButton = document.getElementById('toggleEffectsInputModeButton');
+    DOMI.effectsInputModeHiddenInput = document.getElementById('effectsInputMode');
+    DOMI.structuredEffectsArea = document.getElementById('structuredEffectsArea');
+    DOMI.manualEffectsArea = document.getElementById('manualEffectsArea');
+    DOMI.manualEffectsStringTextarea = document.getElementById('manualEffectsString');
     DOMI.effectTypeSelect = document.getElementById('effectTypeSelect');
     DOMI.effectValueInput = document.getElementById('effectValueInput');
     DOMI.effectUnitDisplay = document.getElementById('effectUnitDisplay');
     DOMI.addEffectToListButton = document.getElementById('addEffectToListButton');
     DOMI.currentEffectsList = document.getElementById('currentEffectsList');
     
-    // DOMI.itemSourceInput = document.getElementById('itemSource'); // 削除
+    // 入手手段 DOM
+    DOMI.toggleSourceInputModeButton = document.getElementById('toggleSourceInputModeButton');
+    DOMI.sourceInputModeHiddenInput = document.getElementById('sourceInputMode');
+    DOMI.treeSourceArea = document.getElementById('treeSourceArea');
+    DOMI.manualSourceArea = document.getElementById('manualSourceArea');
+    DOMI.manualSourceStringTextarea = document.getElementById('manualSourceString');
     DOMI.itemSourceDisplay = document.getElementById('itemSourceDisplay');
     DOMI.selectedItemSourceNodeIdInput = document.getElementById('selectedItemSourceNodeId');
     DOMI.selectItemSourceButton = document.getElementById('selectItemSourceButton');
@@ -100,12 +125,11 @@ export function initItemManager(dependencies) {
     
     if (DOMI.selectItemSourceButton) {
         DOMI.selectItemSourceButton.addEventListener('click', () => {
-            // itemSourceManagerの関数を呼び出す
             if (window.adminModules && window.adminModules.itemSourceManager && 
                 typeof window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm === 'function') {
                 window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm();
             } else {
-                console.error("ItemSourceManager's openSelectItemSourceModalForItemForm function not found on window.adminModules.itemSourceManager");
+                console.error("ItemSourceManager's openSelectItemSourceModalForItemForm function not found.");
                 alert("入手経路選択機能の読み込みに失敗しました。");
             }
         });
@@ -124,9 +148,42 @@ export function initItemManager(dependencies) {
         });
     }
     
+    // 切り替えボタンのイベントリスナー
+    if (DOMI.toggleEffectsInputModeButton) {
+        DOMI.toggleEffectsInputModeButton.addEventListener('click', () => {
+            const currentMode = DOMI.effectsInputModeHiddenInput.value;
+            if (currentMode === 'structured') {
+                DOMI.effectsInputModeHiddenInput.value = 'manual';
+                DOMI.structuredEffectsArea.style.display = 'none';
+                DOMI.manualEffectsArea.style.display = 'block';
+                DOMI.toggleEffectsInputModeButton.textContent = '構造化入力に戻す';
+            } else {
+                DOMI.effectsInputModeHiddenInput.value = 'structured';
+                DOMI.structuredEffectsArea.style.display = 'block';
+                DOMI.manualEffectsArea.style.display = 'none';
+                DOMI.toggleEffectsInputModeButton.textContent = '入力欄に切り替え';
+            }
+        });
+    }
+    if (DOMI.toggleSourceInputModeButton) {
+        DOMI.toggleSourceInputModeButton.addEventListener('click', () => {
+            const currentMode = DOMI.sourceInputModeHiddenInput.value;
+            if (currentMode === 'tree') {
+                DOMI.sourceInputModeHiddenInput.value = 'manual';
+                DOMI.treeSourceArea.style.display = 'none';
+                DOMI.manualSourceArea.style.display = 'block';
+                DOMI.toggleSourceInputModeButton.textContent = '選択式に切り替え';
+            } else {
+                DOMI.sourceInputModeHiddenInput.value = 'tree';
+                DOMI.treeSourceArea.style.display = 'block';
+                DOMI.manualSourceArea.style.display = 'none';
+                DOMI.toggleSourceInputModeButton.textContent = '入力欄に切り替え';
+            }
+        });
+    }
+    
     initializeRaritySelector();
-
-    console.log("[Item Manager] Initialized. Worker URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
+    console.log("[Item Manager] Initialized.");
 }
 
 function initializeRaritySelector() {
@@ -144,7 +201,12 @@ function initializeRaritySelector() {
 }
 
 function handleRarityStarClick(value) {
-    setRarityUI(value); 
+    const currentValue = parseInt(DOMI.itemRarityValueInput.value, 10);
+    if (currentValue === value) { // 同じ星を再度クリックしたら0に戻す
+        setRarityUI(0);
+    } else {
+        setRarityUI(value);
+    }
 }
 
 function setRarityUI(value) {
@@ -159,7 +221,6 @@ function setRarityUI(value) {
         }
     });
 }
-
 
 function switchToAddEffectMode() {
     itemEffectEditMode = false;
@@ -190,22 +251,33 @@ function clearItemFormInternal() {
 
     setRarityUI(0);
 
+    // 効果設定リセット
     currentItemEffects = [];
-    _populateTagCheckboxesForItemFormInternal();
+    if (DOMI.effectsInputModeHiddenInput) DOMI.effectsInputModeHiddenInput.value = 'structured';
+    if (DOMI.structuredEffectsArea) DOMI.structuredEffectsArea.style.display = 'block';
+    if (DOMI.manualEffectsArea) DOMI.manualEffectsArea.style.display = 'none';
+    if (DOMI.manualEffectsStringTextarea) DOMI.manualEffectsStringTextarea.value = '';
+    if (DOMI.toggleEffectsInputModeButton) DOMI.toggleEffectsInputModeButton.textContent = '入力欄に切り替え';
+    switchToAddEffectMode();
+    renderCurrentItemEffectsListUI();
 
+    // 入手手段リセット
+    if (DOMI.sourceInputModeHiddenInput) DOMI.sourceInputModeHiddenInput.value = 'tree';
+    if (DOMI.treeSourceArea) DOMI.treeSourceArea.style.display = 'block';
+    if (DOMI.manualSourceArea) DOMI.manualSourceArea.style.display = 'none';
+    if (DOMI.manualSourceStringTextarea) DOMI.manualSourceStringTextarea.value = '';
+    if (DOMI.toggleSourceInputModeButton) DOMI.toggleSourceInputModeButton.textContent = '入力欄に切り替え';
     if (DOMI.itemSourceDisplay) DOMI.itemSourceDisplay.value = "";
     if (DOMI.selectedItemSourceNodeIdInput) DOMI.selectedItemSourceNodeIdInput.value = "";
+
+    _populateTagCheckboxesForItemFormInternal();
 
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
     if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'none';
     
-    switchToAddEffectMode();
-    renderCurrentItemEffectsListUI();
-
     if (DOMI.itemNameInput) DOMI.itemNameInput.focus();
     console.log("[Item Manager] Item form cleared.");
 }
-
 
 export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
     if(!DOMI.itemTagsSelectorCheckboxes) return;
@@ -223,7 +295,7 @@ export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
 function handleImageFileSelect(event) {
     const file = event.target.files[0];
     if (file) {
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > 5 * 1024 * 1024) { // 5MB
             alert("ファイルサイズが大きすぎます。5MB以下の画像を選択してください。");
             event.target.value = null; 
             selectedImageFile = null;
@@ -282,7 +354,6 @@ function handleAddOrUpdateEffect() {
     switchToAddEffectMode();
 }
 
-
 function renderCurrentItemEffectsListUI() {
     if (!DOMI.currentEffectsList) return;
     DOMI.currentEffectsList.innerHTML = '';
@@ -326,7 +397,6 @@ function renderCurrentItemEffectsListUI() {
                 DOMI.effectTypeSelect.value = effectToEdit.type;
                 DOMI.effectValueInput.value = effectToEdit.value;
                 updateItemFormEffectUnitDisplay();
-
                 itemEffectEditMode = true;
                 itemEffectEditingIndex = editIndex;
                 if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '効果を更新';
@@ -350,14 +420,12 @@ async function uploadImageToWorkerAndGetURL(file) {
         console.warn("uploadImageToWorkerAndGetURL: No file or Worker URL provided. URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
         return null;
     }
-    console.log("Starting image upload to (fetch):", IMAGE_UPLOAD_WORKER_URL_CONST);
     if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'block';
     if (DOMI.uploadProgress) DOMI.uploadProgress.value = 0;
     if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード準備中...';
 
     const formData = new FormData();
     formData.append('imageFile', file);
-
     let intervalId; 
     try {
         if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード中... (0%)';
@@ -368,60 +436,45 @@ async function uploadImageToWorkerAndGetURL(file) {
                 if (progress <= 90) { 
                     if (DOMI.uploadProgress) DOMI.uploadProgress.value = progress;
                     if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = `アップロード中... (${progress}%)`;
-                } else {
-                    clearInterval(intervalId);
-                }
+                } else { clearInterval(intervalId); }
             }, 150); 
         }
-
-        const response = await fetch(IMAGE_UPLOAD_WORKER_URL_CONST, {
-            method: 'POST',
-            body: formData,
-        });
-
+        const response = await fetch(IMAGE_UPLOAD_WORKER_URL_CONST, { method: 'POST', body: formData });
         if (intervalId) clearInterval(intervalId); 
         if (DOMI.uploadProgress) DOMI.uploadProgress.value = 100; 
-
         if (!response.ok) {
             const errorText = await response.text(); 
-            console.error('[Image Upload] Upload failed with status:', response.status, errorText);
-            let errorMessage = `画像のアップロードに失敗しました (HTTP ${response.status})`;
+            console.error('[Image Upload] Upload failed:', response.status, errorText);
+            let errorMessage = `画像のアップロードに失敗 (HTTP ${response.status})`;
             try { 
                 const errorData = JSON.parse(errorText);
-                if (errorData && errorData.message) errorMessage = `画像アップロードエラー: ${errorData.message}`;
-                else if (errorData && errorData.error) errorMessage = `画像アップロードエラー: ${errorData.error}`;
-            } catch (e) {
-                if(errorText) errorMessage += `: ${errorText.substring(0,100)}`; 
-                else if(response.statusText) errorMessage += `: ${response.statusText}`;
-            }
+                if (errorData && errorData.message) errorMessage = `画像エラー: ${errorData.message}`;
+                else if (errorData && errorData.error) errorMessage = `画像エラー: ${errorData.error}`;
+            } catch (e) { if(errorText) errorMessage += `: ${errorText.substring(0,100)}`; }
             alert(errorMessage);
-            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード失敗。';
+            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '失敗';
             setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
             return null;
         }
-
         const result = await response.json();
         if (result.success && result.imageUrl) {
-            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロード完了!';
+            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '完了!';
             setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 2000);
             return result.imageUrl;
         } else {
-            console.error('[Image Upload] Worker response error:', result.message || 'Unknown error from worker', result);
-            alert(`画像アップロードエラー(Worker): ${result.message || '予期せぬ応答'}`);
-            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'アップロードエラー。';
+            alert(`画像アップロードエラー(Worker): ${result.message || '不明な応答'}`);
+            if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = 'エラー';
             setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
             return null;
         }
     } catch (error) {
         if (intervalId) clearInterval(intervalId);
-        console.error('[Image Upload] Error uploading image:', error);
-        alert(`画像のアップロード中に予期せぬエラーが発生しました: ${error.message}`);
-        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '通信/処理エラー。';
+        alert(`画像アップロード中に予期せぬエラー: ${error.message}`);
+        if (DOMI.uploadProgressText) DOMI.uploadProgressText.textContent = '通信エラー';
         setTimeout(() => { if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none'; }, 3000);
         return null;
     }
 }
-
 
 async function saveItem(event) {
     event.preventDefault();
@@ -431,98 +484,81 @@ async function saveItem(event) {
     }
 
     const name = DOMI.itemNameInput.value.trim();
-    // const source = DOMI.itemSourceInput.value.trim(); // 削除
-    const selectedSourceNodeId = DOMI.selectedItemSourceNodeIdInput.value; // <<< 追加
     const priceStr = DOMI.itemPriceInput.value.trim();
     const selectedItemTagIds = getSelectedCheckboxValues(DOMI.itemTagsSelectorCheckboxes, 'itemTag');
     const editingDocId = DOMI.itemIdToEditInput.value;
-    
     const rarity = parseInt(DOMI.itemRarityValueInput.value, 10) || 0;
-
     let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; 
+
+    const effectsInputMode = DOMI.effectsInputModeHiddenInput.value;
+    const manualEffectsString = DOMI.manualEffectsStringTextarea.value.trim();
+    
+    const sourceInputMode = DOMI.sourceInputModeHiddenInput.value;
+    const selectedSourceNodeId = DOMI.selectedItemSourceNodeIdInput.value;
+    const manualSourceString = DOMI.manualSourceStringTextarea.value.trim();
+
 
     if (!name) {
         alert("アイテム名は必須です。");
-        if (DOMI.saveItemButton) {
-            DOMI.saveItemButton.disabled = false;
-            DOMI.saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
-        }
+        if (DOMI.saveItemButton) { DOMI.saveItemButton.disabled = false; DOMI.saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存"; }
         return;
     }
-
     let priceToSave = null; 
     if (priceStr !== "") {
         const parsedPrice = parseInt(priceStr, 10);
-        if (!isNaN(parsedPrice) && parsedPrice >= 0) {
-            priceToSave = parsedPrice;
-        } else {
-            alert("売値は0以上の数値を入力してください。");
-            if (DOMI.saveItemButton) {
-                DOMI.saveItemButton.disabled = false;
-                DOMI.saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存";
-            }
-            return;
-        }
+        if (!isNaN(parsedPrice) && parsedPrice >= 0) priceToSave = parsedPrice;
+        else { alert("売値は0以上の数値を入力してください。"); if (DOMI.saveItemButton) { DOMI.saveItemButton.disabled = false; DOMI.saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存"; } return; }
     }
 
     try {
         if (selectedImageFile) { 
             const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
-            if (uploadedUrl) {
-                imageUrlToSave = uploadedUrl; 
-            } else {
-                console.warn("Image upload failed. Current imageUrlToSave:", imageUrlToSave);
-                 // 画像アップロードに失敗しても、既存の画像URLがあればそれを使うか、
-                 // もしくはエラーとして処理を中断するかは要件次第。ここでは続行する。
-            }
+            if (uploadedUrl) imageUrlToSave = uploadedUrl; 
         }
 
         const itemData = {
             name: name,
             image: imageUrlToSave, 
             rarity: rarity, 
-            structured_effects: currentItemEffects,
-            // 入手手段: source, // 削除
-            sourceNodeId: selectedSourceNodeId || null, // <<< 追加
             tags: selectedItemTagIds,
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp(),
+            effectsInputMode: effectsInputMode,
+            sourceInputMode: sourceInputMode,
         };
-        // `入手手段` フィールドは削除 (もし存在したら null や deleteField() で更新時に消す)
-        // itemData.入手手段 = deleteField(); // 更新時のみ必要
+
+        // 効果データの処理
+        if (effectsInputMode === 'manual') {
+            itemData.manualEffectsString = manualEffectsString;
+            itemData.structured_effects = deleteField(); // 構造化データは削除
+        } else { // structured
+            itemData.structured_effects = currentItemEffects;
+            itemData.manualEffectsString = deleteField(); // 手動入力データは削除
+        }
+
+        // 入手手段データの処理
+        if (sourceInputMode === 'manual') {
+            itemData.manualSourceString = manualSourceString;
+            itemData.sourceNodeId = deleteField(); // ツリー選択IDは削除
+            itemData.入手手段 = deleteField(); // 古いフィールドも削除
+        } else { // tree
+            itemData.sourceNodeId = selectedSourceNodeId || null;
+            itemData.manualSourceString = deleteField(); // 手動入力データは削除
+            itemData.入手手段 = deleteField(); // 古いフィールドも削除
+        }
+        
+        if (priceToSave !== null) itemData.price = priceToSave;
+        else itemData.price = deleteField(); 
         
         if (editingDocId) {
-            const updatePayload = { ...itemData };
-            if (priceToSave !== null) {
-                updatePayload.price = priceToSave;
-            } else {
-                updatePayload.price = deleteField(); 
-            }
-            
-            if (selectedSourceNodeId) {
-                updatePayload.sourceNodeId = selectedSourceNodeId;
-            } else {
-                updatePayload.sourceNodeId = deleteField();
-            }
-            updatePayload.入手手段 = deleteField(); // 古いフィールドを確実に削除
-
-            await updateDoc(doc(dbInstance, 'items', editingDocId), updatePayload);
+            await updateDoc(doc(dbInstance, 'items', editingDocId), itemData);
             console.log("Item updated:", editingDocId);
         } else { 
             itemData.createdAt = serverTimestamp();
-            const dataToAdd = { ...itemData };
-            if (priceToSave !== null) {
-                dataToAdd.price = priceToSave;
-            }
-            // dataToAdd.sourceNodeId は itemData に含まれている
-            // dataToAdd.入手手段 は itemData に含まれていないので、追加されない
-
-            await addDoc(collection(dbInstance, 'items'), dataToAdd);
+            await addDoc(collection(dbInstance, 'items'), itemData);
             console.log("Item added.");
         }
-
         clearItemFormInternal();
         await refreshAllDataCallback();
-
     } catch (error) {
         console.error("[Item Manager] Error saving item:", error);
         alert(`アイテム保存エラー: ${error.message}`);
@@ -534,20 +570,19 @@ async function saveItem(event) {
     }
 }
 
-
 export function _renderItemsAdminTableInternal() {
     if (!DOMI.itemsTableBody) return;
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
     const effectTypesCache = getEffectTypesFuncCache();
     const effectUnitsCache = getEffectUnitsFuncCache();
-    const itemSourcesCache = getItemSourcesFuncCache(); // <<< 追加
+    const itemSourcesCache = getItemSourcesFuncCache();
     DOMI.itemsTableBody.innerHTML = '';
 
     const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
     const filteredItems = itemsCache.filter(item =>
         (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-        (!searchTerm && (item.name === "" || !item.name)) // 検索語がない場合は空の名前も含む
+        (!searchTerm && (item.name === "" || !item.name))
     ).sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja'));
 
     if (filteredItems.length === 0) {
@@ -567,75 +602,61 @@ export function _renderItemsAdminTableInternal() {
         const imageDisplayPath = item.image || './images/placeholder_item.png';
         const nameDisplay = item.name || '(名称未設定)';
         const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
+        const rarityDisplay = `星${item.rarity || 0}`;
         
-        let itemSourcePathDisplay = '不明'; // <<< 入手経路表示用
-        if (item.sourceNodeId) {
+        let effectsDisplayHtml;
+        if (item.effectsInputMode === 'manual') {
+            effectsDisplayHtml = item.manualEffectsString ? item.manualEffectsString.replace(/\n/g, '<br>') : '効果なし (手動)';
+        } else {
+            effectsDisplayHtml = '<ul class="effect-list-in-table">';
+            if (item.structured_effects && item.structured_effects.length > 0) {
+                item.structured_effects.forEach(eff => {
+                    const typeInfo = effectTypesCache.find(et => et.id === eff.type);
+                    const typeName = typeInfo ? typeInfo.name : `不明(${eff.type.substring(0, 6)}...)`;
+                    let effectTextPart;
+                    const unitName = eff.unit;
+                    if (unitName && unitName !== 'none') {
+                        const unitData = effectUnitsCache.find(u => u.name === unitName);
+                        const position = unitData ? unitData.position : 'suffix';
+                        effectTextPart = position === 'prefix' ? `${unitName}${eff.value}` : `${eff.value}${unitName}`;
+                    } else { effectTextPart = `${eff.value}`; }
+                    effectsDisplayHtml += `<li>・${typeName} ${effectTextPart}</li>`;
+                });
+            } else { effectsDisplayHtml += '<li>効果なし</li>'; }
+            effectsDisplayHtml += '</ul>';
+        }
+
+        let sourceDisplayHtml;
+        if (item.sourceInputMode === 'manual') {
+            sourceDisplayHtml = item.manualSourceString ? item.manualSourceString.replace(/\n/g, '<br>') : '不明 (手動)';
+        } else if (item.sourceNodeId) {
             const pathParts = [];
             let currentId = item.sourceNodeId;
             let sanityCheck = 0;
             while(currentId && sanityCheck < 10) {
                 const node = itemSourcesCache.find(s => s.id === currentId);
-                if (node) {
-                    pathParts.unshift(node.name);
-                    currentId = node.parentId;
-                } else {
-                    pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`);
-                    break;
-                }
+                if (node) { pathParts.unshift(node.name); currentId = node.parentId; }
+                else { pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); break; }
                 sanityCheck++;
             }
-            if (pathParts.length > 0) itemSourcePathDisplay = pathParts.join(' > ');
-            else if (item.sourceNodeId) itemSourcePathDisplay = `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
-        } else if (item.入手手段) { // 古いデータ形式のフォールバック
-             itemSourcePathDisplay = item.入手手段;
-        }
-        
-        const rarityDisplay = `星${item.rarity || 0}`;
-
-        let effectsHtml = '<ul class="effect-list-in-table">';
-        if (item.structured_effects && item.structured_effects.length > 0) {
-            item.structured_effects.forEach(eff => {
-                const typeInfo = effectTypesCache.find(et => et.id === eff.type);
-                const typeName = typeInfo ? typeInfo.name : `不明(${eff.type.substring(0, 6)}...)`;
-                let effectTextPart;
-                const unitName = eff.unit;
-                if (unitName && unitName !== 'none') {
-                    const unitData = effectUnitsCache.find(u => u.name === unitName);
-                    const position = unitData ? unitData.position : 'suffix';
-                    effectTextPart = position === 'prefix' ? `${unitName}${eff.value}` : `${eff.value}${unitName}`;
-                } else {
-                    effectTextPart = `${eff.value}`;
-                }
-                effectsHtml += `<li>・${typeName} ${effectTextPart}</li>`;
-            });
-        } else {
-            effectsHtml += '<li>効果なし</li>';
-        }
-        effectsHtml += '</ul>';
+            sourceDisplayHtml = pathParts.length > 0 ? pathParts.join(' > ') : `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
+        } else { sourceDisplayHtml = '不明'; }
 
         let tagsHtml = '';
         if (item.tags && item.tags.length > 0) {
             tagsHtml = (item.tags || [])
-                .map(tagId => {
-                    const tag = allTags.find(t => t.id === tagId);
-                    return tag ? `<span class="tag-display-in-table">${tag.name}</span>` : '';
-                })
-                .filter(name => name)
-                .sort((a,b) => a.localeCompare(b, 'ja'))
-                .join(' ');
-        } else {
-            tagsHtml = 'なし';
-        }
+                .map(tagId => { const tag = allTags.find(t => t.id === tagId); return tag ? `<span class="tag-display-in-table">${tag.name}</span>` : ''; })
+                .filter(name => name).sort((a,b) => a.localeCompare(b, 'ja')).join(' ');
+        } else { tagsHtml = 'なし'; }
         
-
         tr.innerHTML = `
             <td><img src="${imageDisplayPath}" alt="${nameDisplay}" onerror="this.onerror=null; this.src='./images/no_image_placeholder.png'; this.style.backgroundColor='#eee';"></td>
             <td>${nameDisplay}</td>
             <td>${rarityDisplay}</td>
             <td>${priceDisplay}</td>
-            <td>${effectsHtml}</td>
+            <td>${effectsDisplayHtml}</td>
             <td>${tagsHtml}</td>
-            <td>${itemSourcePathDisplay}</td>`;
+            <td>${sourceDisplayHtml}</td>`;
         
         tr.addEventListener('click', () => loadItemForEdit(item.docId));
         DOMI.itemsTableBody.appendChild(tr);
@@ -651,26 +672,9 @@ async function loadItemForEdit(docId) {
 
             DOMI.itemIdToEditInput.value = itemSnap.id;
             DOMI.itemNameInput.value = itemData.name || "";
-            // DOMI.itemSourceInput.value = itemData.入手手段 || ""; // 削除
-            const sourceNodeId = itemData.sourceNodeId || ""; // <<< 追加
-            DOMI.selectedItemSourceNodeIdInput.value = sourceNodeId; // <<< 追加
-            
-            // itemSourceManager の displaySelectedItemSourcePathOnLoad を呼び出す
-            if (window.adminModules && window.adminModules.itemSourceManager && 
-                typeof window.adminModules.itemSourceManager.displaySelectedItemSourcePathOnLoad === 'function') {
-                await window.adminModules.itemSourceManager.displaySelectedItemSourcePathOnLoad(sourceNodeId);
-            } else {
-                console.warn("ItemSourceManager's displaySelectedItemSourcePathOnLoad function not found.");
-                if (DOMI.itemSourceDisplay) { // フォールバック表示
-                    DOMI.itemSourceDisplay.value = sourceNodeId ? `(選択済ID: ${sourceNodeId})` : "";
-                }
-            }
-
             DOMI.itemImageUrlInput.value = itemData.image || ''; 
             if (DOMI.itemPriceInput) DOMI.itemPriceInput.value = (typeof itemData.price === 'number' && !isNaN(itemData.price)) ? String(itemData.price) : '';
-            
             setRarityUI(itemData.rarity || 0);
-
             if (itemData.image && DOMI.itemImagePreview) { 
                 DOMI.itemImagePreview.src = itemData.image;
                 DOMI.itemImagePreview.style.display = 'block';
@@ -678,11 +682,50 @@ async function loadItemForEdit(docId) {
             selectedImageFile = null;
             if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
 
-            _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
-
-            currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : [];
+            // 効果設定の読み込み
+            const effectsMode = itemData.effectsInputMode || 'structured';
+            DOMI.effectsInputModeHiddenInput.value = effectsMode;
+            if (effectsMode === 'manual') {
+                DOMI.manualEffectsStringTextarea.value = itemData.manualEffectsString || "";
+                DOMI.structuredEffectsArea.style.display = 'none';
+                DOMI.manualEffectsArea.style.display = 'block';
+                DOMI.toggleEffectsInputModeButton.textContent = '構造化入力に戻す';
+                currentItemEffects = []; // structured_effects は使わない
+            } else { // structured or undefined
+                currentItemEffects = itemData.structured_effects ? JSON.parse(JSON.stringify(itemData.structured_effects)) : [];
+                DOMI.manualEffectsStringTextarea.value = "";
+                DOMI.structuredEffectsArea.style.display = 'block';
+                DOMI.manualEffectsArea.style.display = 'none';
+                DOMI.toggleEffectsInputModeButton.textContent = '入力欄に切り替え';
+            }
             renderCurrentItemEffectsListUI(); 
 
+            // 入手手段の読み込み
+            const sourceMode = itemData.sourceInputMode || 'tree';
+            DOMI.sourceInputModeHiddenInput.value = sourceMode;
+            if (sourceMode === 'manual') {
+                DOMI.manualSourceStringTextarea.value = itemData.manualSourceString || "";
+                DOMI.treeSourceArea.style.display = 'none';
+                DOMI.manualSourceArea.style.display = 'block';
+                DOMI.toggleSourceInputModeButton.textContent = '選択式に切り替え';
+                DOMI.selectedItemSourceNodeIdInput.value = "";
+                DOMI.itemSourceDisplay.value = "";
+            } else { // tree or undefined
+                const sourceNodeId = itemData.sourceNodeId || "";
+                DOMI.selectedItemSourceNodeIdInput.value = sourceNodeId;
+                if (window.adminModules && window.adminModules.itemSourceManager && 
+                    typeof window.adminModules.itemSourceManager.displaySelectedItemSourcePathOnLoad === 'function') {
+                    await window.adminModules.itemSourceManager.displaySelectedItemSourcePathOnLoad(sourceNodeId);
+                } else {
+                    if (DOMI.itemSourceDisplay) DOMI.itemSourceDisplay.value = sourceNodeId ? `(ID: ${sourceNodeId})` : "";
+                }
+                DOMI.manualSourceStringTextarea.value = "";
+                DOMI.treeSourceArea.style.display = 'block';
+                DOMI.manualSourceArea.style.display = 'none';
+                DOMI.toggleSourceInputModeButton.textContent = '入力欄に切り替え';
+            }
+
+            _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
             if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block';
 
