@@ -41,6 +41,7 @@
                 <li><button class="admin-nav-button" data-modal-target="effectSuperCategoryManagementModal">効果大分類管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="effectTypeManagementModal">効果種類管理</button></li>
                 <li><button class="admin-nav-button" data-modal-target="characterBaseManagementModal">キャラクター基礎情報管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="itemSourceManagementModal">入手経路管理</button></li>
             </ul>
         </nav>
 
@@ -48,7 +49,7 @@
         <div class="container">
             <p class="info-message" style="text-align: center; margin-bottom: 20px;">
                 アイテムの変更は、保存ボタンを押すとFirebaseに直接保存されます。<br>
-                カテゴリ、タグ、効果種類などの管理は、ヘッダー右上のメニューから各管理ダイアログを開いてください。
+                カテゴリ、タグ、効果種類、入手経路などの管理は、ヘッダー右上のメニューから各管理ダイアログを開いてください。
             </p>
             <hr>
 
@@ -103,11 +104,17 @@
                              </div>
                         </div>
                     </div>
-
+                    
                     <div class="form-group">
-                        <label for="itemSource">入手手段:</label>
-                        <textarea id="itemSource" rows="3"></textarea>
+                        <label for="itemSourceDisplay">入手手段:</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" id="itemSourceDisplay" readonly placeholder="選択されていません" style="flex-grow: 1;" aria-label="選択された入手経路">
+                            <input type="hidden" id="selectedItemSourceNodeId">
+                            <button type="button" id="selectItemSourceButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">入手経路を選択</button>
+                        </div>
+                        <p class="info">上記のボタンから入手経路の末端ノードを選択してください。</p>
                     </div>
+
                     <div class="form-group">
                         <label id="itemTagsLabel">このアイテムのタグ (複数選択可):</label>
                         <div id="itemTagsSelectorCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="itemTagsLabel">
@@ -340,6 +347,39 @@
         </div>
     </div>
 
+    <div id="itemSourceManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="itemSourceManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="itemSourceManagementModalTitle"><span class="icon" aria-hidden="true">🗺️</span> 入手経路管理</h2>
+            <p class="info-message">入手経路の変更は、保存ボタンを押すとFirebaseに直接保存されます。最大4階層まで設定可能です。</p>
+            <div class="form-group">
+                 <label for="newItemSourceName">新しい入手経路名:</label>
+                 <input type="text" id="newItemSourceName" placeholder="経路名 (例: ダンジョンA, フロア1)">
+            </div>
+             <div class="form-group">
+                 <label id="newItemSourceParentLabel">親経路設定 (選択した経路の子として追加):</label>
+                 <div id="newItemSourceParentSelector" class="category-button-group admin item-source-parent-selector" role="group" aria-labelledby="newItemSourceParentLabel" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                 </div>
+                 <input type="hidden" id="selectedNewParentSourceId" value="">
+             </div>
+            <button id="addItemSourceButton" type="button">入手経路追加</button>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>入手経路一覧</h3>
+                <button type="button" id="enlargeItemSourceListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="入手経路一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
+            <p class="info-message-small">一覧の項目名をクリックすると編集モーダルが開きます。</p>
+            <div class="form-group list-search-bar">
+                <label for="itemSourceSearchInput" class="sr-only">入手経路検索</label>
+                <input type="text" id="itemSourceSearchInput" placeholder="経路名で検索..." aria-label="入手経路を検索">
+            </div>
+            <div id="itemSourceListContainer" class="list-container">
+            </div>
+        </div>
+    </div>
+
 
     <!-- 既存の編集モーダル群 -->
     <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
@@ -521,6 +561,62 @@
             </div>
         </div>
     </div>
+
+    <div id="editItemSourceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editItemSourceModalTitle">
+        <div class="modal-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editItemSourceModalTitle">入手経路編集</h3>
+            <input type="hidden" id="editingItemSourceDocId">
+            <div class="form-group">
+                <label for="editingItemSourceName">経路名:</label>
+                <input type="text" id="editingItemSourceName">
+            </div>
+            <div class="form-group">
+                <label id="editingItemSourceParentLabel">親経路:</label>
+                 <div id="editingItemSourceParentSelector" class="category-button-group admin item-source-parent-selector" role="group" aria-labelledby="editingItemSourceParentLabel" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                 </div>
+                 <input type="hidden" id="selectedEditingParentSourceId">
+            </div>
+             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteItemSourceFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この入手経路を削除</button>
+                <button id="saveItemSourceEditButton" type="button">変更を保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="selectItemSourceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="selectItemSourceModalTitle" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="selectItemSourceModalTitle">入手経路の選択</h3>
+            <p class="info-message-small">最大4階層まで選択できます。リストの末端（それ以上子がない）経路を選択してください。</p>
+            <div id="itemSourceSelectionArea" class="item-source-selection-levels">
+                <div class="form-group source-level-selector-group">
+                    <label for="sourceLevel1">第1階層:</label>
+                    <select id="sourceLevel1" data-level="1" class="form-control-short item-source-level-select"></select>
+                </div>
+                <div class="form-group source-level-selector-group" id="sourceLevel2Group" style="display:none;">
+                    <label for="sourceLevel2">第2階層:</label>
+                    <select id="sourceLevel2" data-level="2" class="form-control-short item-source-level-select"></select>
+                </div>
+                <div class="form-group source-level-selector-group" id="sourceLevel3Group" style="display:none;">
+                    <label for="sourceLevel3">第3階層:</label>
+                    <select id="sourceLevel3" data-level="3" class="form-control-short item-source-level-select"></select>
+                </div>
+                <div class="form-group source-level-selector-group" id="sourceLevel4Group" style="display:none;">
+                    <label for="sourceLevel4">第4階層:</label>
+                    <select id="sourceLevel4" data-level="4" class="form-control-short item-source-level-select"></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>現在の選択パス:</label>
+                <p id="currentSelectionPathDisplay" style="font-weight: bold; min-height: 1.2em;">未選択</p>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; text-align: right;">
+                <button id="confirmItemSourceSelectionButton" type="button" disabled>この経路に決定</button>
+            </div>
+        </div>
+    </div>
+
 
     <div id="listEnlargementModal" class="modal admin-enlarged-list-modal" role="dialog" aria-modal="true" aria-labelledby="listEnlargementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
