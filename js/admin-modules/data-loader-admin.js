@@ -10,8 +10,9 @@ let allTagsCache = [];
 let itemsCache = [];
 let effectTypesCache = [];
 let effectUnitsCache = [];
-let effectSuperCategoriesCache = []; // ★★★ 追加 ★★★
-let characterBasesCache = {}; // e.g., { headShape: [ {id, name, effects}, ... ], color: [...] }
+let effectSuperCategoriesCache = [];
+let characterBasesCache = {};
+let itemSourcesCache = []; // <<< 追加
 
 // Constants
 export const baseTypeMappingsForLoader = {
@@ -30,7 +31,7 @@ async function loadCategoriesFromFirestore(db) {
         const q = query(collection(db, 'categories'), orderBy('name'));
         const snapshot = await getDocs(q);
         allCategoriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("[Admin][Data Loader][Categories] Loaded:", allCategoriesCache.length, /* allCategoriesCache */); // Avoid logging large objects
+        console.log("[Admin][Data Loader][Categories] Loaded:", allCategoriesCache.length);
     } catch (error) {
         console.error("[Admin][Data Loader][Categories] Error loading:", error);
         allCategoriesCache = [];
@@ -43,7 +44,7 @@ async function loadTagsFromFirestore(db) {
         const q = query(collection(db, 'tags'), orderBy('name'));
         const snapshot = await getDocs(q);
         allTagsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("[Admin][Data Loader][Tags] Loaded:", allTagsCache.length, /* allTagsCache */);
+        console.log("[Admin][Data Loader][Tags] Loaded:", allTagsCache.length);
     } catch (error) {
         console.error("[Admin][Data Loader][Tags] Error loading:", error);
         allTagsCache = [];
@@ -56,7 +57,7 @@ async function loadItemsFromFirestore(db) {
         const q = query(collection(db, 'items'), orderBy('name'));
         const snapshot = await getDocs(q);
         itemsCache = snapshot.docs.map(docSnap => ({ docId: docSnap.id, ...docSnap.data() }));
-        console.log("[Admin][Data Loader][Items] Loaded:", itemsCache.length, /* itemsCache */);
+        console.log("[Admin][Data Loader][Items] Loaded:", itemsCache.length);
     } catch (error) {
         console.error("[Admin][Data Loader][Items] Error loading:", error);
         itemsCache = [];
@@ -69,7 +70,7 @@ async function loadEffectTypesFromFirestore(db) {
         const q = query(collection(db, 'effect_types'), orderBy('name'));
         const snapshot = await getDocs(q);
         effectTypesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("[Admin][Data Loader][EffectTypes] Loaded:", effectTypesCache.length, /* effectTypesCache */);
+        console.log("[Admin][Data Loader][EffectTypes] Loaded:", effectTypesCache.length);
     } catch (error) {
         console.error("[Admin][Data Loader][EffectTypes] Error loading:", error);
         effectTypesCache = [];
@@ -82,21 +83,20 @@ async function loadEffectUnitsFromFirestore(db) {
         const q = query(collection(db, 'effect_units'), orderBy('name'));
         const snapshot = await getDocs(q);
         effectUnitsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("[Admin][Data Loader][EffectUnits] Loaded:", effectUnitsCache.length, /* effectUnitsCache */);
+        console.log("[Admin][Data Loader][EffectUnits] Loaded:", effectUnitsCache.length);
     } catch (error) {
         console.error("[Admin][Data Loader][EffectUnits] Error loading:", error);
         effectUnitsCache = [];
     }
 }
 
-// ★★★ 追加: 効果大分類を読み込む関数 ★★★
 async function loadEffectSuperCategoriesFromFirestore(db) {
     console.log("[Admin][Data Loader][EffectSuperCategories] Loading effect super categories...");
     try {
-        const q = query(collection(db, 'effect_super_categories'), orderBy('name')); // 'effect_super_categories' はコレクション名と仮定
+        const q = query(collection(db, 'effect_super_categories'), orderBy('name'));
         const snapshot = await getDocs(q);
         effectSuperCategoriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("[Admin][Data Loader][EffectSuperCategories] Loaded:", effectSuperCategoriesCache.length, /* effectSuperCategoriesCache */);
+        console.log("[Admin][Data Loader][EffectSuperCategories] Loaded:", effectSuperCategoriesCache.length);
     } catch (error) {
         console.error("[Admin][Data Loader][EffectSuperCategories] Error loading:", error);
         effectSuperCategoriesCache = [];
@@ -115,9 +115,24 @@ async function loadCharacterBasesFromFirestore(db) {
             const snapshot = await getDocs(q_opts);
             characterBasesCache[baseType] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
         }
-        console.log("[Admin][Data Loader][CharBases] Loaded:", /* characterBasesCache */);
+        console.log("[Admin][Data Loader][CharBases] Loaded.");
     } catch (error) {
         console.error("[Admin][Data Loader][CharBases] Error loading:", error);
+    }
+}
+
+async function loadItemSourcesFromFirestore(db) {
+    console.log("[Admin][Data Loader][ItemSources] Loading item sources...");
+    try {
+        // Firestoreで階層構造を効率的にソートするのは難しいため、一旦nameでソートし、クライアント側で再構築します。
+        // 必要であれば、depthフィールドとnameフィールドで複合ソートすることも検討できます。
+        const q = query(collection(db, 'item_sources'), orderBy('depth'), orderBy('name'));
+        const snapshot = await getDocs(q);
+        itemSourcesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("[Admin][Data Loader][ItemSources] Loaded:", itemSourcesCache.length);
+    } catch (error) {
+        console.error("[Admin][Data Loader][ItemSources] Error loading:", error);
+        itemSourcesCache = [];
     }
 }
 
@@ -126,11 +141,12 @@ export async function loadInitialData(db) {
     try {
         await Promise.all([
             loadEffectUnitsFromFirestore(db),
-            loadEffectSuperCategoriesFromFirestore(db), // ★★★ 追加 ★★★
+            loadEffectSuperCategoriesFromFirestore(db),
             loadEffectTypesFromFirestore(db),
             loadCategoriesFromFirestore(db),
             loadTagsFromFirestore(db),
             loadCharacterBasesFromFirestore(db),
+            loadItemSourcesFromFirestore(db), // <<< 追加
             loadItemsFromFirestore(db)
         ]);
         console.log("[Admin][Data Loader] All initial data load promises settled.");
@@ -146,8 +162,9 @@ export function clearAdminDataCache() {
     itemsCache = [];
     effectTypesCache = [];
     effectUnitsCache = [];
-    effectSuperCategoriesCache = []; // ★★★ 追加 ★★★
+    effectSuperCategoriesCache = [];
     characterBasesCache = {};
+    itemSourcesCache = []; // <<< 追加
     console.log("[Admin][Data Loader] All admin data caches cleared.");
 }
 
@@ -156,5 +173,6 @@ export const getAllTagsCache = () => allTagsCache;
 export const getItemsCache = () => itemsCache;
 export const getEffectTypesCache = () => effectTypesCache;
 export const getEffectUnitsCache = () => effectUnitsCache;
-export const getEffectSuperCategoriesCache = () => effectSuperCategoriesCache; // ★★★ 追加 ★★★
+export const getEffectSuperCategoriesCache = () => effectSuperCategoriesCache;
 export const getCharacterBasesCache = () => characterBasesCache;
+export const getItemSourcesCache = () => itemSourcesCache; // <<< 追加
