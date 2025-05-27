@@ -1,10 +1,13 @@
 // js/modules/ui-main.js
 // Handles general UI interactions like hamburger menu, modal closing, etc.
 // for the user-facing side.
+import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js'; // <<< getItemSourcesCacheFromLoader をインポート
+
 
 let getIsSelectingForSimulatorCb = () => false;
 let cancelItemSelectionCb = () => {};
 let initializeSimulatorDisplayCb = () => {};
+let itemSourcesCacheForUI = []; // <<< 追加: ui-main内で使うため
 
 const DOM = {
     sideNav: null,
@@ -26,6 +29,7 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     getIsSelectingForSimulatorCb = getIsSelectingForSimulator;
     cancelItemSelectionCb = cancelItemSelection;
     initializeSimulatorDisplayCb = initializeSimulatorDisplay;
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); // <<< キャッシュを取得
 
     DOM.sideNav = document.getElementById('sideNav');
     DOM.hamburgerButton = document.getElementById('hamburgerButton');
@@ -94,19 +98,45 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     console.log("[ui-main] UI Main Initialized.");
 }
 
-// --- レア度表示用のヘルパー関数 (item-manager.js から移植/共通化も検討) ---
 function getRarityStarsHTML(rarityValue, maxStars = 5) {
-    let starsHtml = '<div class="rarity-display-stars" style="margin-bottom: 10px;"><strong>レア度:</strong> '; // ラベル追加
+    let starsHtml = '<div class="rarity-display-stars" style="margin-bottom: 10px;"><strong>レア度:</strong> ';
     for (let i = 1; i <= maxStars; i++) {
-        starsHtml += `<span class="star-icon ${i <= rarityValue ? 'selected' : ''}" style="font-size: 1.2em; color: ${i <= rarityValue ? '#ffc107' : '#ccc'}; margin-right: 2px;">★</span>`; // インラインスタイルで色指定
+        starsHtml += `<span class="star-icon ${i <= rarityValue ? 'selected' : ''}" style="font-size: 1.2em; color: ${i <= rarityValue ? '#ffc107' : '#ccc'}; margin-right: 2px;">★</span>`;
     }
     starsHtml += '</div>';
     return starsHtml;
 }
-// --- ここまで ---
+
+function getItemSourceDisplayString(item, allItemSources) {
+    if (item.sourceInputMode === 'manual') {
+        return item.manualSourceString ? item.manualSourceString.replace(/\n/g, '<br>') : '不明';
+    } else if (item.sourceNodeId && allItemSources && allItemSources.length > 0) {
+        const selectedNode = allItemSources.find(s => s.id === item.sourceNodeId);
+        if (selectedNode && selectedNode.displayString && selectedNode.displayString.trim() !== "") {
+            return selectedNode.displayString;
+        }
+        // displayStringがない場合、パスを構築
+        const pathParts = [];
+        let currentId = item.sourceNodeId;
+        let sanityCheck = 0;
+        while (currentId && sanityCheck < 10) {
+            const node = allItemSources.find(s => s.id === currentId);
+            if (node) {
+                pathParts.unshift(node.name);
+                currentId = node.parentId;
+            } else {
+                pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // ノードが見つからない場合
+                break;
+            }
+            sanityCheck++;
+        }
+        return pathParts.length > 0 ? pathParts.join(' > ') : `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
+    }
+    return '不明'; // デフォルト
+}
 
 
-export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
+export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) { // itemSourcesCache はモジュールスコープの itemSourcesCacheForUI を使用
     if (!item || !DOM.itemDetailContent || !DOM.itemDetailModal) {
         console.error("[ui-main] Item data, detail content, or modal element missing for detail view:", item ? item.docId : 'unknown item');
         return;
@@ -125,12 +155,13 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
     }
 
-    // --- レア度表示HTMLの生成 ---
     const rarityHtml = getRarityStarsHTML(item.rarity || 0);
-    // --- ここまで ---
 
     let effectsHtml = '<p><strong>効果</strong> なし</p>'; 
-    if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache && effectUnitsCache) {
+    // <<< 効果表示の分岐を追加 >>>
+    if (item.effectsInputMode === 'manual' && item.manualEffectsString) {
+        effectsHtml = `<div class="structured-effects"><strong>効果詳細</strong><p>${item.manualEffectsString.replace(/\n/g, '<br>')}</p></div>`;
+    } else if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache && effectUnitsCache) {
         effectsHtml = `<div class="structured-effects"><strong>効果詳細</strong><ul>`; 
         item.structured_effects.forEach(eff => {
             const effectType = effectTypesCache.find(et => et.id === eff.type);
@@ -168,22 +199,24 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     }
 
     const priceText = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
-    const sourceText = item.入手手段 || '不明';
+    // <<< 入手手段の表示ロジック変更 >>>
+    const sourceText = getItemSourceDisplayString(item, itemSourcesCacheForUI);
 
 
     cardFull.innerHTML = `
         ${imageElementHTML}
         <h3>${item.name || '名称未設定'}</h3>
-        ${rarityHtml} <!-- レア度表示の挿入 -->
+        ${rarityHtml}
         ${effectsHtml}
-        <p><strong>入手手段</strong> ${sourceText}</p> 
-        <p><strong>売値</strong> ${priceText}</p>
+        <p><strong>入手手段:</strong> ${sourceText}</p> 
+        <p><strong>売値:</strong> ${priceText}</p>
         ${tagsHtml}
     `; 
     DOM.itemDetailContent.appendChild(cardFull);
     DOM.itemDetailModal.style.display = 'flex';
 }
 
+// ... (残りの関数は変更なし)
 export function handleCloseButtonClick(modalElement) {
     if (!modalElement) return;
     modalElement.style.display = "none";
