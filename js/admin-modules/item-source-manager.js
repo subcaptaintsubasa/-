@@ -25,10 +25,10 @@ const DOMISM = {
 
 const DOM_ITEM_FORM_SOURCE_SELECT = {
     selectItemSourceModal: null,
-    itemSourceSelectionUiContainer: null, // HTML側のID変更に合わせて更新
+    itemSourceSelectionUiContainer: null, 
     sourceLevelSelectors: [], 
     sourceLevelGroupDivs: [], 
-    currentSelectionPathDisplayForItemForm: null, // HTML側のID変更に合わせて更新
+    currentSelectionPathDisplayForItemForm: null, 
     confirmItemSourceSelectionButton: null,
     itemSourceDisplayInputForItemForm: null, 
     selectedItemSourceNodeIdInputForItemForm: null, 
@@ -143,55 +143,32 @@ export function initItemSourceManager(dependencies) {
 function toggleDisplayStringInputForNode(displayStringGroupElement, parentNodeData, editingNodeId, isNewNode) {
     if (!displayStringGroupElement) return;
     const allSources = getItemSourcesFuncCache();
-    let nodeIsConsideredTerminal;
     let currentDepthOfNodeBeingEditedOrCreated = 0;
 
     if (parentNodeData) {
         currentDepthOfNodeBeingEditedOrCreated = (parentNodeData.depth !== undefined ? parentNodeData.depth : 0) + 1;
-    } else { // No parent, so it's a root node
+    } else { 
         currentDepthOfNodeBeingEditedOrCreated = 0;
     }
-
-    if (isNewNode) {
-        // For a new node, it's considered terminal if its depth would be MAX_SOURCE_DEPTH
-        // (meaning it cannot have children).
-        nodeIsConsideredTerminal = currentDepthOfNodeBeingEditedOrCreated >= MAX_SOURCE_DEPTH;
-    } else { // Editing existing node
-        if (editingNodeId) {
-            const editingNode = allSources.find(s => s.id === editingNodeId);
-            if (editingNode) {
-                const hasChildren = allSources.some(s => s.parentId === editingNodeId);
-                if (hasChildren) {
-                    nodeIsConsideredTerminal = false; // If it has children, it's not terminal for displayString input
-                } else {
-                    // If no children, it's terminal if its *current* (or new, if parent changed) depth is MAX_SOURCE_DEPTH
-                    nodeIsConsideredTerminal = currentDepthOfNodeBeingEditedOrCreated >= MAX_SOURCE_DEPTH;
-                }
-            } else { // Should not happen if editingNodeId is valid
-                nodeIsConsideredTerminal = currentDepthOfNodeBeingEditedOrCreated >= MAX_SOURCE_DEPTH;
-            }
-        } else { // editingNodeId is null, should not happen in this branch
-             nodeIsConsideredTerminal = currentDepthOfNodeBeingEditedOrCreated >= MAX_SOURCE_DEPTH;
-        }
-    }
     
-    // As per new requirement, displayString is always available for input.
     displayStringGroupElement.style.display = 'block'; 
-    // The info message can indicate if it's a terminal node.
     const infoPara = displayStringGroupElement.querySelector('p.info');
     if (infoPara) {
-        if (currentDepthOfNodeBeingEditedOrCreated >= MAX_SOURCE_DEPTH || (editingNodeId && !allSources.some(s => s.parentId === editingNodeId))) {
-            infoPara.textContent = "この経路は末端です。アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。";
-        } else {
-            infoPara.textContent = "この経路は中間経路です。表示用文字列は通常、末端の経路で使用されます。";
+        // 末端ノードの定義: (1) 子がいない AND (2) これ以上階層を深くできない (MAX_SOURCE_DEPTHに達している)
+        // または、(1) 子がいない AND (2') isNewNodeがfalse (つまり編集中)で、そのノードが子を持たない場合。
+        let isEffectivelyTerminal = false;
+        if (isNewNode) {
+            isEffectivelyTerminal = currentDepthOfNodeBeingEditedOrCreated >= MAX_SOURCE_DEPTH;
+        } else if (editingNodeId) {
+            const hasChildren = allSources.some(s => s.parentId === editingNodeId);
+            isEffectivelyTerminal = !hasChildren; // 子がいなければ末端扱い (表示文字列の入力対象として)
         }
-    }
 
-
-    if (!nodeIsConsideredTerminal && !isNewNode) { // Only clear if editing and becoming non-terminal
-        // Do not clear automatically anymore based on this logic, let user manage.
-        // const inputField = displayStringGroupElement.querySelector('input[type="text"]');
-        // if(inputField) inputField.value = '';
+        if (isEffectivelyTerminal) {
+            infoPara.textContent = "この経路は末端として扱われます。アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。";
+        } else {
+            infoPara.textContent = "この経路は中間経路として扱われます。表示用文字列は通常、末端の経路で使用されます。";
+        }
     }
 }
 
@@ -322,7 +299,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
 
             const smallInfo = document.createElement('small');
             let infoText = ` (階層: ${actualDepth + 1})`;
-            if (source.displayString && source.displayString.trim() !== "") { // displayStringが空でない場合のみ表示
+            if (source.displayString && source.displayString.trim() !== "") { 
                 infoText += ` [表示: ${source.displayString.substring(0,15)}${source.displayString.length > 15 ? '...' : ''}]`;
             }
             smallInfo.textContent = infoText;
@@ -386,14 +363,39 @@ export function _renderItemSourcesForManagementInternal() {
     toggleDisplayStringInputForNode(DOMISM.newItemSourceDisplayStringGroup, initialParentNode, null, true);
 }
 
-// ... (handleItemSourceTreeClick は変更なし)
-// ... (addItemSourceNode, openEditItemSourceModalById, saveItemSourceNodeEdit, updateDescendantDepthsRecursive, getMaxDepthOfSubtree, deleteItemSourceNode は displayString の処理を追加・調整)
+function handleItemSourceTreeClick(event) {
+    const target = event.target;
+    const listItem = target.closest('.category-tree-item[data-source-id]');
+    if (!listItem) return;
+
+    const sourceId = listItem.dataset.sourceId;
+    const actionTarget = target.closest('[data-action]');
+    const action = actionTarget ? actionTarget.dataset.action : null;
+
+    if (action === 'toggle') {
+        const expander = listItem.querySelector('.category-tree-expander');
+        const childrenUl = listItem.querySelector('ul.category-tree-children');
+        if (childrenUl) {
+            const isCurrentlyExpanded = !childrenUl.classList.contains('hidden');
+            itemSourceExpansionState.set(sourceId, !isCurrentlyExpanded);
+            childrenUl.classList.toggle('hidden', isCurrentlyExpanded);
+            if(expander) {
+                expander.textContent = !isCurrentlyExpanded ? '▼' : '►';
+                expander.classList.toggle('expanded', !isCurrentlyExpanded);
+            }
+        }
+    } else if (action === 'edit') {
+        openEditItemSourceModalById(sourceId);
+    } else if (target.classList.contains('category-name') || target.closest('.category-tree-content')) {
+        if (!actionTarget) openEditItemSourceModalById(sourceId);
+    }
+}
 
 async function addItemSourceNode() {
     if (!DOMISM.newItemSourceNameInput || !DOMISM.selectedNewParentSourceIdInput) return;
     const name = DOMISM.newItemSourceNameInput.value.trim();
     const parentId = DOMISM.selectedNewParentSourceIdInput.value;
-    const displayString = DOMISM.newItemSourceDisplayStringInput.value.trim(); // Get display string
+    const displayString = DOMISM.newItemSourceDisplayStringInput.value.trim(); 
     if (!name) { alert("経路名を入力してください。"); return; }
 
     const allSources = getItemSourcesFuncCache();
@@ -418,27 +420,46 @@ async function addItemSourceNode() {
     const dataToAdd = {
         name: name, parentId: parentId || "", depth: depth, createdAt: serverTimestamp()
     };
-    if (displayString) { // displayStringが入力されていれば保存
+    if (displayString) { 
         dataToAdd.displayString = displayString;
     }
 
     try {
         await addDoc(collection(dbInstance, 'item_sources'), dataToAdd);
         DOMISM.newItemSourceNameInput.value = '';
-        DOMISM.newItemSourceDisplayStringInput.value = ''; // Clear display string input
+        DOMISM.newItemSourceDisplayStringInput.value = ''; 
         populateParentSourceSelectorUI(DOMISM.newItemSourceParentSelector, DOMISM.selectedNewParentSourceIdInput, { selectedParentId: "" });
         toggleDisplayStringInputForNode(DOMISM.newItemSourceDisplayStringGroup, null, null, true);
         await refreshAllDataCallback();
     } catch (error) { console.error("[ItemSource Manager] Error adding node:", error); alert("入手経路の追加に失敗しました。"); }
 }
 
-// openEditItemSourceModalById は変更なし (toggleDisplayStringInputForNodeが編集時も考慮するため)
+export function openEditItemSourceModalById(sourceId) { // <<< export キーワードを追加
+    const allSources = getItemSourcesFuncCache();
+    const sourceToEdit = allSources.find(s => s.id === sourceId);
+    if (!sourceToEdit) { alert("編集する経路データが見つかりません。"); return; }
+
+    DOMISM.editingItemSourceDocIdInput.value = sourceToEdit.id;
+    DOMISM.editingItemSourceNameInput.value = sourceToEdit.name;
+    DOMISM.editingItemSourceDisplayStringInput.value = sourceToEdit.displayString || '';
+
+    populateParentSourceSelectorUI(DOMISM.editingItemSourceParentSelector, DOMISM.selectedEditingParentSourceIdInput, {
+        currentSourceIdToExclude: sourceToEdit.id,
+        selectedParentId: sourceToEdit.parentId || ""
+    });
+    
+    const parentNode = sourceToEdit.parentId ? allSources.find(s => s.id === sourceToEdit.parentId) : null;
+    toggleDisplayStringInputForNode(DOMISM.editingItemSourceDisplayStringGroup, parentNode, sourceToEdit.id, false);
+
+    openModal('editItemSourceModal');
+    if (DOMISM.editingItemSourceNameInput) DOMISM.editingItemSourceNameInput.focus();
+}
 
 async function saveItemSourceNodeEdit() {
     const docId = DOMISM.editingItemSourceDocIdInput.value;
     const newName = DOMISM.editingItemSourceNameInput.value.trim();
     const newParentId = DOMISM.selectedEditingParentSourceIdInput.value;
-    const newDisplayString = DOMISM.editingItemSourceDisplayStringInput.value.trim(); // Get display string
+    const newDisplayString = DOMISM.editingItemSourceDisplayStringInput.value.trim(); 
 
     if (!newName) { alert("経路名は空にできません。"); return; }
     if (docId === newParentId) { alert("自身を親経路に設定することはできません。"); return; }
@@ -490,7 +511,7 @@ async function saveItemSourceNodeEdit() {
     if (newDisplayString) {
         dataToUpdate.displayString = newDisplayString;
     } else {
-        dataToUpdate.displayString = deleteField(); // 空ならフィールドごと削除
+        dataToUpdate.displayString = deleteField(); 
     }
 
     try {
@@ -503,10 +524,240 @@ async function saveItemSourceNodeEdit() {
     } catch (error) { console.error("[ItemSource Manager] Error saving edit:", error); alert("入手経路の更新に失敗しました。"); }
 }
 
-// ... (updateDescendantDepthsRecursive, getMaxDepthOfSubtree, deleteItemSourceNode は変更なし)
-// ... (openSelectItemSourceModalForItemForm, populateSourceLevelSelectForItemForm, handleSourceLevelChangeForItemForm, updateSelectionPathDisplayForItemForm, confirmSourceSelectionForItemForm, displaySelectedItemSourcePathOnLoad も変更なし)
+async function updateDescendantDepthsRecursive(parentId, parentNewDepth, allSources, batch) {
+    const children = allSources.filter(s => s.parentId === parentId);
+    for (const child of children) {
+        const childNewDepth = parentNewDepth + 1;
+        if (childNewDepth > MAX_SOURCE_DEPTH) {
+            console.error(`Depth limit exceeded for child ${child.id} (new depth ${childNewDepth}). Skipping update.`);
+            continue; 
+        }
+        const childUpdateData = { depth: childNewDepth };
+        batch.update(doc(dbInstance, 'item_sources', child.id), childUpdateData);
+        await updateDescendantDepthsRecursive(child.id, childNewDepth, allSources, batch);
+    }
+}
 
-// displaySelectedItemSourcePathOnLoad の中で、もし取得したノードに displayString があればそれを使うように修正
+function getMaxDepthOfSubtree(rootId, allSources) {
+    let maxAbsDepth = -1; 
+    const findMaxRecursive = (nodeId, currentAbsDepth) => {
+        maxAbsDepth = Math.max(maxAbsDepth, currentAbsDepth);
+        const childrenOfNode = allSources.filter(s => s.parentId === nodeId);
+        for (const childNode of childrenOfNode) {
+            findMaxRecursive(childNode.id, currentAbsDepth + 1);
+        }
+    };
+    const rootNode = allSources.find(s => s.id === rootId);
+    if (rootNode) {
+        findMaxRecursive(rootId, rootNode.depth !== undefined ? rootNode.depth : 0); 
+    }
+    return maxAbsDepth;
+}
+
+async function deleteItemSourceNode(docId, nodeName) {
+    const allSources = getItemSourcesFuncCache();
+    const itemsCache = getItemsFuncCache();
+
+    const children = allSources.filter(s => s.parentId === docId);
+    if (children.length > 0) {
+        alert(`経路「${nodeName}」は他の経路の親として使用されているため削除できません。先に子経路を削除するか、別の親経路に移動してください。`); return;
+    }
+    
+    const itemsUsingSource = itemsCache.filter(item => item.sourceNodeId === docId);
+    if (itemsUsingSource.length > 0) {
+        alert(`経路「${nodeName}」は ${itemsUsingSource.length} 個のアイテムで使用されているため削除できません。先にアイテムの入手経路を変更してください。`); return;
+    }
+
+    if (confirm(`入手経路「${nodeName}」を削除しますか？\nこの操作は元に戻せません。`)) {
+        try {
+            await deleteDoc(doc(dbInstance, 'item_sources', docId));
+            if (DOMISM.editItemSourceModal.style.display !== 'none' && DOMISM.editingItemSourceDocIdInput.value === docId) {
+                closeModal('editItemSourceModal');
+            }
+            await refreshAllDataCallback();
+        } catch (error) { console.error("[ItemSource Manager] Error deleting node:", error); alert("入手経路の削除に失敗しました。"); }
+    }
+}
+
+function openSelectItemSourceModalForItemForm() {
+    if (!DOM_ITEM_FORM_SOURCE_SELECT.selectItemSourceModal || !DOM_ITEM_FORM_SOURCE_SELECT.itemSourceDisplayInputForItemForm) return;
+    
+    DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors.forEach((sel, index) => {
+        sel.innerHTML = '<option value="">選択してください</option>'; 
+        const groupDivIndex = index -1; 
+        if (index > 0 && DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupDivIndex]) { 
+            DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupDivIndex].style.display = 'none';
+        }
+    });
+    const l1Group = document.getElementById('sourceLevel1Group');
+    if (l1Group) l1Group.style.display = 'block';
+
+
+    populateSourceLevelSelectForItemForm(1, ""); 
+    updateSelectionPathDisplayForItemForm(); 
+    openModal('selectItemSourceModal');
+}
+
+function populateSourceLevelSelectForItemForm(level, parentId) {
+    const selectorIndex = level - 1;
+    const selector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[selectorIndex];
+    if (!selector) return;
+
+    const allSources = getItemSourcesFuncCache();
+    const children = allSources
+        .filter(s => (s.parentId || "") === parentId && (s.depth !== undefined && s.depth === selectorIndex))
+        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    
+    selector.innerHTML = '<option value="">選択してください</option>';
+    children.forEach(child => {
+        const option = document.createElement('option');
+        option.value = child.id; 
+        option.textContent = child.displayString && child.displayString.trim() !== "" ? `${child.name} (${child.displayString})` : child.name;
+        selector.appendChild(option);
+    });
+
+    // Hide subsequent level groups more carefully
+    for (let i = level; i < DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors.length; i++) {
+        const nextSelector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
+        if (nextSelector) {
+            nextSelector.innerHTML = '<option value="">選択してください</option>';
+        }
+        // Groups are for L2, L3, L4. Their indices in sourceLevelGroupDivs are 0, 1, 2.
+        // Group for level L(i+1) corresponds to sourceLevelGroupDivs[i-1] (where i is 1-based level).
+        // Here, i is 0-based selector index. Group for selector[i] (level i+1) is groupDivs[i-1] if i>=1.
+        if (i > 0) { // Only applies if we are resetting L2 selector or higher
+            const groupToHideIndex = i -1; // Group for L(i+1) selector
+             if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex]) {
+                 DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex].style.display = 'none';
+             }
+        }
+    }
+}
+
+
+function handleSourceLevelChangeForItemForm(event) {
+    const currentLevel = parseInt(event.target.dataset.level, 10); // 1, 2, 3, 4
+    const selectedValue = event.target.value;
+
+    // Reset and hide subsequent levels
+    for (let levelToReset = currentLevel + 1; levelToReset <= 4; levelToReset++) {
+        const selectorIndexToReset = levelToReset - 1; // 0-indexed
+        const selectorToReset = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[selectorIndexToReset];
+        if (selectorToReset) {
+            selectorToReset.innerHTML = '<option value="">選択してください</option>';
+        }
+        // Group for level `levelToReset` (which is > currentLevel)
+        // sourceLevelGroupDivs indices: 0 for L2, 1 for L3, 2 for L4
+        // So, group index is levelToReset - 2
+        if (levelToReset >= 2) {
+            const groupIndexToHide = levelToReset - 2;
+            if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupIndexToHide]) {
+                DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupIndexToHide].style.display = 'none';
+            }
+        }
+    }
+
+    if (selectedValue && currentLevel < 4) {
+        // Populate and show the *next* level's group
+        // Next level is currentLevel + 1.
+        // Group for next level (e.g., if currentLevel=1, next is L2) is at groupDivs[currentLevel-1]
+        const nextGroupIndex = currentLevel -1;
+        if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[nextGroupIndex]) {
+            populateSourceLevelSelectForItemForm(currentLevel + 1, selectedValue);
+            DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[nextGroupIndex].style.display = 'block';
+        }
+    }
+    updateSelectionPathDisplayForItemForm();
+}
+
+
+function updateSelectionPathDisplayForItemForm() {
+    if (!DOM_ITEM_FORM_SOURCE_SELECT.currentSelectionPathDisplayForItemForm || !DOM_ITEM_FORM_SOURCE_SELECT.confirmItemSourceSelectionButton) return;
+    const pathParts = [];
+    const allSources = getItemSourcesFuncCache();
+    let lastSelectedNodeId = "";
+    
+    for (let i = 0; i < 4; i++) {
+        const selector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
+        if (selector && selector.value) {
+            const selectedNode = allSources.find(s => s.id === selector.value);
+            if (selectedNode) { 
+                pathParts.push(selectedNode.name); 
+                lastSelectedNodeId = selectedNode.id;
+            } else break; 
+        } else break;
+    }
+    
+    DOM_ITEM_FORM_SOURCE_SELECT.currentSelectionPathDisplayForItemForm.textContent = pathParts.length > 0 ? pathParts.join(' > ') : '未選択';
+    
+    let canConfirm = false;
+    if (lastSelectedNodeId) {
+        // ユーザーはどの階層でも決定可能とする。末端でなくても良い。
+        canConfirm = true;
+        // ただし、子がいる場合はその旨を表示
+        const hasChildren = allSources.some(s => s.parentId === lastSelectedNodeId);
+        if (hasChildren) {
+             DOM_ITEM_FORM_SOURCE_SELECT.currentSelectionPathDisplayForItemForm.textContent += " (更に下層あり)";
+        }
+    }
+    DOM_ITEM_FORM_SOURCE_SELECT.confirmItemSourceSelectionButton.disabled = !canConfirm;
+
+     if (!lastSelectedNodeId && pathParts.length > 0) { // 途中の選択肢で値がない（ありえないはずだが）
+         DOM_ITEM_FORM_SOURCE_SELECT.currentSelectionPathDisplayForItemForm.textContent += " (不完全な選択)";
+         DOM_ITEM_FORM_SOURCE_SELECT.confirmItemSourceSelectionButton.disabled = true;
+    } else if (pathParts.length === 0) { // 未選択
+         DOM_ITEM_FORM_SOURCE_SELECT.confirmItemSourceSelectionButton.disabled = true;
+    }
+}
+
+function confirmSourceSelectionForItemForm() {
+    let selectedNodeId = "";
+    let selectedNodeNamePath = ""; // 表示用のパス
+    let selectedNodeDisplayString = ""; // 表示用文字列
+
+    const allSources = getItemSourcesFuncCache();
+    const pathParts = [];
+
+    for (let i = 3; i >= 0; i--) { 
+        const selector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
+        if (selector && selector.value) {
+            selectedNodeId = selector.value;
+            break;
+        }
+    }
+
+    if (selectedNodeId) {
+        // パスとdisplayStringを再構築
+        let currentIdForPath = selectedNodeId;
+        const tempPathParts = [];
+        const selectedNodeData = allSources.find(s => s.id === selectedNodeId);
+
+        if (selectedNodeData && selectedNodeData.displayString && selectedNodeData.displayString.trim() !== "") {
+            selectedNodeDisplayString = selectedNodeData.displayString;
+        } else {
+             // displayStringがなければ、パスをnameで構築
+            while(currentIdForPath) {
+                const node = allSources.find(s => s.id === currentIdForPath);
+                if (node) {
+                    tempPathParts.unshift(node.name);
+                    currentIdForPath = node.parentId;
+                } else { break;}
+            }
+            selectedNodeNamePath = tempPathParts.join(' > ');
+        }
+        
+        if (DOM_ITEM_FORM_SOURCE_SELECT.itemSourceDisplayInputForItemForm) {
+            DOM_ITEM_FORM_SOURCE_SELECT.itemSourceDisplayInputForItemForm.value = selectedNodeDisplayString || selectedNodeNamePath;
+        }
+        if (DOM_ITEM_FORM_SOURCE_SELECT.selectedItemSourceNodeIdInputForItemForm) {
+            DOM_ITEM_FORM_SOURCE_SELECT.selectedItemSourceNodeIdInputForItemForm.value = selectedNodeId;
+        }
+        closeModal('selectItemSourceModal');
+    } else {
+        alert("入手経路が選択されていません。");
+    }
+}
+
 async function displaySelectedItemSourcePathOnLoad(nodeId) {
     if (!DOM_ITEM_FORM_SOURCE_SELECT.itemSourceDisplayInputForItemForm || !DOM_ITEM_FORM_SOURCE_SELECT.selectedItemSourceNodeIdInputForItemForm) return;
     if (!nodeId) {
@@ -517,7 +768,7 @@ async function displaySelectedItemSourcePathOnLoad(nodeId) {
 
     let allSources = getItemSourcesFuncCache();
     if (!allSources || allSources.length === 0) { 
-        const q = query(collection(dbInstance, 'item_sources'), orderBy('name')); // orderBy('depth'), orderBy('name') が望ましいがインデックス次第
+        const q = query(collection(dbInstance, 'item_sources'), orderBy('name')); 
         const snapshot = await getDocs(q);
         allSources = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     }
@@ -533,7 +784,8 @@ async function displaySelectedItemSourcePathOnLoad(nodeId) {
     }
 
     if (finalDisplayString) {
-        pathParts.push(finalDisplayString);
+        // pathParts.push(finalDisplayString); // displayStringがあればそれだけを表示
+        DOM_ITEM_FORM_SOURCE_SELECT.itemSourceDisplayInputForItemForm.value = finalDisplayString;
     } else {
         while (currentId && sanityCheck < 10) {
             const node = allSources.find(s => s.id === currentId);
@@ -541,7 +793,7 @@ async function displaySelectedItemSourcePathOnLoad(nodeId) {
                 pathParts.unshift(node.name);
                 currentId = node.parentId;
             } else {
-                try { //念のためDB直接参照
+                try { 
                     const docSnap = await getDoc(doc(dbInstance, 'item_sources', currentId));
                     if (docSnap.exists()) {
                         const missingNode = { id: docSnap.id, ...docSnap.data() };
@@ -552,7 +804,7 @@ async function displaySelectedItemSourcePathOnLoad(nodeId) {
             }
             sanityCheck++;
         }
+        DOM_ITEM_FORM_SOURCE_SELECT.itemSourceDisplayInputForItemForm.value = pathParts.join(' > ');
     }
-    DOM_ITEM_FORM_SOURCE_SELECT.itemSourceDisplayInputForItemForm.value = pathParts.join(finalDisplayString ? '' : ' > '); // displayStringなら区切り文字不要
     DOM_ITEM_FORM_SOURCE_SELECT.selectedItemSourceNodeIdInputForItemForm.value = nodeId;
 }
