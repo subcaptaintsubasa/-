@@ -1,13 +1,13 @@
 // js/modules/ui-main.js
 // Handles general UI interactions like hamburger menu, modal closing, etc.
 // for the user-facing side.
-import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js'; // <<< getItemSourcesCacheFromLoader をインポート
+import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js'; 
 
 
 let getIsSelectingForSimulatorCb = () => false;
 let cancelItemSelectionCb = () => {};
 let initializeSimulatorDisplayCb = () => {};
-let itemSourcesCacheForUI = []; // <<< 追加: ui-main内で使うため
+let itemSourcesCacheForUI = []; 
 
 const DOM = {
     sideNav: null,
@@ -29,7 +29,10 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     getIsSelectingForSimulatorCb = getIsSelectingForSimulator;
     cancelItemSelectionCb = cancelItemSelection;
     initializeSimulatorDisplayCb = initializeSimulatorDisplay;
-    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); // <<< キャッシュを取得
+    // Get item sources cache once during initialization
+    // Ensure data-loader.js has finished loading before this is called, or handle promise.
+    // For simplicity, assuming data-loader.js's loadData is awaited in script-main.js before this init.
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); 
 
     DOM.sideNav = document.getElementById('sideNav');
     DOM.hamburgerButton = document.getElementById('hamburgerButton');
@@ -60,10 +63,11 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     if (DOM.openSimulatorButtonNav && DOM.simulatorModal) {
         DOM.openSimulatorButtonNav.addEventListener('click', () => {
             if (getIsSelectingForSimulatorCb()) {
+                // If already selecting for simulator, perhaps do nothing or show a message
                 return;
             }
             DOM.simulatorModal.style.display = 'flex';
-            if(initializeSimulatorDisplayCb) initializeSimulatorDisplayCb();
+            if(initializeSimulatorDisplayCb) initializeSimulatorDisplayCb(); // Ensure simulator UI is up-to-date
             if (DOM.sideNav) DOM.sideNav.classList.remove('open');
         });
     }
@@ -71,26 +75,29 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     DOM.modals.forEach(modal => {
         const closeButton = modal.querySelector('.close-button');
         if (closeButton) {
-            if (!closeButton.dataset.listenerAttached) {
-                closeButton.addEventListener('click', () => handleCloseButtonClick(modal));
-                closeButton.dataset.listenerAttached = 'true';
+            // Remove old listener before adding new one to prevent duplicates if re-initialized
+            const newCloseButton = closeButton.cloneNode(true);
+            closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+            newCloseButton.addEventListener('click', () => handleCloseButtonClick(modal));
+        }
+        // Overlay click to close
+        const newModal = modal.cloneNode(false); // Clone only the modal itself, not content
+        while(modal.firstChild) newModal.appendChild(modal.firstChild); // Move content
+        if(modal.parentNode) modal.parentNode.replaceChild(newModal, modal);
+
+        newModal.addEventListener('click', function(event) {
+            if (event.target === this) { // Clicked on the modal background itself
+                handleCloseButtonClick(this);
             }
-        }
-        if (!modal.dataset.overlayListenerAttached) {
-            modal.addEventListener('click', function(event) {
-                if (event.target === this) {
-                    handleCloseButtonClick(this);
-                }
-            });
-            modal.dataset.overlayListenerAttached = 'true';
-        }
+        });
     });
     
+    // Close side nav if clicking outside
     document.addEventListener('click', (event) => {
         if (DOM.sideNav && DOM.sideNav.classList.contains('open') && 
             !DOM.sideNav.contains(event.target) && 
             event.target !== DOM.hamburgerButton && 
-            !event.target.closest('.side-navigation')) {
+            !event.target.closest('.side-navigation')) { // Check if click is inside nav
             DOM.sideNav.classList.remove('open');
         }
     });
@@ -108,42 +115,55 @@ function getRarityStarsHTML(rarityValue, maxStars = 5) {
 }
 
 function getItemSourceDisplayString(item, allItemSources) {
+    console.log("[ui-main] getItemSourceDisplayString called for item:", JSON.parse(JSON.stringify(item)));
+    console.log("[ui-main] allItemSources available for lookup:", allItemSources.length);
+
     if (item.sourceInputMode === 'manual') {
+        console.log("[ui-main] Source mode: manual, string:", item.manualSourceString);
         return item.manualSourceString ? item.manualSourceString.replace(/\n/g, '<br>') : '不明';
     } else if (item.sourceNodeId && allItemSources && allItemSources.length > 0) {
+        console.log("[ui-main] Source mode: tree, nodeId:", item.sourceNodeId);
         const selectedNode = allItemSources.find(s => s.id === item.sourceNodeId);
+        console.log("[ui-main] Found node in cache for sourceNodeId:", JSON.parse(JSON.stringify(selectedNode)));
+
         if (selectedNode && selectedNode.displayString && selectedNode.displayString.trim() !== "") {
+            console.log("[ui-main] Using displayString from node:", selectedNode.displayString);
             return selectedNode.displayString;
         }
         // displayStringがない場合、パスを構築
         const pathParts = [];
         let currentId = item.sourceNodeId;
         let sanityCheck = 0;
-        while (currentId && sanityCheck < 10) {
+        while (currentId && sanityCheck < 10) { // Max 10 levels deep for path reconstruction
             const node = allItemSources.find(s => s.id === currentId);
             if (node) {
                 pathParts.unshift(node.name);
                 currentId = node.parentId;
             } else {
-                pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // ノードが見つからない場合
+                pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // Node not found
+                console.warn(`[ui-main] Node not found for ID: ${currentId} during path construction.`);
                 break;
             }
             sanityCheck++;
         }
-        return pathParts.length > 0 ? pathParts.join(' > ') : `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
+        const constructedPath = pathParts.length > 0 ? pathParts.join(' > ') : `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
+        console.log("[ui-main] Constructed path:", constructedPath);
+        return constructedPath;
     }
-    return '不明'; // デフォルト
+    console.log("[ui-main] Fallback to '不明' for item source display.");
+    return '不明'; // Default if no other condition met
 }
 
 
-export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) { // itemSourcesCache はモジュールスコープの itemSourcesCacheForUI を使用
+export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
     if (!item || !DOM.itemDetailContent || !DOM.itemDetailModal) {
         console.error("[ui-main] Item data, detail content, or modal element missing for detail view:", item ? item.docId : 'unknown item');
         return;
     }
     console.log("[ui-main] Opening item detail modal for:", item.name);
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); // Ensure cache is fresh when modal opens
 
-    DOM.itemDetailContent.innerHTML = '';
+    DOM.itemDetailContent.innerHTML = ''; // Clear previous content
 
     const cardFull = document.createElement('div');
     cardFull.classList.add('item-card-full');
@@ -157,12 +177,11 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
 
     const rarityHtml = getRarityStarsHTML(item.rarity || 0);
 
-    let effectsHtml = '<p><strong>効果</strong> なし</p>'; 
-    // <<< 効果表示の分岐を追加 >>>
+    let effectsHtml = '<p><strong>効果:</strong> なし</p>'; 
     if (item.effectsInputMode === 'manual' && item.manualEffectsString) {
-        effectsHtml = `<div class="structured-effects"><strong>効果詳細</strong><p>${item.manualEffectsString.replace(/\n/g, '<br>')}</p></div>`;
+        effectsHtml = `<div class="structured-effects"><strong>効果:</strong><p style="margin-top: 5px;">${item.manualEffectsString.replace(/\n/g, '<br>')}</p></div>`;
     } else if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache && effectUnitsCache) {
-        effectsHtml = `<div class="structured-effects"><strong>効果詳細</strong><ul>`; 
+        effectsHtml = `<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">`; 
         item.structured_effects.forEach(eff => {
             const effectType = effectTypesCache.find(et => et.id === eff.type);
             const typeName = effectType ? effectType.name : `不明(${eff.type})`;
@@ -189,34 +208,35 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     if (item.tags && item.tags.length > 0 && allTags) {
         const displayableTags = item.tags.map(tagId => {
             const tagObj = allTags.find(t => t.id === tagId);
-            if (tagObj) return `<span>${tagObj.name}</span>`;
+            if (tagObj) return `<span style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 10px; margin-right: 5px; font-size: 0.9em;">${tagObj.name}</span>`;
             return null;
         }).filter(Boolean);
 
         if (displayableTags.length > 0) {
-            tagsHtml = `<div class="tags">タグ ${displayableTags.join(' ')}</div>`; 
+            tagsHtml = `<div class="tags" style="margin-top:10px;"><strong>タグ:</strong> ${displayableTags.join(' ')}</div>`; 
         }
     }
 
     const priceText = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
-    // <<< 入手手段の表示ロジック変更 >>>
     const sourceText = getItemSourceDisplayString(item, itemSourcesCacheForUI);
 
 
     cardFull.innerHTML = `
         ${imageElementHTML}
-        <h3>${item.name || '名称未設定'}</h3>
+        <h3 style="margin-top: 10px; margin-bottom: 5px; font-size: 1.3em;">${item.name || '名称未設定'}</h3>
         ${rarityHtml}
-        ${effectsHtml}
-        <p><strong>入手手段:</strong> ${sourceText}</p> 
-        <p><strong>売値:</strong> ${priceText}</p>
-        ${tagsHtml}
+        <div style="text-align: left; width: 100%; margin-top: 10px; font-size: 0.95em; line-height: 1.7;">
+            ${effectsHtml}
+            <p style="margin-top: 10px;"><strong>入手手段:</strong> ${sourceText}</p> 
+            <p style="margin-top: 5px;"><strong>売値:</strong> ${priceText}</p>
+            ${tagsHtml}
+        </div>
     `; 
     DOM.itemDetailContent.appendChild(cardFull);
-    DOM.itemDetailModal.style.display = 'flex';
+    DOM.itemDetailModal.style.display = 'flex'; 
+    console.log("[ui-main] Item detail modal content set and displayed.");
 }
 
-// ... (残りの関数は変更なし)
 export function handleCloseButtonClick(modalElement) {
     if (!modalElement) return;
     modalElement.style.display = "none";
@@ -225,10 +245,10 @@ export function handleCloseButtonClick(modalElement) {
         if(cancelItemSelectionCb) cancelItemSelectionCb();
     }
     if (modalElement === DOM.imagePreviewModal && DOM.generatedImagePreview) {
-        DOM.generatedImagePreview.src = "#";
+        DOM.generatedImagePreview.src = "#"; // Clear preview
     }
     if (modalElement === DOM.itemDetailModal && DOM.itemDetailContent) {
-        DOM.itemDetailContent.innerHTML = '';
+        DOM.itemDetailContent.innerHTML = ''; // Clear content to free up resources
     }
 }
 
@@ -251,9 +271,11 @@ export function showConfirmSelectionButton(show = true) {
 
 export function closeAllModals() {
     console.log("[ui-main] closeAllModals called");
-    DOM.modals.forEach(modal => {
-        modal.style.display = 'none';
-    });
+    if (DOM.modals) {
+        DOM.modals.forEach(modal => {
+            if(modal) modal.style.display = 'none';
+        });
+    }
     if (DOM.generatedImagePreview) DOM.generatedImagePreview.src = "#";
     if (DOM.itemDetailContent) DOM.itemDetailContent.innerHTML = '';
 }
