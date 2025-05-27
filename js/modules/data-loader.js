@@ -7,7 +7,7 @@ let allTags = [];
 let effectTypesCache = [];
 let effectUnitsCache = [];
 let characterBasesCache = {};
-let itemSourcesCache = []; // <<< 追加: 入手経路データ用キャッシュ
+let itemSourcesCache = [];
 
 const characterBaseTypes = ["headShape", "correction", "color", "pattern"];
 export let EQUIPMENT_SLOT_TAG_IDS = {};
@@ -57,44 +57,32 @@ function buildEquipmentSlotTagMap() {
     console.log("[data-loader] Dynamically built EQUIPMENT_SLOT_TAG_IDS:", EQUIPMENT_SLOT_TAG_IDS);
 }
 
-// <<< 追加: 入手経路データをロードする関数 >>>
-async function loadItemSourcesFromFirestore(db) {
-    console.log("[data-loader] ItemSources: Loading from Firestore...");
-    try {
-        // ユーザー側では表示のみなので、Firestoreのインデックスに依存しないシンプルなクエリでも可
-        // もしくは管理側と同様のクエリを使用する
-        const q = query(collection(db, 'item_sources'), orderBy('depth'), orderBy('name'));
-        const snapshot = await getDocs(q);
-        itemSourcesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log(`[data-loader] Loaded ${itemSourcesCache.length} item sources.`);
-    } catch (error) {
-        console.error("[data-loader] ItemSources: Error loading from Firestore:", error);
-        itemSourcesCache = []; // エラー時は空にする
-    }
-}
-
 
 export async function loadData(db) {
     console.log("[data-loader] Initiating data load sequence...");
     try {
+        // Character bases can be loaded first as they don't depend on other core game data for now
         await loadCharacterBasesFromFirestore(db);
-
+        
         console.log("[data-loader] Loading core game data (effects, categories, tags, items, units, sources)...");
+        
+        const dataPromises = [
+            getDocs(query(collection(db, 'effect_types'), orderBy('name'))),
+            getDocs(query(collection(db, 'categories'), orderBy('name'))),
+            getDocs(query(collection(db, 'tags'), orderBy('name'))),
+            getDocs(query(collection(db, 'items'), orderBy('name'))),
+            getDocs(query(collection(db, 'effect_units'), orderBy('name'))),
+            getDocs(query(collection(db, 'item_sources'), orderBy('depth'), orderBy('name'))) // Load item_sources here
+        ];
+
         const [
             effectTypesSnapshot, 
             categoriesSnapshot, 
             tagsSnapshot, 
             itemsSnapshot, 
             effectUnitsSnapshot,
-            itemSourcesSnapshot // <<< 追加
-        ] = await Promise.all([
-            getDocs(query(collection(db, 'effect_types'), orderBy('name'))),
-            getDocs(query(collection(db, 'categories'), orderBy('name'))),
-            getDocs(query(collection(db, 'tags'), orderBy('name'))),
-            getDocs(query(collection(db, 'items'), orderBy('name'))),
-            getDocs(query(collection(db, 'effect_units'), orderBy('name'))),
-            loadItemSourcesFromFirestore(db) // <<< 変更: 直接Promiseを解決させるか、中でキャッシュにセット
-        ]);
+            itemSourcesSnapshot 
+        ] = await Promise.all(dataPromises);
 
         effectTypesCache = effectTypesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log(`[data-loader] Loaded ${effectTypesCache.length} effect types.`);
@@ -105,7 +93,8 @@ export async function loadData(db) {
         allTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log(`[data-loader] Loaded ${allTags.length} tags.`);
         
-        buildEquipmentSlotTagMap();
+        // Build slot map after tags are loaded
+        buildEquipmentSlotTagMap(); 
 
         allItems = itemsSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
         console.log(`[data-loader] Loaded ${allItems.length} items.`);
@@ -113,10 +102,8 @@ export async function loadData(db) {
         effectUnitsCache = effectUnitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log(`[data-loader] Loaded ${effectUnitsCache.length} effect units.`);
         
-        // loadItemSourcesFromFirestore は内部で itemSourcesCache を設定するので、ここでは不要
-        // itemSourcesCache = itemSourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // console.log(`[data-loader] Loaded ${itemSourcesCache.length} item sources.`);
-
+        itemSourcesCache = itemSourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`[data-loader] Loaded ${itemSourcesCache.length} item sources.`);
 
         console.log("[data-loader] All data loading complete.");
     } catch (error) {
@@ -127,9 +114,9 @@ export async function loadData(db) {
         effectTypesCache = [];
         effectUnitsCache = [];
         characterBasesCache = {};
-        itemSourcesCache = []; // <<< 追加
+        itemSourcesCache = []; 
         EQUIPMENT_SLOT_TAG_IDS = {};
-        throw error;
+        throw error; 
     }
 }
 
@@ -139,4 +126,4 @@ export const getAllTags = () => allTags;
 export const getEffectTypesCache = () => effectTypesCache;
 export const getEffectUnitsCache = () => effectUnitsCache;
 export const getCharacterBasesCache = () => characterBasesCache;
-export const getItemSourcesCache = () => itemSourcesCache; // <<< 追加: ゲッター
+export const getItemSourcesCache = () => itemSourcesCache;
