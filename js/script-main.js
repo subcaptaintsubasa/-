@@ -3,6 +3,7 @@ import { db } from '../firebase-config.js';
 import {
     loadData,
     getAllItems, getAllCategories, getAllTags, getEffectTypesCache, getCharacterBasesCache,
+    getItemSourcesCache, // <<< 追加
     EQUIPMENT_SLOT_TAG_IDS, SIMULATOR_PARENT_CATEGORY_NAME, SIMULATOR_EFFECT_CHILD_CATEGORY_NAME
 } from './modules/data-loader.js';
 import {
@@ -22,10 +23,9 @@ import {
 import {
     initSimulatorUI, updateSimulatorSlotDisplay, calculateAndDisplayTotalEffects, initializeSimulatorDisplay,
     getSelectedEquipment, getSelectedCharacterBase, setSelectedCharacterBaseValue, updateSelectedEquipment,
-    getSimulatorDOMS // ★ simulator-ui.js から getSimulatorDOMS をインポート
+    getSimulatorDOMS 
 } from './modules/simulator-ui.js';
 import { initSimulatorLogic } from './modules/simulator-logic.js';
-// ★ simulator-image.js からは getSimulatorDOMS をインポートしない
 import { initSimulatorImage } from './modules/simulator-image.js';
 
 
@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const simulatorModal = document.getElementById('simulatorModal');
 
+    // initUIMain に getItemSourcesCache を渡す必要はない (ui-main内で直接data-loaderからインポートするため)
     initUIMain(
         getIsSelectingForSimulator,
         cancelItemSelection,
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         console.log("[script-main] Calling loadData...");
-        await loadData(db);
+        await loadData(db); // この中で itemSourcesCache もロードされる
         console.log("[script-main] loadData finished successfully.");
 
         initSearchRender({
@@ -115,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             getSelectedEquipment: getSelectedEquipment,
             getAllItems: getAllItems,
             getTotalEffectsDisplayHTML: () => document.getElementById('totalEffectsDisplay').innerHTML,
-            getSimulatorDOMS: getSimulatorDOMS // ★ simulator-ui.js からインポートした getSimulatorDOMS を渡す
+            getSimulatorDOMS: getSimulatorDOMS
         });
 
         console.log("[script-main] Performing initial item list render...");
