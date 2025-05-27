@@ -17,7 +17,7 @@ const DOMI = {
     itemRarityValueInput: null,
     
     toggleEffectsInputModeButton: null,
-    effectsInputModeHiddenInput: null,
+    effectsInputModeHiddenInput: null, 
     structuredEffectsArea: null,
     manualEffectsArea: null,
     manualEffectsStringTextarea: null,
@@ -28,7 +28,7 @@ const DOMI = {
     currentEffectsList: null,
     
     toggleSourceInputModeButton: null,
-    sourceInputModeHiddenInput: null,
+    sourceInputModeHiddenInput: null, 
     treeSourceArea: null,
     manualSourceArea: null,
     manualSourceStringTextarea: null,
@@ -52,7 +52,7 @@ let getEffectUnitsFuncCache = () => [];
 let getItemSourcesFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
-let currentItemEffects = [];
+let currentItemEffects = []; 
 let selectedImageFile = null;
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
@@ -508,43 +508,55 @@ async function saveItem(event) {
             if (uploadedUrl) imageUrlToSave = uploadedUrl; 
         }
 
-        const itemData = {
+        let itemDataPayload = {
             name: name,
             image: imageUrlToSave, 
             rarity: rarity, 
             tags: selectedItemTagIds,
-            updatedAt: serverTimestamp(),
-            effectsInputMode: effectsInputMode, // 'structured' or 'manual'
-            sourceInputMode: sourceInputMode,   // 'tree' or 'manual'
+            effectsInputMode: effectsInputMode,
+            sourceInputMode: sourceInputMode,
         };
+        
+        if (priceToSave !== null) {
+            itemDataPayload.price = priceToSave;
+        } else if (editingDocId) { // 更新時で価格が空なら削除
+            itemDataPayload.price = deleteField();
+        } // 新規作成時で価格が空なら、priceフィールドは含めない
 
         if (effectsInputMode === 'manual') {
-            itemData.manualEffectsString = manualEffectsString;
-            itemData.structured_effects = deleteField(); 
+            itemDataPayload.manualEffectsString = manualEffectsString;
+            if (editingDocId) itemDataPayload.structured_effects = deleteField();
         } else {
-            itemData.structured_effects = currentItemEffects;
-            itemData.manualEffectsString = deleteField(); 
+            itemDataPayload.structured_effects = currentItemEffects;
+            if (editingDocId) itemDataPayload.manualEffectsString = deleteField();
         }
 
         if (sourceInputMode === 'manual') {
-            itemData.manualSourceString = manualSourceString;
-            itemData.sourceNodeId = deleteField(); 
-            itemData.入手手段 = deleteField(); 
+            itemDataPayload.manualSourceString = manualSourceString;
+            if (editingDocId) {
+                itemDataPayload.sourceNodeId = deleteField();
+                itemDataPayload.入手手段 = deleteField(); // 古いフィールドも削除
+            }
         } else {
-            itemData.sourceNodeId = selectedSourceNodeId || null;
-            itemData.manualSourceString = deleteField(); 
-            itemData.入手手段 = deleteField(); 
+            if (selectedSourceNodeId) {
+                itemDataPayload.sourceNodeId = selectedSourceNodeId;
+            } else if (editingDocId) { // 更新時で選択なしなら削除
+                 itemDataPayload.sourceNodeId = deleteField();
+            }
+            if (editingDocId) {
+                itemDataPayload.manualSourceString = deleteField();
+                itemDataPayload.入手手段 = deleteField(); // 古いフィールドも削除
+            }
         }
         
-        if (priceToSave !== null) itemData.price = priceToSave;
-        else itemData.price = deleteField(); 
-        
         if (editingDocId) {
-            await updateDoc(doc(dbInstance, 'items', editingDocId), itemData);
+            itemDataPayload.updatedAt = serverTimestamp();
+            await updateDoc(doc(dbInstance, 'items', editingDocId), itemDataPayload);
             console.log("Item updated:", editingDocId);
         } else { 
-            itemData.createdAt = serverTimestamp();
-            await addDoc(collection(dbInstance, 'items'), itemData);
+            itemDataPayload.createdAt = serverTimestamp();
+            itemDataPayload.updatedAt = serverTimestamp();
+            await addDoc(collection(dbInstance, 'items'), itemDataPayload);
             console.log("Item added.");
         }
         clearItemFormInternal();
@@ -621,7 +633,7 @@ export function _renderItemsAdminTableInternal() {
             sourceDisplayHtml = item.manualSourceString ? item.manualSourceString.replace(/\n/g, '<br>') : '不明 (手動)';
         } else if (item.sourceNodeId) {
             const selectedSourceNode = itemSourcesCache.find(s => s.id === item.sourceNodeId);
-            if (selectedSourceNode && selectedSourceNode.displayString) {
+            if (selectedSourceNode && selectedSourceNode.displayString && selectedSourceNode.displayString.trim() !== "") {
                 sourceDisplayHtml = selectedSourceNode.displayString;
             } else {
                 const pathParts = [];
