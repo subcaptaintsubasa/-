@@ -16,7 +16,6 @@ import {
 } from './admin-modules/data-loader-admin.js';
 import { initUIHelpers, openModal as openModalHelper, closeModal as closeModalHelper } from './admin-modules/ui-helpers.js';
 
-// Import manager init functions AND their specific openEditModalById functions
 import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI, openEditCategoryModalById, buildCategoryTreeDOM as buildCategoryTreeDOMFromManager } from './admin-modules/category-manager.js';
 import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _populateCategoryCheckboxesForTagFormInternal as populateTagFormCategories, openEditTagModalById } from './admin-modules/tag-manager.js';
 import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI, openEditEffectUnitModalById } from './admin-modules/effect-unit-manager.js';
@@ -163,7 +162,9 @@ function clearAdminUIAndData() {
     if (itemsTableBody) itemsTableBody.innerHTML = '';
     document.querySelectorAll('#admin-content form').forEach(form => { if (typeof form.reset === 'function') form.reset(); });
     document.querySelectorAll('.checkbox-group-container, .category-button-group.admin, .tag-button-container.admin, .item-source-parent-selector').forEach(c => c.innerHTML = '');
-    ['currentEffectsList', 'currentCharBaseOptionEffectsList'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p>効果が追加されていません。</p>'; });
+    ['currentEffectsList', 'currentCharBaseOptionEffectsList', 'currentSourcesList'].forEach(id => { // currentSourcesList を追加
+        const el = document.getElementById(id); if (el) el.innerHTML = '<p>追加されていません。</p>'; 
+    });
     ['itemImagePreview'].forEach(id => { const el = document.getElementById(id); if (el) { el.src = '#'; el.style.display = 'none'; } });
     clearAdminDataCache();
     console.log("[admin-main] Admin UI cleared.");
