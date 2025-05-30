@@ -14,8 +14,8 @@ const DOM = {
     hamburgerButton: null,
     closeNavButton: null,
     openSimulatorButtonNav: null,
-    modals: null,
-    itemDetailModal: null,
+    // modals: null, // querySelectorAll は動的なので、都度取得するか、特定のモーダルのみキャッシュ
+    itemDetailModal: null, // キャッシュするが、open時に再取得も検討
     itemDetailContent: null,
     simulatorModal: null,
     imagePreviewModal: null,
@@ -29,75 +29,76 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     getIsSelectingForSimulatorCb = getIsSelectingForSimulator;
     cancelItemSelectionCb = cancelItemSelection;
     initializeSimulatorDisplayCb = initializeSimulatorDisplay;
-    // Get item sources cache once during initialization
-    // Ensure data-loader.js has finished loading before this is called, or handle promise.
-    // For simplicity, assuming data-loader.js's loadData is awaited in script-main.js before this init.
     itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); 
 
     DOM.sideNav = document.getElementById('sideNav');
     DOM.hamburgerButton = document.getElementById('hamburgerButton');
     DOM.closeNavButton = document.getElementById('closeNavButton');
     DOM.openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
-    DOM.modals = document.querySelectorAll('.modal');
+    
+    // 特定のモーダルをキャッシュ
     DOM.itemDetailModal = document.getElementById('itemDetailModal');
     DOM.itemDetailContent = document.getElementById('itemDetailContent');
     DOM.simulatorModal = document.getElementById('simulatorModal');
     DOM.imagePreviewModal = document.getElementById('imagePreviewModal');
     DOM.generatedImagePreview = document.getElementById('generatedImagePreview');
+
     DOM.searchToolMessageElement = document.getElementById('searchToolMessage');
     DOM.confirmSelectionButtonElement = document.getElementById('confirmSelectionButton');
 
 
     if (DOM.hamburgerButton && DOM.sideNav) {
         DOM.hamburgerButton.addEventListener('click', () => {
-            DOM.sideNav.classList.add('open');
+            if (DOM.sideNav) DOM.sideNav.classList.add('open');
         });
     }
 
     if (DOM.closeNavButton && DOM.sideNav) {
         DOM.closeNavButton.addEventListener('click', () => {
-            DOM.sideNav.classList.remove('open');
+            if (DOM.sideNav) DOM.sideNav.classList.remove('open');
         });
     }
 
     if (DOM.openSimulatorButtonNav && DOM.simulatorModal) {
         DOM.openSimulatorButtonNav.addEventListener('click', () => {
             if (getIsSelectingForSimulatorCb()) {
-                // If already selecting for simulator, perhaps do nothing or show a message
                 return;
             }
-            DOM.simulatorModal.style.display = 'flex';
-            if(initializeSimulatorDisplayCb) initializeSimulatorDisplayCb(); // Ensure simulator UI is up-to-date
+            if (DOM.simulatorModal) { 
+                DOM.simulatorModal.style.display = 'flex';
+                if(initializeSimulatorDisplayCb) initializeSimulatorDisplayCb();
+            }
             if (DOM.sideNav) DOM.sideNav.classList.remove('open');
         });
     }
 
-    DOM.modals.forEach(modal => {
+    // すべてのモーダルを取得してイベントリスナーを設定
+    const allModals = document.querySelectorAll('.modal');
+    allModals.forEach(modal => {
         const closeButton = modal.querySelector('.close-button');
         if (closeButton) {
-            // Remove old listener before adding new one to prevent duplicates if re-initialized
+            // 古いリスナーを削除する最も確実な方法は、要素を複製して置き換えることです
             const newCloseButton = closeButton.cloneNode(true);
             closeButton.parentNode.replaceChild(newCloseButton, closeButton);
             newCloseButton.addEventListener('click', () => handleCloseButtonClick(modal));
         }
-        // Overlay click to close
-        const newModal = modal.cloneNode(false); // Clone only the modal itself, not content
-        while(modal.firstChild) newModal.appendChild(modal.firstChild); // Move content
-        if(modal.parentNode) modal.parentNode.replaceChild(newModal, modal);
-
-        newModal.addEventListener('click', function(event) {
-            if (event.target === this) { // Clicked on the modal background itself
-                handleCloseButtonClick(this);
-            }
-        });
+        // オーバーレイクリックで閉じる (モーダル自体を複製するのは影響が大きいので避ける)
+        // 代わりに、リスナーが重複しないようにフラグで管理
+        if (!modal.dataset.overlayListenerAttached) {
+            modal.addEventListener('click', function(event) {
+                if (event.target === this) { 
+                    handleCloseButtonClick(this);
+                }
+            });
+            modal.dataset.overlayListenerAttached = 'true';
+        }
     });
     
-    // Close side nav if clicking outside
     document.addEventListener('click', (event) => {
         if (DOM.sideNav && DOM.sideNav.classList.contains('open') && 
             !DOM.sideNav.contains(event.target) && 
             event.target !== DOM.hamburgerButton && 
-            !event.target.closest('.side-navigation')) { // Check if click is inside nav
+            !event.target.closest('.side-navigation')) {
             DOM.sideNav.classList.remove('open');
         }
     });
@@ -116,7 +117,7 @@ function getRarityStarsHTML(rarityValue, maxStars = 5) {
 
 function getItemSourceDisplayString(item, allItemSources) {
     console.log("[ui-main] getItemSourceDisplayString called for item:", JSON.parse(JSON.stringify(item)));
-    console.log("[ui-main] allItemSources available for lookup:", allItemSources.length);
+    console.log("[ui-main] allItemSources available for lookup:", allItemSources ? allItemSources.length : 'undefined');
 
     if (item.sourceInputMode === 'manual') {
         console.log("[ui-main] Source mode: manual, string:", item.manualSourceString);
@@ -130,17 +131,16 @@ function getItemSourceDisplayString(item, allItemSources) {
             console.log("[ui-main] Using displayString from node:", selectedNode.displayString);
             return selectedNode.displayString;
         }
-        // displayStringがない場合、パスを構築
         const pathParts = [];
         let currentId = item.sourceNodeId;
         let sanityCheck = 0;
-        while (currentId && sanityCheck < 10) { // Max 10 levels deep for path reconstruction
+        while (currentId && sanityCheck < 10) { 
             const node = allItemSources.find(s => s.id === currentId);
             if (node) {
                 pathParts.unshift(node.name);
                 currentId = node.parentId;
             } else {
-                pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // Node not found
+                pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); 
                 console.warn(`[ui-main] Node not found for ID: ${currentId} during path construction.`);
                 break;
             }
@@ -151,19 +151,22 @@ function getItemSourceDisplayString(item, allItemSources) {
         return constructedPath;
     }
     console.log("[ui-main] Fallback to '不明' for item source display.");
-    return '不明'; // Default if no other condition met
+    return '不明'; 
 }
 
 
 export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
-    if (!item || !DOM.itemDetailContent || !DOM.itemDetailModal) {
-        console.error("[ui-main] Item data, detail content, or modal element missing for detail view:", item ? item.docId : 'unknown item');
+    const currentItemDetailModal = document.getElementById('itemDetailModal'); 
+    const currentItemDetailContent = document.getElementById('itemDetailContent');
+
+    if (!item || !currentItemDetailContent || !currentItemDetailModal) {
+        console.error("[ui-main] Item data, detail content, or modal element missing for detail view. Item:", item, "Modal:", currentItemDetailModal, "Content:", currentItemDetailContent);
         return;
     }
     console.log("[ui-main] Opening item detail modal for:", item.name);
-    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); // Ensure cache is fresh when modal opens
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); 
 
-    DOM.itemDetailContent.innerHTML = ''; // Clear previous content
+    currentItemDetailContent.innerHTML = ''; 
 
     const cardFull = document.createElement('div');
     cardFull.classList.add('item-card-full');
@@ -178,7 +181,7 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     const rarityHtml = getRarityStarsHTML(item.rarity || 0);
 
     let effectsHtml = '<p><strong>効果:</strong> なし</p>'; 
-    if (item.effectsInputMode === 'manual' && item.manualEffectsString) {
+    if (item.effectsInputMode === 'manual' && typeof item.manualEffectsString === 'string') {
         effectsHtml = `<div class="structured-effects"><strong>効果:</strong><p style="margin-top: 5px;">${item.manualEffectsString.replace(/\n/g, '<br>')}</p></div>`;
     } else if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache && effectUnitsCache) {
         effectsHtml = `<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">`; 
@@ -220,7 +223,6 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     const priceText = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
     const sourceText = getItemSourceDisplayString(item, itemSourcesCacheForUI);
 
-
     cardFull.innerHTML = `
         ${imageElementHTML}
         <h3 style="margin-top: 10px; margin-bottom: 5px; font-size: 1.3em;">${item.name || '名称未設定'}</h3>
@@ -232,23 +234,32 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
             ${tagsHtml}
         </div>
     `; 
-    DOM.itemDetailContent.appendChild(cardFull);
-    DOM.itemDetailModal.style.display = 'flex'; 
-    console.log("[ui-main] Item detail modal content set and displayed.");
+    currentItemDetailContent.appendChild(cardFull);
+    
+    currentItemDetailModal.style.display = 'flex'; 
+    
+    console.log("[ui-main] Item detail modal content set. Current display style:", currentItemDetailModal.style.display);
+    if (getComputedStyle(currentItemDetailModal).display !== 'flex') {
+        console.warn("[ui-main] Modal display style was not set to flex! Computed style:", getComputedStyle(currentItemDetailModal).display);
+    }
 }
 
 export function handleCloseButtonClick(modalElement) {
     if (!modalElement) return;
-    modalElement.style.display = "none";
+    console.log(`[ui-main] Closing modal: ${modalElement.id}`);
+    modalElement.style.display = "none"; 
 
-    if (modalElement === DOM.simulatorModal && getIsSelectingForSimulatorCb()) {
+    // 特定のモーダルクローズ時の追加処理
+    if (modalElement.id === 'simulatorModal' && getIsSelectingForSimulatorCb()) {
         if(cancelItemSelectionCb) cancelItemSelectionCb();
     }
-    if (modalElement === DOM.imagePreviewModal && DOM.generatedImagePreview) {
-        DOM.generatedImagePreview.src = "#"; // Clear preview
+    if (modalElement.id === 'imagePreviewModal') {
+        const imgPreview = document.getElementById('generatedImagePreview'); // DOMオブジェクトから取得する方が安全
+        if (imgPreview) imgPreview.src = "#";
     }
-    if (modalElement === DOM.itemDetailModal && DOM.itemDetailContent) {
-        DOM.itemDetailContent.innerHTML = ''; // Clear content to free up resources
+    if (modalElement.id === 'itemDetailModal') {
+        const content = document.getElementById('itemDetailContent'); // DOMオブジェクトから取得する方が安全
+        if (content) content.innerHTML = ''; 
     }
 }
 
@@ -271,11 +282,14 @@ export function showConfirmSelectionButton(show = true) {
 
 export function closeAllModals() {
     console.log("[ui-main] closeAllModals called");
-    if (DOM.modals) {
-        DOM.modals.forEach(modal => {
+    const allModalsCurrentlyInDOM = document.querySelectorAll('.modal'); // 常に最新のDOMから取得
+    if (allModalsCurrentlyInDOM) {
+        allModalsCurrentlyInDOM.forEach(modal => {
             if(modal) modal.style.display = 'none';
         });
     }
-    if (DOM.generatedImagePreview) DOM.generatedImagePreview.src = "#";
-    if (DOM.itemDetailContent) DOM.itemDetailContent.innerHTML = '';
+    const genImgPreview = document.getElementById('generatedImagePreview');
+    if (genImgPreview) genImgPreview.src = "#";
+    const detailContent = document.getElementById('itemDetailContent');
+    if (detailContent) detailContent.innerHTML = '';
 }
