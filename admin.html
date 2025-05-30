@@ -87,24 +87,24 @@
                     </div>
 
                     <div class="form-group">
-                        <label>効果設定:</label> {/* ラベルはエリア全体に */}
-                        <div class="effect-input-area"> {/* このエリアは効果設定全体を囲む */}
+                        <label>効果設定:</label> 
+                        <div class="effect-input-area"> 
                             <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
                                 <button type="button" id="toggleEffectsInputModeButton" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">入力欄に切り替え</button>
                             </div>
                             <input type="hidden" id="effectsInputMode" value="structured">
                             
-                            <div id="structuredEffectsInputArea"> {/* 構造化入力部分 */}
+                            <div id="structuredEffectsInputArea"> 
                                  <div class="effect-input-row">
                                      <select id="effectTypeSelect" class="form-control-short" aria-label="効果種類">
                                          <option value="">効果種類を選択...</option>
                                      </select>
                                      <input type="number" id="effectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
                                      <span id="effectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
-                                     <button type="button" id="addEffectToListButton">効果をリストに追加</button> {/* ボタンテキスト変更 */}
+                                     <button type="button" id="addEffectToListButton">効果をリストに追加</button> 
                                  </div>
                             </div>
-                            <div id="manualEffectsInputArea" style="display:none;"> {/* 手動入力部分 */}
+                            <div id="manualEffectsInputArea" style="display:none;"> 
                                 <textarea id="manualEffectsString" rows="3" placeholder="効果を自由記述 (例: 攻撃力+10、HP自動回復)"></textarea>
                                 <button type="button" id="addManualEffectToListButton" style="margin-top: 5px;">手動入力をリストに追加</button>
                                 <p class="info">入力した文字列がそのまま効果としてリストに追加されます。</p>
@@ -118,30 +118,30 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>入手手段設定:</label> {/* ラベルはエリア全体に */}
-                        <div class="effect-input-area"> {/* 効果設定と同様のクラスで囲む */}
+                        <label>入手手段設定:</label> 
+                        <div class="effect-input-area"> 
                             <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
                                  <button type="button" id="toggleSourceInputModeButton" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">入力欄に切り替え</button>
                             </div>
                             <input type="hidden" id="sourceInputMode" value="tree">
                             
-                            <div id="treeSourceInputArea"> {/* ツリー選択部分 */}
+                            <div id="treeSourceInputArea"> 
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
                                     <input type="text" id="itemSourceDisplay" readonly placeholder="未選択 (下のボタンで選択)" style="flex-grow: 1;" aria-label="選択された入手経路候補">
-                                    <input type="hidden" id="selectedItemSourceNodeId_temp"> {/* 一時的なID保持 */}
+                                    <input type="hidden" id="selectedItemSourceNodeId_temp"> 
                                     <button type="button" id="selectItemSourceButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">入手経路を選択</button>
                                 </div>
                                 <button type="button" id="addTreeSourceToListButton">選択した経路をリストに追加</button>
                                 <p class="info">「入手経路を選択」ボタンで末端ノードを選択し、「リストに追加」してください。</p>
                             </div>
-                            <div id="manualSourceInputArea" style="display:none;"> {/* 手動入力部分 */}
-                                <textarea id="manualSourceString" rows="2" placeholder="入手手段を自由記述 (例: イベントAの報酬)"></textarea>
+                            <div id="manualSourceInputArea" style="display:none;"> 
+                                <textarea id="manualSourceStringTextarea" rows="2" placeholder="入手手段を自由記述 (例: イベントAの報酬)"></textarea> {/* ID変更 */}
                                 <button type="button" id="addManualSourceToListButton" style="margin-top: 5px;">手動入力をリストに追加</button>
                                 <p class="info">入力した文字列がそのまま入手手段としてリストに追加されます。</p>
                             </div>
                             <hr style="margin: 15px 0;">
                             <label>現在の入手手段リスト:</label>
-                            <div id="currentSourcesList" class="effects-list-container"> {/* 効果リストと同様のクラス */}
+                            <div id="currentSourcesList" class="effects-list-container"> 
                                <p>入手手段が追加されていません。</p>
                             </div>
                         </div>
@@ -393,7 +393,7 @@
                  </div>
                  <input type="hidden" id="selectedNewParentSourceId" value="">
              </div>
-             <div class="form-group"> 
+             <div class="form-group" id="newItemSourceDisplayStringGroup"> 
                 <label for="newItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
                 <input type="text" id="newItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
                 <p class="info">アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。</p>
@@ -613,7 +613,7 @@
                  </div>
                  <input type="hidden" id="selectedEditingParentSourceId">
             </div>
-            <div class="form-group"> 
+            <div class="form-group" id="editingItemSourceDisplayStringGroup"> 
                 <label for="editingItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
                 <input type="text" id="editingItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
                 <p class="info">アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。</p>
