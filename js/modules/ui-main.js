@@ -1,8 +1,5 @@
 // js/modules/ui-main.js
-// Handles general UI interactions like hamburger menu, modal closing, etc.
-// for the user-facing side.
 import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js'; 
-
 
 let getIsSelectingForSimulatorCb = () => false;
 let cancelItemSelectionCb = () => {};
@@ -14,8 +11,7 @@ const DOM = {
     hamburgerButton: null,
     closeNavButton: null,
     openSimulatorButtonNav: null,
-    // modals: null, // querySelectorAll は動的なので、都度取得するか、特定のモーダルのみキャッシュ
-    itemDetailModal: null, // キャッシュするが、open時に再取得も検討
+    itemDetailModal: null, 
     itemDetailContent: null,
     simulatorModal: null,
     imagePreviewModal: null,
@@ -36,7 +32,6 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     DOM.closeNavButton = document.getElementById('closeNavButton');
     DOM.openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
     
-    // 特定のモーダルをキャッシュ
     DOM.itemDetailModal = document.getElementById('itemDetailModal');
     DOM.itemDetailContent = document.getElementById('itemDetailContent');
     DOM.simulatorModal = document.getElementById('simulatorModal');
@@ -45,7 +40,6 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
 
     DOM.searchToolMessageElement = document.getElementById('searchToolMessage');
     DOM.confirmSelectionButtonElement = document.getElementById('confirmSelectionButton');
-
 
     if (DOM.hamburgerButton && DOM.sideNav) {
         DOM.hamburgerButton.addEventListener('click', () => {
@@ -72,18 +66,14 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
         });
     }
 
-    // すべてのモーダルを取得してイベントリスナーを設定
     const allModals = document.querySelectorAll('.modal');
     allModals.forEach(modal => {
         const closeButton = modal.querySelector('.close-button');
         if (closeButton) {
-            // 古いリスナーを削除する最も確実な方法は、要素を複製して置き換えることです
             const newCloseButton = closeButton.cloneNode(true);
             closeButton.parentNode.replaceChild(newCloseButton, closeButton);
             newCloseButton.addEventListener('click', () => handleCloseButtonClick(modal));
         }
-        // オーバーレイクリックで閉じる (モーダル自体を複製するのは影響が大きいので避ける)
-        // 代わりに、リスナーが重複しないようにフラグで管理
         if (!modal.dataset.overlayListenerAttached) {
             modal.addEventListener('click', function(event) {
                 if (event.target === this) { 
@@ -115,45 +105,23 @@ function getRarityStarsHTML(rarityValue, maxStars = 5) {
     return starsHtml;
 }
 
-function getItemSourceDisplayString(item, allItemSources) {
-    console.log("[ui-main] getItemSourceDisplayString called for item:", JSON.parse(JSON.stringify(item)));
-    console.log("[ui-main] allItemSources available for lookup:", allItemSources ? allItemSources.length : 'undefined');
-
-    if (item.sourceInputMode === 'manual') {
-        console.log("[ui-main] Source mode: manual, string:", item.manualSourceString);
-        return item.manualSourceString ? item.manualSourceString.replace(/\n/g, '<br>') : '不明';
-    } else if (item.sourceNodeId && allItemSources && allItemSources.length > 0) {
-        console.log("[ui-main] Source mode: tree, nodeId:", item.sourceNodeId);
-        const selectedNode = allItemSources.find(s => s.id === item.sourceNodeId);
-        console.log("[ui-main] Found node in cache for sourceNodeId:", JSON.parse(JSON.stringify(selectedNode)));
-
-        if (selectedNode && selectedNode.displayString && selectedNode.displayString.trim() !== "") {
-            console.log("[ui-main] Using displayString from node:", selectedNode.displayString);
-            return selectedNode.displayString;
+function buildPathForItemSource(nodeId, allItemSources) {
+    const pathParts = [];
+    let currentId = nodeId;
+    let sanityCheck = 0;
+    while (currentId && sanityCheck < 10) {
+        const node = allItemSources.find(s => s.id === currentId);
+        if (node) {
+            pathParts.unshift(node.name);
+            currentId = node.parentId;
+        } else {
+            pathParts.unshift(`[不明なID:${currentId.substring(0,5)}...]`);
+            break;
         }
-        const pathParts = [];
-        let currentId = item.sourceNodeId;
-        let sanityCheck = 0;
-        while (currentId && sanityCheck < 10) { 
-            const node = allItemSources.find(s => s.id === currentId);
-            if (node) {
-                pathParts.unshift(node.name);
-                currentId = node.parentId;
-            } else {
-                pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); 
-                console.warn(`[ui-main] Node not found for ID: ${currentId} during path construction.`);
-                break;
-            }
-            sanityCheck++;
-        }
-        const constructedPath = pathParts.length > 0 ? pathParts.join(' > ') : `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
-        console.log("[ui-main] Constructed path:", constructedPath);
-        return constructedPath;
+        sanityCheck++;
     }
-    console.log("[ui-main] Fallback to '不明' for item source display.");
-    return '不明'; 
+    return pathParts.join(' > ');
 }
-
 
 export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
     const currentItemDetailModal = document.getElementById('itemDetailModal'); 
@@ -163,8 +131,8 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         console.error("[ui-main] Item data, detail content, or modal element missing for detail view. Item:", item, "Modal:", currentItemDetailModal, "Content:", currentItemDetailContent);
         return;
     }
-    console.log("[ui-main] Opening item detail modal for:", item.name);
-    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); 
+    console.log("[ui-main] Opening item detail modal for:", item.name, JSON.parse(JSON.stringify(item)));
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); // 念のため最新を取得
 
     currentItemDetailContent.innerHTML = ''; 
 
@@ -180,32 +148,83 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
 
     const rarityHtml = getRarityStarsHTML(item.rarity || 0);
 
-    let effectsHtml = '<p><strong>効果:</strong> なし</p>'; 
-    if (item.effectsInputMode === 'manual' && typeof item.manualEffectsString === 'string') {
-        effectsHtml = `<div class="structured-effects"><strong>効果:</strong><p style="margin-top: 5px;">${item.manualEffectsString.replace(/\n/g, '<br>')}</p></div>`;
-    } else if (item.structured_effects && item.structured_effects.length > 0 && effectTypesCache && effectUnitsCache) {
-        effectsHtml = `<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">`; 
-        item.structured_effects.forEach(eff => {
-            const effectType = effectTypesCache.find(et => et.id === eff.type);
-            const typeName = effectType ? effectType.name : `不明(${eff.type})`;
-            
-            let effectTextPart;
-            const unitName = eff.unit;
-            if (unitName && unitName !== 'none') {
-                const unitData = effectUnitsCache.find(u => u.name === unitName);
-                const position = unitData ? unitData.position : 'suffix';
-                if (position === 'prefix') {
-                    effectTextPart = `${unitName}${eff.value}`;
-                } else {
-                    effectTextPart = `${eff.value}${unitName}`;
+    // 効果表示
+    let effectsDisplayHtml = '<p><strong>効果:</strong> なし</p>';
+    if (item.effects && Array.isArray(item.effects) && item.effects.length > 0) {
+        effectsDisplayHtml = '<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
+        item.effects.forEach(eff => {
+            if (eff.type === "manual") {
+                effectsDisplayHtml += `<li>${eff.manualString ? eff.manualString.replace(/\n/g, '<br>') : '(記載なし)'}</li>`;
+            } else if (eff.type === "structured") {
+                const effectType = effectTypesCache.find(et => et.id === eff.effectTypeId);
+                const typeName = effectType ? effectType.name : `不明`;
+                let effectTextPart = eff.value !== undefined ? eff.value.toString() : '';
+                if (eff.unit && eff.unit !== 'none') {
+                    const unitData = effectUnitsCache.find(u => u.name === eff.unit);
+                    const position = unitData ? unitData.position : 'suffix';
+                    if (position === 'prefix') effectTextPart = `${eff.unit}${eff.value}`;
+                    else effectTextPart = `${eff.value}${eff.unit}`;
                 }
-            } else {
-                effectTextPart = `${eff.value}`;
+                effectsDisplayHtml += `<li>${typeName} ${effectTextPart}</li>`;
             }
-            effectsHtml += `<li>${typeName} ${effectTextPart}</li>`;
         });
-        effectsHtml += `</ul></div>`;
+        effectsDisplayHtml += '</ul></div>';
+    } else if (item.effectsInputMode === 'manual' && typeof item.manualEffectsString === 'string' && item.manualEffectsString.trim() !== "") { // 古いデータフォールバック
+        effectsDisplayHtml = `<div class="structured-effects"><strong>効果:</strong><p style="margin-top: 5px;">${item.manualEffectsString.replace(/\n/g, '<br>')}</p></div>`;
+    } else if (item.structured_effects && item.structured_effects.length > 0 ) { // さらに古いデータフォールバック
+        effectsDisplayHtml = '<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
+        item.structured_effects.forEach(eff => {
+            const effectType = effectTypesCache.find(et => et.id === eff.type); // 古い形式では effectTypeId ではなく type
+            const typeName = effectType ? effectType.name : `不明`;
+            let effectTextPart = eff.value !== undefined ? eff.value.toString() : '';
+            if (eff.unit && eff.unit !== 'none') {
+                const unitData = effectUnitsCache.find(u => u.name === eff.unit);
+                const position = unitData ? unitData.position : 'suffix';
+                if (position === 'prefix') effectTextPart = `${eff.unit}${eff.value}`;
+                else effectTextPart = `${eff.value}${eff.unit}`;
+            }
+            effectsDisplayHtml += `<li>${typeName} ${effectTextPart} (旧形式)</li>`;
+        });
+        effectsDisplayHtml += '</ul></div>';
     }
+
+
+    // 入手手段表示
+    let sourcesDisplayHtml = '<p><strong>入手手段:</strong> 不明</p>';
+    if (item.sources && Array.isArray(item.sources) && item.sources.length > 0) {
+        if (item.sources.length === 1) { // 1つの場合はリストにしない
+            const src = item.sources[0];
+            let text = '不明';
+            if (src.type === 'manual') {
+                text = src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(記載なし)';
+            } else if (src.type === 'tree' && src.nodeId) {
+                const node = itemSourcesCacheForUI.find(s => s.id === src.nodeId);
+                text = (node && node.displayString && node.displayString.trim() !== "") ? node.displayString : buildPathForItemSource(src.nodeId, itemSourcesCacheForUI);
+            }
+            sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${text}</p>`;
+        } else { // 複数の場合
+            sourcesDisplayHtml = '<div style="margin-top: 10px;"><strong>入手手段:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
+            item.sources.forEach(src => {
+                if (src.type === 'manual') {
+                    sourcesDisplayHtml += `<li>${src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(記載なし)'}</li>`;
+                } else if (src.type === 'tree' && src.nodeId) {
+                    const node = itemSourcesCacheForUI.find(s => s.id === src.nodeId);
+                    const pathText = (node && node.displayString && node.displayString.trim() !== "") ? node.displayString : buildPathForItemSource(src.nodeId, itemSourcesCacheForUI);
+                    sourcesDisplayHtml += `<li>${pathText}</li>`;
+                }
+            });
+            sourcesDisplayHtml += '</ul></div>';
+        }
+    } else if (item.sourceInputMode === 'manual' && typeof item.manualSourceString === 'string' && item.manualSourceString.trim() !== "") { // 古いデータフォールバック
+        sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${item.manualSourceString.replace(/\n/g, '<br>')}</p>`;
+    } else if (item.sourceNodeId && itemSourcesCacheForUI && itemSourcesCacheForUI.length > 0) { // 古いデータフォールバック
+        const node = itemSourcesCacheForUI.find(s => s.id === item.sourceNodeId);
+        const text = (node && node.displayString && node.displayString.trim() !== "") ? node.displayString : buildPathForItemSource(item.sourceNodeId, itemSourcesCacheForUI);
+        sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${text} (旧形式)</p>`;
+    } else if (typeof item.入手手段 === 'string' && item.入手手段.trim() !== "") { // 最も古いデータ形式
+         sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${item.入手手段} (最旧形式)</p>`;
+    }
+
 
     let tagsHtml = '';
     if (item.tags && item.tags.length > 0 && allTags) {
@@ -221,15 +240,14 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     }
 
     const priceText = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
-    const sourceText = getItemSourceDisplayString(item, itemSourcesCacheForUI);
 
     cardFull.innerHTML = `
         ${imageElementHTML}
         <h3 style="margin-top: 10px; margin-bottom: 5px; font-size: 1.3em;">${item.name || '名称未設定'}</h3>
         ${rarityHtml}
         <div style="text-align: left; width: 100%; margin-top: 10px; font-size: 0.95em; line-height: 1.7;">
-            ${effectsHtml}
-            <p style="margin-top: 10px;"><strong>入手手段:</strong> ${sourceText}</p> 
+            ${effectsDisplayHtml}
+            ${sourcesDisplayHtml} {/* 修正: pタグではなくdivやulが直接入るように */}
             <p style="margin-top: 5px;"><strong>売値:</strong> ${priceText}</p>
             ${tagsHtml}
         </div>
@@ -249,16 +267,15 @@ export function handleCloseButtonClick(modalElement) {
     console.log(`[ui-main] Closing modal: ${modalElement.id}`);
     modalElement.style.display = "none"; 
 
-    // 特定のモーダルクローズ時の追加処理
     if (modalElement.id === 'simulatorModal' && getIsSelectingForSimulatorCb()) {
         if(cancelItemSelectionCb) cancelItemSelectionCb();
     }
     if (modalElement.id === 'imagePreviewModal') {
-        const imgPreview = document.getElementById('generatedImagePreview'); // DOMオブジェクトから取得する方が安全
+        const imgPreview = document.getElementById('generatedImagePreview'); 
         if (imgPreview) imgPreview.src = "#";
     }
     if (modalElement.id === 'itemDetailModal') {
-        const content = document.getElementById('itemDetailContent'); // DOMオブジェクトから取得する方が安全
+        const content = document.getElementById('itemDetailContent'); 
         if (content) content.innerHTML = ''; 
     }
 }
@@ -282,7 +299,7 @@ export function showConfirmSelectionButton(show = true) {
 
 export function closeAllModals() {
     console.log("[ui-main] closeAllModals called");
-    const allModalsCurrentlyInDOM = document.querySelectorAll('.modal'); // 常に最新のDOMから取得
+    const allModalsCurrentlyInDOM = document.querySelectorAll('.modal'); 
     if (allModalsCurrentlyInDOM) {
         allModalsCurrentlyInDOM.forEach(modal => {
             if(modal) modal.style.display = 'none';
