@@ -18,29 +18,31 @@ const DOMI = {
     
     toggleEffectsInputModeButton: null,
     effectsInputModeHiddenInput: null, 
-    structuredEffectsArea: null,      // 効果の構造化入力エリア全体
-    structuredEffectsInputArea: null, // 効果の個別入力部分 (select, input, addEffectToListButtonなど)
+    structuredEffectsArea: null,      
+    structuredEffectsInputArea: null, 
     manualEffectsArea: null,
+    manualEffectsInputArea: null, // HTML側のIDに合わせて追加
     manualEffectsStringTextarea: null,
-    addManualEffectToListButton: null, // 手動効果をリストに追加するボタン
+    addManualEffectToListButton: null, 
     effectTypeSelect: null,
     effectValueInput: null,
     effectUnitDisplay: null,
-    addEffectToListButton: null,      // 構造化効果をリストに追加するボタン (テキスト変更)
-    currentEffectsList: null,         // 効果リスト表示エリア
+    addEffectToListButton: null,      
+    currentEffectsList: null,         
     
     toggleSourceInputModeButton: null,
     sourceInputModeHiddenInput: null, 
-    treeSourceArea: null,             // 入手手段のツリー選択エリア全体
-    treeSourceInputArea: null,        // 入手手段のツリー選択の入力部分
+    treeSourceArea: null,             
+    treeSourceInputArea: null,        
     manualSourceArea: null,
+    manualSourceInputArea: null, // HTML側のIDに合わせて追加
     manualSourceStringTextarea: null,
-    addManualSourceToListButton: null, // 手動入手手段をリストに追加するボタン
-    itemSourceDisplay: null,          // ツリー選択された経路候補の表示 (readonly)
-    selectedItemSourceNodeId_temp: null, // ツリー選択モーダルからの戻り値一時保持用
-    selectItemSourceButton: null,     // ツリー選択モーダルを開くボタン
-    addTreeSourceToListButton: null,  // ツリー選択された経路をリストに追加するボタン
-    currentSourcesList: null,         // 入手手段リスト表示エリア
+    addManualSourceToListButton: null, 
+    itemSourceDisplay: null,          
+    selectedItemSourceNodeId_temp: null, 
+    selectItemSourceButton: null,     
+    addTreeSourceToListButton: null,  
+    currentSourcesList: null,         
 
     itemTagsSelectorCheckboxes: null,
     deleteItemFromFormButton: null,
@@ -58,14 +60,14 @@ let getEffectUnitsFuncCache = () => [];
 let getItemSourcesFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 
-let currentItemEffects = []; // 現在編集中のアイテムの効果リスト (構造化されたもの)
-let currentItemSources = []; // 現在編集中のアイテムの入手手段リスト
+let currentItemEffects = []; 
+let currentItemSources = []; 
 let selectedImageFile = null;
 let IMAGE_UPLOAD_WORKER_URL_CONST = '';
 
-let itemEffectEditMode = false; // 効果リスト内のアイテムを編集中か
+let itemEffectEditMode = false; 
 let itemEffectEditingIndex = -1;
-let itemSourceEditMode = false; // 入手手段リスト内のアイテムを編集中か
+let itemSourceEditMode = false; 
 let itemSourceEditingIndex = -1;
 
 
@@ -81,7 +83,6 @@ export function initItemManager(dependencies) {
     refreshAllDataCallback = dependencies.refreshAllData;
     IMAGE_UPLOAD_WORKER_URL_CONST = dependencies.uploadWorkerUrl;
 
-    // DOM要素取得
     DOMI.itemForm = document.getElementById('itemForm');
     DOMI.itemIdToEditInput = document.getElementById('itemIdToEdit');
     DOMI.itemNameInput = document.getElementById('itemName');
@@ -97,9 +98,10 @@ export function initItemManager(dependencies) {
 
     DOMI.toggleEffectsInputModeButton = document.getElementById('toggleEffectsInputModeButton');
     DOMI.effectsInputModeHiddenInput = document.getElementById('effectsInputMode');
-    DOMI.structuredEffectsArea = document.getElementById('structuredEffectsArea'); // HTML側のIDと合わせる
+    DOMI.structuredEffectsArea = document.getElementById('structuredEffectsArea'); 
     DOMI.structuredEffectsInputArea = document.getElementById('structuredEffectsInputArea');
-    DOMI.manualEffectsArea = document.getElementById('manualEffectsArea');
+    DOMI.manualEffectsArea = document.getElementById('manualEffectsArea'); 
+    DOMI.manualEffectsInputArea = document.getElementById('manualEffectsInputArea');
     DOMI.manualEffectsStringTextarea = document.getElementById('manualEffectsString');
     DOMI.addManualEffectToListButton = document.getElementById('addManualEffectToListButton');
     DOMI.effectTypeSelect = document.getElementById('effectTypeSelect');
@@ -110,10 +112,11 @@ export function initItemManager(dependencies) {
     
     DOMI.toggleSourceInputModeButton = document.getElementById('toggleSourceInputModeButton');
     DOMI.sourceInputModeHiddenInput = document.getElementById('sourceInputMode');
-    DOMI.treeSourceArea = document.getElementById('treeSourceArea'); // HTML側のIDと合わせる
+    DOMI.treeSourceArea = document.getElementById('treeSourceArea'); 
     DOMI.treeSourceInputArea = document.getElementById('treeSourceInputArea');
-    DOMI.manualSourceArea = document.getElementById('manualSourceArea');
-    DOMI.manualSourceStringTextarea = document.getElementById('manualSourceString'); // HTML側のIDと合わせる
+    DOMI.manualSourceArea = document.getElementById('manualSourceArea'); 
+    DOMI.manualSourceInputArea = document.getElementById('manualSourceInputArea');
+    DOMI.manualSourceStringTextarea = document.getElementById('manualSourceStringTextarea'); 
     DOMI.addManualSourceToListButton = document.getElementById('addManualSourceToListButton');
     DOMI.itemSourceDisplay = document.getElementById('itemSourceDisplay');
     DOMI.selectedItemSourceNodeId_temp = document.getElementById('selectedItemSourceNodeId_temp');
@@ -128,34 +131,26 @@ export function initItemManager(dependencies) {
     DOMI.itemsTableBody = document.querySelector('#itemsTable tbody');
     DOMI.itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
-    // イベントリスナー設定
     if (DOMI.itemForm) DOMI.itemForm.addEventListener('submit', saveItem);
     if (DOMI.clearFormButton) DOMI.clearFormButton.addEventListener('click', clearItemFormInternal);
     if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.addEventListener('change', handleImageFileSelect);
     
-    // 効果設定関連リスナー
     if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.addEventListener('click', handleAddOrUpdateStructuredEffect);
     if (DOMI.addManualEffectToListButton) DOMI.addManualEffectToListButton.addEventListener('click', handleAddManualEffect);
     if (DOMI.effectTypeSelect) DOMI.effectTypeSelect.addEventListener('change', updateItemFormEffectUnitDisplay);
     if (DOMI.toggleEffectsInputModeButton) {
         DOMI.toggleEffectsInputModeButton.addEventListener('click', () => {
             const currentMode = DOMI.effectsInputModeHiddenInput.value;
-            if (currentMode === 'structured') {
-                setEffectsInputMode('manual');
-            } else {
-                setEffectsInputMode('structured');
-            }
+            setEffectsInputMode(currentMode === 'structured' ? 'manual' : 'structured');
         });
     }
 
-    // 入手手段設定関連リスナー
     if (DOMI.selectItemSourceButton) {
         DOMI.selectItemSourceButton.addEventListener('click', () => {
             if (window.adminModules && window.adminModules.itemSourceManager && 
                 typeof window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm === 'function') {
-                // モーダルから選択された結果をコールバックで受け取るようにする
                 window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm(
-                    (nodeId, displayPath) => { // コールバック関数
+                    (nodeId, displayPath) => { 
                         if (nodeId && DOMI.selectedItemSourceNodeId_temp && DOMI.itemSourceDisplay) {
                             DOMI.selectedItemSourceNodeId_temp.value = nodeId;
                             DOMI.itemSourceDisplay.value = displayPath;
@@ -173,11 +168,7 @@ export function initItemManager(dependencies) {
     if (DOMI.toggleSourceInputModeButton) {
         DOMI.toggleSourceInputModeButton.addEventListener('click', () => {
             const currentMode = DOMI.sourceInputModeHiddenInput.value;
-            if (currentMode === 'tree') {
-                setSourceInputMode('manual');
-            } else {
-                setSourceInputMode('tree');
-            }
+            setSourceInputMode(currentMode === 'tree' ? 'manual' : 'tree');
         });
     }
     
@@ -196,7 +187,6 @@ export function initItemManager(dependencies) {
     console.log("[Item Manager] Initialized.");
 }
 
-// --- UIモード切り替え関数 ---
 function setEffectsInputMode(mode) {
     if (!DOMI.effectsInputModeHiddenInput || !DOMI.structuredEffectsInputArea || !DOMI.manualEffectsInputArea || !DOMI.toggleEffectsInputModeButton) return;
     DOMI.effectsInputModeHiddenInput.value = mode;
@@ -205,12 +195,13 @@ function setEffectsInputMode(mode) {
         DOMI.manualEffectsInputArea.style.display = 'block';
         DOMI.toggleEffectsInputModeButton.textContent = '構造化入力に戻す';
         if(DOMI.manualEffectsStringTextarea) DOMI.manualEffectsStringTextarea.focus();
-    } else { // structured
+    } else { 
         DOMI.structuredEffectsInputArea.style.display = 'block';
         DOMI.manualEffectsInputArea.style.display = 'none';
         DOMI.toggleEffectsInputModeButton.textContent = '入力欄に切り替え';
         if(DOMI.effectTypeSelect) DOMI.effectTypeSelect.focus();
     }
+    switchToAddEffectMode(); // モード切替時にフォームもリセット
 }
 
 function setSourceInputMode(mode) {
@@ -221,16 +212,16 @@ function setSourceInputMode(mode) {
         DOMI.manualSourceInputArea.style.display = 'block';
         DOMI.toggleSourceInputModeButton.textContent = '選択式に切り替え';
         if(DOMI.manualSourceStringTextarea) DOMI.manualSourceStringTextarea.focus();
-    } else { // tree
+    } else { 
         DOMI.treeSourceInputArea.style.display = 'block';
         DOMI.manualSourceInputArea.style.display = 'none';
         DOMI.toggleSourceInputModeButton.textContent = '入力欄に切り替え';
         if(DOMI.selectItemSourceButton) DOMI.selectItemSourceButton.focus();
     }
+    switchToAddSourceMode(); // モード切替時にフォームもリセット
 }
 
-
-// --- (initializeRaritySelector, handleRarityStarClick, setRarityUI は変更なし) ---
+// ... (initializeRaritySelector, handleRarityStarClick, setRarityUI は変更なし) ...
 function initializeRaritySelector() {
     if (!DOMI.itemRaritySelector || !DOMI.itemRarityValueInput) return;
     DOMI.itemRaritySelector.innerHTML = ''; 
@@ -311,13 +302,11 @@ function clearItemFormInternal() {
     setRarityUI(0);
 
     currentItemEffects = [];
-    setEffectsInputMode('structured'); // デフォルトに戻す
-    switchToAddEffectMode();
+    setEffectsInputMode('structured'); 
     renderCurrentItemEffectsListUI();
 
     currentItemSources = [];
-    setSourceInputMode('tree'); // デフォルトに戻す
-    switchToAddSourceMode();
+    setSourceInputMode('tree'); 
     renderCurrentItemSourcesListUI();
 
 
@@ -384,8 +373,8 @@ function updateItemFormEffectUnitDisplay() {
     DOMI.effectUnitDisplay.textContent = (unitName && unitName !== '' && unitName !== 'none') ? `(${unitName})` : '';
 }
 
-// --- 効果リスト操作 ---
-function handleAddOrUpdateStructuredEffect() { // 名前変更
+
+function handleAddOrUpdateStructuredEffect() { 
     const typeId = DOMI.effectTypeSelect.value;
     const valueStr = DOMI.effectValueInput.value;
 
@@ -396,7 +385,7 @@ function handleAddOrUpdateStructuredEffect() { // 名前変更
     const selectedOption = DOMI.effectTypeSelect.options[DOMI.effectTypeSelect.selectedIndex];
     const unit = (selectedOption && selectedOption.dataset.unitName && selectedOption.dataset.unitName !== 'none') ? selectedOption.dataset.unitName : null;
 
-    const newEffect = { type: "structured", effectTypeId: typeId, value: value, unit: unit }; // typeプロパティ追加
+    const newEffect = { type: "structured", effectTypeId: typeId, value: value, unit: unit }; 
 
     if (itemEffectEditMode && itemEffectEditingIndex >= 0 && itemEffectEditingIndex < currentItemEffects.length) {
         currentItemEffects[itemEffectEditingIndex] = newEffect;
@@ -404,7 +393,7 @@ function handleAddOrUpdateStructuredEffect() { // 名前変更
         currentItemEffects.push(newEffect);
     }
     renderCurrentItemEffectsListUI();
-    switchToAddEffectMode(); // フォームをリセット
+    switchToAddEffectMode(); 
 }
 
 function handleAddManualEffect() {
@@ -419,7 +408,7 @@ function handleAddManualEffect() {
         currentItemEffects.push(newEffect);
     }
     renderCurrentItemEffectsListUI();
-    switchToAddEffectMode(); // フォームをリセット
+    switchToAddEffectMode(); 
 }
 
 
@@ -453,7 +442,7 @@ function renderCurrentItemEffectsListUI() {
         }
 
         const div = document.createElement('div');
-        div.classList.add('effect-list-item'); // CSSクラスは共通で良いか確認
+        div.classList.add('effect-list-item'); 
         div.innerHTML = `
             <span>${displayText}</span>
             <div>
@@ -472,11 +461,11 @@ function renderCurrentItemEffectsListUI() {
                     if(DOMI.manualEffectsStringTextarea) DOMI.manualEffectsStringTextarea.value = effectToEdit.manualString;
                     if(DOMI.addManualEffectToListButton) DOMI.addManualEffectToListButton.textContent = '手動入力を更新';
                     if(DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '効果をリストに追加';
-                } else { // structured
+                } else { 
                     setEffectsInputMode('structured');
                     if(DOMI.effectTypeSelect) DOMI.effectTypeSelect.value = effectToEdit.effectTypeId;
                     if(DOMI.effectValueInput) DOMI.effectValueInput.value = effectToEdit.value;
-                    updateItemFormEffectUnitDisplay(); // 単位表示を更新
+                    updateItemFormEffectUnitDisplay(); 
                     if(DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '構造化効果を更新';
                     if(DOMI.addManualEffectToListButton) DOMI.addManualEffectToListButton.textContent = '手動入力をリストに追加';
                 }
@@ -487,22 +476,22 @@ function renderCurrentItemEffectsListUI() {
             currentItemEffects.splice(deleteIndex, 1);
             renderCurrentItemEffectsListUI();
             if (itemEffectEditMode && itemEffectEditingIndex === deleteIndex) {
-                switchToAddEffectMode(); // 編集中のものが削除されたら追加モードに戻す
+                switchToAddEffectMode(); 
             }
         });
         DOMI.currentEffectsList.appendChild(div);
     });
 }
 
-// --- 入手手段リスト操作 ---
 function handleAddTreeSource() {
     const nodeId = DOMI.selectedItemSourceNodeId_temp.value;
-    const displayPath = DOMI.itemSourceDisplay.value; // モーダルで選択された表示パス
+    const displayPath = DOMI.itemSourceDisplay.value; 
     if (!nodeId) { alert("入手経路を選択してください。"); return; }
 
-    // displayStringをitem_sourcesから取得する
     const nodeData = getItemSourcesFuncCache().find(s => s.id === nodeId);
-    const actualDisplayString = (nodeData && nodeData.displayString) ? nodeData.displayString : displayPath; // displayStringがあれば優先
+    const actualDisplayString = (nodeData && nodeData.displayString && nodeData.displayString.trim() !== "") ? 
+                                nodeData.displayString : 
+                                displayPath; 
 
     const newSource = { type: "tree", nodeId: nodeId, resolvedDisplay: actualDisplayString };
 
@@ -544,22 +533,13 @@ function renderCurrentItemSourcesListUI() {
         if (source.type === "manual") {
             displayText = `手動: ${source.manualString}`;
         } else if (source.type === "tree") {
-            if (source.resolvedDisplay) { // 保存時に解決した表示名を使う
-                displayText = source.resolvedDisplay;
-            } else { // フォールバック (本来はresolvedDisplayがあるはず)
-                const node = itemSourcesCache.find(s => s.id === source.nodeId);
-                if (node) {
-                    displayText = node.displayString || node.name; // ノードのdisplayStringかname
-                } else {
-                    displayText = `不明な経路 (ID: ${source.nodeId ? source.nodeId.substring(0,8) : 'なし'})`;
-                }
-            }
+            displayText = source.resolvedDisplay || `経路ID: ${source.nodeId ? source.nodeId.substring(0,8) : '不明'}`;
         } else {
             displayText = "不明な入手手段タイプ";
         }
 
         const div = document.createElement('div');
-        div.classList.add('effect-list-item'); // CSSクラスは効果リストと共通
+        div.classList.add('effect-list-item'); 
         div.innerHTML = `
             <span>${displayText}</span>
             <div>
@@ -579,20 +559,11 @@ function renderCurrentItemSourcesListUI() {
                     if(DOMI.addManualSourceToListButton) DOMI.addManualSourceToListButton.textContent = '手動入力を更新';
                     if(DOMI.addTreeSourceToListButton) DOMI.addTreeSourceToListButton.textContent = '選択した経路をリストに追加';
 
-                } else { // tree
+                } else { 
                     setSourceInputMode('tree');
                     if(DOMI.selectedItemSourceNodeId_temp) DOMI.selectedItemSourceNodeId_temp.value = sourceToEdit.nodeId;
-                    // itemSourceDisplayには、編集対象の表示名をセットする (itemSourceManagerから取得)
-                    if (window.adminModules && window.adminModules.itemSourceManager && 
-                        typeof window.adminModules.itemSourceManager.displaySelectedItemSourcePathOnLoad === 'function') {
-                        // この関数はitemSourceDisplayを直接更新するので、その結果を利用
-                         window.adminModules.itemSourceManager.displaySelectedItemSourcePathOnLoad(sourceToEdit.nodeId)
-                            .then(() => {
-                                // DOMI.itemSourceDisplay.value は displaySelectedItemSourcePathOnLoad によって設定される
-                            });
-                    } else {
-                         if(DOMI.itemSourceDisplay) DOMI.itemSourceDisplay.value = sourceToEdit.resolvedDisplay || `(ID: ${sourceToEdit.nodeId})`;
-                    }
+                    if(DOMI.itemSourceDisplay) DOMI.itemSourceDisplay.value = sourceToEdit.resolvedDisplay || "";
+                    
                     if(DOMI.addTreeSourceToListButton) DOMI.addTreeSourceToListButton.textContent = '選択経路を更新';
                     if(DOMI.addManualSourceToListButton) DOMI.addManualSourceToListButton.textContent = '手動入力をリストに追加';
                 }
@@ -611,7 +582,7 @@ function renderCurrentItemSourcesListUI() {
 }
 
 
-// ... (uploadImageToWorkerAndGetURL は変更なし)
+// ... (uploadImageToWorkerAndGetURL は変更なし) ...
 async function uploadImageToWorkerAndGetURL(file) {
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) {
         console.warn("uploadImageToWorkerAndGetURL: No file or Worker URL provided. URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
@@ -706,14 +677,13 @@ async function saveItem(event) {
             if (uploadedUrl) imageUrlToSave = uploadedUrl; 
         }
 
-        // 以前の入力モード関連フィールドは削除し、新しい sources 配列と effects 配列を使用
         const itemDataPayload = {
             name: name,
             image: imageUrlToSave, 
             rarity: rarity, 
             tags: selectedItemTagIds,
-            effects: currentItemEffects, // 新しい効果データ構造
-            sources: currentItemSources, // 新しい入手手段データ構造
+            effects: currentItemEffects, 
+            sources: currentItemSources, 
         };
         
         if (priceToSave !== null) {
@@ -724,7 +694,7 @@ async function saveItem(event) {
         
         if (editingDocId) {
             itemDataPayload.updatedAt = serverTimestamp();
-            // 古い可能性のあるフィールドを削除
+            // 古いフィールドを明示的に削除
             itemDataPayload.effectsInputMode = deleteField();
             itemDataPayload.manualEffectsString = deleteField();
             itemDataPayload.structured_effects = deleteField();
@@ -789,10 +759,10 @@ export function _renderItemsAdminTableInternal() {
         const rarityDisplay = `星${item.rarity || 0}`;
         
         let effectsDisplayHtml = '<ul class="effect-list-in-table">';
-        if (item.effects && item.effects.length > 0) {
+        if (item.effects && item.effects.length > 0) { // 新しい 'effects' 配列を参照
             item.effects.forEach(eff => {
                 if (eff.type === "manual") {
-                    effectsDisplayHtml += `<li>・${eff.manualString.replace(/\n/g, '<br>')} (手動)</li>`;
+                    effectsDisplayHtml += `<li>・${eff.manualString ? eff.manualString.replace(/\n/g, '<br>') : ''} (手動)</li>`;
                 } else if (eff.type === "structured") {
                     const typeInfo = effectTypesCache.find(et => et.id === eff.effectTypeId);
                     const typeName = typeInfo ? typeInfo.name : `不明(${eff.effectTypeId ? eff.effectTypeId.substring(0, 6) : 'IDなし'}...)`;
@@ -806,37 +776,55 @@ export function _renderItemsAdminTableInternal() {
                     effectsDisplayHtml += `<li>・${typeName} ${effectTextPart}</li>`;
                 }
             });
+        } else if (item.effectsInputMode === 'manual' && item.manualEffectsString) { // 古いデータ形式のフォールバック
+             effectsDisplayHtml += `<li>・${item.manualEffectsString.replace(/\n/g, '<br>')} (旧手動)</li>`;
+        } else if (item.structured_effects && item.structured_effects.length > 0) { // 古いデータ形式のフォールバック
+            item.structured_effects.forEach(eff => {
+                const typeInfo = effectTypesCache.find(et => et.id === eff.type); // 古い形式では effectTypeIdではなくtype
+                const typeName = typeInfo ? typeInfo.name : `不明(${eff.type ? eff.type.substring(0, 6) : 'IDなし'}...)`;
+                let effectTextPart;
+                const unitName = eff.unit;
+                if (unitName && unitName !== 'none') {
+                    const unitData = effectUnitsCache.find(u => u.name === unitName);
+                    const position = unitData ? unitData.position : 'suffix';
+                    effectTextPart = position === 'prefix' ? `${unitName}${eff.value}` : `${eff.value}${unitName}`;
+                } else { effectTextPart = `${eff.value}`; }
+                effectsDisplayHtml += `<li>・${typeName} ${effectTextPart} (旧)</li>`;
+            });
         } else { effectsDisplayHtml += '<li>効果なし</li>'; }
         effectsDisplayHtml += '</ul>';
 
-        let sourceDisplayHtml = '<ul class="effect-list-in-table">'; // リスト形式で表示
-        if (item.sources && item.sources.length > 0) {
+        let sourceDisplayHtml = '<ul class="effect-list-in-table">';
+        if (item.sources && item.sources.length > 0) { // 新しい 'sources' 配列を参照
             item.sources.forEach(src => {
                 if (src.type === 'manual') {
-                    sourceDisplayHtml += `<li>・${src.manualString.replace(/\n/g, '<br>')} (手動)</li>`;
+                    sourceDisplayHtml += `<li>・${src.manualString ? src.manualString.replace(/\n/g, '<br>') : ''} (手動)</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
-                    const selectedSourceNode = itemSourcesCache.find(s => s.id === src.nodeId);
-                    let pathText = `(経路ID: ${src.nodeId.substring(0,8)}...)`; // デフォルト
-                    if (selectedSourceNode && selectedSourceNode.displayString && selectedSourceNode.displayString.trim() !== "") {
-                        pathText = selectedSourceNode.displayString;
-                    } else if (selectedSourceNode) { // displayStringがない場合はパスを構築
-                        const pathParts = [];
-                        let currentId = src.nodeId;
-                        let sanityCheck = 0;
-                        while(currentId && sanityCheck < 10) {
-                            const node = itemSourcesCache.find(s => s.id === currentId);
-                            if (node) { pathParts.unshift(node.name); currentId = node.parentId; }
-                            else { pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); break; }
-                            sanityCheck++;
-                        }
-                        if (pathParts.length > 0) pathText = pathParts.join(' > ');
-                    }
-                    sourceDisplayHtml += `<li>・${pathText}</li>`;
+                    sourceDisplayHtml += `<li>・${src.resolvedDisplay || `経路ID: ${src.nodeId.substring(0,8)}...`}</li>`;
                 }
             });
+        } else if (item.sourceInputMode === 'manual' && item.manualSourceString) { // 古いデータ形式のフォールバック
+            sourceDisplayHtml += `<li>・${item.manualSourceString.replace(/\n/g, '<br>')} (旧手動)</li>`;
+        } else if (item.sourceNodeId) { // 古いデータ形式のフォールバック
+            const selectedSourceNode = itemSourcesCache.find(s => s.id === item.sourceNodeId);
+            let pathText = `(旧経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
+            if (selectedSourceNode && selectedSourceNode.displayString && selectedSourceNode.displayString.trim() !== "") {
+                pathText = selectedSourceNode.displayString;
+            } else if (selectedSourceNode) {
+                const pathParts = []; let currentId = item.sourceNodeId; let sanityCheck = 0;
+                while(currentId && sanityCheck < 10) {
+                    const node = itemSourcesCache.find(s => s.id === currentId);
+                    if (node) { pathParts.unshift(node.name); currentId = node.parentId; }
+                    else { pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); break; }
+                    sanityCheck++;
+                }
+                if (pathParts.length > 0) pathText = pathParts.join(' > ');
+            }
+            sourceDisplayHtml += `<li>・${pathText} (旧)</li>`;
+        } else if (item.入手手段) { // 最も古いデータ形式のフォールバック
+             sourceDisplayHtml += `<li>・${item.入手手段} (最旧)</li>`;
         } else { sourceDisplayHtml += '<li>不明</li>'; }
         sourceDisplayHtml += '</ul>';
-
 
         let tagsHtml = '';
         if (item.tags && item.tags.length > 0) {
@@ -878,20 +866,51 @@ async function loadItemForEdit(docId) {
             selectedImageFile = null;
             if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
 
-            // 効果設定の読み込み
-            currentItemEffects = itemData.effects ? JSON.parse(JSON.stringify(itemData.effects)) : [];
+            // 新しい 'effects' 配列をロード
+            if (itemData.effects && Array.isArray(itemData.effects)) {
+                currentItemEffects = JSON.parse(JSON.stringify(itemData.effects));
+            } else { // 古い形式からの移行ロジック
+                currentItemEffects = [];
+                if (itemData.effectsInputMode === 'manual' && itemData.manualEffectsString) {
+                    currentItemEffects.push({ type: 'manual', manualString: itemData.manualEffectsString });
+                } else if (itemData.structured_effects && Array.isArray(itemData.structured_effects)) {
+                    itemData.structured_effects.forEach(oldEff => {
+                        currentItemEffects.push({ type: 'structured', effectTypeId: oldEff.type, value: oldEff.value, unit: oldEff.unit });
+                    });
+                }
+            }
             renderCurrentItemEffectsListUI(); 
-            // effectsInputMode は削除されたので、関連するUI切り替えロジックも不要になる
-            // もし古いデータにeffectsInputModeが残っていても、新しいeffects配列を見るので問題ないはず
-            setEffectsInputMode('structured'); // UIは常に構造化入力から開始
+            setEffectsInputMode('structured'); // 常に構造化から開始
 
-            // 入手手段の読み込み
-            currentItemSources = itemData.sources ? JSON.parse(JSON.stringify(itemData.sources)) : [];
+            // 新しい 'sources' 配列をロード
+            if (itemData.sources && Array.isArray(itemData.sources)) {
+                currentItemSources = JSON.parse(JSON.stringify(itemData.sources));
+                // resolvedDisplay がない古いデータを読み込んだ場合、ここで解決する
+                currentItemSources.forEach(src => {
+                    if(src.type === 'tree' && src.nodeId && !src.resolvedDisplay) {
+                        const node = getItemSourcesFuncCache().find(s => s.id === src.nodeId);
+                        if (node) {
+                            src.resolvedDisplay = node.displayString || node.name; // もしdisplayStringがなければname
+                        } else {
+                             src.resolvedDisplay = `経路ID: ${src.nodeId.substring(0,8)}...`;
+                        }
+                    }
+                });
+            } else { // 古い形式からの移行ロジック
+                currentItemSources = [];
+                if (itemData.sourceInputMode === 'manual' && itemData.manualSourceString) {
+                    currentItemSources.push({ type: 'manual', manualString: itemData.manualSourceString });
+                } else if (itemData.sourceNodeId) {
+                    const node = getItemSourcesFuncCache().find(s => s.id === itemData.sourceNodeId);
+                    const display = (node && node.displayString) ? node.displayString : (node ? node.name : `ID:${itemData.sourceNodeId.substring(0,5)}..`);
+                    currentItemSources.push({ type: 'tree', nodeId: itemData.sourceNodeId, resolvedDisplay: display });
+                } else if (itemData.入手手段) { // 最も古い形式
+                     currentItemSources.push({ type: 'manual', manualString: itemData.入手手段 });
+                }
+            }
             renderCurrentItemSourcesListUI();
-            // sourceInputMode も削除された
-            setSourceInputMode('tree'); // UIは常にツリー選択から開始
+            setSourceInputMode('tree'); // 常にツリー選択から開始
             
-
             _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
             if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block';
