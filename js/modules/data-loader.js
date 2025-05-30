@@ -61,7 +61,6 @@ function buildEquipmentSlotTagMap() {
 export async function loadData(db) {
     console.log("[data-loader] Initiating data load sequence...");
     try {
-        // Character bases can be loaded first as they don't depend on other core game data for now
         await loadCharacterBasesFromFirestore(db);
         
         console.log("[data-loader] Loading core game data (effects, categories, tags, items, units, sources)...");
@@ -72,7 +71,7 @@ export async function loadData(db) {
             getDocs(query(collection(db, 'tags'), orderBy('name'))),
             getDocs(query(collection(db, 'items'), orderBy('name'))),
             getDocs(query(collection(db, 'effect_units'), orderBy('name'))),
-            getDocs(query(collection(db, 'item_sources'), orderBy('depth'), orderBy('name'))) // Load item_sources here
+            getDocs(query(collection(db, 'item_sources'), orderBy('depth'), orderBy('name')))
         ];
 
         const [
@@ -93,7 +92,6 @@ export async function loadData(db) {
         allTags = tagsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log(`[data-loader] Loaded ${allTags.length} tags.`);
         
-        // Build slot map after tags are loaded
         buildEquipmentSlotTagMap(); 
 
         allItems = itemsSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
