@@ -3,7 +3,7 @@ import { db } from '../firebase-config.js';
 import {
     loadData,
     getAllItems, getAllCategories, getAllTags, getEffectTypesCache, getCharacterBasesCache,
-    getItemSourcesCache, // <<< 追加
+    getItemSourcesCache, 
     EQUIPMENT_SLOT_TAG_IDS, SIMULATOR_PARENT_CATEGORY_NAME, SIMULATOR_EFFECT_CHILD_CATEGORY_NAME
 } from './modules/data-loader.js';
 import {
@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const simulatorModal = document.getElementById('simulatorModal');
 
-    // initUIMain に getItemSourcesCache を渡す必要はない (ui-main内で直接data-loaderからインポートするため)
     initUIMain(
         getIsSelectingForSimulator,
         cancelItemSelection,
@@ -43,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         console.log("[script-main] Calling loadData...");
-        await loadData(db); // この中で itemSourcesCache もロードされる
+        await loadData(db); 
         console.log("[script-main] loadData finished successfully.");
 
         initSearchRender({
