@@ -30,15 +30,13 @@ const DOM_ITEM_FORM_SOURCE_SELECT = {
     sourceLevelGroupDivs: [], 
     currentSelectionPathDisplayForItemForm: null,
     confirmItemSourceSelectionButton: null,
-    // itemSourceDisplayInputForItemForm と selectedItemSourceNodeIdInputForItemForm は
-    // item-manager.js の DOMI オブジェクトで管理され、コールバック経由で値がセットされる
 };
 
 let dbInstance = null;
 let getItemSourcesFuncCache = () => []; 
 let getItemsFuncCache = () => []; 
 let refreshAllDataCallback = async () => {};
-let itemSourceSelectionCallbackForItemManager = null; // item-managerへのコールバック
+let itemSourceSelectionCallbackForItemManager = null; 
 
 const itemSourceExpansionState = new Map();
 let currentItemSourceSearchTerm = "";
@@ -81,7 +79,6 @@ export function initItemSourceManager(dependencies) {
     }
     DOM_ITEM_FORM_SOURCE_SELECT.currentSelectionPathDisplayForItemForm = document.getElementById('currentSelectionPathDisplayForItemForm'); 
     DOM_ITEM_FORM_SOURCE_SELECT.confirmItemSourceSelectionButton = document.getElementById('confirmItemSourceSelectionButton');
-    // itemSourceDisplay と selectedItemSourceNodeId は item-manager 側で操作
 
     if (DOMISM.addItemSourceButton) DOMISM.addItemSourceButton.addEventListener('click', addItemSourceNode);
     if (DOMISM.saveItemSourceEditButton) DOMISM.saveItemSourceEditButton.addEventListener('click', saveItemSourceNodeEdit);
@@ -133,7 +130,7 @@ export function initItemSourceManager(dependencies) {
     window.adminModules = window.adminModules || {};
     window.adminModules.itemSourceManager = {
         openSelectItemSourceModalForItemForm,
-        // displaySelectedItemSourcePathOnLoad // item-manager側で処理
+        // displaySelectedItemSourcePathOnLoad // item-manager側で処理するため不要
     };
 
     console.log("[ItemSource Manager] Initialized.");
@@ -491,7 +488,6 @@ async function saveItemSourceNodeEdit() {
     }
     
     const originalNodeDepth = originalSource.depth !== undefined ? originalSource.depth : 0;
-    // getMaxDepthOfSubtree は、指定されたノードをルートとするサブツリーの最大の絶対深度を返す
     const maxAbsoluteDepthInSubtree = getMaxDepthOfSubtree(docId, allSources);
     const depthChangeOfRoot = newDepth - originalNodeDepth;
     const newMaxDepthOfSubtree = maxAbsoluteDepthInSubtree + depthChangeOfRoot;
@@ -530,8 +526,6 @@ async function updateDescendantDepthsRecursive(parentId, parentNewDepth, allSour
         const childNewDepth = parentNewDepth + 1;
         if (childNewDepth > MAX_SOURCE_DEPTH) {
             console.error(`Depth limit exceeded for child ${child.id} (new depth ${childNewDepth}). Aborting descendant update for this branch.`);
-            // この分岐の子孫の更新は行わないが、他の分岐の更新は続行する
-            // バッチコミット前にエラーを投げて全体を中止させることも検討できる
             throw new Error(`Cannot move node, as a descendant would exceed max depth of ${MAX_SOURCE_DEPTH}.`);
         }
         const childUpdateData = { depth: childNewDepth };
@@ -543,16 +537,15 @@ async function updateDescendantDepthsRecursive(parentId, parentNewDepth, allSour
 function getMaxDepthOfSubtree(rootId, allSources) {
     let maxAbsDepth = -1; 
     const rootNode = allSources.find(s => s.id === rootId);
-    if (!rootNode) return -1; // Should not happen if rootId is valid
+    if (!rootNode) return -1; 
 
     maxAbsDepth = rootNode.depth !== undefined ? rootNode.depth : 0;
 
     const findMaxRecursive = (nodeId) => {
+        const currentNode = allSources.find(s => s.id === nodeId);
+        if(currentNode) maxAbsDepth = Math.max(maxAbsDepth, (currentNode.depth !== undefined ? currentNode.depth : 0));
+
         const childrenOfNode = allSources.filter(s => s.parentId === nodeId);
-        if (childrenOfNode.length === 0) {
-            const currentNode = allSources.find(s => s.id === nodeId);
-            if(currentNode) maxAbsDepth = Math.max(maxAbsDepth, (currentNode.depth !== undefined ? currentNode.depth : 0));
-        }
         for (const childNode of childrenOfNode) {
             findMaxRecursive(childNode.id);
         }
@@ -571,10 +564,12 @@ async function deleteItemSourceNode(docId, nodeName) {
     }
     
     const itemsUsingSource = itemsCache.filter(item => {
-        if (item.sourceInputMode === 'tree' && item.sourceNodeId === docId) return true;
-        if (item.sources && Array.isArray(item.sources)) { // 新しい複数入手手段形式のチェック
+        // 新しい item.sources 配列をチェック
+        if (item.sources && Array.isArray(item.sources)) {
             return item.sources.some(s => s.type === 'tree' && s.nodeId === docId);
         }
+        // 古いデータ形式のフォールバック (必要に応じて)
+        // if (item.sourceInputMode === 'tree' && item.sourceNodeId === docId) return true;
         return false;
     });
 
@@ -607,9 +602,8 @@ function openSelectItemSourceModalForItemForm(callback) {
             groupDiv.style.display = 'none';
         }
     });
-    const l1Group = document.getElementById('sourceLevel1Group'); // L1グループは常に存在すると仮定
-    if (l1Group) l1Group.style.display = 'block';
-
+    const l1Group = document.getElementById('sourceLevel1Group'); 
+    if (l1Group) l1Group.style.display = 'block'; // Ensure L1 group is visible
 
     populateSourceLevelSelectForItemForm(1, ""); 
     updateSelectionPathDisplayForItemForm(); 
@@ -640,17 +634,11 @@ function populateSourceLevelSelectForItemForm(level, parentId) {
         if (nextSelector) {
             nextSelector.innerHTML = '<option value="">選択してください</option>';
         }
-        // Groups are for L2, L3, L4. Their indices in sourceLevelGroupDivs are 0, 1, 2.
-        // Group for level L(i+1) (selector index i) corresponds to sourceLevelGroupDivs[i-1].
-        if (i > 0) { // Only for L2 selector (i=1) onwards
-             const groupToHideIndex = i -1; 
-             if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex]) {
-                 DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex].style.display = 'none';
-             }
-        } else if (i === 0 && level === 1) { // If L1 is being populated, L2 group might need hiding if it was visible
-            if(DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[0]) {
-                 DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[0].style.display = 'none';
-            }
+        // Group for L(i+1) selector (index i) corresponds to groupDivs[i-1] for L2,L3,L4
+        const groupToHideIndex = i -1; // Groups are for L2 (idx 0), L3 (idx 1), L4 (idx 2)
+                                        // If i=1 (L2 selector), group is groupDivs[0]
+        if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex]) {
+            DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex].style.display = 'none';
         }
     }
 }
@@ -660,6 +648,7 @@ function handleSourceLevelChangeForItemForm(event) {
     const currentLevel = parseInt(event.target.dataset.level, 10); 
     const selectedValue = event.target.value;
 
+    // Reset and hide subsequent levels
     for (let levelToReset = currentLevel + 1; levelToReset <= 4; levelToReset++) {
         const selectorIndexToReset = levelToReset - 1; 
         const selectorToReset = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[selectorIndexToReset];
@@ -675,7 +664,7 @@ function handleSourceLevelChangeForItemForm(event) {
     }
 
     if (selectedValue && currentLevel < 4) {
-        const nextGroupIndex = currentLevel - 1; // L2Group is at index 0, L3Group at 1, L4Group at 2
+        const nextGroupIndex = currentLevel - 1; 
         if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[nextGroupIndex]) {
             populateSourceLevelSelectForItemForm(currentLevel + 1, selectedValue);
             DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[nextGroupIndex].style.display = 'block';
@@ -706,7 +695,7 @@ function updateSelectionPathDisplayForItemForm() {
     
     let canConfirm = false;
     if (lastSelectedNodeId) {
-        canConfirm = true; // どの階層でも決定可能
+        canConfirm = true; 
         const hasChildren = allSources.some(s => s.parentId === lastSelectedNodeId);
         if (hasChildren) {
              DOM_ITEM_FORM_SOURCE_SELECT.currentSelectionPathDisplayForItemForm.textContent += " (更に下層あり)";
@@ -728,7 +717,6 @@ function confirmSourceSelectionForItemForm() {
     const allSources = getItemSourcesFuncCache();
     const pathParts = []; 
 
-    // 実際に値が選択されている最後の階層のIDを取得
     for (let i = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors.length - 1; i >= 0; i--) { 
         const selector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
         if (selector && selector.value) {
@@ -739,7 +727,6 @@ function confirmSourceSelectionForItemForm() {
     }
 
     if (selectedNodeId && selectedNodeDataForCallback) {
-        // パスを構築
         let currentIdForPath = selectedNodeId;
         while(currentIdForPath) {
             const node = allSources.find(s => s.id === currentIdForPath);
@@ -749,7 +736,6 @@ function confirmSourceSelectionForItemForm() {
             } else { break;}
         }
         const displayPath = pathParts.join(' > ');
-        // displayStringがあればそれを優先、なければ構築したパス
         const actualDisplayString = (selectedNodeDataForCallback.displayString && selectedNodeDataForCallback.displayString.trim() !== "") ? 
                                     selectedNodeDataForCallback.displayString : 
                                     displayPath;
@@ -763,57 +749,9 @@ function confirmSourceSelectionForItemForm() {
     }
 }
 
-// この関数は item-manager 側で itemSourceDisplay を更新するために使われる
-// item-manager がこのモジュールの参照を window.adminModules.itemSourceManager 経由で持つ
+// displaySelectedItemSourcePathOnLoad は item-manager側で対応するため、このファイルからは削除またはコメントアウト
+/*
 async function displaySelectedItemSourcePathOnLoad(nodeId) {
-    const itemSourceDisplayInput = document.getElementById('itemSourceDisplay'); // item-manager側のDOM要素
-    const selectedNodeIdInput = document.getElementById('selectedItemSourceNodeId_temp'); // item-manager側の一時ID保持用
-
-    if (!itemSourceDisplayInput || !selectedNodeIdInput) return;
-    if (!nodeId) {
-        itemSourceDisplayInput.value = "";
-        selectedNodeIdInput.value = "";
-        return;
-    }
-
-    let allSources = getItemSourcesFuncCache();
-    if (!allSources || allSources.length === 0) { 
-        const q = query(collection(dbInstance, 'item_sources'), orderBy('name')); 
-        const snapshot = await getDocs(q);
-        allSources = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    }
-
-    const pathParts = [];
-    let currentId = nodeId;
-    let sanityCheck = 0;
-    let finalDisplayString = null;
-    
-    const targetNode = allSources.find(s => s.id === nodeId);
-    if (targetNode && targetNode.displayString && targetNode.displayString.trim() !== "") {
-        finalDisplayString = targetNode.displayString;
-    }
-
-    if (finalDisplayString) {
-        itemSourceDisplayInput.value = finalDisplayString;
-    } else {
-        while (currentId && sanityCheck < 10) {
-            const node = allSources.find(s => s.id === currentId);
-            if (node) {
-                pathParts.unshift(node.name);
-                currentId = node.parentId;
-            } else {
-                try { 
-                    const docSnap = await getDoc(doc(dbInstance, 'item_sources', currentId));
-                    if (docSnap.exists()) {
-                        const missingNode = { id: docSnap.id, ...docSnap.data() };
-                        pathParts.unshift(missingNode.name);
-                        currentId = missingNode.parentId;
-                    } else { break; }
-                } catch (e) { console.error("Error fetching missing source node for path:", e); break; }
-            }
-            sanityCheck++;
-        }
-        itemSourceDisplayInput.value = pathParts.join(' > ');
-    }
-    selectedNodeIdInput.value = nodeId; // item-manager側の一時IDにもセット
+    // ... (item-manager.js の loadItemForEdit 内でパス解決と表示を行う)
 }
+*/
