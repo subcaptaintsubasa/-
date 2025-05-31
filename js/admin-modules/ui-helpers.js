@@ -203,17 +203,29 @@ export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId
     }
     console.log(`[ui-helpers] getSelectedTagButtonValues called. Container:`, containerElement, `datasetKey: ${datasetKey}`);
 
-    const selector = `.tag-filter.admin-tag-select.active[data-${datasetKey}]`;
-    console.log(`[ui-helpers] Querying with selector: ${selector}`);
+    // まず、activeクラスを持つ要素だけを取得してみる
+    const allActiveElementsInContainer = containerElement.querySelectorAll('.active');
+    console.log(`[ui-helpers] Elements with ONLY .active class in container:`, allActiveElementsInContainer);
 
+    // 次に、期待するクラスを全て持つ要素を取得（activeなしで）
+    const elementsWithBaseClasses = containerElement.querySelectorAll(`.tag-filter.admin-tag-select[data-${datasetKey}]`);
+    console.log(`[ui-helpers] Elements with .tag-filter.admin-tag-select[data-${datasetKey}]:`, elementsWithBaseClasses);
+    
+    elementsWithBaseClasses.forEach(btn => {
+        console.log(`[ui-helpers] Checking button: ${btn.textContent}, Classes: ${btn.className}, Has 'active': ${btn.classList.contains('active')}, dataset[${datasetKey}]: ${btn.dataset[datasetKey]}`);
+    });
+
+
+    const selector = `.tag-filter.admin-tag-select.active[data-${datasetKey}]`;
+    console.log(`[ui-helpers] Querying with full selector: ${selector}`);
     const activeButtons = containerElement.querySelectorAll(selector);
-    console.log(`[ui-helpers] Found active buttons (NodeList):`, activeButtons); 
+    console.log(`[ui-helpers] Found active buttons with full selector (NodeList):`, activeButtons); 
 
     const values = Array.from(activeButtons).map(btn => {
-        console.log(`[ui-helpers] Processing button:`, btn, `Value for data-${datasetKey}:`, btn.dataset[datasetKey]); 
+        console.log(`[ui-helpers] Processing button from full selector:`, btn, `Value for data-${datasetKey}:`, btn.dataset[datasetKey]); 
         return btn.dataset[datasetKey];
     });
-    console.log(`[ui-helpers] Extracted values:`, values); 
+    console.log(`[ui-helpers] Extracted values with full selector:`, values); 
     return values;
 }
 
