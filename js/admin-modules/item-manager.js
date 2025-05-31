@@ -364,6 +364,7 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.className = 'tag-filter admin-tag-select'; 
             button.textContent = tag.name;
             button.dataset.tagId = tag.id; 
+            console.log(`[Item Manager] Creating tag button: Name: ${tag.name}, ID: ${tag.id}, Classes: ${button.className}, Initial Active: ${selectedTagIds.includes(tag.id)}`); 
             if (selectedTagIds.includes(tag.id)) {
                 button.classList.add('active');
             }
@@ -371,13 +372,13 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.setAttribute('tabindex', '0');
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
-                // console.log('Tag button clicked:', tag.name, 'Is active:', button.classList.contains('active')); 
+                console.log(`[Item Manager] Tag button clicked: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`); 
             });
             button.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     button.classList.toggle('active');
-                    // console.log('Tag button (key) toggled:', tag.name, 'Is active:', button.classList.contains('active'));
+                    console.log(`[Item Manager] Tag button (key) toggled: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
                 }
             });
             tagButtonsDiv.appendChild(button);
@@ -399,18 +400,19 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.className = 'tag-filter admin-tag-select';
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
+            console.log(`[Item Manager] Creating unclassified tag button: Name: ${tag.name}, ID: ${tag.id}, Classes: ${button.className}, Initial Active: ${selectedTagIds.includes(tag.id)}`);
             if (selectedTagIds.includes(tag.id)) button.classList.add('active');
             button.setAttribute('role', 'button');
             button.setAttribute('tabindex', '0');
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
-                // console.log('Unclassified Tag button clicked:', tag.name, 'Is active:', button.classList.contains('active'));
+                console.log(`[Item Manager] Unclassified Tag button clicked: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
             });
             button.addEventListener('keydown', (e) => { 
                 if (e.key === 'Enter' || e.key === ' ') { 
                     e.preventDefault(); 
                     button.classList.toggle('active'); 
-                    // console.log('Unclassified Tag button (key) toggled:', tag.name, 'Is active:', button.classList.contains('active'));
+                    console.log(`[Item Manager] Unclassified Tag button (key) toggled: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
                 }
             });
             tagButtonsDiv.appendChild(button);
@@ -749,10 +751,9 @@ async function saveItem(event) {
     const name = DOMI.itemNameInput.value.trim();
     const priceStr = DOMI.itemPriceInput.value.trim();
     
-    const currentItemTagsButtonContainer = document.getElementById('itemTagsButtonContainer'); // 再取得
+    const currentItemTagsButtonContainer = document.getElementById('itemTagsButtonContainer'); 
     if (!currentItemTagsButtonContainer) {
         console.error("saveItem: itemTagsButtonContainer could not be found in DOM!");
-        // エラー処理...
         if (DOMI.saveItemButton) {
             DOMI.saveItemButton.disabled = false;
             DOMI.saveItemButton.textContent = DOMI.itemIdToEditInput.value ? "アイテム更新" : "アイテム保存";
