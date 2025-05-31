@@ -311,26 +311,26 @@
 .rarity-display-stars .star-icon { font-size: 1em; color: #ccc; }
 .rarity-display-stars .star-icon.selected { color: #ffc107; }
 
-/* === 新しいUIのためのCSS === */
+/* === 入手手段とタグの新しいUIのためのCSS === */
 /* アイテムフォーム内 入手手段ボタン式UI */
 .item-source-button-selection-levels .source-level-container {
-    margin-bottom: 10px;
-    padding-bottom: 10px;
+    margin-bottom: 8px; /* 少し狭く */
+    padding-bottom: 8px;
     border-bottom: 1px dashed #e0e0e0;
 }
 .item-source-button-selection-levels .source-level-container:last-child {
     border-bottom: none;
     margin-bottom: 0;
 }
-.item-source-button-selection-levels .item-source-select-button {
+.item-source-button-selection-levels .item-source-select-button { /* category-select-button を流用 */
     padding: 0.35rem 0.8rem;
     background-color: #f0f0f0;
     border: 1px solid #ddd;
-    border-radius: 15px;
+    border-radius: 4px; /* 少し角ばったボタンに */
     cursor: pointer;
     font-size: 0.9em;
-    margin-right: 5px;
-    margin-bottom: 5px;
+    margin-right: 6px;
+    margin-bottom: 6px;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
     color: #495057;
 }
@@ -344,49 +344,83 @@
     border-color: #0056b3;
     font-weight: 500;
 }
-#selectedItemSourcePathDisplay { /* 選択中パス表示用のinput[readonly] */
-    background-color: #e9ecef; /* readonlyなので少し背景色をつける */
+#selectedItemSourcePathDisplay { 
+    background-color: #e9ecef; 
     cursor: default;
+    margin-bottom: 10px; /* 「リストに追加」ボタンとの間隔 */
 }
 
 /* アイテムフォーム内 タグボタン式UI */
-.tag-button-selection-container {
+.tag-button-selection-container { 
     border: 1px solid #e0e0e0;
-    padding: 10px;
+    padding: 15px; /* 少し広めに */
     border-radius: 4px;
-    max-height: 250px; /* 必要に応じて調整 */
+    max-height: 280px; 
     overflow-y: auto;
+    background-color: #fdfdfd; /* 背景色 */
 }
-.tag-category-group h5 { /* カテゴリ名ヘッダー */
-    font-size: 0.95em;
-    color: #333;
+.tag-category-group { 
+    margin-bottom: 12px; /* カテゴリ間のマージン */
+}
+.tag-category-group:last-child {
+    margin-bottom: 0;
+}
+.tag-category-group h5 { 
+    font-size: 0.95em; 
+    color: #333;   
     margin-top: 8px;
-    margin-bottom: 6px;
-    padding-bottom: 3px;
-    border-bottom: 1px dotted #ccc;
+    margin-bottom: 8px; /* ヘッダーとボタンの間のマージン */
+    padding-bottom: 4px; 
+    border-bottom: 1px solid #ddd; /* 少しはっきりした線 */
+    font-weight: 600; 
 }
 .tag-category-group h5:first-child {
     margin-top: 0;
 }
-.tag-category-group > div { /* タグボタンを格納するdiv */
+.tag-buttons-wrapper { 
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px; /* ボタン間の隙間 */
 }
-/* .tag-filter.admin-tag-select は ui-helpers で定義されたスタイルを流用 */
 
-/* 入手経路選択モーダル（ボタン式UI用） */
+/* タグボタンのスタイル (.tag-filter.admin-tag-select は ui-helpers.js で使用される想定) */
+/* アイテムフォーム専用にクラスを分けるか、共通クラスのスタイルを調整 */
+.tag-filter.admin-tag-select { 
+    padding: 0.35rem 0.8rem; 
+    background-color: #e9ecef; /* 少し明るく */
+    border: 1px solid #ced4da; 
+    border-radius: 15px; 
+    cursor: pointer; 
+    font-size: 0.85em; 
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out; 
+    color: #343a40; /* 少し濃く */
+    user-select: none; 
+}
+.tag-filter.admin-tag-select:hover { 
+    background-color: #dee2e6; 
+    border-color: #adb5bd; 
+}
+.tag-filter.admin-tag-select.active { 
+    background-color: #007bff; 
+    color: white; 
+    border-color: #0056b3; 
+    box-shadow: 0 0 0 0.15rem rgba(0,123,255,.3); 
+    font-weight: 500; 
+}
+
+/* 入手経路選択モーダル（ボタン式UI用）内のスタイル */
 #selectItemSourceForButtonUIModal .item-source-button-selection-levels {
-    max-height: calc(60vh - 150px); /* モーダル内の高さ調整 */
+    max-height: calc(60vh - 150px); 
     overflow-y: auto;
-    padding-right: 10px; /* スクロールバーのスペース */
+    padding-right: 10px; 
 }
 #selectItemSourceForButtonUIModal .item-source-select-button {
     display: inline-block; /* 横並びにする */
     width: auto; /* 内容に合わせる */
     text-align: center;
+    margin: 3px; /* ボタン同士の間隔 */
 }
-#currentPathDisplayForButtonUI { /* モーダル内のパス表示 */
+#currentPathDisplayForButtonUI { 
     background-color: #f8f9fa;
     padding: 8px;
     border-radius: 4px;
