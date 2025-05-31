@@ -5,7 +5,7 @@ import { getEffectUnitsCache as getEffectUnitsCacheFromLoader } from './data-loa
 
 let getAllItemsFunc = () => [];
 let getEffectTypesCacheFunc = () => [];
-let getEffectUnitsCacheFunc = () => [];
+let getEffectUnitsCacheFunc = () => []; // For this module, get it from loader
 let getCharacterBasesCacheFunc = () => ({});
 let getCharacterBaseOptionDataFunc = (baseType, optionId) => null;
 let onSlotSelectStartCb = (slotName) => {};
@@ -45,7 +45,7 @@ export function initSimulatorUI(db, dependencies) {
     getCharacterBaseOptionDataFunc = dependencies.getCharacterBaseOptionData;
     onSlotSelectStartCb = dependencies.onSlotSelectStart;
     onSlotClearCb = dependencies.onSlotClear;
-    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader;
+    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader; 
 
 
     DOMS.simulatorModal = document.getElementById('simulatorModal');
@@ -104,7 +104,7 @@ export function initSimulatorUI(db, dependencies) {
         DOMS.resetSimulatorButton.addEventListener('click', () => {
             equipmentSlotNames.forEach(slotName => selectedEquipment[slotName] = null);
             selectedCharacterBase = { headShape: null, correction: null, color: null, pattern: null };
-            initializeSimulatorDisplay();
+            initializeSimulatorDisplay(); // This will also call calculateAndDisplayTotalEffects
         });
     }
 }
@@ -116,13 +116,15 @@ export function initializeSimulatorDisplay() {
     const characterBasesCache = getCharacterBasesCacheFunc();
     Object.entries(DOMS.charBaseSelects).forEach(([baseType, selectEl]) => {
         if (selectEl) {
+            // Ensure options are populated if cache is ready but select is empty
             if (selectEl.options.length <= 1 && characterBasesCache[baseType]?.length > 0) {
                  populateSingleCharacterBaseSelector(baseType, selectEl, characterBasesCache[baseType]);
             }
+            // Set selected value based on current state
             if (selectedCharacterBase[baseType] && selectedCharacterBase[baseType].id) {
                 selectEl.value = selectedCharacterBase[baseType].id;
             } else {
-                selectEl.value = "";
+                selectEl.value = ""; // Default to "選択なし"
             }
         }
     });
@@ -138,6 +140,7 @@ function populateCharacterBaseSelectors() {
 
 function populateSingleCharacterBaseSelector(baseType, selectElement, options) {
     if (!selectElement) return;
+    const currentValue = selectElement.value; // Preserve current selection if possible
     selectElement.innerHTML = '<option value="">選択なし</option>';
     if (options && options.length > 0) {
         options.forEach(option => {
@@ -147,11 +150,14 @@ function populateSingleCharacterBaseSelector(baseType, selectElement, options) {
             selectElement.appendChild(opt);
         });
     }
+    // Restore previous selection if it still exists in new options
+    if (Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
+        selectElement.value = currentValue;
+    }
 }
 
 
 export function updateSimulatorSlotDisplay(slotName) {
-    // ... (変更なし) ...
     const slotElement = document.getElementById(`slot-${slotName.replace(/\s/g, '')}`);
     if (!slotElement) {
         console.error(`Slot element for "${slotName}" not found.`);
@@ -193,27 +199,50 @@ export function calculateAndDisplayTotalEffects() {
 
     const totalEffectsMap = new Map();
     const effectTypesCache = getEffectTypesCacheFunc();
-    const effectUnitsCache = getEffectUnitsCacheFunc();
+    const effectUnitsCache = getEffectUnitsCacheFunc(); 
     const allItems = getAllItemsFunc();
 
+    // Process character base effects
     Object.values(selectedCharacterBase).forEach(baseOption => {
         if (baseOption && baseOption.effects && Array.isArray(baseOption.effects)) {
             baseOption.effects.forEach(effect => {
-                processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache);
+                // Assuming char base effects are always structured
+                processSingleEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache);
             });
         }
     });
 
+    // Process equipment effects
     Object.values(selectedEquipment).forEach(itemId => {
         if (!itemId) return;
         const item = allItems.find(i => i.docId === itemId);
-        if (item && item.structured_effects && Array.isArray(item.structured_effects)) {
-            item.structured_effects.forEach(effect => {
-                processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache);
-            });
+        if (item) {
+            if (item.effects && Array.isArray(item.effects)) { // New 'effects' array
+                item.effects.forEach(eff => {
+                    if (eff.type === "structured") {
+                        processSingleEffect({ 
+                            type: eff.effectTypeId, // map to old 'type' for processSingleEffect
+                            value: eff.value, 
+                            unit: eff.unit 
+                        }, effectTypesCache, totalEffectsMap, effectUnitsCache);
+                    } else if (eff.type === "manual") {
+                        // Manual effects from items are not typically aggregated numerically.
+                        // They could be displayed separately if needed, or ignored for total calculation.
+                        // For now, we'll ignore them in the numerical sum.
+                        // If you want to display them, this is where you'd collect them.
+                    }
+                });
+            } else if (item.effectsInputMode === 'manual' && typeof item.manualEffectsString === 'string') {
+                // Old manual format - generally not numerically aggregated
+            } else if (item.structured_effects && Array.isArray(item.structured_effects)) { // Fallback to old structured_effects
+                item.structured_effects.forEach(effect => {
+                    processSingleEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache);
+                });
+            }
         }
     });
 
+    // Finalize max value calculations
     totalEffectsMap.forEach(effectData => {
         if (effectData.calculationMethod === 'max' && effectData.valuesForMax.length > 0) {
             effectData.value = Math.max(...effectData.valuesForMax);
@@ -230,7 +259,7 @@ export function calculateAndDisplayTotalEffects() {
             if (unitName && unitName !== 'none' && effectUnitsCache) {
                 const unitInfo = effectUnitsCache.find(u => u.name === unitName);
                 const position = unitInfo ? unitInfo.position : 'suffix';
-                const displayValue = Math.round(effData.value * 1000) / 1000;
+                const displayValue = Math.round(effData.value * 1000) / 1000; 
 
                 if (position === 'prefix') {
                     effectValueText = `${unitName}${displayValue}`;
@@ -240,28 +269,28 @@ export function calculateAndDisplayTotalEffects() {
             } else {
                 effectValueText = `${Math.round(effData.value * 1000) / 1000}`;
             }
-            // ★★★ 「:」を削除し、半角スペースに変更 ★★★
             html += `<li>${effData.typeName} ${effectValueText}</li>`;
         });
         html += '</ul>';
         DOMS.totalEffectsDisplay.innerHTML = html;
     }
-    if(DOMS.exportEffects) DOMS.exportEffects.innerHTML = DOMS.totalEffectsDisplay.innerHTML;
+    if(DOMS.exportEffects) DOMS.exportEffects.innerHTML = DOMS.totalEffectsDisplay.innerHTML; // Update export area
 }
 
-function processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache) {
-    // ... (変更なし) ...
-    const { type: effectTypeId, value, unit } = effect;
+// Renamed from processEffect to avoid confusion, now handles single effect object
+function processSingleEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCache) {
+    const { type: effectTypeId, value, unit } = effect; // Assumes 'type' is effectTypeId for structured
     if (!effectTypeId || typeof value !== 'number') return;
 
     const effectTypeInfo = effectTypesCache.find(et => et.id === effectTypeId);
     if (!effectTypeInfo) {
+        console.warn(`EffectTypeInfo not found for ID: ${effectTypeId}`);
         return;
     }
 
     const calculationMethod = effectTypeInfo.calculationMethod || 'sum';
     const sumCap = typeof effectTypeInfo.sumCap === 'number' ? effectTypeInfo.sumCap : Infinity;
-    const currentUnitName = unit || effectTypeInfo.defaultUnit || 'none';
+    const currentUnitName = unit || effectTypeInfo.defaultUnit || 'none'; // 'none' or null/undefined
     const effectKey = `${effectTypeId}_${currentUnitName}`;
 
     if (!totalEffectsMap.has(effectKey)) {
@@ -272,14 +301,14 @@ function processEffect(effect, effectTypesCache, totalEffectsMap, effectUnitsCac
             unit: currentUnitName,
             calculationMethod: calculationMethod,
             sumCap: sumCap,
-            valuesForMax: []
+            valuesForMax: [] // For 'max' calculation method
         });
     }
 
     const currentEffectData = totalEffectsMap.get(effectKey);
     if (calculationMethod === 'max') {
         currentEffectData.valuesForMax.push(value);
-    } else {
+    } else { // sum
         currentEffectData.value += value;
         if (currentEffectData.value > currentEffectData.sumCap) {
             currentEffectData.value = currentEffectData.sumCap;
