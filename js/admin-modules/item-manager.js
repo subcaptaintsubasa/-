@@ -21,7 +21,7 @@ const DOMI = {
     structuredEffectsArea: null,      
     structuredEffectsInputArea: null, 
     manualEffectsArea: null,
-    manualEffectsInputArea: null, // HTML側のIDに合わせて追加
+    manualEffectsInputArea: null, 
     manualEffectsStringTextarea: null,
     addManualEffectToListButton: null, 
     effectTypeSelect: null,
@@ -35,8 +35,8 @@ const DOMI = {
     treeSourceArea: null,             
     treeSourceInputArea: null,        
     manualSourceArea: null,
-    manualSourceInputArea: null, // HTML側のIDに合わせて追加
-    manualSourceStringTextarea: null,
+    manualSourceInputArea: null, 
+    manualSourceStringTextarea: null, // HTML側のID 'manualSourceStringTextarea' に合わせる
     addManualSourceToListButton: null, 
     itemSourceDisplay: null,          
     selectedItemSourceNodeId_temp: null, 
@@ -189,39 +189,38 @@ export function initItemManager(dependencies) {
 
 function setEffectsInputMode(mode) {
     if (!DOMI.effectsInputModeHiddenInput || !DOMI.structuredEffectsInputArea || !DOMI.manualEffectsInputArea || !DOMI.toggleEffectsInputModeButton) return;
-    DOMI.effectsInputModeHiddenInput.value = mode;
+    DOMI.effectsInputModeHiddenInput.value = mode; // This hidden input is now mainly for JS state, not direct form submission
     if (mode === 'manual') {
-        DOMI.structuredEffectsInputArea.style.display = 'none';
-        DOMI.manualEffectsInputArea.style.display = 'block';
+        if (DOMI.structuredEffectsInputArea) DOMI.structuredEffectsInputArea.style.display = 'none';
+        if (DOMI.manualEffectsInputArea) DOMI.manualEffectsInputArea.style.display = 'block';
         DOMI.toggleEffectsInputModeButton.textContent = '構造化入力に戻す';
         if(DOMI.manualEffectsStringTextarea) DOMI.manualEffectsStringTextarea.focus();
     } else { 
-        DOMI.structuredEffectsInputArea.style.display = 'block';
-        DOMI.manualEffectsInputArea.style.display = 'none';
+        if (DOMI.structuredEffectsInputArea) DOMI.structuredEffectsInputArea.style.display = 'block';
+        if (DOMI.manualEffectsInputArea) DOMI.manualEffectsInputArea.style.display = 'none';
         DOMI.toggleEffectsInputModeButton.textContent = '入力欄に切り替え';
         if(DOMI.effectTypeSelect) DOMI.effectTypeSelect.focus();
     }
-    switchToAddEffectMode(); // モード切替時にフォームもリセット
+    switchToAddEffectMode(); 
 }
 
 function setSourceInputMode(mode) {
     if (!DOMI.sourceInputModeHiddenInput || !DOMI.treeSourceInputArea || !DOMI.manualSourceInputArea || !DOMI.toggleSourceInputModeButton) return;
-    DOMI.sourceInputModeHiddenInput.value = mode;
+    DOMI.sourceInputModeHiddenInput.value = mode; // This hidden input is now mainly for JS state
     if (mode === 'manual') {
-        DOMI.treeSourceInputArea.style.display = 'none';
-        DOMI.manualSourceInputArea.style.display = 'block';
+        if (DOMI.treeSourceInputArea) DOMI.treeSourceInputArea.style.display = 'none';
+        if (DOMI.manualSourceInputArea) DOMI.manualSourceInputArea.style.display = 'block';
         DOMI.toggleSourceInputModeButton.textContent = '選択式に切り替え';
         if(DOMI.manualSourceStringTextarea) DOMI.manualSourceStringTextarea.focus();
     } else { 
-        DOMI.treeSourceInputArea.style.display = 'block';
-        DOMI.manualSourceInputArea.style.display = 'none';
+        if (DOMI.treeSourceInputArea) DOMI.treeSourceInputArea.style.display = 'block';
+        if (DOMI.manualSourceInputArea) DOMI.manualSourceInputArea.style.display = 'none';
         DOMI.toggleSourceInputModeButton.textContent = '入力欄に切り替え';
         if(DOMI.selectItemSourceButton) DOMI.selectItemSourceButton.focus();
     }
-    switchToAddSourceMode(); // モード切替時にフォームもリセット
+    switchToAddSourceMode(); 
 }
 
-// ... (initializeRaritySelector, handleRarityStarClick, setRarityUI は変更なし) ...
 function initializeRaritySelector() {
     if (!DOMI.itemRaritySelector || !DOMI.itemRarityValueInput) return;
     DOMI.itemRaritySelector.innerHTML = ''; 
@@ -258,7 +257,6 @@ function setRarityUI(value) {
     });
 }
 
-
 function switchToAddEffectMode() {
     itemEffectEditMode = false;
     itemEffectEditingIndex = -1;
@@ -279,7 +277,6 @@ function switchToAddSourceMode() {
     if (DOMI.selectedItemSourceNodeId_temp) DOMI.selectedItemSourceNodeId_temp.value = '';
     if (DOMI.manualSourceStringTextarea) DOMI.manualSourceStringTextarea.value = '';
 }
-
 
 function clearItemFormInternal() {
     if (DOMI.itemForm) DOMI.itemForm.reset(); 
@@ -309,7 +306,6 @@ function clearItemFormInternal() {
     setSourceInputMode('tree'); 
     renderCurrentItemSourcesListUI();
 
-
     _populateTagCheckboxesForItemFormInternal();
 
     if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム保存";
@@ -319,7 +315,6 @@ function clearItemFormInternal() {
     console.log("[Item Manager] Item form cleared.");
 }
 
-// ... ( _populateTagCheckboxesForItemFormInternal, handleImageFileSelect, updateItemFormEffectUnitDisplay は変更なし)
 export function _populateTagCheckboxesForItemFormInternal(selectedTagIds = []) {
     if(!DOMI.itemTagsSelectorCheckboxes) return;
     const allTags = getAllTagsFuncCache().sort((a,b) => a.name.localeCompare(b.name, 'ja'));
@@ -373,7 +368,6 @@ function updateItemFormEffectUnitDisplay() {
     DOMI.effectUnitDisplay.textContent = (unitName && unitName !== '' && unitName !== 'none') ? `(${unitName})` : '';
 }
 
-
 function handleAddOrUpdateStructuredEffect() { 
     const typeId = DOMI.effectTypeSelect.value;
     const valueStr = DOMI.effectValueInput.value;
@@ -410,7 +404,6 @@ function handleAddManualEffect() {
     renderCurrentItemEffectsListUI();
     switchToAddEffectMode(); 
 }
-
 
 function renderCurrentItemEffectsListUI() {
     if (!DOMI.currentEffectsList) return;
@@ -457,17 +450,17 @@ function renderCurrentItemEffectsListUI() {
                 itemEffectEditMode = true;
                 itemEffectEditingIndex = editIndex;
                 if (effectToEdit.type === "manual") {
-                    setEffectsInputMode('manual');
+                    setEffectsInputMode('manual'); // UIモード切り替え
                     if(DOMI.manualEffectsStringTextarea) DOMI.manualEffectsStringTextarea.value = effectToEdit.manualString;
                     if(DOMI.addManualEffectToListButton) DOMI.addManualEffectToListButton.textContent = '手動入力を更新';
-                    if(DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '効果をリストに追加';
+                    if(DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '効果をリストに追加'; // 他方のボタンテキストをリセット
                 } else { 
-                    setEffectsInputMode('structured');
+                    setEffectsInputMode('structured'); // UIモード切り替え
                     if(DOMI.effectTypeSelect) DOMI.effectTypeSelect.value = effectToEdit.effectTypeId;
                     if(DOMI.effectValueInput) DOMI.effectValueInput.value = effectToEdit.value;
                     updateItemFormEffectUnitDisplay(); 
                     if(DOMI.addEffectToListButton) DOMI.addEffectToListButton.textContent = '構造化効果を更新';
-                    if(DOMI.addManualEffectToListButton) DOMI.addManualEffectToListButton.textContent = '手動入力をリストに追加';
+                    if(DOMI.addManualEffectToListButton) DOMI.addManualEffectToListButton.textContent = '手動入力をリストに追加'; // 他方のボタンテキストをリセット
                 }
             }
         });
@@ -489,11 +482,12 @@ function handleAddTreeSource() {
     if (!nodeId) { alert("入手経路を選択してください。"); return; }
 
     const nodeData = getItemSourcesFuncCache().find(s => s.id === nodeId);
-    const actualDisplayString = (nodeData && nodeData.displayString && nodeData.displayString.trim() !== "") ? 
-                                nodeData.displayString : 
-                                displayPath; 
+    // resolvedDisplay は、表示用に item_sources の displayString を使うか、なければパスを使う
+    const resolvedDisplayForList = (nodeData && nodeData.displayString && nodeData.displayString.trim() !== "") ? 
+                                   nodeData.displayString : 
+                                   displayPath; 
 
-    const newSource = { type: "tree", nodeId: nodeId, resolvedDisplay: actualDisplayString };
+    const newSource = { type: "tree", nodeId: nodeId, resolvedDisplay: resolvedDisplayForList };
 
     if (itemSourceEditMode && itemSourceEditingIndex >= 0 && itemSourceEditingIndex < currentItemSources.length) {
         currentItemSources[itemSourceEditingIndex] = newSource;
@@ -522,7 +516,7 @@ function handleAddManualSource() {
 function renderCurrentItemSourcesListUI() {
     if (!DOMI.currentSourcesList) return;
     DOMI.currentSourcesList.innerHTML = '';
-    const itemSourcesCache = getItemSourcesFuncCache();
+    // const itemSourcesCache = getItemSourcesFuncCache(); // resolvedDisplayがあるので不要な場合も
 
     if (currentItemSources.length === 0) {
         DOMI.currentSourcesList.innerHTML = '<p>入手手段が追加されていません。</p>'; return;
@@ -581,8 +575,6 @@ function renderCurrentItemSourcesListUI() {
     });
 }
 
-
-// ... (uploadImageToWorkerAndGetURL は変更なし) ...
 async function uploadImageToWorkerAndGetURL(file) {
     if (!file || !IMAGE_UPLOAD_WORKER_URL_CONST) {
         console.warn("uploadImageToWorkerAndGetURL: No file or Worker URL provided. URL:", IMAGE_UPLOAD_WORKER_URL_CONST);
@@ -644,7 +636,6 @@ async function uploadImageToWorkerAndGetURL(file) {
     }
 }
 
-
 async function saveItem(event) {
     event.preventDefault();
     if (DOMI.saveItemButton) {
@@ -694,7 +685,7 @@ async function saveItem(event) {
         
         if (editingDocId) {
             itemDataPayload.updatedAt = serverTimestamp();
-            // 古いフィールドを明示的に削除
+            // 古いフィールドを明示的に削除 (新規作成時はこれらのフィールドは最初からないので不要)
             itemDataPayload.effectsInputMode = deleteField();
             itemDataPayload.manualEffectsString = deleteField();
             itemDataPayload.structured_effects = deleteField();
@@ -759,10 +750,10 @@ export function _renderItemsAdminTableInternal() {
         const rarityDisplay = `星${item.rarity || 0}`;
         
         let effectsDisplayHtml = '<ul class="effect-list-in-table">';
-        if (item.effects && item.effects.length > 0) { // 新しい 'effects' 配列を参照
+        if (item.effects && item.effects.length > 0) { 
             item.effects.forEach(eff => {
                 if (eff.type === "manual") {
-                    effectsDisplayHtml += `<li>・${eff.manualString ? eff.manualString.replace(/\n/g, '<br>') : ''} (手動)</li>`;
+                    effectsDisplayHtml += `<li>・${eff.manualString ? eff.manualString.replace(/\n/g, '<br>') : ''}</li>`;
                 } else if (eff.type === "structured") {
                     const typeInfo = effectTypesCache.find(et => et.id === eff.effectTypeId);
                     const typeName = typeInfo ? typeInfo.name : `不明(${eff.effectTypeId ? eff.effectTypeId.substring(0, 6) : 'IDなし'}...)`;
@@ -776,11 +767,11 @@ export function _renderItemsAdminTableInternal() {
                     effectsDisplayHtml += `<li>・${typeName} ${effectTextPart}</li>`;
                 }
             });
-        } else if (item.effectsInputMode === 'manual' && item.manualEffectsString) { // 古いデータ形式のフォールバック
-             effectsDisplayHtml += `<li>・${item.manualEffectsString.replace(/\n/g, '<br>')} (旧手動)</li>`;
-        } else if (item.structured_effects && item.structured_effects.length > 0) { // 古いデータ形式のフォールバック
+        } else if (item.effectsInputMode === 'manual' && item.manualEffectsString) { 
+             effectsDisplayHtml += `<li>・${item.manualEffectsString.replace(/\n/g, '<br>')}</li>`;
+        } else if (item.structured_effects && item.structured_effects.length > 0) { 
             item.structured_effects.forEach(eff => {
-                const typeInfo = effectTypesCache.find(et => et.id === eff.type); // 古い形式では effectTypeIdではなくtype
+                const typeInfo = effectTypesCache.find(et => et.id === eff.type); 
                 const typeName = typeInfo ? typeInfo.name : `不明(${eff.type ? eff.type.substring(0, 6) : 'IDなし'}...)`;
                 let effectTextPart;
                 const unitName = eff.unit;
@@ -789,25 +780,42 @@ export function _renderItemsAdminTableInternal() {
                     const position = unitData ? unitData.position : 'suffix';
                     effectTextPart = position === 'prefix' ? `${unitName}${eff.value}` : `${eff.value}${unitName}`;
                 } else { effectTextPart = `${eff.value}`; }
-                effectsDisplayHtml += `<li>・${typeName} ${effectTextPart} (旧)</li>`;
+                effectsDisplayHtml += `<li>・${typeName} ${effectTextPart}</li>`;
             });
         } else { effectsDisplayHtml += '<li>効果なし</li>'; }
         effectsDisplayHtml += '</ul>';
 
         let sourceDisplayHtml = '<ul class="effect-list-in-table">';
-        if (item.sources && item.sources.length > 0) { // 新しい 'sources' 配列を参照
+        if (item.sources && item.sources.length > 0) { 
             item.sources.forEach(src => {
                 if (src.type === 'manual') {
-                    sourceDisplayHtml += `<li>・${src.manualString ? src.manualString.replace(/\n/g, '<br>') : ''} (手動)</li>`;
+                    sourceDisplayHtml += `<li>・${src.manualString ? src.manualString.replace(/\n/g, '<br>') : ''}</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
-                    sourceDisplayHtml += `<li>・${src.resolvedDisplay || `経路ID: ${src.nodeId.substring(0,8)}...`}</li>`;
+                    // resolvedDisplay はアイテムロード時に解決されているはずだが、フォールバックも考慮
+                    let pathText = src.resolvedDisplay || `経路ID: ${src.nodeId.substring(0,8)}...`;
+                    if (!src.resolvedDisplay) { // もしresolvedDisplayがなければ再構築試行
+                        const selectedSourceNode = itemSourcesCache.find(s => s.id === src.nodeId);
+                        if (selectedSourceNode && selectedSourceNode.displayString && selectedSourceNode.displayString.trim() !== "") {
+                            pathText = selectedSourceNode.displayString;
+                        } else if (selectedSourceNode) {
+                            const pathParts = []; let currentId = src.nodeId; let sanityCheck = 0;
+                            while(currentId && sanityCheck < 10) {
+                                const node = itemSourcesCache.find(s => s.id === currentId);
+                                if (node) { pathParts.unshift(node.name); currentId = node.parentId; }
+                                else { pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); break; }
+                                sanityCheck++;
+                            }
+                            if (pathParts.length > 0) pathText = pathParts.join(' > ');
+                        }
+                    }
+                    sourceDisplayHtml += `<li>・${pathText}</li>`;
                 }
             });
-        } else if (item.sourceInputMode === 'manual' && item.manualSourceString) { // 古いデータ形式のフォールバック
-            sourceDisplayHtml += `<li>・${item.manualSourceString.replace(/\n/g, '<br>')} (旧手動)</li>`;
-        } else if (item.sourceNodeId) { // 古いデータ形式のフォールバック
+        } else if (item.sourceInputMode === 'manual' && item.manualSourceString) { 
+            sourceDisplayHtml += `<li>・${item.manualSourceString.replace(/\n/g, '<br>')}</li>`;
+        } else if (item.sourceNodeId) { 
             const selectedSourceNode = itemSourcesCache.find(s => s.id === item.sourceNodeId);
-            let pathText = `(旧経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
+            let pathText = `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
             if (selectedSourceNode && selectedSourceNode.displayString && selectedSourceNode.displayString.trim() !== "") {
                 pathText = selectedSourceNode.displayString;
             } else if (selectedSourceNode) {
@@ -820,9 +828,9 @@ export function _renderItemsAdminTableInternal() {
                 }
                 if (pathParts.length > 0) pathText = pathParts.join(' > ');
             }
-            sourceDisplayHtml += `<li>・${pathText} (旧)</li>`;
-        } else if (item.入手手段) { // 最も古いデータ形式のフォールバック
-             sourceDisplayHtml += `<li>・${item.入手手段} (最旧)</li>`;
+            sourceDisplayHtml += `<li>・${pathText}</li>`;
+        } else if (item.入手手段) { 
+             sourceDisplayHtml += `<li>・${item.入手手段}</li>`;
         } else { sourceDisplayHtml += '<li>不明</li>'; }
         sourceDisplayHtml += '</ul>';
 
@@ -866,10 +874,9 @@ async function loadItemForEdit(docId) {
             selectedImageFile = null;
             if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
 
-            // 新しい 'effects' 配列をロード
             if (itemData.effects && Array.isArray(itemData.effects)) {
                 currentItemEffects = JSON.parse(JSON.stringify(itemData.effects));
-            } else { // 古い形式からの移行ロジック
+            } else { 
                 currentItemEffects = [];
                 if (itemData.effectsInputMode === 'manual' && itemData.manualEffectsString) {
                     currentItemEffects.push({ type: 'manual', manualString: itemData.manualEffectsString });
@@ -880,36 +887,49 @@ async function loadItemForEdit(docId) {
                 }
             }
             renderCurrentItemEffectsListUI(); 
-            setEffectsInputMode('structured'); // 常に構造化から開始
+            setEffectsInputMode('structured'); 
 
-            // 新しい 'sources' 配列をロード
             if (itemData.sources && Array.isArray(itemData.sources)) {
                 currentItemSources = JSON.parse(JSON.stringify(itemData.sources));
                 // resolvedDisplay がない古いデータを読み込んだ場合、ここで解決する
-                currentItemSources.forEach(src => {
+                currentItemSources.forEach(async (src) => { // async を追加
                     if(src.type === 'tree' && src.nodeId && !src.resolvedDisplay) {
-                        const node = getItemSourcesFuncCache().find(s => s.id === src.nodeId);
+                        const allItemSources = getItemSourcesFuncCache();
+                        const node = allItemSources.find(s => s.id === src.nodeId);
                         if (node) {
-                            src.resolvedDisplay = node.displayString || node.name; // もしdisplayStringがなければname
+                            src.resolvedDisplay = node.displayString || buildPathForItemSource(src.nodeId, allItemSources);
                         } else {
-                             src.resolvedDisplay = `経路ID: ${src.nodeId.substring(0,8)}...`;
+                             // Firestoreから直接取得を試みる (キャッシュにない場合)
+                             try {
+                                const docSnap = await getDoc(doc(dbInstance, 'item_sources', src.nodeId));
+                                if (docSnap.exists()) {
+                                    const missingNode = { id: docSnap.id, ...docSnap.data()};
+                                    src.resolvedDisplay = missingNode.displayString || buildPathForItemSource(src.nodeId, [missingNode, ...allItemSources]); // 一時的にキャッシュに追加してパス構築
+                                } else {
+                                    src.resolvedDisplay = `経路ID: ${src.nodeId.substring(0,8)}...`;
+                                }
+                             } catch (e) {
+                                 console.warn("Error fetching missing source node during loadItemForEdit:", e);
+                                 src.resolvedDisplay = `経路ID(取得エラー): ${src.nodeId.substring(0,8)}...`;
+                             }
                         }
                     }
                 });
-            } else { // 古い形式からの移行ロジック
+            } else { 
                 currentItemSources = [];
                 if (itemData.sourceInputMode === 'manual' && itemData.manualSourceString) {
                     currentItemSources.push({ type: 'manual', manualString: itemData.manualSourceString });
                 } else if (itemData.sourceNodeId) {
-                    const node = getItemSourcesFuncCache().find(s => s.id === itemData.sourceNodeId);
-                    const display = (node && node.displayString) ? node.displayString : (node ? node.name : `ID:${itemData.sourceNodeId.substring(0,5)}..`);
+                    const allItemSources = getItemSourcesFuncCache();
+                    const node = allItemSources.find(s => s.id === itemData.sourceNodeId);
+                    const display = (node && node.displayString) ? node.displayString : (node ? buildPathForItemSource(itemData.sourceNodeId, allItemSources) : `ID:${itemData.sourceNodeId.substring(0,5)}..`);
                     currentItemSources.push({ type: 'tree', nodeId: itemData.sourceNodeId, resolvedDisplay: display });
-                } else if (itemData.入手手段) { // 最も古い形式
+                } else if (itemData.入手手段) { 
                      currentItemSources.push({ type: 'manual', manualString: itemData.入手手段 });
                 }
             }
             renderCurrentItemSourcesListUI();
-            setSourceInputMode('tree'); // 常にツリー選択から開始
+            setSourceInputMode('tree'); 
             
             _populateTagCheckboxesForItemFormInternal(itemData.tags || []);
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
@@ -921,6 +941,26 @@ async function loadItemForEdit(docId) {
         } else { alert("編集対象のアイテムが見つかりませんでした。"); }
     } catch (error) { console.error("[Item Manager] Error loading item for edit:", error); alert("編集データの読み込み中にエラーが発生しました。"); }
 }
+
+// ヘルパー関数: nodeId からパスを構築 (item-source-manager.jsにも同様のロジックがあるため共通化も検討)
+function buildPathForItemSource(nodeId, allItemSources) {
+    const pathParts = [];
+    let currentId = nodeId;
+    let sanityCheck = 0;
+    while(currentId && sanityCheck < 10) {
+        const node = allItemSources.find(s => s.id === currentId);
+        if (node) {
+            pathParts.unshift(node.name);
+            currentId = node.parentId;
+        } else {
+            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`);
+            break;
+        }
+        sanityCheck++;
+    }
+    return pathParts.join(' > ');
+}
+
 
 async function deleteItem(docId, itemName, imageUrl) {
     if (confirm(`アイテム「${itemName}」を削除しますか？\n注意: Cloudflare R2上の関連画像は、この操作では削除されません。\nこの操作は元に戻せません。`)) {
