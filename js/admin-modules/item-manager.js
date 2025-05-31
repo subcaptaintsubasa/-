@@ -364,16 +364,21 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.className = 'tag-filter admin-tag-select'; 
             button.textContent = tag.name;
             button.dataset.tagId = tag.id; 
+            // console.log("Creating button for tag:", tag.name, "ID:", tag.id, "Selected:", selectedTagIds.includes(tag.id)); // デバッグログ
             if (selectedTagIds.includes(tag.id)) {
                 button.classList.add('active');
             }
             button.setAttribute('role', 'button');
             button.setAttribute('tabindex', '0');
-            button.addEventListener('click', () => button.classList.toggle('active'));
+            button.addEventListener('click', () => {
+                button.classList.toggle('active');
+                console.log('Tag button clicked:', tag.name, 'Is active:', button.classList.contains('active')); // デバッグログ
+            });
             button.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     button.classList.toggle('active');
+                    console.log('Tag button (key) toggled:', tag.name, 'Is active:', button.classList.contains('active')); // デバッグログ
                 }
             });
             tagButtonsDiv.appendChild(button);
@@ -398,8 +403,17 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             if (selectedTagIds.includes(tag.id)) button.classList.add('active');
             button.setAttribute('role', 'button');
             button.setAttribute('tabindex', '0');
-            button.addEventListener('click', () => button.classList.toggle('active'));
-            button.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); button.classList.toggle('active'); }});
+            button.addEventListener('click', () => {
+                button.classList.toggle('active');
+                console.log('Unclassified Tag button clicked:', tag.name, 'Is active:', button.classList.contains('active')); // デバッグログ
+            });
+            button.addEventListener('keydown', (e) => { 
+                if (e.key === 'Enter' || e.key === ' ') { 
+                    e.preventDefault(); 
+                    button.classList.toggle('active'); 
+                    console.log('Unclassified Tag button (key) toggled:', tag.name, 'Is active:', button.classList.contains('active')); // デバッグログ
+                }
+            });
             tagButtonsDiv.appendChild(button);
         });
         categoryGroupDiv.appendChild(tagButtonsDiv);
@@ -735,9 +749,10 @@ async function saveItem(event) {
 
     const name = DOMI.itemNameInput.value.trim();
     const priceStr = DOMI.itemPriceInput.value.trim();
-    console.log("[Item Manager] itemTagsButtonContainer before getSelectedTagButtonValues:", DOMI.itemTagsButtonContainer); // ★★★ デバッグログ追加
+    
+    console.log("[Item Manager] itemTagsButtonContainer before getSelectedTagButtonValues:", DOMI.itemTagsButtonContainer); 
     const selectedItemTagIds = getSelectedTagButtonValues(DOMI.itemTagsButtonContainer, 'tagId');
-    console.log("[Item Manager] Selected Tag IDs in saveItem:", selectedItemTagIds); // ★★★ デバッグログ追加
+    console.log("[Item Manager] Selected Tag IDs in saveItem:", selectedItemTagIds); 
 
     const editingDocId = DOMI.itemIdToEditInput.value;
     const rarity = parseInt(DOMI.itemRarityValueInput.value, 10) || 0;
@@ -765,7 +780,7 @@ async function saveItem(event) {
             name: name,
             image: imageUrlToSave, 
             rarity: rarity, 
-            tags: selectedItemTagIds, // ここでセット
+            tags: selectedItemTagIds,
             effects: currentItemEffects, 
             sources: currentItemSources, 
         };
