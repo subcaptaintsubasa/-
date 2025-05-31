@@ -61,34 +61,49 @@
     margin-right: 0;
 }
 
-/* Category selection buttons */
-.category-button-group.admin {
+/* Category selection buttons & Item Source Parent Selector buttons */
+.category-button-group.admin,
+.item-source-parent-selector { /* Apply same style for consistency */
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem; /* Use rem */
+    gap: 0.5rem; 
     margin-top: 0.25rem;
     margin-bottom: 0.75rem;
 }
 
-.category-button-group.admin .category-select-button { 
+.category-button-group.admin .category-select-button,
+.item-source-parent-selector .category-select-button { /* Common class for these buttons */
     padding: 0.4rem 0.9rem;
     background-color: #f8f9fa; 
     border: 1px solid #dee2e6;   
-    border-radius: 50px;
+    border-radius: 50px; /* Pill shape */
     cursor: pointer;
     font-size: 0.875rem;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
     color: #495057; 
 }
 
-.category-button-group.admin .category-select-button:hover {
+.item-source-parent-selector .category-select-button { /* Specific override for parent selector if needed */
+    display: block; 
+    width: 100%;
+    text-align: left;
+    margin-bottom: 4px;
+    padding-left: 10px; 
+    box-sizing: border-box;
+    border-radius: 0.25rem; /* Less rounded for list-like appearance */
+}
+
+
+.category-button-group.admin .category-select-button:hover,
+.item-source-parent-selector .category-select-button:hover {
     background-color: #e9ecef;
     border-color: #ced4da;
     color: #343a40;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.category-button-group.admin .category-select-button.active {
+.category-button-group.admin .category-select-button.active,
+.item-source-parent-selector .category-select-button.active {
     background-color: #007bff; 
     color: white;               
     border-color: #007bff;      
@@ -98,12 +113,12 @@
 /* Radio button groups */
 .radio-group {
     display: flex;
-    gap: 1.25rem; /* Increased gap */
+    gap: 1.25rem; 
     align-items: center;
     margin-top: 0.3rem;
     flex-wrap: wrap;
 }
-.radio-group > div { /* Wrapper for radio + label for better wrapping control */
+.radio-group > div { 
     display: flex;
     align-items: center;
 }
@@ -118,30 +133,29 @@
     color: #0056b3;
     font-weight: 600;
 }
-.radio-group label { /* Ensure this label is not block, for inline with radio */
+.radio-group label { 
     margin-bottom: 0;
     font-weight: normal;
     vertical-align: middle;
     cursor: pointer;
     font-size: 0.95rem;
     color: #495057;
-    display: inline; /* Make label inline */
-    line-height: 1.5; /* Match input line height */
+    display: inline; 
+    line-height: 1.5; 
 }
 
 
 /* General Button Styles in Admin Forms */
-/* Apply to general buttons, exclude specific styled buttons like .category-select-button, .tag-filter, and .admin-nav-button */
-#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon),
-#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon),
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon) {
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button),
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button),
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button) {
     background-color: #007bff;
     color: white;
     padding: 0.6rem 1.1rem;
     border: none;
     border-radius: 0.25rem;
     cursor: pointer;
-    margin-right: 0.5rem; /* Default margin, can be overridden by :last-child */
+    margin-right: 0.5rem; 
     font-size: 0.95rem;
     font-weight: 500;
     letter-spacing: 0.5px;
@@ -152,21 +166,20 @@
     line-height: 1.5;
     text-align: center;
 }
-#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):hover,
-#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):hover,
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):hover {
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):hover,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):hover,
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):hover {
     background-color: #0069d9;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):active,
-#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):active,
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):active {
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):active,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):active,
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):active {
     background-color: #005cbf;
 }
 
-/* Ensure last button in a group has no right margin, unless it's a special button */
-#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):last-child,
-#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):last-child,
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):last-child,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):last-child,
 .admin-management-modal .modal-actions button:last-child {
     margin-right: 0;
 }
@@ -180,24 +193,23 @@
     box-shadow: none;
 }
 
-
 /* Secondary/Utility Buttons */
-#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon),
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button),
 #admin-content #clearFormButton,
-.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon),
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon) {
+.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button),
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button) {
     background-color: #6c757d;
 }
-#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):hover,
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):hover,
 #admin-content #clearFormButton:hover,
-.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):hover,
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):hover {
+.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):hover,
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):hover {
     background-color: #5a6268;
 }
-#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):active,
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):active,
 #admin-content #clearFormButton:active,
-.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):active,
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):active {
+.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):active,
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):active {
     background-color: #545b62;
 }
 
@@ -250,17 +262,14 @@
     display: block;
 }
 
-/* Small info message specific for list item click hint */
 .info-message-small {
     font-size: 0.85em;
     color: #5a6268;
-    margin-top: -10px; /* Adjust based on h3 margin */
+    margin-top: -10px; 
     margin-bottom: 10px;
     font-style: italic;
 }
 
-
-/* Inline form style */
 .inline-form {
     display: flex;
     align-items: center;
@@ -268,164 +277,121 @@
     margin-bottom: 1rem;
     flex-wrap: wrap;
 }
-.inline-form label {
-    margin-bottom: 0;
-    flex-shrink: 0;
-}
-.inline-form input[type="text"],
-.inline-form select {
-    flex-grow: 1;
-    min-width: 180px;
-}
-.inline-form button {
-    flex-shrink: 0;
-}
+.inline-form label { margin-bottom: 0; flex-shrink: 0; }
+.inline-form input[type="text"], .inline-form select { flex-grow: 1; min-width: 180px; }
+.inline-form button { flex-shrink: 0; }
 
-
-/* Item Image Preview & Upload Progress */
 #itemImagePreview {
-    display: none;
-    margin-top: 0.75rem;
-    border: 1px solid #dee2e6;
-    padding: 0.3rem;
-    background-color: #f8f9fa;
-    max-width: 120px;
-    max-height: 120px;
-    object-fit: contain;
-    border-radius: 0.25rem;
+    display: none; margin-top: 0.75rem; border: 1px solid #dee2e6; padding: 0.3rem;
+    background-color: #f8f9fa; max-width: 120px; max-height: 120px;
+    object-fit: contain; border-radius: 0.25rem;
 }
-#uploadProgressContainer {
-    margin-top: 0.75rem;
-    display: none;
-}
+#uploadProgressContainer { margin-top: 0.75rem; display: none; }
 #uploadProgress {
-    width: 100%;
-    height: 1.25rem;
-    margin-bottom: 0.3rem;
-    border-radius: 0.25rem;
-    -webkit-appearance: none;
-    appearance: none;
+    width: 100%; height: 1.25rem; margin-bottom: 0.3rem; border-radius: 0.25rem;
+    -webkit-appearance: none; appearance: none;
 }
-#uploadProgress::-webkit-progress-bar {
-    background-color: #e9ecef;
-    border-radius: 0.25rem;
+#uploadProgress::-webkit-progress-bar { background-color: #e9ecef; border-radius: 0.25rem; }
+#uploadProgress::-webkit-progress-value { background-color: #007bff; border-radius: 0.25rem; transition: width 0.2s ease-in-out; }
+#uploadProgress::-moz-progress-bar { background-color: #007bff; border-radius: 0.25rem; transition: width 0.2s ease-in-out; }
+#uploadProgressText { font-size: 0.875rem; color: #495057; }
+
+#characterBaseManagementModal .form-group { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+#characterBaseManagementModal .form-group label { margin-bottom: 0; flex-shrink: 0; }
+#characterBaseManagementModal #addNewCharBaseOptionButton { margin-left: auto; flex-shrink: 0; }
+
+.list-search-bar { margin-bottom: 0.75rem; }
+.list-search-bar input[type="text"] { font-size: 0.9rem; padding: 0.4rem 0.6rem; }
+
+.rarity-selector-container { display: flex; align-items: center; gap: 4px; cursor: default; }
+.rarity-selector-container .star { font-size: 2rem; color: #ccc; cursor: pointer; transition: color 0.1s ease-in-out, transform 0.1s ease-in-out; user-select: none; }
+.rarity-selector-container .star:hover { transform: scale(1.1); }
+.rarity-selector-container .star.selected { color: #ffc107; }
+.rarity-display-stars { display: inline-flex; gap: 2px; }
+.rarity-display-stars .star-icon { font-size: 1em; color: #ccc; }
+.rarity-display-stars .star-icon.selected { color: #ffc107; }
+
+/* === 新しいUIのためのCSS === */
+/* アイテムフォーム内 入手手段ボタン式UI */
+.item-source-button-selection-levels .source-level-container {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #e0e0e0;
 }
-#uploadProgress::-webkit-progress-value {
-    background-color: #007bff;
-    border-radius: 0.25rem;
-    transition: width 0.2s ease-in-out;
+.item-source-button-selection-levels .source-level-container:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
 }
-#uploadProgress::-moz-progress-bar {
-    background-color: #007bff;
-    border-radius: 0.25rem;
-    transition: width 0.2s ease-in-out;
-}
-#uploadProgressText {
-    font-size: 0.875rem;
+.item-source-button-selection-levels .item-source-select-button {
+    padding: 0.35rem 0.8rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out;
     color: #495057;
 }
-
-/* Character Base Management specific form layout (within its modal) */
-#characterBaseManagementModal .form-group {
-    display: flex;
-    align-items: baseline; 
-    gap: 0.75rem;
-    flex-wrap: wrap;
+.item-source-button-selection-levels .item-source-select-button:hover {
+    background-color: #e0e0e0;
+    border-color: #ccc;
 }
-#characterBaseManagementModal .form-group label {
-    margin-bottom: 0;
-    flex-shrink: 0;
-}
-#characterBaseManagementModal #addNewCharBaseOptionButton {
-    margin-left: auto; 
-    flex-shrink: 0;
-}
-
-
-/* Search bar style for lists within modals */
-.list-search-bar {
-    margin-bottom: 0.75rem;
-}
-.list-search-bar input[type="text"] {
-    font-size: 0.9rem;
-    padding: 0.4rem 0.6rem;
-}
-
-/* Rarity Selector Styles */
-.rarity-selector-container {
-    display: flex;
-    align-items: center;
-    gap: 4px; /* Space between stars */
-    cursor: default; /* Default cursor for the container */
-}
-.rarity-selector-container .star {
-    font-size: 2rem; /* Adjust star size */
-    color: #ccc; /* Default (unselected) star color */
-    cursor: pointer; /* Pointer cursor for individual stars */
-    transition: color 0.1s ease-in-out, transform 0.1s ease-in-out;
-    user-select: none; /* Prevent text selection */
-}
-.rarity-selector-container .star:hover {
-    transform: scale(1.1); /* Slight zoom on hover */
-}
-.rarity-selector-container .star.selected {
-    color: #ffc107; /* Selected star color (yellow) */
-}
-/* Styles for rarity display in lists/modals (can be shared or specific) */
-.rarity-display-stars {
-    display: inline-flex; /* To keep stars in a line */
-    gap: 2px;
-}
-.rarity-display-stars .star-icon {
-    font-size: 1em; /* Adjust based on context */
-    color: #ccc; /* Default unselected */
-}
-.rarity-display-stars .star-icon.selected {
-    color: #ffc107; /* Selected */
-}
-
-/* 入手経路管理の親選択ボタン */
-.item-source-parent-selector .category-select-button {
-    display: block; 
-    width: 100%;
-    text-align: left;
-    margin-bottom: 4px;
-    padding-left: 10px; 
-    box-sizing: border-box;
-}
-.item-source-parent-selector .category-select-button:hover {
-    background-color: #e9ecef; /* Consistent hover with other category buttons */
-}
-.item-source-parent-selector .category-select-button.active {
-    background-color: #007bff; /* Consistent active with other category buttons */
+.item-source-button-selection-levels .item-source-select-button.active {
+    background-color: #007bff;
     color: white;
+    border-color: #0056b3;
+    font-weight: 500;
+}
+#selectedItemSourcePathDisplay { /* 選択中パス表示用のinput[readonly] */
+    background-color: #e9ecef; /* readonlyなので少し背景色をつける */
+    cursor: default;
 }
 
-/* アイテムフォームの入手経路選択モーダル */
-.item-source-selection-levels .form-group {
-    margin-bottom: 0.8rem;
-    display: flex; /* ラベルとセレクトを横並びにする */
-    align-items: center;
+/* アイテムフォーム内 タグボタン式UI */
+.tag-button-selection-container {
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 250px; /* 必要に応じて調整 */
+    overflow-y: auto;
 }
-.item-source-selection-levels .form-group label {
-    font-weight: normal; /* 通常のフォントウェイト */
-    margin-right: 0.5rem;
-    margin-bottom: 0; /* flex align-items で調整するので不要 */
-    min-width: 70px; /* ラベル幅を揃える */
-    flex-shrink: 0; /* ラベルが縮まないように */
+.tag-category-group h5 { /* カテゴリ名ヘッダー */
+    font-size: 0.95em;
+    color: #333;
+    margin-top: 8px;
+    margin-bottom: 6px;
+    padding-bottom: 3px;
+    border-bottom: 1px dotted #ccc;
 }
-.item-source-selection-levels .form-control-short.item-source-level-select {
-    max-width: none; /* 親要素に合わせる */
-    flex-grow: 1; /* 利用可能なスペースを埋める */
-    width: auto; /* flex-grow で幅を調整 */
-    margin-right: 0; /* .form-control-short のデフォルトマージンをリセット */
+.tag-category-group h5:first-child {
+    margin-top: 0;
 }
-#currentSelectionPathDisplay {
+.tag-category-group > div { /* タグボタンを格納するdiv */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+/* .tag-filter.admin-tag-select は ui-helpers で定義されたスタイルを流用 */
+
+/* 入手経路選択モーダル（ボタン式UI用） */
+#selectItemSourceForButtonUIModal .item-source-button-selection-levels {
+    max-height: calc(60vh - 150px); /* モーダル内の高さ調整 */
+    overflow-y: auto;
+    padding-right: 10px; /* スクロールバーのスペース */
+}
+#selectItemSourceForButtonUIModal .item-source-select-button {
+    display: inline-block; /* 横並びにする */
+    width: auto; /* 内容に合わせる */
+    text-align: center;
+}
+#currentPathDisplayForButtonUI { /* モーダル内のパス表示 */
     background-color: #f8f9fa;
     padding: 8px;
     border-radius: 4px;
     border: 1px solid #e9ecef;
     min-height: 1.5em; 
-    margin-top: 5px; /* 上の要素との間隔 */
-    word-break: break-all; /* 長いパスの場合に折り返す */
+    margin-top: 5px;
+    word-break: break-all;
 }
