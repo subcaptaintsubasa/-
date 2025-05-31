@@ -54,9 +54,7 @@ export function initUIHelpers() {
 export function openModal(modalId) {
     const modal = adminModals[modalId] || document.getElementById(modalId);
     if (modal) {
-        modal.classList.add('active-modal'); // JSで表示状態を制御
-        // HTML側で display:none を直接操作するのではなく、クラスで制御する
-        // modal.style.display = 'flex'; // 古いスタイル操作を削除
+        modal.classList.add('active-modal');
         if (!adminModals[modalId]) adminModals[modalId] = modal;
     } else {
         console.warn(`Modal with ID "${modalId}" not found.`);
@@ -67,8 +65,7 @@ export function closeModal(modalId) {
     console.log(`[ui-helpers] closeModal called for: ${modalId}`);
     const modal = adminModals[modalId] || document.getElementById(modalId);
     if (modal) {
-        modal.classList.remove('active-modal'); // JSで表示状態を制御
-        // modal.style.display = 'none'; // 古いスタイル操作を削除
+        modal.classList.remove('active-modal');
     } else {
         console.warn(`Modal with ID "${modalId}" not found or not cached for closing.`);
     }
@@ -133,7 +130,7 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
         checkboxWrapper.classList.add('checkbox-item');
 
         let labelText = item.name;
-        if (item.parentName) { // カテゴリ付きタグの場合
+        if (item.parentName) { 
             labelText += ` (親: ${item.parentName})`;
         }
 
@@ -180,7 +177,6 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
         button.setAttribute('tabindex', '0');   
         button.addEventListener('click', () => {
             button.classList.toggle('active');
-            // 必要であれば、変更を通知するイベントを発火
             containerElement.dispatchEvent(new CustomEvent('tagSelectionChanged', { bubbles: true }));
         });
         button.addEventListener('keydown', (e) => { 
@@ -201,9 +197,24 @@ export function getSelectedCheckboxValues(containerElement, checkboxName) {
 }
 
 export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId') {
-    if (!containerElement) return [];
-    return Array.from(containerElement.querySelectorAll(`.tag-filter.admin-tag-select.active[data-${datasetKey}]`))
-        .map(btn => btn.dataset[datasetKey]);
+    if (!containerElement) {
+        console.warn("[ui-helpers] getSelectedTagButtonValues: containerElement is null");
+        return [];
+    }
+    console.log(`[ui-helpers] getSelectedTagButtonValues called. Container:`, containerElement, `datasetKey: ${datasetKey}`);
+
+    const selector = `.tag-filter.admin-tag-select.active[data-${datasetKey}]`;
+    console.log(`[ui-helpers] Querying with selector: ${selector}`);
+
+    const activeButtons = containerElement.querySelectorAll(selector);
+    console.log(`[ui-helpers] Found active buttons (NodeList):`, activeButtons); 
+
+    const values = Array.from(activeButtons).map(btn => {
+        console.log(`[ui-helpers] Processing button:`, btn, `Value for data-${datasetKey}:`, btn.dataset[datasetKey]); 
+        return btn.dataset[datasetKey];
+    });
+    console.log(`[ui-helpers] Extracted values:`, values); 
+    return values;
 }
 
 function simpleUID(prefix = 'uid-') {
