@@ -735,7 +735,10 @@ async function saveItem(event) {
 
     const name = DOMI.itemNameInput.value.trim();
     const priceStr = DOMI.itemPriceInput.value.trim();
+    console.log("[Item Manager] itemTagsButtonContainer before getSelectedTagButtonValues:", DOMI.itemTagsButtonContainer); // ★★★ デバッグログ追加
     const selectedItemTagIds = getSelectedTagButtonValues(DOMI.itemTagsButtonContainer, 'tagId');
+    console.log("[Item Manager] Selected Tag IDs in saveItem:", selectedItemTagIds); // ★★★ デバッグログ追加
+
     const editingDocId = DOMI.itemIdToEditInput.value;
     const rarity = parseInt(DOMI.itemRarityValueInput.value, 10) || 0;
     let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; 
@@ -762,7 +765,7 @@ async function saveItem(event) {
             name: name,
             image: imageUrlToSave, 
             rarity: rarity, 
-            tags: selectedItemTagIds,
+            tags: selectedItemTagIds, // ここでセット
             effects: currentItemEffects, 
             sources: currentItemSources, 
         };
@@ -775,7 +778,6 @@ async function saveItem(event) {
         
         if (editingDocId) {
             itemDataPayload.updatedAt = serverTimestamp();
-            // 古いフィールドを明示的に削除
             itemDataPayload.effectsInputMode = deleteField();
             itemDataPayload.manualEffectsString = deleteField();
             itemDataPayload.structured_effects = deleteField();
