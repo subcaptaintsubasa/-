@@ -2,7 +2,7 @@
 // Contains helper functions for common UI tasks in the admin panel,
 // such as modal handling, populating selects, rendering list items, etc.
 
-const adminModals = {}; // Cache for admin modal elements: { modalId: element }
+const adminModals = {}; 
 
 export function initUIHelpers() {
     console.log("[ui-helpers] initUIHelpers called");
@@ -14,7 +14,6 @@ export function initUIHelpers() {
             if (!adminModals[modalElementForListener.id]) {
                 adminModals[modalElementForListener.id] = modalElementForListener;
             }
-            // Ensure only one listener
             const newBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(newBtn, btn);
             newBtn.addEventListener('click', () => {
@@ -38,7 +37,7 @@ export function initUIHelpers() {
             while (modal.firstChild) {
                 newModal.appendChild(modal.firstChild);
             }
-            if (modal.parentNode) { // Ensure parentNode exists before replacing
+            if (modal.parentNode) { 
                 modal.parentNode.replaceChild(newModal, modal);
             }
             adminModals[modal.id] = newModal; 
@@ -55,10 +54,9 @@ export function initUIHelpers() {
 export function openModal(modalId) {
     const modal = adminModals[modalId] || document.getElementById(modalId);
     if (modal) {
-        modal.classList.add('active-modal');
-        if (modal.style.display === 'none') {
-            modal.style.display = '';
-        }
+        modal.classList.add('active-modal'); // JSで表示状態を制御
+        // HTML側で display:none を直接操作するのではなく、クラスで制御する
+        // modal.style.display = 'flex'; // 古いスタイル操作を削除
         if (!adminModals[modalId]) adminModals[modalId] = modal;
     } else {
         console.warn(`Modal with ID "${modalId}" not found.`);
@@ -69,27 +67,16 @@ export function closeModal(modalId) {
     console.log(`[ui-helpers] closeModal called for: ${modalId}`);
     const modal = adminModals[modalId] || document.getElementById(modalId);
     if (modal) {
-        modal.classList.remove('active-modal');
-        
-        // // ★★★ adminEditModalClosed イベント発行を一時的にコメントアウトまたは削除 ★★★
-        // if (modalId !== 'listEnlargementModal' && 
-        //     (modalId.toLowerCase().includes('edit') || modalId.toLowerCase().includes('management'))) {
-        //     const event = new CustomEvent('adminEditModalClosed', { 
-        //         detail: { modalId: modalId },
-        //         bubbles: true,
-        //         cancelable: true
-        //     });
-        //     document.dispatchEvent(event);
-        //     console.log(`[ui-helpers] Dispatched adminEditModalClosed for ${modalId}`);
-        // }
+        modal.classList.remove('active-modal'); // JSで表示状態を制御
+        // modal.style.display = 'none'; // 古いスタイル操作を削除
     } else {
         console.warn(`Modal with ID "${modalId}" not found or not cached for closing.`);
     }
 }
 
 export function populateSelect(selectElement, optionsArray, defaultText = '選択してください...', selectedValue = '') {
-    // ... (変更なし) ...
     if (!selectElement) {
+        console.warn("populateSelect: selectElement is null");
         return;
     }
     const currentValue = selectElement.value || selectedValue;
@@ -128,8 +115,8 @@ export function populateSelect(selectElement, optionsArray, defaultText = '選�
 }
 
 export function populateCheckboxGroup(containerElement, items, selectedIds = [], checkboxName, idPrefix = 'cb-') {
-    // ... (変更なし) ...
     if (!containerElement) {
+        console.warn("populateCheckboxGroup: containerElement is null");
         return;
     }
     containerElement.innerHTML = '';
@@ -146,7 +133,7 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
         checkboxWrapper.classList.add('checkbox-item');
 
         let labelText = item.name;
-        if (item.parentName) {
+        if (item.parentName) { // カテゴリ付きタグの場合
             labelText += ` (親: ${item.parentName})`;
         }
 
@@ -170,8 +157,8 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
 }
 
 export function populateTagButtonSelector(containerElement, tagsData, activeTagIds = [], datasetKey = 'tagId') {
-    // ... (変更なし) ...
     if (!containerElement) {
+        console.warn("populateTagButtonSelector: containerElement is null");
         return;
     }
     containerElement.innerHTML = '';
@@ -193,11 +180,14 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
         button.setAttribute('tabindex', '0');   
         button.addEventListener('click', () => {
             button.classList.toggle('active');
+            // 必要であれば、変更を通知するイベントを発火
+            containerElement.dispatchEvent(new CustomEvent('tagSelectionChanged', { bubbles: true }));
         });
         button.addEventListener('keydown', (e) => { 
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 button.classList.toggle('active');
+                containerElement.dispatchEvent(new CustomEvent('tagSelectionChanged', { bubbles: true }));
             }
         });
         containerElement.appendChild(button);
@@ -205,14 +195,12 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
 }
 
 export function getSelectedCheckboxValues(containerElement, checkboxName) {
-    // ... (変更なし) ...
     if (!containerElement) return [];
     return Array.from(containerElement.querySelectorAll(`input[type="checkbox"][name="${checkboxName}"]:checked`))
         .map(cb => cb.value);
 }
 
 export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId') {
-    // ... (変更なし) ...
     if (!containerElement) return [];
     return Array.from(containerElement.querySelectorAll(`.tag-filter.admin-tag-select.active[data-${datasetKey}]`))
         .map(btn => btn.dataset[datasetKey]);
