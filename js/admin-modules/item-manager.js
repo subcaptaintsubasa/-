@@ -72,7 +72,6 @@ let itemSourceEditingIndex = -1;
 let currentEffectsInputMode = 'structured';
 let currentSourceInputMode = 'tree';
 
-
 const MAX_RARITY = 5;
 
 export function initItemManager(dependencies) {
@@ -262,7 +261,7 @@ function switchToAddSourceMode() {
     if (DOMI.selectedItemSourcePathDisplay) DOMI.selectedItemSourcePathDisplay.value = '未選択';
     if (DOMI.selectedItemSourceNodeId_temp) DOMI.selectedItemSourceNodeId_temp.value = '';
     if (DOMI.manualSourceStringTextarea) DOMI.manualSourceStringTextarea.value = '';
-    if (window.adminModules && window.adminModules.itemSourceManager && 
+    if (currentSourceInputMode === 'tree' && window.adminModules && window.adminModules.itemSourceManager && 
         typeof window.adminModules.itemSourceManager.populateItemSourceLevelButtons === 'function') {
         window.adminModules.itemSourceManager.populateItemSourceLevelButtons(null, 1, DOMI.itemSourceButtonSelectionArea, DOMI.selectedItemSourcePathDisplay, DOMI.selectedItemSourceNodeId_temp);
     }
@@ -307,7 +306,7 @@ function clearItemFormInternal() {
 
 export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
     if(!DOMI.itemTagsButtonContainer) {
-        console.error("itemTagsButtonContainer not found in DOMI");
+        console.error("_populateTagButtonsForItemFormInternal: itemTagsButtonContainer not found in DOMI");
         return;
     }
     DOMI.itemTagsButtonContainer.innerHTML = ''; 
@@ -641,15 +640,14 @@ function renderCurrentItemSourcesListUI() {
                     
                     if (window.adminModules && window.adminModules.itemSourceManager && 
                         typeof window.adminModules.itemSourceManager.populateItemSourceLevelButtons === 'function') {
-                        // 編集対象のパスをボタンUIに復元表示する
                         window.adminModules.itemSourceManager.populateItemSourceLevelButtons(
-                            null, // parentId (最初はルートから)
-                            1,    // level
+                            null, 
+                            1,    
                             DOMI.itemSourceButtonSelectionArea, 
                             DOMI.selectedItemSourcePathDisplay, 
                             DOMI.selectedItemSourceNodeId_temp,
-                            [],   // currentSelectedPath (空から開始)
-                            sourceToEdit.nodeId // 選択状態を復元する対象のnodeId
+                            [],   
+                            sourceToEdit.nodeId 
                         );
                     }
                 }
@@ -777,6 +775,7 @@ async function saveItem(event) {
         
         if (editingDocId) {
             itemDataPayload.updatedAt = serverTimestamp();
+            // 古いフィールドを明示的に削除
             itemDataPayload.effectsInputMode = deleteField();
             itemDataPayload.manualEffectsString = deleteField();
             itemDataPayload.structured_effects = deleteField();
