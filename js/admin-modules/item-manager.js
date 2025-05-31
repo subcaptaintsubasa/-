@@ -364,7 +364,8 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.className = 'tag-filter admin-tag-select'; 
             button.textContent = tag.name;
             button.dataset.tagId = tag.id; 
-            console.log(`[Item Manager _populateTags] Creating tag button: Name: ${tag.name}, ID: ${tag.id}, Classes: ${button.className}, Initial Active: ${selectedTagIds.includes(tag.id)}`); 
+            // console.log(`[Item Manager _populateTags] Creating tag button: Name: ${tag.name}, ID: ${tag.id}, Classes: '${button.className}', Initial Active: ${selectedTagIds.includes(tag.id)}`); 
+            // console.log(`[Item Manager _populateTags] Button outerHTML for ${tag.name}: ${button.outerHTML}`); 
             if (selectedTagIds.includes(tag.id)) {
                 button.classList.add('active');
             }
@@ -372,13 +373,13 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.setAttribute('tabindex', '0');
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
-                console.log(`[Item Manager _populateTags] Tag button clicked: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`); 
+                // console.log(`[Item Manager _populateTags] Tag button clicked: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`); 
             });
             button.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     button.classList.toggle('active');
-                    console.log(`[Item Manager _populateTags] Tag button (key) toggled: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
+                    // console.log(`[Item Manager _populateTags] Tag button (key) toggled: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
                 }
             });
             tagButtonsDiv.appendChild(button);
@@ -400,19 +401,20 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.className = 'tag-filter admin-tag-select';
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
-            console.log(`[Item Manager _populateTags] Creating unclassified tag button: Name: ${tag.name}, ID: ${tag.id}, Classes: ${button.className}, Initial Active: ${selectedTagIds.includes(tag.id)}`);
+            // console.log(`[Item Manager _populateTags] Creating unclassified tag button: Name: ${tag.name}, ID: ${tag.id}, Classes: '${button.className}', Initial Active: ${selectedTagIds.includes(tag.id)}`);
+            // console.log(`[Item Manager _populateTags] Button outerHTML for ${tag.name}: ${button.outerHTML}`);
             if (selectedTagIds.includes(tag.id)) button.classList.add('active');
             button.setAttribute('role', 'button');
             button.setAttribute('tabindex', '0');
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
-                console.log(`[Item Manager _populateTags] Unclassified Tag button clicked: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
+                // console.log(`[Item Manager _populateTags] Unclassified Tag button clicked: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
             });
             button.addEventListener('keydown', (e) => { 
                 if (e.key === 'Enter' || e.key === ' ') { 
                     e.preventDefault(); 
                     button.classList.toggle('active'); 
-                    console.log(`[Item Manager _populateTags] Unclassified Tag button (key) toggled: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
+                    // console.log(`[Item Manager _populateTags] Unclassified Tag button (key) toggled: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
                 }
             });
             tagButtonsDiv.appendChild(button);
