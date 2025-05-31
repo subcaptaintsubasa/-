@@ -2,13 +2,13 @@
 // Handles rendering the item list and pagination.
 
 import { openItemDetailModal } from './ui-main.js';
-import { getEffectUnitsCache as getEffectUnitsCacheFromLoader } from './data-loader.js';
+import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js';
 
 
 let getAllItemsFunc = () => [];
 let getEffectTypesCacheFunc = () => [];
 let getAllTagsFunc = () => [];
-let getEffectUnitsCacheFunc = () => [];
+let getEffectUnitsCacheFunc = () => []; // For this module, get it from loader
 
 let isSelectingForSimulatorState = false;
 let temporarilySelectedItemState = null;
@@ -23,7 +23,7 @@ export function initSearchRender(dependencies) {
     getAllItemsFunc = dependencies.getAllItems;
     getEffectTypesCacheFunc = dependencies.getEffectTypesCache;
     getAllTagsFunc = dependencies.getAllTags;
-    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader;
+    getEffectUnitsCacheFunc = getEffectUnitsCacheFromLoader; // Use the one from data-loader
 
     DOMR.itemList = document.getElementById('itemList');
     DOMR.itemCountDisplay = document.getElementById('itemCount');
@@ -45,6 +45,7 @@ export function initSearchRender(dependencies) {
                     allCards.forEach(c => c.classList.remove('selected-for-simulator'));
                     card.classList.add('selected-for-simulator');
                 } else {
+                    // Pass all necessary caches to openItemDetailModal
                     openItemDetailModal(item, getEffectTypesCacheFunc(), getAllTagsFunc(), getEffectUnitsCacheFunc());
                 }
             }
@@ -81,7 +82,7 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
     }
 
     const effectTypesCache = getEffectTypesCacheFunc();
-    const effectUnitsCache = getEffectUnitsCacheFunc();
+    const effectUnitsCache = getEffectUnitsCacheFunc(); // Use the module-scoped one
 
     itemsToRenderOnPage.forEach(item => {
         const itemCardCompact = document.createElement('div');
@@ -104,7 +105,7 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
             imageElement.alt = item.name || 'アイテム画像';
             imageElement.onerror = function() {
                 this.onerror = null;
-                this.src = './images/placeholder_item.png';
+                this.src = './images/placeholder_item.png'; // Fallback image
                 this.alt = '画像読込エラー';
             };
         } else {
@@ -125,30 +126,53 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
 
         const effectsSummary = document.createElement('div');
         effectsSummary.classList.add('item-effects-summary-compact');
-        if (item.structured_effects && item.structured_effects.length > 0) {
-            effectsSummary.textContent = item.structured_effects.map(eff => {
-                const effectType = effectTypesCache.find(et => et.id === eff.type);
-                const typeName = effectType ? effectType.name : `不明`;
-                
-                let effectTextPart;
-                const unitName = eff.unit;
-                if (unitName && unitName !== 'none' && effectUnitsCache) {
-                    const unitData = effectUnitsCache.find(u => u.name === unitName);
-                    const position = unitData ? unitData.position : 'suffix';
-                    if (position === 'prefix') {
-                        effectTextPart = `${unitName}${eff.value}`;
-                    } else {
-                        effectTextPart = `${eff.value}${unitName}`;
+        
+        let summaryText = '効果なし';
+        if (item.effects && item.effects.length > 0) {
+            summaryText = item.effects.slice(0, 2).map(eff => { // Display first 2 effects
+                if (eff.type === "manual") {
+                    return eff.manualString ? eff.manualString.split('\n')[0] : '(手動効果)'; // Show first line
+                } else if (eff.type === "structured") {
+                    const effectType = effectTypesCache.find(et => et.id === eff.effectTypeId);
+                    const typeName = effectType ? effectType.name : `不明`;
+                    let effectTextPart = eff.value !== undefined ? eff.value.toString() : '';
+                    if (eff.unit && eff.unit !== 'none' && effectUnitsCache) {
+                        const unitData = effectUnitsCache.find(u => u.name === eff.unit);
+                        const position = unitData ? unitData.position : 'suffix';
+                        if (position === 'prefix') {
+                            effectTextPart = `${eff.unit}${eff.value}`;
+                        } else {
+                            effectTextPart = `${eff.value}${eff.unit}`;
+                        }
                     }
-                } else {
-                    effectTextPart = `${eff.value}`;
+                    return `${typeName} ${effectTextPart}`;
                 }
-                // ★★★ 「:」を削除し、半角スペースに変更 ★★★
+                return '';
+            }).filter(s => s).join('; ');
+            if (item.effects.length > 2) {
+                summaryText += '...';
+            }
+        } else if (item.effectsInputMode === 'manual' && typeof item.manualEffectsString === 'string') { // Fallback to old format
+            summaryText = item.manualEffectsString.split('\n')[0]; // Show first line
+            if (item.manualEffectsString.includes('\n')) summaryText += '...';
+        } else if (item.structured_effects && item.structured_effects.length > 0) { // Fallback to older format
+             summaryText = item.structured_effects.slice(0, 2).map(eff => {
+                const effectType = effectTypesCache.find(et => et.id === eff.type); // Old format used 'type'
+                const typeName = effectType ? effectType.name : `不明`;
+                let effectTextPart = eff.value !== undefined ? eff.value.toString() : '';
+                if (eff.unit && eff.unit !== 'none' && effectUnitsCache) {
+                    const unitData = effectUnitsCache.find(u => u.name === eff.unit);
+                    const position = unitData ? unitData.position : 'suffix';
+                    if (position === 'prefix') effectTextPart = `${eff.unit}${eff.value}`;
+                    else effectTextPart = `${eff.value}${eff.unit}`;
+                }
                 return `${typeName} ${effectTextPart}`;
-            }).slice(0, 2).join('; ') + (item.structured_effects.length > 2 ? '...' : '');
-        } else {
-            effectsSummary.textContent = '効果なし';
+            }).filter(s => s).join('; ');
+            if (item.structured_effects.length > 2) summaryText += '...';
         }
+        effectsSummary.textContent = summaryText || '効果なし';
+
+
         infoCompact.appendChild(effectsSummary);
         itemCardCompact.appendChild(infoCompact);
 
@@ -159,7 +183,6 @@ export function renderItems(itemsToRenderOnPage, totalFilteredCount, currentPage
 }
 
 function renderPaginationControls(totalFilteredCount, currentPage, itemsPerPage) {
-    // ... (変更なし) ...
     if (!DOMR.paginationControls) return;
     DOMR.paginationControls.innerHTML = '';
     const totalPages = Math.ceil(totalFilteredCount / itemsPerPage);
@@ -187,7 +210,10 @@ function renderPaginationControls(totalFilteredCount, currentPage, itemsPerPage)
     DOMR.paginationControls.appendChild(nextButton);
 
     DOMR.paginationControls.querySelectorAll('.pagination-button').forEach(button => {
-        button.addEventListener('click', (e) => {
+        // Ensure only one listener is attached or clone buttons if re-rendering often
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        newButton.addEventListener('click', (e) => {
             if (e.currentTarget.disabled) return;
             const newPage = parseInt(e.currentTarget.dataset.page);
             const event = new CustomEvent('pageChange', { detail: { newPage } });
