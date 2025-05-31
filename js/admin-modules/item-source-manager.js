@@ -25,10 +25,10 @@ const DOMISM = {
 
 // アイテムフォームの入手経路選択モーダル(ボタン式UI用)のDOM
 const DOM_ITEM_FORM_SOURCE_BUTTON_UI = {
-    selectItemSourceModal: null, // HTMLでは selectItemSourceForButtonUIModal
-    itemSourceButtonSelectionUiContainer: null, // HTMLのID itemSourceButtonSelectionUiContainer
-    currentPathDisplay: null, // HTMLのID currentPathDisplayForButtonUI
-    confirmSelectionButton: null, // HTMLのID confirmItemSourceSelectionForButtonUIButton
+    selectItemSourceModal: null, 
+    itemSourceButtonSelectionUiContainer: null, 
+    currentPathDisplay: null, 
+    confirmSelectionButton: null, 
 };
 
 
@@ -36,7 +36,7 @@ let dbInstance = null;
 let getItemSourcesFuncCache = () => []; 
 let getItemsFuncCache = () => []; 
 let refreshAllDataCallback = async () => {};
-let itemSourceSelectionCallbackForItemManager = null; 
+let itemSourceSelectionCallbackForItemManager = null; // item-managerへのコールバックを保持
 
 const itemSourceExpansionState = new Map();
 let currentItemSourceSearchTerm = "";
@@ -67,12 +67,10 @@ export function initItemSourceManager(dependencies) {
     DOMISM.saveItemSourceEditButton = document.getElementById('saveItemSourceEditButton');
     DOMISM.deleteItemSourceFromEditModalButton = document.getElementById('deleteItemSourceFromEditModalButton');
 
-    // 新しいボタン式UI用モーダルのDOM
     DOM_ITEM_FORM_SOURCE_BUTTON_UI.selectItemSourceModal = document.getElementById('selectItemSourceForButtonUIModal');
     DOM_ITEM_FORM_SOURCE_BUTTON_UI.itemSourceButtonSelectionUiContainer = document.getElementById('itemSourceButtonSelectionUiContainer');
     DOM_ITEM_FORM_SOURCE_BUTTON_UI.currentPathDisplay = document.getElementById('currentPathDisplayForButtonUI');
     DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton = document.getElementById('confirmItemSourceSelectionForButtonUIButton');
-
 
     if (DOMISM.addItemSourceButton) DOMISM.addItemSourceButton.addEventListener('click', addItemSourceNode);
     if (DOMISM.saveItemSourceEditButton) DOMISM.saveItemSourceEditButton.addEventListener('click', saveItemSourceNodeEdit);
@@ -95,7 +93,6 @@ export function initItemSourceManager(dependencies) {
     if (DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton) {
         DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton.addEventListener('click', confirmSourceSelectionForButtonUI);
     }
-    // itemSourceButtonSelectionUiContainer内のボタンクリックは動的に設定
     
     if(DOMISM.newItemSourceParentSelector) {
         DOMISM.newItemSourceParentSelector.addEventListener('click', (event) => { 
@@ -119,16 +116,13 @@ export function initItemSourceManager(dependencies) {
 
     window.adminModules = window.adminModules || {};
     window.adminModules.itemSourceManager = {
-        // openSelectItemSourceModalForItemForm, // 古いモーダル用は削除
-        populateItemSourceLevelButtons, // item-managerから呼ばれる新しいUI用
-        // displaySelectedItemSourcePathOnLoad // item-manager側で処理
+        populateItemSourceLevelButtons 
     };
 
     console.log("[ItemSource Manager] Initialized.");
 }
 
-// --- (toggleDisplayStringInputForNode, populateParentSourceSelectorUI, selectParentSourceButtonUI, buildItemSourceTreeDOM, _renderItemSourcesForManagementInternal, handleItemSourceTreeClick, addItemSourceNode, openEditItemSourceModalById, saveItemSourceNodeEdit, updateDescendantDepthsRecursive, getMaxDepthOfSubtree, deleteItemSourceNode は前回の修正から大きな変更なし) ---
-// toggleDisplayStringInputForNode は前回修正済み
+// ... (toggleDisplayStringInputForNode, populateParentSourceSelectorUI, selectParentSourceButtonUI, buildItemSourceTreeDOM, _renderItemSourcesForManagementInternal, handleItemSourceTreeClick, addItemSourceNode, openEditItemSourceModalById, saveItemSourceNodeEdit, updateDescendantDepthsRecursive, getMaxDepthOfSubtree, deleteItemSourceNode は前回提示のままでOK) ...
 function toggleDisplayStringInputForNode(displayStringGroupElement, parentNodeData, editingNodeId, isNewNode) {
     if (!displayStringGroupElement) return;
     const allSources = getItemSourcesFuncCache();
@@ -578,148 +572,85 @@ async function deleteItemSourceNode(docId, nodeName) {
     }
 }
 
-// 新しいボタン式UIのための関数群
-function openSelectItemSourceForButtonUIModal(callback) { 
-    itemSourceSelectionCallbackForItemManager = callback; 
-    if (!DOM_ITEM_FORM_SOURCE_BUTTON_UI.selectItemSourceModal) {
-        console.error("Select item source (button UI) modal element not found!");
-        return;
-    }
-    if(DOM_ITEM_FORM_SOURCE_BUTTON_UI.currentPathDisplay) DOM_ITEM_FORM_SOURCE_BUTTON_UI.currentPathDisplay.textContent = '未選択';
-    if(DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton) DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton.disabled = true;
-    
-    populateItemSourceLevelButtons(null, 1, DOM_ITEM_FORM_SOURCE_BUTTON_UI.itemSourceButtonSelectionUiContainer, DOM_ITEM_FORM_SOURCE_BUTTON_UI.currentPathDisplay, document.getElementById('selectedItemSourceNodeId_temp')); // 最後の引数はitem-managerのtemp hidden input
-    openModal('selectItemSourceForButtonUIModal');
-}
-
-// item-manager からも呼ばれる可能性があるため export
-export function populateItemSourceLevelButtons(parentId, level, containerElement, pathDisplayElement, tempNodeIdInputElement) {
-    if (!containerElement || level > MAX_SOURCE_DEPTH + 1) { // MAX_SOURCE_DEPTH は 0-indexed なので +1
-        if (level > MAX_SOURCE_DEPTH + 1 && DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton) {
-            // 最大深度に達したら、それ以上の子は表示せず、決定ボタンを活性化
-            DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton.disabled = false;
+// --- アイテムフォーム用 新しいボタン式UIのための関数群 ---
+// この関数は item-manager.js からコールバックと共に呼び出される
+export function populateItemSourceLevelButtons(parentId, level, containerElement, pathDisplayElement, tempNodeIdInputElement, currentSelectedPath = []) {
+    if (!containerElement || level > MAX_SOURCE_DEPTH + 1) {
+        if (pathDisplayElement && tempNodeIdInputElement && tempNodeIdInputElement.value) {
+            // 最大深度に達したか、これ以上子がない場合は決定可能にする
+            const confirmButton = document.getElementById('addTreeSourceToListButton'); // item-manager側のボタン
+            if(confirmButton) confirmButton.disabled = false;
         }
         return;
     }
 
     // 現在のレベルより深い階層のコンテナをクリア
-    let nextLevelContainer = containerElement.querySelector(`.source-level-container[data-level="${level}"]`);
-    if (nextLevelContainer) {
-        // それ以降のコンテナも削除
-        let sibling = nextLevelContainer.nextElementSibling;
+    let levelContainer = containerElement.querySelector(`.source-level-container[data-level="${level}"]`);
+    if (levelContainer) {
+        let sibling = levelContainer.nextElementSibling;
         while(sibling) {
             let toRemove = sibling;
             sibling = sibling.nextElementSibling;
             toRemove.remove();
         }
-        nextLevelContainer.innerHTML = ''; // 現在のレベルのコンテナをクリア
+        levelContainer.innerHTML = ''; 
     } else {
-        nextLevelContainer = document.createElement('div');
-        nextLevelContainer.className = 'source-level-container';
-        nextLevelContainer.dataset.level = level;
-        nextLevelContainer.style.marginBottom = '10px';
-        if (level > 1) nextLevelContainer.style.paddingLeft = `${(level - 1) * 20}px`;
-        containerElement.appendChild(nextLevelContainer);
+        levelContainer = document.createElement('div');
+        levelContainer.className = 'source-level-container';
+        levelContainer.dataset.level = level;
+        levelContainer.style.marginBottom = '10px';
+        if (level > 1) levelContainer.style.paddingLeft = `${(level - 1) * 15}px`; // インデント
+        containerElement.appendChild(levelContainer);
     }
-
 
     const allSources = getItemSourcesFuncCache();
     const children = allSources
         .filter(s => (s.parentId || "") === (parentId || "") && (s.depth !== undefined && s.depth === level - 1))
         .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
+    const confirmButton = document.getElementById('addTreeSourceToListButton'); // item-manager側のボタン
     if (children.length === 0) {
-        if (level > 1 && DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton) { // ルート直下で子がない場合は決定不可としない
-            DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton.disabled = false; // 子がなければ現在のノードで決定可能
+        if (level > 1 && parentId && confirmButton) { 
+            confirmButton.disabled = false; 
+        } else if (level === 1 && confirmButton){ // ルートで子がない場合は何も選択できない
+             confirmButton.disabled = true;
         }
-        if(level === 1 && nextLevelContainer) nextLevelContainer.innerHTML = '<p style="font-style:italic; color:#777;">この階層に経路がありません。</p>';
+        if(level === 1 && levelContainer && children.length === 0) levelContainer.innerHTML = '<p style="font-style:italic; color:#777;">この階層に経路がありません。</p>';
         return;
     }
-    if(DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton) DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton.disabled = true; // 子がある場合はまだ決定不可
+    if(confirmButton) confirmButton.disabled = true; 
 
     children.forEach(child => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'category-select-button item-source-select-button'; // category-select-button スタイルを流用
+        button.className = 'category-select-button item-source-select-button'; 
         button.textContent = child.name;
         if (child.displayString) {
             button.title = `表示名: ${child.displayString}`;
         }
         button.dataset.nodeId = child.id;
-        button.dataset.nodeName = child.name; // パス表示用
-        button.dataset.displayString = child.displayString || "";
+        button.dataset.nodeName = child.name;
 
         button.addEventListener('click', () => {
-            // 現在のレベルの他のボタンのアクティブ状態を解除
-            nextLevelContainer.querySelectorAll('.item-source-select-button.active').forEach(btn => btn.classList.remove('active'));
+            levelContainer.querySelectorAll('.item-source-select-button.active').forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
             if (tempNodeIdInputElement) tempNodeIdInputElement.value = child.id;
-            updatePathDisplayForButtonUI(containerElement, pathDisplayElement);
-            populateItemSourceLevelButtons(child.id, level + 1, containerElement, pathDisplayElement, tempNodeIdInputElement);
+            
+            const newPath = [...currentSelectedPath.slice(0, level - 1), child.name];
+            if (pathDisplayElement) pathDisplayElement.value = newPath.join(' > ');
+            
+            populateItemSourceLevelButtons(child.id, level + 1, containerElement, pathDisplayElement, tempNodeIdInputElement, newPath);
         });
-        nextLevelContainer.appendChild(button);
+        levelContainer.appendChild(button);
     });
 }
 
-function updatePathDisplayForButtonUI(selectionAreaElement, pathDisplayElement) {
-    if (!selectionAreaElement || !pathDisplayElement) return;
-    const pathParts = [];
-    const activeButtons = selectionAreaElement.querySelectorAll('.item-source-select-button.active');
-    activeButtons.forEach(btn => {
-        pathParts.push(btn.dataset.nodeName);
-    });
-    pathDisplayElement.value = pathParts.length > 0 ? pathParts.join(' > ') : '未選択';
-}
-
-function confirmSourceSelectionForButtonUI() {
-    const tempNodeIdInput = document.getElementById('selectedItemSourceNodeId_temp'); // item-manager側のDOM
-    const selectedNodeId = tempNodeIdInput ? tempNodeIdInput.value : null;
-    
-    if (selectedNodeId) {
-        const allSources = getItemSourcesFuncCache();
-        const selectedNodeData = allSources.find(s => s.id === selectedNodeId);
-        
-        if (selectedNodeData) {
-            let displayStringForCallback = "";
-            if (selectedNodeData.displayString && selectedNodeData.displayString.trim() !== "") {
-                displayStringForCallback = selectedNodeData.displayString;
-            } else { // displayStringがなければパスを構築
-                const pathParts = [];
-                let currentIdForPath = selectedNodeId;
-                let sanity = 0;
-                while(currentIdForPath && sanity < 10) {
-                    const node = allSources.find(s => s.id === currentIdForPath);
-                    if (node) {
-                        pathParts.unshift(node.name);
-                        currentIdForPath = node.parentId;
-                    } else { break; }
-                    sanity++;
-                }
-                displayStringForCallback = pathParts.join(' > ');
-            }
-
-            if (itemSourceSelectionCallbackForItemManager) {
-                itemSourceSelectionCallbackForItemManager(selectedNodeId, displayStringForCallback);
-            }
-            closeModal('selectItemSourceForButtonUIModal');
-        } else {
-            alert("選択された経路データが見つかりませんでした。");
-        }
-    } else {
-        alert("入手経路が選択されていません。");
-    }
-}
-
-// displaySelectedItemSourcePathOnLoad は item-manager.js 側で itemSourceDisplay を更新する
-// (この関数は admin-main.js から呼ばれる想定だったが、item-managerが直接itemSourceDisplayを操作する形に変更)
-// window.adminModules 経由の参照も不要になる
+// 古いモーダル用の関数は削除またはコメントアウト
 /*
-async function displaySelectedItemSourcePathOnLoad(nodeId) {
-    const itemSourceDisplayInput = document.getElementById('itemSourceDisplay'); 
-    const selectedNodeIdInput = document.getElementById('selectedItemSourceNodeId_temp'); 
-
-    if (!itemSourceDisplayInput || !selectedNodeIdInput) return;
-    // ... (ロジックは item-manager の loadItemForEdit に集約またはヘルパーとして item-manager から呼ばれる) ...
-}
+function openSelectItemSourceModalForItemForm(callback) { ... }
+function populateSourceLevelSelectForItemForm(level, parentId) { ... }
+function handleSourceLevelChangeForItemForm(event) { ... }
+function updateSelectionPathDisplayForItemForm() { ... }
+function confirmSourceSelectionForItemForm() { ... }
 */
