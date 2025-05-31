@@ -22,12 +22,14 @@ import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as rende
 import { initEffectSuperCategoryManager, _renderEffectSuperCategoriesForManagementInternal as renderEffectSuperCategoriesUI, openEditEffectSuperCategoryModalById as openEditEscModal } from './admin-modules/effect-super-category-manager.js';
 import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms, openEditEffectTypeModalById as openEditEtModal } from './admin-modules/effect-type-manager.js';
 import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings, openEditCharBaseOptionModalById as openEditCboModal } from './admin-modules/char-base-manager.js';
-import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagCheckboxesForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js';
+// item-manager からのインポート関数名が変更される可能性あり
+import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagButtonsForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js'; 
 import { 
     initItemSourceManager, 
     _renderItemSourcesForManagementInternal as renderItemSourcesUI, 
     buildItemSourceTreeDOM,
     openEditItemSourceModalById,
+    // openSelectItemSourceForButtonUIModalForItemForm // item-managerから呼ばれる想定
 } from './admin-modules/item-source-manager.js';
 
 
@@ -161,8 +163,8 @@ function clearAdminUIAndData() {
     const itemsTableBody = document.querySelector('#itemsTable tbody');
     if (itemsTableBody) itemsTableBody.innerHTML = '';
     document.querySelectorAll('#admin-content form').forEach(form => { if (typeof form.reset === 'function') form.reset(); });
-    document.querySelectorAll('.checkbox-group-container, .category-button-group.admin, .tag-button-container.admin, .item-source-parent-selector').forEach(c => c.innerHTML = '');
-    ['currentEffectsList', 'currentCharBaseOptionEffectsList', 'currentSourcesList'].forEach(id => { // currentSourcesList を追加
+    document.querySelectorAll('.checkbox-group-container, .category-button-group.admin, .tag-button-container.admin, .item-source-parent-selector, #itemSourceButtonSelectionArea, #itemTagsButtonContainer').forEach(c => c.innerHTML = ''); // UIクリア対象追加
+    ['currentEffectsList', 'currentCharBaseOptionEffectsList', 'currentSourcesList'].forEach(id => { 
         const el = document.getElementById(id); if (el) el.innerHTML = '<p>追加されていません。</p>'; 
     });
     ['itemImagePreview'].forEach(id => { const el = document.getElementById(id); if (el) { el.src = '#'; el.style.display = 'none'; } });
@@ -209,7 +211,7 @@ async function loadAndInitializeAdminModules() {
         initEffectSuperCategoryManager(commonDependencies);
         initEffectTypeManager(commonDependencies);
         initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
-        initItemSourceManager(commonDependencies);
+        initItemSourceManager(commonDependencies); // item-source-manager を item-manager より先に初期化
         initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
         renderAllAdminUISections();
@@ -240,7 +242,7 @@ function renderAllAdminUISections() {
     if (typeof populateTagFormCategories === 'function') populateTagFormCategories(document.getElementById('newTagCategoriesCheckboxes'));
     if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
     if (typeof populateCharBaseEffectTypeSelectInModal === 'function') populateCharBaseEffectTypeSelectInModal();
-    if (typeof populateItemFormTags === 'function') populateItemFormTags();
+    if (typeof populateItemFormTags === 'function') populateItemFormTags(); // 関数名変更に対応
     console.log("[admin-main] All admin UI sections rendering process complete.");
 }
 
