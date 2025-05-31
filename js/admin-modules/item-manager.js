@@ -1,6 +1,5 @@
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, serverTimestamp, deleteField, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-// populateCheckboxGroup は不要になったので削除し、getSelectedTagButtonValues を ui-helpers から使う (もしあれば)
 import { getSelectedTagButtonValues } from './ui-helpers.js'; 
 
 const DOMI = {
@@ -18,7 +17,6 @@ const DOMI = {
     itemRarityValueInput: null,
     
     toggleEffectsInputModeButton: null,
-    // effectsInputModeHiddenInput: null, // JS内で状態管理
     structuredEffectsArea: null,      
     structuredEffectsInputArea: null, 
     manualEffectsArea: null,
@@ -32,9 +30,8 @@ const DOMI = {
     currentEffectsList: null,         
     
     toggleSourceInputModeButton: null,
-    // sourceInputModeHiddenInput: null, // JS内で状態管理
     treeSourceArea: null,             
-    treeSourceInputArea: null, // 新UIでは直接このIDのエリアは使わないかも       
+    treeSourceInputArea: null,        
     manualSourceArea: null,
     manualSourceInputArea: null, 
     manualSourceStringTextarea: null, 
@@ -42,7 +39,6 @@ const DOMI = {
     itemSourceButtonSelectionArea: null, 
     selectedItemSourcePathDisplay: null, 
     selectedItemSourceNodeId_temp: null, 
-    // selectItemSourceButton: null, // 削除
     addTreeSourceToListButton: null,  
     currentSourcesList: null,         
 
@@ -104,7 +100,6 @@ export function initItemManager(dependencies) {
     DOMI.itemRarityValueInput = document.getElementById('itemRarityValue');
 
     DOMI.toggleEffectsInputModeButton = document.getElementById('toggleEffectsInputModeButton');
-    // DOMI.effectsInputModeHiddenInput = document.getElementById('effectsInputMode'); // 削除
     DOMI.structuredEffectsArea = document.getElementById('structuredEffectsArea'); 
     DOMI.structuredEffectsInputArea = document.getElementById('structuredEffectsInputArea');
     DOMI.manualEffectsArea = document.getElementById('manualEffectsArea'); 
@@ -118,7 +113,6 @@ export function initItemManager(dependencies) {
     DOMI.currentEffectsList = document.getElementById('currentEffectsList');
     
     DOMI.toggleSourceInputModeButton = document.getElementById('toggleSourceInputModeButton');
-    // DOMI.sourceInputModeHiddenInput = document.getElementById('sourceInputMode'); // 削除
     DOMI.treeSourceArea = document.getElementById('treeSourceArea'); 
     DOMI.treeSourceInputArea = document.getElementById('treeSourceInputArea'); 
     DOMI.manualSourceArea = document.getElementById('manualSourceArea'); 
@@ -128,7 +122,6 @@ export function initItemManager(dependencies) {
     DOMI.itemSourceButtonSelectionArea = document.getElementById('itemSourceButtonSelectionArea');
     DOMI.selectedItemSourcePathDisplay = document.getElementById('selectedItemSourcePathDisplay');
     DOMI.selectedItemSourceNodeId_temp = document.getElementById('selectedItemSourceNodeId_temp');
-    // DOMI.selectItemSourceButton = document.getElementById('selectItemSourceButton'); // 削除
     DOMI.addTreeSourceToListButton = document.getElementById('addTreeSourceToListButton');
     DOMI.currentSourcesList = document.getElementById('currentSourcesList');
 
@@ -152,7 +145,6 @@ export function initItemManager(dependencies) {
         });
     }
     
-    // DOMI.selectItemSourceButton は削除したので、関連リスナーも削除
     if (DOMI.addTreeSourceToListButton) DOMI.addTreeSourceToListButton.addEventListener('click', handleAddTreeSource);
     if (DOMI.addManualSourceToListButton) DOMI.addManualSourceToListButton.addEventListener('click', handleAddManualSource);
     if (DOMI.toggleSourceInputModeButton) {
@@ -207,7 +199,6 @@ function setSourceInputMode(mode) {
         if (DOMI.treeSourceInputArea) DOMI.treeSourceInputArea.style.display = 'block';
         if (DOMI.manualSourceInputArea) DOMI.manualSourceInputArea.style.display = 'none';
         if (DOMI.toggleSourceInputModeButton) DOMI.toggleSourceInputModeButton.textContent = '入力欄に切り替え';
-        // ツリーモードに戻した時に最初の階層を再描画
         if (window.adminModules && window.adminModules.itemSourceManager && 
             typeof window.adminModules.itemSourceManager.populateItemSourceLevelButtons === 'function') {
             window.adminModules.itemSourceManager.populateItemSourceLevelButtons(null, 1, DOMI.itemSourceButtonSelectionArea, DOMI.selectedItemSourcePathDisplay, DOMI.selectedItemSourceNodeId_temp);
@@ -315,7 +306,10 @@ function clearItemFormInternal() {
 }
 
 export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
-    if(!DOMI.itemTagsButtonContainer) return;
+    if(!DOMI.itemTagsButtonContainer) {
+        console.error("itemTagsButtonContainer not found in DOMI");
+        return;
+    }
     DOMI.itemTagsButtonContainer.innerHTML = ''; 
     const allTags = getAllTagsFuncCache();
     const allCategories = getAllCategoriesFuncCache();
@@ -342,7 +336,9 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             });
         }
         if (!classified) {
-            unclassifiedTags.push(tag);
+            if(!unclassifiedTags.find(t => t.id === tag.id)) {
+                 unclassifiedTags.push(tag);
+            }
         }
     });
 
@@ -362,13 +358,13 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
 
         const tagsInThisCategory = tagsByCategory[categoryName].sort((a,b) => a.name.localeCompare(b.name, 'ja'));
         const tagButtonsDiv = document.createElement('div');
-        tagButtonsDiv.classList.add('tag-buttons-wrapper'); // スタイリング用クラス
+        tagButtonsDiv.classList.add('tag-buttons-wrapper'); 
 
         tagsInThisCategory.forEach(tag => {
             const button = document.createElement('div');
             button.className = 'tag-filter admin-tag-select'; 
             button.textContent = tag.name;
-            button.dataset.tagId = tag.id;
+            button.dataset.tagId = tag.id; 
             if (selectedTagIds.includes(tag.id)) {
                 button.classList.add('active');
             }
@@ -642,10 +638,19 @@ function renderCurrentItemSourcesListUI() {
                     
                     if(DOMI.addTreeSourceToListButton) DOMI.addTreeSourceToListButton.textContent = '選択経路を更新';
                     if(DOMI.addManualSourceToListButton) DOMI.addManualSourceToListButton.textContent = '手動入力をリストに追加';
-                    // ボタンUIの階層も復元・選択状態にする (item-source-managerにヘルパーが必要かも)
+                    
                     if (window.adminModules && window.adminModules.itemSourceManager && 
-                        typeof window.adminModules.itemSourceManager.selectPathInButtonUI === 'function') {
-                        window.adminModules.itemSourceManager.selectPathInButtonUI(sourceToEdit.nodeId, DOMI.itemSourceButtonSelectionArea, DOMI.selectedItemSourcePathDisplay, DOMI.selectedItemSourceNodeId_temp);
+                        typeof window.adminModules.itemSourceManager.populateItemSourceLevelButtons === 'function') {
+                        // 編集対象のパスをボタンUIに復元表示する
+                        window.adminModules.itemSourceManager.populateItemSourceLevelButtons(
+                            null, // parentId (最初はルートから)
+                            1,    // level
+                            DOMI.itemSourceButtonSelectionArea, 
+                            DOMI.selectedItemSourcePathDisplay, 
+                            DOMI.selectedItemSourceNodeId_temp,
+                            [],   // currentSelectedPath (空から開始)
+                            sourceToEdit.nodeId // 選択状態を復元する対象のnodeId
+                        );
                     }
                 }
             }
@@ -772,7 +777,6 @@ async function saveItem(event) {
         
         if (editingDocId) {
             itemDataPayload.updatedAt = serverTimestamp();
-            // 古いフィールドを明示的に削除
             itemDataPayload.effectsInputMode = deleteField();
             itemDataPayload.manualEffectsString = deleteField();
             itemDataPayload.structured_effects = deleteField();
@@ -878,8 +882,8 @@ export function _renderItemsAdminTableInternal() {
                 if (src.type === 'manual') {
                     sourceDisplayHtml += `<li>・${src.manualString ? src.manualString.replace(/\n/g, '<br>') : ''}</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
-                    let pathText = src.resolvedDisplay; // 保存時に解決済みの表示名を使う
-                    if (!pathText) { // フォールバック（resolvedDisplayがない古いデータなど）
+                    let pathText = src.resolvedDisplay; 
+                    if (!pathText) { 
                         const selectedSourceNode = itemSourcesCache.find(s => s.id === src.nodeId);
                         if (selectedSourceNode && selectedSourceNode.displayString && selectedSourceNode.displayString.trim() !== "") {
                             pathText = selectedSourceNode.displayString;
@@ -990,7 +994,6 @@ async function loadItemForEdit(docId) {
                                 const docSnap = await getDoc(doc(dbInstance, 'item_sources', src.nodeId));
                                 if (docSnap.exists()) {
                                     const missingNode = { id: docSnap.id, ...docSnap.data()};
-                                    // allItemSources に missingNode を一時的に追加してパスを構築する
                                     const tempAllSources = [missingNode, ...allItemSources.filter(s => s.id !== missingNode.id)];
                                     src.resolvedDisplay = missingNode.displayString || buildPathForItemSource(src.nodeId, tempAllSources);
                                 } else {
