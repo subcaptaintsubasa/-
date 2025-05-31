@@ -38,21 +38,21 @@
                 <div class="parent-category-filters">
                     <h2>親カテゴリ選択:</h2>
                     <div id="parentCategoryFiltersContainer" class="category-button-group" role="group" aria-labelledby="parentCategoryLabel">
-                        <p>親カテゴリをロード中...</p> {/* 修正 */}
+                        <p>親カテゴリをロード中...</p>
                     </div>
                 </div>
                 <div id="childCategoriesAndTagsContainer">
-                    <p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p> {/* 修正 */}
+                    <p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p>
                 </div>
                 <button id="resetFiltersButton" type="button">フィルターリセット</button>
             </div>
             <div id="searchToolMessage" class="search-tool-message" style="display: none;" role="alert">
             </div>
             <div id="itemCount" aria-live="polite">
-                <p>アイテム数をロード中...</p> {/* 修正 */}
+                <p>アイテム数をロード中...</p>
             </div>
             <div id="itemList" class="item-list">
-                <p>アイテムをロード中...</p> {/* 修正 */}
+                <p>アイテムをロード中...</p>
             </div>
             <div id="paginationControls" class="pagination-controls" role="navigation" aria-label="ページネーション">
                 {/* Pagination buttons will be inserted here by JS */}
@@ -66,8 +66,8 @@
      <!-- Item Detail Modal -->
      <div id="itemDetailModal" class="modal item-detail-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="itemDetailModalTitleStatic">
          <div class="modal-content">
-             <span class="close-button" aria-label="閉じる">×</span> {/* onclickはJSで付与されるので削除 */}
-             <h2 id="itemDetailModalTitleStatic" class="sr-only">アイテム詳細</h2> {/* 静的なsr-onlyタイトル */}
+             <span class="close-button" aria-label="閉じる">×</span>
+             <h2 id="itemDetailModalTitleStatic" class="sr-only">アイテム詳細</h2>
              <div id="itemDetailContent">
                  {/* Item details will be dynamically inserted here */}
              </div>
@@ -78,7 +78,7 @@
      <!-- Equipment Simulator Modal -->
      <div id="simulatorModal" class="modal simulator-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="simulatorModalTitle">
          <div class="modal-content simulator-modal-content">
-             <span class="close-button" aria-label="閉じる">×</span> {/* onclickはJSで付与されるので削除 */}
+             <span class="close-button" aria-label="閉じる">×</span>
              <h2 id="simulatorModalTitle">装備構成シミュレーター</h2>
 
              <div class="character-base-selection">
@@ -195,7 +195,7 @@
 
      <div id="imagePreviewModal" class="modal image-preview-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="imagePreviewTitle">
         <div class="modal-content image-preview-modal-content">
-            <span class="close-button" aria-label="閉じる">×</span> {/* onclickはJSで付与されるので削除 */}
+            <span class="close-button" aria-label="閉じる">×</span>
             <h2 id="imagePreviewTitle">画像プレビュー</h2>
             <img id="generatedImagePreview" src="#" alt="生成された装備構成の画像プレビュー" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
         </div>
