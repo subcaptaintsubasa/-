@@ -130,7 +130,7 @@ export function initItemSourceManager(dependencies) {
     window.adminModules = window.adminModules || {};
     window.adminModules.itemSourceManager = {
         openSelectItemSourceModalForItemForm,
-        // displaySelectedItemSourcePathOnLoad // item-manager側で処理するため不要
+        // displaySelectedItemSourcePathOnLoad is no longer exposed here as item-manager handles it
     };
 
     console.log("[ItemSource Manager] Initialized.");
@@ -165,7 +165,6 @@ function toggleDisplayStringInputForNode(displayStringGroupElement, parentNodeDa
         }
     }
 }
-
 
 function populateParentSourceSelectorUI(selectorContainer, hiddenInput, options = {}) {
     const { currentSourceIdToExclude = null, selectedParentId = "" } = options;
@@ -564,11 +563,10 @@ async function deleteItemSourceNode(docId, nodeName) {
     }
     
     const itemsUsingSource = itemsCache.filter(item => {
-        // 新しい item.sources 配列をチェック
         if (item.sources && Array.isArray(item.sources)) {
             return item.sources.some(s => s.type === 'tree' && s.nodeId === docId);
         }
-        // 古いデータ形式のフォールバック (必要に応じて)
+        // Fallback for old data structure if necessary
         // if (item.sourceInputMode === 'tree' && item.sourceNodeId === docId) return true;
         return false;
     });
@@ -603,7 +601,7 @@ function openSelectItemSourceModalForItemForm(callback) {
         }
     });
     const l1Group = document.getElementById('sourceLevel1Group'); 
-    if (l1Group) l1Group.style.display = 'block'; // Ensure L1 group is visible
+    if (l1Group) l1Group.style.display = 'block';
 
     populateSourceLevelSelectForItemForm(1, ""); 
     updateSelectionPathDisplayForItemForm(); 
@@ -628,16 +626,15 @@ function populateSourceLevelSelectForItemForm(level, parentId) {
         selector.appendChild(option);
     });
 
-    // Hide subsequent level groups
     for (let i = level; i < DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors.length; i++) {
         const nextSelector = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[i];
         if (nextSelector) {
             nextSelector.innerHTML = '<option value="">選択してください</option>';
         }
-        // Group for L(i+1) selector (index i) corresponds to groupDivs[i-1] for L2,L3,L4
-        const groupToHideIndex = i -1; // Groups are for L2 (idx 0), L3 (idx 1), L4 (idx 2)
-                                        // If i=1 (L2 selector), group is groupDivs[0]
-        if (DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex]) {
+        // Groups are for L2 (idx 0), L3 (idx 1), L4 (idx 2)
+        // If i is the selector index (0-based), the group for L(i+1) is groupDivs[i-1]
+        const groupToHideIndex = i -1; 
+        if (i > 0 && DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex]) { // Ensure index is valid
             DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelGroupDivs[groupToHideIndex].style.display = 'none';
         }
     }
@@ -648,7 +645,6 @@ function handleSourceLevelChangeForItemForm(event) {
     const currentLevel = parseInt(event.target.dataset.level, 10); 
     const selectedValue = event.target.value;
 
-    // Reset and hide subsequent levels
     for (let levelToReset = currentLevel + 1; levelToReset <= 4; levelToReset++) {
         const selectorIndexToReset = levelToReset - 1; 
         const selectorToReset = DOM_ITEM_FORM_SOURCE_SELECT.sourceLevelSelectors[selectorIndexToReset];
@@ -749,9 +745,9 @@ function confirmSourceSelectionForItemForm() {
     }
 }
 
-// displaySelectedItemSourcePathOnLoad は item-manager側で対応するため、このファイルからは削除またはコメントアウト
-/*
-async function displaySelectedItemSourcePathOnLoad(nodeId) {
-    // ... (item-manager.js の loadItemForEdit 内でパス解決と表示を行う)
-}
-*/
+// displaySelectedItemSourcePathOnLoad は item-manager.js 側で DOM を直接操作するため、
+// このモジュールからは、そのためのユーティリティ関数を提供する形ではなく、
+// item-manager が window.adminModules.itemSourceManager.openSelectItemSourceModalForItemForm
+// を呼ぶ際にコールバックを渡すことで、選択結果を item-manager に返し、
+// item-manager 側で DOMI.itemSourceDisplay と DOMI.selectedItemSourceNodeId_temp を更新する。
+// item-manager の loadItemForEdit 時の表示も item-manager 側でパス構築ロジックを持つ。
