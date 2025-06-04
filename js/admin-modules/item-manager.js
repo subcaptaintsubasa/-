@@ -1,6 +1,7 @@
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, serverTimestamp, deleteField, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { getSelectedTagButtonValues } from './ui-helpers.js'; 
+// getSelectedTagButtonValues のインポートは不要になるか、残しても良いが使わない
+// import { getSelectedTagButtonValues } from './ui-helpers.js'; 
 
 const DOMI = {
     itemForm: null,
@@ -364,8 +365,6 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.className = 'tag-filter admin-tag-select'; 
             button.textContent = tag.name;
             button.dataset.tagId = tag.id; 
-            // console.log(`[Item Manager _populateTags] Creating tag button: Name: ${tag.name}, ID: ${tag.id}, Classes: '${button.className}', Initial Active: ${selectedTagIds.includes(tag.id)}`); 
-            // console.log(`[Item Manager _populateTags] Button outerHTML for ${tag.name}: ${button.outerHTML}`); 
             if (selectedTagIds.includes(tag.id)) {
                 button.classList.add('active');
             }
@@ -373,13 +372,11 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.setAttribute('tabindex', '0');
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
-                // console.log(`[Item Manager _populateTags] Tag button clicked: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`); 
             });
             button.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     button.classList.toggle('active');
-                    // console.log(`[Item Manager _populateTags] Tag button (key) toggled: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
                 }
             });
             tagButtonsDiv.appendChild(button);
@@ -401,20 +398,16 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
             button.className = 'tag-filter admin-tag-select';
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
-            // console.log(`[Item Manager _populateTags] Creating unclassified tag button: Name: ${tag.name}, ID: ${tag.id}, Classes: '${button.className}', Initial Active: ${selectedTagIds.includes(tag.id)}`);
-            // console.log(`[Item Manager _populateTags] Button outerHTML for ${tag.name}: ${button.outerHTML}`);
             if (selectedTagIds.includes(tag.id)) button.classList.add('active');
             button.setAttribute('role', 'button');
             button.setAttribute('tabindex', '0');
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
-                // console.log(`[Item Manager _populateTags] Unclassified Tag button clicked: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
             });
             button.addEventListener('keydown', (e) => { 
                 if (e.key === 'Enter' || e.key === ' ') { 
                     e.preventDefault(); 
                     button.classList.toggle('active'); 
-                    // console.log(`[Item Manager _populateTags] Unclassified Tag button (key) toggled: ${tag.name}, ID: ${tag.id}, Now Active: ${button.classList.contains('active')}`);
                 }
             });
             tagButtonsDiv.appendChild(button);
@@ -753,19 +746,21 @@ async function saveItem(event) {
     const name = DOMI.itemNameInput.value.trim();
     const priceStr = DOMI.itemPriceInput.value.trim();
     
-    const currentItemTagsButtonContainer = document.getElementById('itemTagsButtonContainer'); 
-    if (!currentItemTagsButtonContainer) {
-        console.error("saveItem: itemTagsButtonContainer could not be found in DOM when trying to save!");
-        alert("タグ情報の取得に失敗しました。ページをリロードして再度お試しください。");
-        if (DOMI.saveItemButton) {
-            DOMI.saveItemButton.disabled = false;
-            DOMI.saveItemButton.textContent = DOMI.itemIdToEditInput.value ? "アイテム更新" : "アイテム保存";
-        }
-        return;
+    // === タグID取得ロジック修正箇所 ===
+    let selectedItemTagIds = [];
+    if (DOMI.itemTagsButtonContainer) {
+        const activeTagButtons = DOMI.itemTagsButtonContainer.querySelectorAll('.tag-filter.admin-tag-select.active[data-tag-id]');
+        activeTagButtons.forEach(button => {
+            if (button.dataset.tagId) {
+                selectedItemTagIds.push(button.dataset.tagId);
+            }
+        });
+        console.log("[Item Manager] Directly collected Tag IDs in saveItem:", selectedItemTagIds);
+    } else {
+        console.error("saveItem: DOMI.itemTagsButtonContainer is null. Cannot get selected tags.");
+        // エラー処理またはデフォルト値を設定
     }
-    console.log("[Item Manager] currentItemTagsButtonContainer before getSelectedTagButtonValues in saveItem:", currentItemTagsButtonContainer); 
-    const selectedItemTagIds = getSelectedTagButtonValues(currentItemTagsButtonContainer, 'tagId');
-    console.log("[Item Manager] Selected Tag IDs in saveItem:", selectedItemTagIds); 
+    // === タグID取得ロジック修正箇所ここまで ===
 
     const editingDocId = DOMI.itemIdToEditInput.value;
     const rarity = parseInt(DOMI.itemRarityValueInput.value, 10) || 0;
@@ -806,19 +801,20 @@ async function saveItem(event) {
         
         if (editingDocId) {
             itemDataPayload.updatedAt = serverTimestamp();
+            // 古い形式のフィールドを削除
             itemDataPayload.effectsInputMode = deleteField();
             itemDataPayload.manualEffectsString = deleteField();
             itemDataPayload.structured_effects = deleteField();
             itemDataPayload.sourceInputMode = deleteField();
             itemDataPayload.manualSourceString = deleteField();
             itemDataPayload.sourceNodeId = deleteField();
-            itemDataPayload.入手手段 = deleteField();
+            itemDataPayload.入手手段 = deleteField(); // 日本語キーも削除
 
             await updateDoc(doc(dbInstance, 'items', editingDocId), itemDataPayload);
             console.log("Item updated:", editingDocId);
         } else { 
             itemDataPayload.createdAt = serverTimestamp();
-            itemDataPayload.updatedAt = serverTimestamp();
+            itemDataPayload.updatedAt = serverTimestamp(); // 新規作成時も updatedAt を設定
             await addDoc(collection(dbInstance, 'items'), itemDataPayload);
             console.log("Item added.");
         }
@@ -847,7 +843,7 @@ export function _renderItemsAdminTableInternal() {
     const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
     const filteredItems = itemsCache.filter(item =>
         (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-        (!searchTerm && (item.name === "" || !item.name))
+        (!searchTerm && (item.name === "" || !item.name)) // 検索語なしの場合は空の名前も含む
     ).sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja'));
 
     if (filteredItems.length === 0) {
@@ -869,8 +865,9 @@ export function _renderItemsAdminTableInternal() {
         const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
         const rarityDisplay = `星${item.rarity || 0}`;
         
+        // 効果表示
         let effectsDisplayHtml = '<ul class="effect-list-in-table">';
-        if (item.effects && item.effects.length > 0) { 
+        if (item.effects && item.effects.length > 0) { // 新しい 'effects' 配列を優先
             item.effects.forEach(eff => {
                 if (eff.type === "manual") {
                     effectsDisplayHtml += `<li>・${eff.manualString ? eff.manualString.replace(/\n/g, '<br>') : ''}</li>`;
@@ -887,11 +884,11 @@ export function _renderItemsAdminTableInternal() {
                     effectsDisplayHtml += `<li>・${typeName} ${effectTextPart}</li>`;
                 }
             });
-        } else if (item.effectsInputMode === 'manual' && item.manualEffectsString) { 
+        } else if (item.effectsInputMode === 'manual' && item.manualEffectsString) { // 古い形式のフォールバック
              effectsDisplayHtml += `<li>・${item.manualEffectsString.replace(/\n/g, '<br>')}</li>`;
-        } else if (item.structured_effects && item.structured_effects.length > 0) { 
+        } else if (item.structured_effects && item.structured_effects.length > 0) { // さらに古い形式のフォールバック
             item.structured_effects.forEach(eff => {
-                const typeInfo = effectTypesCache.find(et => et.id === eff.type); 
+                const typeInfo = effectTypesCache.find(et => et.id === eff.type); // 古い形式では effectTypeId ではなく type
                 const typeName = typeInfo ? typeInfo.name : `不明(${eff.type ? eff.type.substring(0, 6) : 'IDなし'}...)`;
                 let effectTextPart;
                 const unitName = eff.unit;
@@ -905,26 +902,20 @@ export function _renderItemsAdminTableInternal() {
         } else { effectsDisplayHtml += '<li>効果なし</li>'; }
         effectsDisplayHtml += '</ul>';
 
+        // 入手経路表示
         let sourceDisplayHtml = '<ul class="effect-list-in-table">';
-        if (item.sources && item.sources.length > 0) { 
+        if (item.sources && item.sources.length > 0) { // 新しい 'sources' 配列を優先
             item.sources.forEach(src => {
                 if (src.type === 'manual') {
                     sourceDisplayHtml += `<li>・${src.manualString ? src.manualString.replace(/\n/g, '<br>') : ''}</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
-                    let pathText = src.resolvedDisplay; 
-                    if (!pathText) { 
+                    let pathText = src.resolvedDisplay; // 保存時に resolvedDisplay が設定されているはず
+                    if (!pathText) { // フォールバックとして動的にパスを構築
                         const selectedSourceNode = itemSourcesCache.find(s => s.id === src.nodeId);
                         if (selectedSourceNode && selectedSourceNode.displayString && selectedSourceNode.displayString.trim() !== "") {
                             pathText = selectedSourceNode.displayString;
-                        } else if (selectedSourceNode) {
-                            const pathParts = []; let currentId = src.nodeId; let sanityCheck = 0;
-                            while(currentId && sanityCheck < 10) {
-                                const node = itemSourcesCache.find(s => s.id === currentId);
-                                if (node) { pathParts.unshift(node.name); currentId = node.parentId; }
-                                else { pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); break; }
-                                sanityCheck++;
-                            }
-                            if (pathParts.length > 0) pathText = pathParts.join(' > ');
+                        } else if (selectedSourceNode) { // displayString がない場合はパスを構築
+                            pathText = buildPathForItemSource(src.nodeId, itemSourcesCache);
                         } else {
                             pathText = `経路ID: ${src.nodeId.substring(0,8)}...`;
                         }
@@ -932,29 +923,23 @@ export function _renderItemsAdminTableInternal() {
                     sourceDisplayHtml += `<li>・${pathText}</li>`;
                 }
             });
-        } else if (item.sourceInputMode === 'manual' && item.manualSourceString) { 
+        } else if (item.sourceInputMode === 'manual' && item.manualSourceString) { // 古い形式のフォールバック
             sourceDisplayHtml += `<li>・${item.manualSourceString.replace(/\n/g, '<br>')}</li>`;
-        } else if (item.sourceNodeId) { 
+        } else if (item.sourceNodeId && itemSourcesCache.length > 0) { // さらに古い形式のフォールバック
             const selectedSourceNode = itemSourcesCache.find(s => s.id === item.sourceNodeId);
-            let pathText = `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
+            let pathText = `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`; // デフォルト
             if (selectedSourceNode && selectedSourceNode.displayString && selectedSourceNode.displayString.trim() !== "") {
                 pathText = selectedSourceNode.displayString;
-            } else if (selectedSourceNode) {
-                const pathParts = []; let currentId = item.sourceNodeId; let sanityCheck = 0;
-                while(currentId && sanityCheck < 10) {
-                    const node = itemSourcesCache.find(s => s.id === currentId);
-                    if (node) { pathParts.unshift(node.name); currentId = node.parentId; }
-                    else { pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); break; }
-                    sanityCheck++;
-                }
-                if (pathParts.length > 0) pathText = pathParts.join(' > ');
+            } else if (selectedSourceNode) { // displayString がない場合はパスを構築
+                pathText = buildPathForItemSource(item.sourceNodeId, itemSourcesCache);
             }
             sourceDisplayHtml += `<li>・${pathText}</li>`;
-        } else if (item.入手手段) { 
+        } else if (item.入手手段) { // 最も古い形式のフォールバック
              sourceDisplayHtml += `<li>・${item.入手手段}</li>`;
         } else { sourceDisplayHtml += '<li>不明</li>'; }
         sourceDisplayHtml += '</ul>';
 
+        // タグ表示
         let tagsHtml = '';
         if (item.tags && item.tags.length > 0) {
             tagsHtml = (item.tags || [])
@@ -995,34 +980,43 @@ async function loadItemForEdit(docId) {
             selectedImageFile = null;
             if(DOMI.itemImageFileInput) DOMI.itemImageFileInput.value = null;
 
+            // 効果データの読み込み (新しい 'effects' 配列を優先)
             if (itemData.effects && Array.isArray(itemData.effects)) {
                 currentItemEffects = JSON.parse(JSON.stringify(itemData.effects));
-            } else { 
+            } else { // 古い形式からのフォールバック
                 currentItemEffects = [];
                 if (itemData.effectsInputMode === 'manual' && itemData.manualEffectsString) {
                     currentItemEffects.push({ type: 'manual', manualString: itemData.manualEffectsString });
                 } else if (itemData.structured_effects && Array.isArray(itemData.structured_effects)) {
                     itemData.structured_effects.forEach(oldEff => {
+                        // 古い形式の 'type' は新しい形式の 'effectTypeId' にマッピング
                         currentItemEffects.push({ type: 'structured', effectTypeId: oldEff.type, value: oldEff.value, unit: oldEff.unit });
                     });
                 }
             }
             renderCurrentItemEffectsListUI(); 
-            setEffectsInputMode('structured'); 
+            setEffectsInputMode('structured'); // デフォルトは構造化入力
 
+            // 入手手段データの読み込み (新しい 'sources' 配列を優先)
             if (itemData.sources && Array.isArray(itemData.sources)) {
                 currentItemSources = JSON.parse(JSON.stringify(itemData.sources));
+                // resolvedDisplay がない場合は、ここで動的に生成しておく (表示のため)
                 for (const src of currentItemSources) { 
                     if(src.type === 'tree' && src.nodeId && !src.resolvedDisplay) {
-                        const allItemSources = getItemSourcesFuncCache();
+                        const allItemSources = getItemSourcesFuncCache(); // 最新のキャッシュを取得
                         const node = allItemSources.find(s => s.id === src.nodeId);
                         if (node) {
+                            // displayString があればそれを使う、なければパスを構築
                             src.resolvedDisplay = node.displayString || buildPathForItemSource(src.nodeId, allItemSources);
                         } else {
+                             // キャッシュにない場合、Firestoreから直接取得を試みる (オプション)
+                             // この実装は複雑になるため、ここではキャッシュになければID表示に留める
+                             // または、表示時に毎回パスを構築するようにする
                              try {
                                 const docSnap = await getDoc(doc(dbInstance, 'item_sources', src.nodeId));
                                 if (docSnap.exists()) {
                                     const missingNode = { id: docSnap.id, ...docSnap.data()};
+                                    // 一時的に全ソースリストに追加してパスを構築
                                     const tempAllSources = [missingNode, ...allItemSources.filter(s => s.id !== missingNode.id)];
                                     src.resolvedDisplay = missingNode.displayString || buildPathForItemSource(src.nodeId, tempAllSources);
                                 } else {
@@ -1035,21 +1029,21 @@ async function loadItemForEdit(docId) {
                         }
                     }
                 }
-            } else { 
+            } else { // 古い形式からのフォールバック
                 currentItemSources = [];
                 if (itemData.sourceInputMode === 'manual' && itemData.manualSourceString) {
                     currentItemSources.push({ type: 'manual', manualString: itemData.manualSourceString });
-                } else if (itemData.sourceNodeId) {
+                } else if (itemData.sourceNodeId) { // さらに古い形式 (sourceNodeId と 入手手段)
                     const allItemSources = getItemSourcesFuncCache();
                     const node = allItemSources.find(s => s.id === itemData.sourceNodeId);
                     const display = (node && node.displayString) ? node.displayString : (node ? buildPathForItemSource(itemData.sourceNodeId, allItemSources) : `ID:${itemData.sourceNodeId.substring(0,5)}..`);
                     currentItemSources.push({ type: 'tree', nodeId: itemData.sourceNodeId, resolvedDisplay: display });
-                } else if (itemData.入手手段) { 
+                } else if (itemData.入手手段) { // 最も古い形式（日本語キーの入手手段）
                      currentItemSources.push({ type: 'manual', manualString: itemData.入手手段 });
                 }
             }
             renderCurrentItemSourcesListUI();
-            setSourceInputMode('tree'); 
+            setSourceInputMode('tree'); // デフォルトはツリー選択
             
             _populateTagButtonsForItemFormInternal(itemData.tags || []); 
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
@@ -1062,16 +1056,18 @@ async function loadItemForEdit(docId) {
     } catch (error) { console.error("[Item Manager] Error loading item for edit:", error); alert("編集データの読み込み中にエラーが発生しました。"); }
 }
 
+// item_sources のデータから指定された node ID までのパス文字列を構築するヘルパー
 function buildPathForItemSource(nodeId, allItemSources) {
     const pathParts = [];
     let currentId = nodeId;
-    let sanityCheck = 0;
-    while(currentId && sanityCheck < 10) {
+    let sanityCheck = 0; // 無限ループ防止
+    while(currentId && sanityCheck < 10) { // MAX_SOURCE_DEPTH より少し大きめに設定
         const node = allItemSources.find(s => s.id === currentId);
         if (node) {
             pathParts.unshift(node.name);
             currentId = node.parentId;
         } else {
+            // ノードが見つからない場合はIDの一部を表示（デバッグ用）
             pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`);
             break;
         }
@@ -1086,11 +1082,12 @@ async function deleteItem(docId, itemName, imageUrl) {
             await deleteDoc(doc(dbInstance, 'items', docId));
             if (imageUrl) {
                 console.warn(`Image ${imageUrl} (associated with deleted item ${docId}) may need manual deletion from Cloudflare R2.`);
+                // ここでCloudflare R2からの画像削除APIを呼び出すことも可能だが、認証等が必要になる
             }
-            if (DOMI.itemIdToEditInput.value === docId) {
+            if (DOMI.itemIdToEditInput.value === docId) { // フォームに表示中のアイテムが削除された場合
                 clearItemFormInternal();
             }
-            await refreshAllDataCallback();
+            await refreshAllDataCallback(); // アイテム一覧を再描画
         } catch (error) {
             console.error(`[Item Manager] Error deleting item ${docId}:`, error);
             alert("アイテムの削除に失敗しました。");
