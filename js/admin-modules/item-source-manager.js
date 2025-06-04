@@ -2,12 +2,12 @@
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch, getDoc, deleteField } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { openModal, closeModal, populateSelect } from './ui-helpers.js';
 
-const DOMISM = { 
+const DOMISM = {
     newItemSourceNameInput: null,
     newItemSourceParentSelector: null,
     selectedNewParentSourceIdInput: null,
-    newItemSourceDisplayStringGroup: null, 
-    newItemSourceDisplayStringInput: null, 
+    newItemSourceDisplayStringGroup: null,
+    newItemSourceDisplayStringInput: null,
     addItemSourceButton: null,
     itemSourceListContainer: null,
     itemSourceSearchInput: null,
@@ -17,43 +17,36 @@ const DOMISM = {
     editingItemSourceNameInput: null,
     editingItemSourceParentSelector: null,
     selectedEditingParentSourceIdInput: null,
-    editingItemSourceDisplayStringGroup: null, 
-    editingItemSourceDisplayStringInput: null, 
+    editingItemSourceDisplayStringGroup: null,
+    editingItemSourceDisplayStringInput: null,
     saveItemSourceEditButton: null,
     deleteItemSourceFromEditModalButton: null,
-};
 
-// ボタン式UIのためのモーダルは使用しなくなったため、DOMオブジェクトは削除またはコメントアウト
-/*
-const DOM_ITEM_FORM_SOURCE_BUTTON_UI = { 
-    selectItemSourceModal: null, 
-    itemSourceButtonSelectionUiContainer: null, 
-    currentPathDisplay: null, 
-    confirmSelectionButton: null, 
+    // ===== 追加 =====
+    finalSourceDisplayPreviewInput: null, // アイテムフォーム内のプレビュー用
+    // ===== 追加ここまで =====
 };
-*/
 
 let dbInstance = null;
-let getItemSourcesFuncCache = () => []; 
-let getItemsFuncCache = () => []; 
+let getItemSourcesFuncCache = () => [];
+let getItemsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
-// itemSourceSelectionCallbackForItemManager はボタン式UIでは直接使わない
 
 const itemSourceExpansionState = new Map();
 let currentItemSourceSearchTerm = "";
-const MAX_SOURCE_DEPTH = 3; 
+const MAX_SOURCE_DEPTH = 3;
 
 export function initItemSourceManager(dependencies) {
     dbInstance = dependencies.db;
     getItemSourcesFuncCache = dependencies.getItemSources;
-    getItemsFuncCache = dependencies.getItems; 
+    getItemsFuncCache = dependencies.getItems;
     refreshAllDataCallback = dependencies.refreshAllData;
 
     DOMISM.newItemSourceNameInput = document.getElementById('newItemSourceName');
     DOMISM.newItemSourceParentSelector = document.getElementById('newItemSourceParentSelector');
     DOMISM.selectedNewParentSourceIdInput = document.getElementById('selectedNewParentSourceId');
-    DOMISM.newItemSourceDisplayStringGroup = document.getElementById('newItemSourceDisplayStringGroup'); 
-    DOMISM.newItemSourceDisplayStringInput = document.getElementById('newItemSourceDisplayString'); 
+    DOMISM.newItemSourceDisplayStringGroup = document.getElementById('newItemSourceDisplayStringGroup');
+    DOMISM.newItemSourceDisplayStringInput = document.getElementById('newItemSourceDisplayString');
     DOMISM.addItemSourceButton = document.getElementById('addItemSourceButton');
     DOMISM.itemSourceListContainer = document.getElementById('itemSourceListContainer');
     DOMISM.itemSourceSearchInput = document.getElementById('itemSourceSearchInput');
@@ -63,12 +56,15 @@ export function initItemSourceManager(dependencies) {
     DOMISM.editingItemSourceNameInput = document.getElementById('editingItemSourceName');
     DOMISM.editingItemSourceParentSelector = document.getElementById('editingItemSourceParentSelector');
     DOMISM.selectedEditingParentSourceIdInput = document.getElementById('selectedEditingParentSourceId');
-    DOMISM.editingItemSourceDisplayStringGroup = document.getElementById('editingItemSourceDisplayStringGroup'); 
-    DOMISM.editingItemSourceDisplayStringInput = document.getElementById('editingItemSourceDisplayString'); 
+    DOMISM.editingItemSourceDisplayStringGroup = document.getElementById('editingItemSourceDisplayStringGroup');
+    DOMISM.editingItemSourceDisplayStringInput = document.getElementById('editingItemSourceDisplayString');
     DOMISM.saveItemSourceEditButton = document.getElementById('saveItemSourceEditButton');
     DOMISM.deleteItemSourceFromEditModalButton = document.getElementById('deleteItemSourceFromEditModalButton');
 
-    // DOM_ITEM_FORM_SOURCE_BUTTON_UI の要素取得は不要になった
+    // ===== 追加 =====
+    DOMISM.finalSourceDisplayPreviewInput = document.getElementById('finalSourceDisplayPreview');
+    // ===== 追加ここまで =====
+
 
     if (DOMISM.addItemSourceButton) DOMISM.addItemSourceButton.addEventListener('click', addItemSourceNode);
     if (DOMISM.saveItemSourceEditButton) DOMISM.saveItemSourceEditButton.addEventListener('click', saveItemSourceNodeEdit);
@@ -87,11 +83,9 @@ export function initItemSourceManager(dependencies) {
             _renderItemSourcesForManagementInternal();
         });
     }
-    
-    // DOM_ITEM_FORM_SOURCE_BUTTON_UI.confirmSelectionButton のリスナーは不要になった
-    
+
     if(DOMISM.newItemSourceParentSelector) {
-        DOMISM.newItemSourceParentSelector.addEventListener('click', (event) => { 
+        DOMISM.newItemSourceParentSelector.addEventListener('click', (event) => {
             if(event.target.classList.contains('category-select-button')) {
                 const parentId = DOMISM.selectedNewParentSourceIdInput.value;
                 const parentNode = parentId ? getItemSourcesFuncCache().find(s => s.id === parentId) : null;
@@ -110,16 +104,18 @@ export function initItemSourceManager(dependencies) {
         });
     }
 
-    // window.adminModules への登録は、実際に item-manager.js から呼び出される関数のみにする
     window.adminModules = window.adminModules || {};
     window.adminModules.itemSourceManager = {
-        populateItemSourceLevelButtons // item-manager がアイテムフォーム内のUI構築に使う
+        populateItemSourceLevelButtons,
+        // ===== 追加 =====
+        buildDisplayPathForSourceNode, // ヘルパーをエクスポート
+        // ===== 追加ここまで =====
     };
 
     console.log("[ItemSource Manager] Initialized.");
 }
 
-// ... (toggleDisplayStringInputForNode から deleteItemSourceNode までは変更なし) ...
+
 function toggleDisplayStringInputForNode(displayStringGroupElement, parentNodeData, editingNodeId, isNewNode) {
     if (!displayStringGroupElement) return;
     const allSources = getItemSourcesFuncCache();
@@ -127,11 +123,11 @@ function toggleDisplayStringInputForNode(displayStringGroupElement, parentNodeDa
 
     if (parentNodeData) {
         currentDepthOfNodeBeingEditedOrCreated = (parentNodeData.depth !== undefined ? parentNodeData.depth : 0) + 1;
-    } else { 
+    } else {
         currentDepthOfNodeBeingEditedOrCreated = 0;
     }
-    
-    displayStringGroupElement.style.display = 'block'; 
+
+    displayStringGroupElement.style.display = 'block';
     const infoPara = displayStringGroupElement.querySelector('p.info');
     if (infoPara) {
         let isConsideredTerminalForDisplayString = false;
@@ -139,7 +135,7 @@ function toggleDisplayStringInputForNode(displayStringGroupElement, parentNodeDa
             isConsideredTerminalForDisplayString = currentDepthOfNodeBeingEditedOrCreated >= MAX_SOURCE_DEPTH;
         } else if (editingNodeId) {
             const hasChildren = allSources.some(s => s.parentId === editingNodeId);
-            isConsideredTerminalForDisplayString = !hasChildren; 
+            isConsideredTerminalForDisplayString = !hasChildren;
         }
 
         if (isConsideredTerminalForDisplayString) {
@@ -170,8 +166,8 @@ function populateParentSourceSelectorUI(selectorContainer, hiddenInput, options 
     if (selectedParentId === "") noParentButton.classList.add('active');
     noParentButton.addEventListener('click', (e) => {
         selectParentSourceButtonUI(selectorContainer, hiddenInput, e.currentTarget, "");
-        const displayStringGroup = selectorContainer.id === 'newItemSourceParentSelector' ? 
-                                   DOMISM.newItemSourceDisplayStringGroup : 
+        const displayStringGroup = selectorContainer.id === 'newItemSourceParentSelector' ?
+                                   DOMISM.newItemSourceDisplayStringGroup :
                                    DOMISM.editingItemSourceDisplayStringGroup;
         const isNew = selectorContainer.id === 'newItemSourceParentSelector';
         if (displayStringGroup) {
@@ -181,7 +177,7 @@ function populateParentSourceSelectorUI(selectorContainer, hiddenInput, options 
     selectorContainer.appendChild(noParentButton);
 
     function buildParentOptionsRecursive(parentId = "", depth = 0) {
-        if (depth > MAX_SOURCE_DEPTH - 1) return; 
+        if (depth > MAX_SOURCE_DEPTH - 1) return;
 
         allSources
             .filter(source => (source.parentId || "") === parentId && source.id !== currentSourceIdToExclude)
@@ -209,8 +205,8 @@ function populateParentSourceSelectorUI(selectorContainer, hiddenInput, options 
                 if (selectedParentId === source.id) button.classList.add('active');
                 button.addEventListener('click', (e) => {
                     selectParentSourceButtonUI(selectorContainer, hiddenInput, e.currentTarget, source.id);
-                    const displayStringGroup = selectorContainer.id === 'newItemSourceParentSelector' ? 
-                                               DOMISM.newItemSourceDisplayStringGroup : 
+                    const displayStringGroup = selectorContainer.id === 'newItemSourceParentSelector' ?
+                                               DOMISM.newItemSourceDisplayStringGroup :
                                                DOMISM.editingItemSourceDisplayStringGroup;
                     const isNew = selectorContainer.id === 'newItemSourceParentSelector';
                     if (displayStringGroup) {
@@ -231,7 +227,7 @@ function selectParentSourceButtonUI(container, hiddenInput, clickedButton, paren
 }
 
 export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlargedView = false) {
-    const buildNode = (parentId = "", currentDisplayDepth = 0) => { 
+    const buildNode = (parentId = "", currentDisplayDepth = 0) => {
         const children = sourcesToDisplay
             .filter(source => (source.parentId || "") === parentId)
             .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
@@ -249,7 +245,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
             const li = document.createElement('li');
             li.classList.add('category-tree-item');
             li.dataset.sourceId = source.id;
-            const actualDepth = source.depth !== undefined ? source.depth : 0; 
+            const actualDepth = source.depth !== undefined ? source.depth : 0;
             li.dataset.depth = actualDepth;
 
             const hasActualChildren = allSourcesData.some(s => s.parentId === source.id);
@@ -269,7 +265,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
             const content = document.createElement('div');
             content.classList.add('category-tree-content');
             if (!isEnlargedView) content.dataset.action = 'edit';
-            
+
             const nameSpan = document.createElement('span');
             nameSpan.classList.add('category-name');
             nameSpan.textContent = source.name;
@@ -277,7 +273,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
 
             const smallInfo = document.createElement('small');
             let infoText = ` (階層: ${actualDepth + 1})`;
-            if (source.displayString && source.displayString.trim() !== "") { 
+            if (source.displayString && source.displayString.trim() !== "") {
                 infoText += ` [表示: ${source.displayString.substring(0,15)}${source.displayString.length > 15 ? '...' : ''}]`;
             }
             smallInfo.textContent = infoText;
@@ -285,7 +281,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
             li.appendChild(content);
 
             if (hasActualChildren) {
-                const childrenUl = buildNode(source.id, actualDepth + 1); 
+                const childrenUl = buildNode(source.id, actualDepth + 1);
                 if (childrenUl) {
                     if (!isEnlargedView && !isExpanded && !currentItemSourceSearchTerm) {
                         childrenUl.classList.add('hidden');
@@ -302,7 +298,7 @@ export function buildItemSourceTreeDOM(sourcesToDisplay, allSourcesData, isEnlar
 
 export function _renderItemSourcesForManagementInternal() {
     if (!DOMISM.itemSourceListContainer) {
-        console.error("[ItemSource Manager] itemSourceListContainer is null!"); 
+        console.error("[ItemSource Manager] itemSourceListContainer is null!");
         return;
     }
     const allSources = getItemSourcesFuncCache();
@@ -373,7 +369,7 @@ async function addItemSourceNode() {
     if (!DOMISM.newItemSourceNameInput || !DOMISM.selectedNewParentSourceIdInput) return;
     const name = DOMISM.newItemSourceNameInput.value.trim();
     const parentId = DOMISM.selectedNewParentSourceIdInput.value;
-    const displayString = DOMISM.newItemSourceDisplayStringInput.value.trim(); 
+    const displayString = DOMISM.newItemSourceDisplayStringInput.value.trim();
     if (!name) { alert("経路名を入力してください。"); return; }
 
     const allSources = getItemSourcesFuncCache();
@@ -394,18 +390,18 @@ async function addItemSourceNode() {
         alert(`入手経路は最大${MAX_SOURCE_DEPTH + 1}階層までです。これ以上深くは追加できません。`);
         return;
     }
-    
+
     const dataToAdd = {
         name: name, parentId: parentId || "", depth: depth, createdAt: serverTimestamp()
     };
-    if (displayString) { 
+    if (displayString) {
         dataToAdd.displayString = displayString;
     }
 
     try {
         await addDoc(collection(dbInstance, 'item_sources'), dataToAdd);
         DOMISM.newItemSourceNameInput.value = '';
-        DOMISM.newItemSourceDisplayStringInput.value = ''; 
+        DOMISM.newItemSourceDisplayStringInput.value = '';
         populateParentSourceSelectorUI(DOMISM.newItemSourceParentSelector, DOMISM.selectedNewParentSourceIdInput, { selectedParentId: "" });
         toggleDisplayStringInputForNode(DOMISM.newItemSourceDisplayStringGroup, null, null, true);
         await refreshAllDataCallback();
@@ -425,7 +421,7 @@ export function openEditItemSourceModalById(sourceId) {
         currentSourceIdToExclude: sourceToEdit.id,
         selectedParentId: sourceToEdit.parentId || ""
     });
-    
+
     const parentNode = sourceToEdit.parentId ? allSources.find(s => s.id === sourceToEdit.parentId) : null;
     toggleDisplayStringInputForNode(DOMISM.editingItemSourceDisplayStringGroup, parentNode, sourceToEdit.id, false);
 
@@ -437,7 +433,7 @@ async function saveItemSourceNodeEdit() {
     const docId = DOMISM.editingItemSourceDocIdInput.value;
     const newName = DOMISM.editingItemSourceNameInput.value.trim();
     const newParentId = DOMISM.selectedEditingParentSourceIdInput.value;
-    const newDisplayString = DOMISM.editingItemSourceDisplayStringInput.value.trim(); 
+    const newDisplayString = DOMISM.editingItemSourceDisplayStringInput.value.trim();
 
     if (!newName) { alert("経路名は空にできません。"); return; }
     if (docId === newParentId) { alert("自身を親経路に設定することはできません。"); return; }
@@ -460,7 +456,7 @@ async function saveItemSourceNodeEdit() {
         const newParentNode = allSources.find(s => s.id === newParentId);
         if (!newParentNode) { alert("新しい親経路が見つかりません。"); return; }
         newDepth = (newParentNode.depth !== undefined ? newParentNode.depth : 0) + 1;
-        
+
         let currentAncestorId = newParentId;
         let sanity = 0;
         while (currentAncestorId && sanity < 10) {
@@ -470,7 +466,7 @@ async function saveItemSourceNodeEdit() {
             sanity++;
         }
     }
-    
+
     const originalNodeDepth = originalSource.depth !== undefined ? originalSource.depth : 0;
     const maxAbsoluteDepthInSubtree = getMaxDepthOfSubtree(docId, allSources);
     const depthChangeOfRoot = newDepth - originalNodeDepth;
@@ -480,18 +476,18 @@ async function saveItemSourceNodeEdit() {
         alert(`この移動を行うと、経路の階層が${MAX_SOURCE_DEPTH + 1}階層を超えてしまいます。`);
         return;
     }
-    
+
     const dataToUpdate = {
-        name: newName, 
-        parentId: newParentId || "", 
-        depth: newDepth, 
+        name: newName,
+        parentId: newParentId || "",
+        depth: newDepth,
         updatedAt: serverTimestamp()
     };
 
     if (newDisplayString) {
         dataToUpdate.displayString = newDisplayString;
     } else {
-        dataToUpdate.displayString = deleteField(); 
+        dataToUpdate.displayString = deleteField();
     }
 
     try {
@@ -519,9 +515,9 @@ async function updateDescendantDepthsRecursive(parentId, parentNewDepth, allSour
 }
 
 function getMaxDepthOfSubtree(rootId, allSources) {
-    let maxAbsDepth = -1; 
+    let maxAbsDepth = -1;
     const rootNode = allSources.find(s => s.id === rootId);
-    if (!rootNode) return -1; 
+    if (!rootNode) return -1;
 
     maxAbsDepth = rootNode.depth !== undefined ? rootNode.depth : 0;
 
@@ -540,18 +536,19 @@ function getMaxDepthOfSubtree(rootId, allSources) {
 
 async function deleteItemSourceNode(docId, nodeName) {
     const allSources = getItemSourcesFuncCache();
-    const itemsCache = getItemsFuncCache();
+    const itemsCacheData = getItemsFuncCache(); // getItemsFuncCache を使用
 
     const children = allSources.filter(s => s.parentId === docId);
     if (children.length > 0) {
         alert(`経路「${nodeName}」は他の経路の親として使用されているため削除できません。先に子経路を削除するか、別の親経路に移動してください。`); return;
     }
-    
-    const itemsUsingSource = itemsCache.filter(item => {
+
+    const itemsUsingSource = itemsCacheData.filter(item => { // itemsCacheData を使用
         if (item.sources && Array.isArray(item.sources)) {
             return item.sources.some(s => s.type === 'tree' && s.nodeId === docId);
         }
-        return false;
+        // 古い形式の sourceNodeId もチェック
+        return item.sourceNodeId === docId;
     });
 
     if (itemsUsingSource.length > 0) {
@@ -569,12 +566,19 @@ async function deleteItemSourceNode(docId, nodeName) {
     }
 }
 
-export function populateItemSourceLevelButtons(parentId, level, containerElement, pathDisplayElement, tempNodeIdInputElement, currentSelectedPath = []) {
+// ===== 変更箇所: finalSourceDisplayPreviewElement を引数に追加 =====
+export function populateItemSourceLevelButtons(parentId, level, containerElement, pathDisplayElement, tempNodeIdInputElement, currentSelectedPath = [], initialSelectedNodeId = null, finalSourceDisplayPreviewElement = null) {
     if (!containerElement || !pathDisplayElement || !tempNodeIdInputElement) {
         console.error("populateItemSourceLevelButtons: Required DOM elements for item form UI not found.");
         return;
     }
-    
+     // ===== 追加: プレビュー要素がない場合は警告 (ただし処理は続行) =====
+    if (!finalSourceDisplayPreviewElement) {
+        console.warn("populateItemSourceLevelButtons: finalSourceDisplayPreviewElement is not provided. Preview will not be updated.");
+    }
+    // ===== 追加ここまで =====
+
+
     let levelContainer = containerElement.querySelector(`.source-level-container[data-level="${level}"]`);
     if (levelContainer) {
         let sibling = levelContainer.nextElementSibling;
@@ -583,7 +587,7 @@ export function populateItemSourceLevelButtons(parentId, level, containerElement
             sibling = sibling.nextElementSibling;
             toRemove.remove();
         }
-        levelContainer.innerHTML = ''; 
+        levelContainer.innerHTML = '';
     } else {
         levelContainer = document.createElement('div');
         levelContainer.className = 'source-level-container';
@@ -598,24 +602,36 @@ export function populateItemSourceLevelButtons(parentId, level, containerElement
         .filter(s => (s.parentId || "") === (parentId || "") && (s.depth !== undefined && s.depth === level - 1))
         .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
-    const addTreeSourceBtn = document.getElementById('addTreeSourceToListButton'); 
+    const addTreeSourceBtn = document.getElementById('addTreeSourceToListButton');
 
     if (children.length === 0) {
-        // 現在選択されているノードが末端であれば「リストに追加」ボタンを有効化
         if (parentId && tempNodeIdInputElement.value === parentId && addTreeSourceBtn) {
-            addTreeSourceBtn.disabled = false; 
+            addTreeSourceBtn.disabled = false;
         } else if (addTreeSourceBtn) {
-             addTreeSourceBtn.disabled = true; // それ以外（ルートで子なし、選択なし）は無効
+             addTreeSourceBtn.disabled = true;
         }
         if(level === 1 && levelContainer && children.length === 0) levelContainer.innerHTML = '<p style="font-style:italic; color:#777;">この階層に経路がありません。</p>';
+        // ===== 追加: 子がない場合もプレビューを更新 =====
+        if (finalSourceDisplayPreviewElement && tempNodeIdInputElement.value) {
+             const finalDisplay = buildDisplayPathForSourceNode(tempNodeIdInputElement.value, allSources);
+             finalSourceDisplayPreviewElement.value = finalDisplay;
+        } else if (finalSourceDisplayPreviewElement) {
+            finalSourceDisplayPreviewElement.value = ''; // 何も選択されていない場合はクリア
+        }
+        // ===== 追加ここまで =====
         return;
     }
-    if(addTreeSourceBtn) addTreeSourceBtn.disabled = true; 
+    if(addTreeSourceBtn) addTreeSourceBtn.disabled = true;
+    // ===== 追加: 階層ボタンを生成する前にプレビューをクリア =====
+    if (finalSourceDisplayPreviewElement) {
+        finalSourceDisplayPreviewElement.value = '';
+    }
+    // ===== 追加ここまで =====
 
     children.forEach(child => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'category-select-button item-source-select-button'; 
+        button.className = 'category-select-button item-source-select-button';
         button.textContent = child.name;
         if (child.displayString) {
             button.title = `表示名: ${child.displayString}`;
@@ -627,71 +643,72 @@ export function populateItemSourceLevelButtons(parentId, level, containerElement
             levelContainer.querySelectorAll('.item-source-select-button.active').forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
-            tempNodeIdInputElement.value = child.id; 
-            
+            tempNodeIdInputElement.value = child.id;
+
             const newPath = [...currentSelectedPath.slice(0, level - 1), child.name];
             pathDisplayElement.value = newPath.join(' > ');
-            
-            const hasGrandChildren = allSources.some(s => s.parentId === child.id);
-            if (addTreeSourceBtn) addTreeSourceBtn.disabled = hasGrandChildren; // 子がいなければ決定可能
 
-            if (level < MAX_SOURCE_DEPTH + 1) { // MAX_SOURCE_DEPTH は 0-indexed なので、level は 4 まで
-                 populateItemSourceLevelButtons(child.id, level + 1, containerElement, pathDisplayElement, tempNodeIdInputElement, newPath);
+            const hasGrandChildren = allSources.some(s => s.parentId === child.id);
+            if (addTreeSourceBtn) addTreeSourceBtn.disabled = hasGrandChildren;
+
+            // ===== 追加: プレビュー更新 =====
+            if (finalSourceDisplayPreviewElement) {
+                const finalDisplay = buildDisplayPathForSourceNode(child.id, allSources);
+                finalSourceDisplayPreviewElement.value = finalDisplay;
+            }
+            // ===== 追加ここまで =====
+
+
+            if (level < MAX_SOURCE_DEPTH + 1) {
+                 populateItemSourceLevelButtons(child.id, level + 1, containerElement, pathDisplayElement, tempNodeIdInputElement, newPath, null, finalSourceDisplayPreviewElement); // initialSelectedNodeIdは再帰呼び出しでは不要
             }
         });
         levelContainer.appendChild(button);
+
+        // 初期選択ノードIDがこの子ノードと一致する場合、クリックイベントをトリガーして初期状態を復元
+        if (initialSelectedNodeId && child.id === initialSelectedNodeId) {
+            button.click();
+        }
     });
 }
 
-
-// この関数は admin.html の新しいモーダル (selectItemSourceForButtonUIModal) の「この経路に決定」ボタン用
-function confirmSourceSelectionForButtonUI() {
-    // この関数は item-manager.js 側の「リストに追加」ボタン (`addTreeSourceToListButton`) の
-    // クリックハンドラ (`handleAddTreeSource`) で選択されたノードIDとパスを使って処理するため、
-    // モーダル専用のこの関数は実質的に不要になった。
-    // モーダルを閉じる処理は item-manager.js 側で行うか、モーダルに閉じるボタンを設ける。
-    // ここでは、item-manager.js 側のコールバックを使う設計なので、
-    // この関数は、実際にはHTMLからは呼ばれなくなる。
-    // 混乱を避けるため、この関数はコメントアウトまたは削除する。
-    /*
-    const tempNodeIdInput = document.getElementById('selectedItemSourceNodeId_temp'); 
-    const selectedNodeId = tempNodeIdInput ? tempNodeIdInput.value : null;
-    
-    if (selectedNodeId) {
-        const allSources = getItemSourcesFuncCache();
-        const selectedNodeData = allSources.find(s => s.id === selectedNodeId);
-        
-        if (selectedNodeData) {
-            let displayStringForCallback = "";
-            if (selectedNodeData.displayString && selectedNodeData.displayString.trim() !== "") {
-                displayStringForCallback = selectedNodeData.displayString;
-            } else { 
-                const pathParts = [];
-                let currentIdForPath = selectedNodeId;
-                let sanity = 0;
-                while(currentIdForPath && sanity < 10) {
-                    const node = allSources.find(s => s.id === currentIdForPath);
-                    if (node) {
-                        pathParts.unshift(node.name);
-                        currentIdForPath = node.parentId;
-                    } else { break; }
-                    sanity++;
-                }
-                displayStringForCallback = pathParts.join(' > ');
-            }
-
-            if (itemSourceSelectionCallbackForItemManager) {
-                itemSourceSelectionCallbackForItemManager(selectedNodeId, displayStringForCallback);
-            }
-            // モーダルを特定して閉じる
-            const modalToClose = document.getElementById('selectItemSourceForButtonUIModal');
-            if (modalToClose) closeModal(modalToClose.id);
-
-        } else {
-            alert("選択された経路データが見つかりませんでした。");
-        }
-    } else {
-        alert("入手経路が選択されていません（最終ノードが未定です）。");
+// ===== 追加: エクスポート可能なヘルパー関数 =====
+/**
+ * 指定された入手経路ノードIDに基づいて、最終的な表示文字列を構築します。
+ * - ノードに displayString が設定されていれば、それを使用します。
+ * - displayString がなければ、ルートからのパスを構築して使用します。
+ * @param {string} nodeId - 表示パスを構築する対象のノードID。
+ * @param {Array<Object>} allItemSources - 全ての入手経路データの配列（キャッシュ）。
+ * @returns {string} - 最終的に表示される文字列。
+ */
+export function buildDisplayPathForSourceNode(nodeId, allItemSources) {
+    if (!nodeId || !allItemSources || allItemSources.length === 0) {
+        return "経路情報なし";
     }
-    */
+    const node = allItemSources.find(s => s.id === nodeId);
+    if (!node) {
+        return `経路不明 (ID: ${nodeId.substring(0,5)}...)`;
+    }
+
+    if (node.displayString && node.displayString.trim() !== "") {
+        return node.displayString.trim();
+    }
+
+    // displayString がない場合はパスを構築
+    const pathParts = [];
+    let currentId = nodeId;
+    let sanityCheck = 0; // 無限ループ防止
+    while(currentId && sanityCheck < 10) {
+        const currentNodeData = allItemSources.find(s => s.id === currentId);
+        if (currentNodeData) {
+            pathParts.unshift(currentNodeData.name);
+            currentId = currentNodeData.parentId;
+        } else {
+            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // 親が見つからない場合
+            break;
+        }
+        sanityCheck++;
+    }
+    return pathParts.join(' > ');
 }
+// ===== 追加ここまで =====
