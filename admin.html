@@ -129,10 +129,16 @@
                                     {/* JSがここに階層ボタンコンテナを生成 */}
                                 </div>
                                 <div class="form-group">
-                                    <label for="selectedItemSourcePathDisplay">選択中のパス:</label>
-                                    <input type="text" id="selectedItemSourcePathDisplay" readonly placeholder="未選択" aria-label="現在選択中の入手経路パス">
+                                    <label for="selectedItemSourcePathDisplay">選択中のパス (ボタン名):</label>
+                                    <input type="text" id="selectedItemSourcePathDisplay" readonly placeholder="未選択" aria-label="現在選択中の入手経路パス（ボタン名）">
                                     <input type="hidden" id="selectedItemSourceNodeId_temp">
                                 </div>
+                                {/* ===== 追加 ===== */}
+                                <div class="form-group">
+                                    <label for="finalSourceDisplayPreview">最終表示テキストプレビュー:</label>
+                                    <input type="text" id="finalSourceDisplayPreview" readonly placeholder="表示テキストがここにプレビューされます" aria-label="最終表示テキストプレビュー" style="background-color: #e9ecef; cursor: default;">
+                                </div>
+                                {/* ===== 追加ここまで ===== */}
                                 <button type="button" id="addTreeSourceToListButton">選択した経路をリストに追加</button>
                             </div>
                             <div id="manualSourceInputArea" style="display:none;"> 
