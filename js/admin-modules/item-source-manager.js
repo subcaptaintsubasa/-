@@ -22,9 +22,7 @@ const DOMISM = {
     saveItemSourceEditButton: null,
     deleteItemSourceFromEditModalButton: null,
 
-    // ===== 追加 =====
-    finalSourceDisplayPreviewInput: null, // アイテムフォーム内のプレビュー用
-    // ===== 追加ここまで =====
+    finalSourceDisplayPreviewInput: null,
 };
 
 let dbInstance = null;
@@ -61,9 +59,7 @@ export function initItemSourceManager(dependencies) {
     DOMISM.saveItemSourceEditButton = document.getElementById('saveItemSourceEditButton');
     DOMISM.deleteItemSourceFromEditModalButton = document.getElementById('deleteItemSourceFromEditModalButton');
 
-    // ===== 追加 =====
     DOMISM.finalSourceDisplayPreviewInput = document.getElementById('finalSourceDisplayPreview');
-    // ===== 追加ここまで =====
 
 
     if (DOMISM.addItemSourceButton) DOMISM.addItemSourceButton.addEventListener('click', addItemSourceNode);
@@ -107,9 +103,7 @@ export function initItemSourceManager(dependencies) {
     window.adminModules = window.adminModules || {};
     window.adminModules.itemSourceManager = {
         populateItemSourceLevelButtons,
-        // ===== 追加 =====
-        buildDisplayPathForSourceNode, // ヘルパーをエクスポート
-        // ===== 追加ここまで =====
+        buildDisplayPathForSourceNode,
     };
 
     console.log("[ItemSource Manager] Initialized.");
@@ -536,18 +530,17 @@ function getMaxDepthOfSubtree(rootId, allSources) {
 
 async function deleteItemSourceNode(docId, nodeName) {
     const allSources = getItemSourcesFuncCache();
-    const itemsCacheData = getItemsFuncCache(); // getItemsFuncCache を使用
+    const itemsCacheData = getItemsFuncCache();
 
     const children = allSources.filter(s => s.parentId === docId);
     if (children.length > 0) {
         alert(`経路「${nodeName}」は他の経路の親として使用されているため削除できません。先に子経路を削除するか、別の親経路に移動してください。`); return;
     }
 
-    const itemsUsingSource = itemsCacheData.filter(item => { // itemsCacheData を使用
+    const itemsUsingSource = itemsCacheData.filter(item => {
         if (item.sources && Array.isArray(item.sources)) {
             return item.sources.some(s => s.type === 'tree' && s.nodeId === docId);
         }
-        // 古い形式の sourceNodeId もチェック
         return item.sourceNodeId === docId;
     });
 
@@ -566,17 +559,14 @@ async function deleteItemSourceNode(docId, nodeName) {
     }
 }
 
-// ===== 変更箇所: finalSourceDisplayPreviewElement を引数に追加 =====
 export function populateItemSourceLevelButtons(parentId, level, containerElement, pathDisplayElement, tempNodeIdInputElement, currentSelectedPath = [], initialSelectedNodeId = null, finalSourceDisplayPreviewElement = null) {
     if (!containerElement || !pathDisplayElement || !tempNodeIdInputElement) {
         console.error("populateItemSourceLevelButtons: Required DOM elements for item form UI not found.");
         return;
     }
-     // ===== 追加: プレビュー要素がない場合は警告 (ただし処理は続行) =====
     if (!finalSourceDisplayPreviewElement) {
         console.warn("populateItemSourceLevelButtons: finalSourceDisplayPreviewElement is not provided. Preview will not be updated.");
     }
-    // ===== 追加ここまで =====
 
 
     let levelContainer = containerElement.querySelector(`.source-level-container[data-level="${level}"]`);
@@ -611,22 +601,18 @@ export function populateItemSourceLevelButtons(parentId, level, containerElement
              addTreeSourceBtn.disabled = true;
         }
         if(level === 1 && levelContainer && children.length === 0) levelContainer.innerHTML = '<p style="font-style:italic; color:#777;">この階層に経路がありません。</p>';
-        // ===== 追加: 子がない場合もプレビューを更新 =====
         if (finalSourceDisplayPreviewElement && tempNodeIdInputElement.value) {
              const finalDisplay = buildDisplayPathForSourceNode(tempNodeIdInputElement.value, allSources);
              finalSourceDisplayPreviewElement.value = finalDisplay;
         } else if (finalSourceDisplayPreviewElement) {
-            finalSourceDisplayPreviewElement.value = ''; // 何も選択されていない場合はクリア
+            finalSourceDisplayPreviewElement.value = '';
         }
-        // ===== 追加ここまで =====
         return;
     }
     if(addTreeSourceBtn) addTreeSourceBtn.disabled = true;
-    // ===== 追加: 階層ボタンを生成する前にプレビューをクリア =====
     if (finalSourceDisplayPreviewElement) {
         finalSourceDisplayPreviewElement.value = '';
     }
-    // ===== 追加ここまで =====
 
     children.forEach(child => {
         const button = document.createElement('button');
@@ -651,36 +637,24 @@ export function populateItemSourceLevelButtons(parentId, level, containerElement
             const hasGrandChildren = allSources.some(s => s.parentId === child.id);
             if (addTreeSourceBtn) addTreeSourceBtn.disabled = hasGrandChildren;
 
-            // ===== 追加: プレビュー更新 =====
             if (finalSourceDisplayPreviewElement) {
                 const finalDisplay = buildDisplayPathForSourceNode(child.id, allSources);
                 finalSourceDisplayPreviewElement.value = finalDisplay;
             }
-            // ===== 追加ここまで =====
 
 
             if (level < MAX_SOURCE_DEPTH + 1) {
-                 populateItemSourceLevelButtons(child.id, level + 1, containerElement, pathDisplayElement, tempNodeIdInputElement, newPath, null, finalSourceDisplayPreviewElement); // initialSelectedNodeIdは再帰呼び出しでは不要
+                 populateItemSourceLevelButtons(child.id, level + 1, containerElement, pathDisplayElement, tempNodeIdInputElement, newPath, null, finalSourceDisplayPreviewElement);
             }
         });
         levelContainer.appendChild(button);
 
-        // 初期選択ノードIDがこの子ノードと一致する場合、クリックイベントをトリガーして初期状態を復元
         if (initialSelectedNodeId && child.id === initialSelectedNodeId) {
             button.click();
         }
     });
 }
 
-// ===== 追加: エクスポート可能なヘルパー関数 =====
-/**
- * 指定された入手経路ノードIDに基づいて、最終的な表示文字列を構築します。
- * - ノードに displayString が設定されていれば、それを使用します。
- * - displayString がなければ、ルートからのパスを構築して使用します。
- * @param {string} nodeId - 表示パスを構築する対象のノードID。
- * @param {Array<Object>} allItemSources - 全ての入手経路データの配列（キャッシュ）。
- * @returns {string} - 最終的に表示される文字列。
- */
 export function buildDisplayPathForSourceNode(nodeId, allItemSources) {
     if (!nodeId || !allItemSources || allItemSources.length === 0) {
         return "経路情報なし";
@@ -694,21 +668,7 @@ export function buildDisplayPathForSourceNode(nodeId, allItemSources) {
         return node.displayString.trim();
     }
 
-    // displayString がない場合はパスを構築
-    const pathParts = [];
-    let currentId = nodeId;
-    let sanityCheck = 0; // 無限ループ防止
-    while(currentId && sanityCheck < 10) {
-        const currentNodeData = allItemSources.find(s => s.id === currentId);
-        if (currentNodeData) {
-            pathParts.unshift(currentNodeData.name);
-            currentId = currentNodeData.parentId;
-        } else {
-            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // 親が見つからない場合
-            break;
-        }
-        sanityCheck++;
-    }
-    return pathParts.join(' > ');
+    // ===== 変更箇所: displayString がない場合は、選択されたノード自身の名前のみを返す =====
+    return node.name;
+    // ===== ここまで =====
 }
-// ===== 追加ここまで =====
