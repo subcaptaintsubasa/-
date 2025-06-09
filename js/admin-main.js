@@ -111,7 +111,6 @@ async function handleManualBackup() {
     button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">⏳</span>作成中...`;
 
     try {
-        // 全てのデータをキャッシュから取得
         const backupData = {
             version: "1.0",
             createdAt: new Date().toISOString(),
@@ -127,13 +126,10 @@ async function handleManualBackup() {
             }
         };
 
-        // 不要なフィールド（主に復元時に邪魔になるID）をデータから削除する
-        // FirestoreのドキュメントIDはキーとして保持するため、データ内のidフィールドは不要
         Object.values(backupData.collections).forEach(collectionData => {
             if (Array.isArray(collectionData)) {
                 collectionData.forEach(doc => delete doc.id);
             } else if (typeof collectionData === 'object' && collectionData !== null) {
-                // character_bases はオブジェクトなので個別に対応
                 Object.values(collectionData).forEach(subCollection => {
                     if(Array.isArray(subCollection)) {
                         subCollection.forEach(doc => delete doc.id);
@@ -142,26 +138,32 @@ async function handleManualBackup() {
             }
         });
         
-        // itemsのdocIdも削除
         if (backupData.collections.items) {
             backupData.collections.items.forEach(item => delete item.docId);
         }
 
-
         const jsonString = JSON.stringify(backupData, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+        
+        const zip = new JSZip();
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+        const jsonFilename = `backup-data-${timestamp}.json`;
+        const zipFilename = `denpa-item-backup-${timestamp}.zip`;
+
+        zip.file(jsonFilename, jsonString);
+
+        const zipBlob = await zip.generateAsync({type:"blob", compression: "DEFLATE"});
+        
+        const url = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
         
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, ''); // YYYYMMDDHHMMSS
         a.href = url;
-        a.download = `denpa-item-backup-${timestamp}.json`;
+        a.download = zipFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        alert('バックアップファイルのダウンロードが開始されました。');
+        alert('バックアップファイル(ZIP)のダウンロードが開始されました。');
 
     } catch (error) {
         console.error('バックアップ作成中にエラーが発生しました:', error);
