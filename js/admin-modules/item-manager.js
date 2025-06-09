@@ -38,9 +38,7 @@ const DOMI = {
     itemSourceButtonSelectionArea: null,
     selectedItemSourcePathDisplay: null,
     selectedItemSourceNodeId_temp: null,
-    // ===== item-source-manager.js からの変更に合わせてDOM参照を追加 =====
-    finalSourceDisplayPreviewInput: null, // プレビュー表示用
-    // ===== ここまで =====
+    finalSourceDisplayPreviewInput: null,
     addTreeSourceToListButton: null,
     currentSourcesList: null,
 
@@ -123,9 +121,7 @@ export function initItemManager(dependencies) {
     DOMI.itemSourceButtonSelectionArea = document.getElementById('itemSourceButtonSelectionArea');
     DOMI.selectedItemSourcePathDisplay = document.getElementById('selectedItemSourcePathDisplay');
     DOMI.selectedItemSourceNodeId_temp = document.getElementById('selectedItemSourceNodeId_temp');
-    // ===== item-source-manager.js からの変更に合わせてDOM参照を追加 =====
     DOMI.finalSourceDisplayPreviewInput = document.getElementById('finalSourceDisplayPreview');
-    // ===== ここまで =====
     DOMI.addTreeSourceToListButton = document.getElementById('addTreeSourceToListButton');
     DOMI.currentSourcesList = document.getElementById('currentSourcesList');
 
@@ -172,16 +168,14 @@ export function initItemManager(dependencies) {
     if (window.adminModules && window.adminModules.itemSourceManager &&
         typeof window.adminModules.itemSourceManager.populateItemSourceLevelButtons === 'function') {
         window.adminModules.itemSourceManager.populateItemSourceLevelButtons(
-            null, // parentId
-            1,    // level
+            null,
+            1,
             DOMI.itemSourceButtonSelectionArea,
             DOMI.selectedItemSourcePathDisplay,
             DOMI.selectedItemSourceNodeId_temp,
-            [],   // currentSelectedPath
-            null, // initialSelectedNodeId
-            // ===== 変更箇所: finalSourceDisplayPreviewInput を渡す =====
+            [],
+            null,
             DOMI.finalSourceDisplayPreviewInput
-            // ===== ここまで =====
         );
     }
     console.log("[Item Manager] Initialized.");
@@ -224,9 +218,7 @@ function setSourceInputMode(mode) {
                 DOMI.selectedItemSourceNodeId_temp,
                 [],
                 null,
-                // ===== 変更箇所: finalSourceDisplayPreviewInput を渡す =====
                 DOMI.finalSourceDisplayPreviewInput
-                // ===== ここまで =====
             );
         }
     }
@@ -287,9 +279,7 @@ function switchToAddSourceMode() {
     if (DOMI.addManualSourceToListButton) DOMI.addManualSourceToListButton.textContent = '手動入力をリストに追加';
     if (DOMI.selectedItemSourcePathDisplay) DOMI.selectedItemSourcePathDisplay.value = '未選択';
     if (DOMI.selectedItemSourceNodeId_temp) DOMI.selectedItemSourceNodeId_temp.value = '';
-    // ===== 追加: プレビューもクリア =====
     if (DOMI.finalSourceDisplayPreviewInput) DOMI.finalSourceDisplayPreviewInput.value = '';
-    // ===== ここまで =====
     if (DOMI.manualSourceStringTextarea) DOMI.manualSourceStringTextarea.value = '';
     if (currentSourceInputMode === 'tree' && window.adminModules && window.adminModules.itemSourceManager &&
         typeof window.adminModules.itemSourceManager.populateItemSourceLevelButtons === 'function') {
@@ -301,9 +291,7 @@ function switchToAddSourceMode() {
             DOMI.selectedItemSourceNodeId_temp,
             [],
             null,
-            // ===== 変更箇所: finalSourceDisplayPreviewInput を渡す =====
             DOMI.finalSourceDisplayPreviewInput
-            // ===== ここまで =====
         );
     }
 }
@@ -333,11 +321,9 @@ function clearItemFormInternal() {
     renderCurrentItemEffectsListUI();
 
     currentItemSources = [];
-    setSourceInputMode('tree'); // This will call populateItemSourceLevelButtons internally, which should handle the preview input
+    setSourceInputMode('tree');
     renderCurrentItemSourcesListUI();
-    // ===== 追加: フォームクリア時に明示的にプレビューもクリア =====
     if (DOMI.finalSourceDisplayPreviewInput) DOMI.finalSourceDisplayPreviewInput.value = '';
-    // ===== ここまで =====
 
 
     _populateTagButtonsForItemFormInternal();
@@ -612,15 +598,11 @@ function renderCurrentItemEffectsListUI() {
 function handleAddTreeSource() {
     const nodeId = DOMI.selectedItemSourceNodeId_temp.value;
     const displayPath = DOMI.selectedItemSourcePathDisplay.value;
-    // ===== 変更箇所: プレビュー欄から最終表示テキストを取得 =====
     const finalDisplayFromPreview = DOMI.finalSourceDisplayPreviewInput ? DOMI.finalSourceDisplayPreviewInput.value : "";
-    // ===== ここまで =====
 
     if (!nodeId) { alert("入手経路を選択してください（リストに追加するには、いずれかの経路ボタンが選択されている状態である必要があります）。"); return; }
 
-    // ===== 変更箇所: resolvedDisplay にプレビューのテキストを使用 =====
-    const newSource = { type: "tree", nodeId: nodeId, resolvedDisplay: finalDisplayFromPreview || displayPath }; // フォールバックとしてボタンパス名
-    // ===== ここまで =====
+    const newSource = { type: "tree", nodeId: nodeId, resolvedDisplay: finalDisplayFromPreview || displayPath };
 
     if (itemSourceEditMode && itemSourceEditingIndex >= 0 && itemSourceEditingIndex < currentItemSources.length) {
         currentItemSources[itemSourceEditingIndex] = newSource;
@@ -688,11 +670,9 @@ function renderCurrentItemSourcesListUI() {
                 } else {
                     setSourceInputMode('tree');
                     if(DOMI.selectedItemSourceNodeId_temp) DOMI.selectedItemSourceNodeId_temp.value = sourceToEdit.nodeId;
-                    // ===== 変更箇所: resolvedDisplay を pathDisplay と preview の両方に設定 =====
                     const displayForPathAndPreview = sourceToEdit.resolvedDisplay || "";
-                    if(DOMI.selectedItemSourcePathDisplay) DOMI.selectedItemSourcePathDisplay.value = displayForPathAndPreview; // ここはボタンパス名よりresolvedDisplayを優先
+                    if(DOMI.selectedItemSourcePathDisplay) DOMI.selectedItemSourcePathDisplay.value = displayForPathAndPreview;
                     if(DOMI.finalSourceDisplayPreviewInput) DOMI.finalSourceDisplayPreviewInput.value = displayForPathAndPreview;
-                    // ===== ここまで =====
 
                     if(DOMI.addTreeSourceToListButton) DOMI.addTreeSourceToListButton.textContent = '選択経路を更新';
                     if(DOMI.addManualSourceToListButton) DOMI.addManualSourceToListButton.textContent = '手動入力をリストに追加';
@@ -705,11 +685,9 @@ function renderCurrentItemSourcesListUI() {
                             DOMI.itemSourceButtonSelectionArea,
                             DOMI.selectedItemSourcePathDisplay,
                             DOMI.selectedItemSourceNodeId_temp,
-                            [], // パスの再構築は populate... 関数内で行われる
-                            sourceToEdit.nodeId, // 初期選択ノードID
-                            // ===== 変更箇所: finalSourceDisplayPreviewInput を渡す =====
+                            [],
+                            sourceToEdit.nodeId,
                             DOMI.finalSourceDisplayPreviewInput
-                            // ===== ここまで =====
                         );
                     }
                 }
@@ -885,7 +863,7 @@ export function _renderItemsAdminTableInternal() {
     const allTags = getAllTagsFuncCache();
     const effectTypesCache = getEffectTypesFuncCache();
     const effectUnitsCache = getEffectUnitsFuncCache();
-    const itemSourcesCacheData = getItemSourcesFuncCache(); // itemSourcesCache を itemSourcesCacheData に変更
+    const itemSourcesCacheData = getItemSourcesFuncCache();
     DOMI.itemsTableBody.innerHTML = '';
 
     const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
@@ -956,11 +934,13 @@ export function _renderItemsAdminTableInternal() {
                     sourceDisplayHtml += `<li>・${src.manualString ? src.manualString.replace(/\n/g, '<br>') : ''}</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
                     let pathText = src.resolvedDisplay;
-                    if (!pathText && window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildDisplayPathForSourceNode === 'function') {
-                        pathText = window.adminModules.itemSourceManager.buildDisplayPathForSourceNode(src.nodeId, itemSourcesCacheData);
-                    } else if (!pathText) {
-                        pathText = `経路ID: ${src.nodeId.substring(0,8)}...`;
+                    // ===== 変更箇所: buildFullPathForSourceNode を使用 =====
+                    if (!pathText && window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildFullPathForSourceNode === 'function') {
+                        pathText = window.adminModules.itemSourceManager.buildFullPathForSourceNode(src.nodeId, itemSourcesCacheData);
+                    } else if (!pathText) { // フォールバック
+                        pathText = `経路ID: ${src.nodeId.substring(0,8)}... (表示不可)`;
                     }
+                    // ===== ここまで =====
                     sourceDisplayHtml += `<li>・${pathText}</li>`;
                 }
             });
@@ -968,9 +948,11 @@ export function _renderItemsAdminTableInternal() {
             sourceDisplayHtml += `<li>・${item.manualSourceString.replace(/\n/g, '<br>')}</li>`;
         } else if (item.sourceNodeId && itemSourcesCacheData.length > 0) {
             let pathText = `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
-            if (window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildDisplayPathForSourceNode === 'function') {
-                pathText = window.adminModules.itemSourceManager.buildDisplayPathForSourceNode(item.sourceNodeId, itemSourcesCacheData);
+            // ===== 変更箇所: buildFullPathForSourceNode を使用 =====
+            if (window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildFullPathForSourceNode === 'function') {
+                pathText = window.adminModules.itemSourceManager.buildFullPathForSourceNode(item.sourceNodeId, itemSourcesCacheData);
             }
+            // ===== ここまで =====
             sourceDisplayHtml += `<li>・${pathText}</li>`;
         } else if (item.入手手段) {
              sourceDisplayHtml += `<li>・${item.入手手段}</li>`;
@@ -1036,11 +1018,13 @@ async function loadItemForEdit(docId) {
                 currentItemSources = JSON.parse(JSON.stringify(itemData.sources));
                 for (const src of currentItemSources) {
                     if(src.type === 'tree' && src.nodeId && !src.resolvedDisplay) {
+                        // ===== 変更箇所: buildDisplayPathForSourceNode (末端名またはdisplayString) を使用 =====
                         if (window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildDisplayPathForSourceNode === 'function') {
                              src.resolvedDisplay = window.adminModules.itemSourceManager.buildDisplayPathForSourceNode(src.nodeId, getItemSourcesFuncCache());
-                        } else {
+                        } else { // フォールバック
                              src.resolvedDisplay = `経路ID(再構築不可): ${src.nodeId.substring(0,8)}...`;
                         }
+                        // ===== ここまで =====
                     }
                 }
             } else {
@@ -1049,9 +1033,11 @@ async function loadItemForEdit(docId) {
                     currentItemSources.push({ type: 'manual', manualString: itemData.manualSourceString });
                 } else if (itemData.sourceNodeId) {
                     let display = `ID:${itemData.sourceNodeId.substring(0,5)}..`;
+                     // ===== 変更箇所: buildDisplayPathForSourceNode (末端名またはdisplayString) を使用 =====
                     if (window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildDisplayPathForSourceNode === 'function') {
                         display = window.adminModules.itemSourceManager.buildDisplayPathForSourceNode(itemData.sourceNodeId, getItemSourcesFuncCache());
                     }
+                     // ===== ここまで =====
                     currentItemSources.push({ type: 'tree', nodeId: itemData.sourceNodeId, resolvedDisplay: display });
                 } else if (itemData.入手手段) {
                      currentItemSources.push({ type: 'manual', manualString: itemData.入手手段 });
@@ -1059,9 +1045,7 @@ async function loadItemForEdit(docId) {
             }
             renderCurrentItemSourcesListUI();
             setSourceInputMode('tree');
-            // ===== 変更箇所: 編集読み込み時に、選択式入手手段のプレビューも初期化 =====
             if (DOMI.finalSourceDisplayPreviewInput) DOMI.finalSourceDisplayPreviewInput.value = '';
-            // もし、編集対象アイテムの最初の tree source があれば、それを populateItemSourceLevelButtons で初期選択し、プレビューも更新
             const firstTreeSource = currentItemSources.find(s => s.type === 'tree' && s.nodeId);
             if (firstTreeSource && window.adminModules && window.adminModules.itemSourceManager &&
                 typeof window.adminModules.itemSourceManager.populateItemSourceLevelButtons === 'function') {
@@ -1072,12 +1056,10 @@ async function loadItemForEdit(docId) {
                     DOMI.selectedItemSourcePathDisplay,
                     DOMI.selectedItemSourceNodeId_temp,
                     [],
-                    firstTreeSource.nodeId, // このノードを初期選択
+                    firstTreeSource.nodeId,
                     DOMI.finalSourceDisplayPreviewInput
                 );
-                // populateItemSourceLevelButtons がプレビューを更新するはず
             }
-            // ===== ここまで =====
 
 
             _populateTagButtonsForItemFormInternal(itemData.tags || []);
