@@ -104,6 +104,9 @@ export function initItemSourceManager(dependencies) {
     window.adminModules.itemSourceManager = {
         populateItemSourceLevelButtons,
         buildDisplayPathForSourceNode,
+        // ===== 追加: 新しいヘルパーをエクスポート =====
+        buildFullPathForSourceNode,
+        // ===== 追加ここまで =====
     };
 
     console.log("[ItemSource Manager] Initialized.");
@@ -655,6 +658,14 @@ export function populateItemSourceLevelButtons(parentId, level, containerElement
     });
 }
 
+/**
+ * 指定された入手経路ノードIDに基づいて、最終的な表示文字列を構築します。
+ * - ノードに displayString が設定されていれば、それを使用します。
+ * - displayString がなければ、選択されたノード自身の名前のみを返します。
+ * @param {string} nodeId - 表示パスを構築する対象のノードID。
+ * @param {Array<Object>} allItemSources - 全ての入手経路データの配列（キャッシュ）。
+ * @returns {string} - 最終的に表示される文字列。
+ */
 export function buildDisplayPathForSourceNode(nodeId, allItemSources) {
     if (!nodeId || !allItemSources || allItemSources.length === 0) {
         return "経路情報なし";
@@ -667,8 +678,36 @@ export function buildDisplayPathForSourceNode(nodeId, allItemSources) {
     if (node.displayString && node.displayString.trim() !== "") {
         return node.displayString.trim();
     }
-
-    // ===== 変更箇所: displayString がない場合は、選択されたノード自身の名前のみを返す =====
     return node.name;
-    // ===== ここまで =====
 }
+
+// ===== 追加: 新しいヘルパー関数 =====
+/**
+ * 指定された入手経路ノードIDに基づいて、完全な階層パス文字列を構築します。
+ * 例: "ダンジョンA > フロア1 > ボス部屋"
+ * @param {string} nodeId - 表示パスを構築する対象のノードID。
+ * @param {Array<Object>} allItemSources - 全ての入手経路データの配列（キャッシュ）。
+ * @returns {string} - 完全な階層パス文字列。
+ */
+export function buildFullPathForSourceNode(nodeId, allItemSources) {
+    if (!nodeId || !allItemSources || allItemSources.length === 0) {
+        return "経路情報なし";
+    }
+
+    const pathParts = [];
+    let currentId = nodeId;
+    let sanityCheck = 0;
+    while(currentId && sanityCheck < 10) { // MAX_SOURCE_DEPTH より少し大きめに設定
+        const node = allItemSources.find(s => s.id === currentId);
+        if (node) {
+            pathParts.unshift(node.name);
+            currentId = node.parentId;
+        } else {
+            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // 親が見つからない場合
+            break;
+        }
+        sanityCheck++;
+    }
+    return pathParts.join(' > ');
+}
+// ===== 追加ここまで =====
