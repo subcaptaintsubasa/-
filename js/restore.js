@@ -1,9 +1,8 @@
-// js/restore.js (ID再接続パズルツール - ID修正版)
+// js/restore.js (ID再接続パズルツール - 最終版)
 import { auth, db } from '../firebase-config.js';
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import { collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-// ★★★ DOM定義の修正 ★★★
 const DOM = {
     passwordPrompt: document.getElementById('password-prompt'),
     mainContent: document.getElementById('main-content'),
@@ -14,7 +13,7 @@ const DOM = {
     passwordError: document.getElementById('passwordError'),
     backupFileInput: document.getElementById('backupFile'),
     analyzeButton: document.getElementById('analyzeButton'),
-    tasksArea: document.getElementById('tasksArea'), // categoryTasks -> tasksArea に変更
+    tasksArea: document.getElementById('tasksArea'),
 };
 
 // --- 認証 (変更なし) ---
@@ -37,83 +36,83 @@ DOM.analyzeButton.addEventListener('click', async () => {
 
     DOM.analyzeButton.disabled = true;
     DOM.analyzeButton.textContent = '分析中...';
-    // ★★★ DOM変数名の修正 ★★★
-    DOM.tasksArea.style.display = 'block';
     DOM.tasksArea.innerHTML = '<p>データを読み込んで分析しています...</p>';
+    DOM.tasksArea.style.display = 'block';
 
     try {
         const oldBackupString = await file.text();
         const oldData = JSON.parse(oldBackupString).collections;
 
-        const newDataSnapshot = await getDocs(collection(db, 'categories'));
-        const newCategories = newDataSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        
+        const snapshot = await getDocs(collection(db, 'categories'));
+        const newCategories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         const newParentCategories = newCategories.filter(c => !c.parentId);
 
-        // ★★★ DOM変数名の修正 ★★★
         DOM.tasksArea.innerHTML = '<h3>カテゴリの親子関係 再接続</h3>';
         
-        // 古いデータから親子関係のグループを作成
-        const oldChildrenByParentId = oldData.categories
+        // ★★★ 新ロジック: 古いバックアップから親子関係の「名前のペア」を作成 ★★★
+        const oldParentIdToNameMap = new Map();
+        oldData.categories.forEach(c => {
+            // バックアップに自身のIDがないため、名前をキーにする
+            oldParentIdToNameMap.set(c.name, c.parentId);
+        });
+
+        // 現在のDBデータから、同じ親を持つ子をグループ化
+        const childrenGroupedByCurrentParent = newCategories
             .filter(c => c.parentId)
             .reduce((acc, cat) => {
                 const parentId = cat.parentId;
                 if (!acc[parentId]) acc[parentId] = [];
-                acc[parentId].push(cat.name);
+                acc[parentId].push(cat);
                 return acc;
             }, {});
 
         // グループごとにUIを生成
-        for (const oldParentId in oldChildrenByParentId) {
-            const oldChildrenNames = oldChildrenByParentId[oldParentId];
-            const oldParent = oldData.categories.find(c => c.id === oldParentId);
-
-            if (!oldParent) continue;
+        for (const currentParentId in childrenGroupedByCurrentParent) {
+            const childrenGroup = childrenGroupedByCurrentParent[currentParentId];
+            
+            // このグループの代表として、最初の子供の古い親の名前を取得
+            const representativeChild = childrenGroup[0];
+            const oldParentIdForThisGroup = oldParentIdToNameMap.get(representativeChild.name);
+            const oldParent = oldData.categories.find(c => c.id === oldParentIdForThisGroup);
+            const oldParentName = oldParent ? oldParent.name : "不明(元々親なし？)";
 
             const groupDiv = document.createElement('div');
             groupDiv.className = 'task-group';
             groupDiv.innerHTML = `
-                <p>以下のグループは、本来「<strong>${oldParent.name}</strong>」の子カテゴリでした。</p>
-                <ul>${oldChildrenNames.map(name => `<li>${name}</li>`).join('')}</ul>
+                <p>以下のグループは、本来は「<strong>${oldParentName}</strong>」の子カテゴリでした。</p>
+                <ul>${childrenGroup.map(c => `<li>${c.name}</li>`).join('')}</ul>
             `;
             
             const taskItem = document.createElement('div');
             taskItem.className = 'task-item';
 
             const selectorLabel = document.createElement('label');
-            selectorLabel.textContent = '現在の親カテゴリから正しいものを選択 →';
+            selectorLabel.textContent = '割り当てる新しい親を選択 →';
             
             const selector = document.createElement('select');
-            selector.innerHTML = `<option value="">選択してください...</option>`;
+            selector.innerHTML = `<option value="">親なし (最上位にする)</option>`;
             newParentCategories.forEach(p => {
-                const isRecommended = p.name === oldParent.name;
-                selector.innerHTML += `<option value="${p.id}" ${isRecommended ? 'selected' : ''}>${p.name} ${isRecommended ? '(推奨)' : ''}</option>`;
+                selector.innerHTML += `<option value="${p.id}">${p.name}</option>`;
             });
-
+            
             const updateButton = document.createElement('button');
             updateButton.textContent = 'このグループの親を更新';
             updateButton.onclick = async () => {
                 const newParentId = selector.value;
-                if (!newParentId) {
-                    alert('親カテゴリを選択してください。');
-                    return;
-                }
-                if (!confirm(`このグループの親を「${newParentCategories.find(p=>p.id===newParentId).name}」に設定します。よろしいですか？`)) return;
+                const newParentName = newParentId ? newParentCategories.find(p=>p.id===newParentId).name : "なし";
+                if (!confirm(`このグループ(${childrenGroup.length}件)の親を「${newParentName}」に設定します。よろしいですか？`)) return;
                 
                 updateButton.disabled = true;
                 updateButton.textContent = '更新中...';
 
                 try {
                     const batch = writeBatch(db);
-                    const childrenToUpdate = newCategories.filter(c => oldChildrenNames.includes(c.name));
-                    
-                    childrenToUpdate.forEach(child => {
+                    childrenGroup.forEach(child => {
                         const docRef = doc(db, 'categories', child.id);
                         batch.update(docRef, { parentId: newParentId });
                     });
-                    
                     await batch.commit();
-                    alert('更新しました！');
+                    alert('更新が完了しました！');
                     groupDiv.style.border = '2px solid #28a745';
                     groupDiv.style.backgroundColor = '#d4edda';
                 } catch (err) {
@@ -127,12 +126,10 @@ DOM.analyzeButton.addEventListener('click', async () => {
             taskItem.appendChild(selector);
             taskItem.appendChild(updateButton);
             groupDiv.appendChild(taskItem);
-            // ★★★ DOM変数名の修正 ★★★
             DOM.tasksArea.appendChild(groupDiv);
         }
         
     } catch (error) {
-        // ★★★ DOM変数名の修正 ★★★
         DOM.tasksArea.innerHTML = `<p style="color: red;">エラー: ${error.message}</p>`;
         console.error(error);
     } finally {
