@@ -3,25 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID再マッピングツール</title>
+    <title>カテゴリ親子関係 復旧ツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
     <style>
         body { background-color: #f0f8ff; }
-        .container { max-width: 1200px; margin: 30px auto; padding: 30px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .container { max-width: 1200px; margin: 30px auto; padding: 30px; }
         .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
-        .mapping-section { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 5px; }
-        .mapping-section h3 { margin-top: 0; }
-        .mapping-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-        .mapping-row:last-child { border-bottom: none; }
-        .mapping-row .group-members { font-size: 0.9em; line-height: 1.4; }
-        .apply-all-button { font-size: 1.2em; padding: 15px; width: 100%; margin-top: 20px; background-color: #28a745; }
-        .apply-all-button:hover { background-color: #218838; }
+        .task-group { border: 1px solid #ccc; border-radius: 5px; padding: 20px; margin-bottom: 20px; }
+        .task-group h3 { margin-top: 0; }
+        .task-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
+        .task-item:last-child { border-bottom: none; }
+        .task-item .child-list { flex: 1; }
     </style>
 </head>
 <body id="admin-page">
     <div id="password-prompt">
-        <h2>ID再マッピングツール ログイン</h2>
+        <h2>復旧ツール ログイン</h2>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
         <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
         <button id="loginButton" type="button">ログイン</button>
@@ -30,17 +28,18 @@
 
     <div id="main-content" class="container" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>ID再マッピングツール</h1>
+            <h1>カテゴリ親子関係 復旧ツール</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
 
         <div class="info-box">
             <h3>使い方</h3>
-            <p>このツールは、IDの関連性が失われたデータベースを、古いバックアップファイルを参考に、パズルを組み合わせるように修復します。</p>
+            <p>IDの関連性が失われたカテゴリの「親子関係」を再設定します。</p>
             <ol>
-                <li><strong>IDが壊れる前</strong>のバックアップJSONファイルを選択し、「マッピングリストを作成」ボタンを押してください。</li>
-                <li>各セクションで、左側に表示される「現在のグループ」が、右側のどの「元の名前」に該当するかをドロップダウンから選択してください。</li>
-                <li>すべての対応付けが完了したら、一番下の「全ての変更をデータベースに適用」ボタンを押してデータを修復します。</li>
+                <li><strong>IDが壊れる前</strong>のバックアップJSONファイルを選択してください。</li>
+                <li>「分析開始」ボタンを押し、現在の親子関係グループを読み込みます。</li>
+                <li>各グループごとに、ドロップダウンから**本来の正しい親カテゴリ**を選択します。ツールが候補を「(推奨)」として表示します。</li>
+                <li>「このグループの親を更新」ボタンを押すと、選択した子カテゴリすべての`parentId`が一括で更新されます。</li>
             </ol>
         </div>
 
@@ -49,33 +48,9 @@
             <input type="file" id="backupFile" accept="application/json,.json">
         </div>
 
-        <button id="generateMapButton" type="button" disabled>マッピングリストを作成</button>
-        
-        <div id="mappingArea" style="display: none; margin-top: 20px;">
-            <!-- カテゴリの親子関係 -->
-            <section id="categoryParentMapping" class="mapping-section">
-                <h3>1. カテゴリの親子関係の再設定</h3>
-                <p>以下のグループが、どの「親カテゴリ」に所属していたか選択してください。</p>
-                <div id="categoryParentMapContainer"></div>
-            </section>
-            
-            <!-- タグのカテゴリ所属 -->
-            <section id="tagCategoryMapping" class="mapping-section">
-                <h3>2. タグの所属カテゴリの再設定</h3>
-                <p>以下のタグが、どの「子カテゴリ」に所属していたか選択してください。</p>
-                <div id="tagCategoryMapContainer"></div>
-            </section>
+        <button id="analyzeButton" type="button" disabled>分析開始</button>
 
-            <!-- アイテムのタグ付け -->
-            <section id="itemTagMapping" class="mapping-section">
-                 <h3>3. アイテムのタグの再設定</h3>
-                 <p>以下のアイテムに、どのタグが付けられていたか選択してください。（複数選択可）</p>
-                 <div id="itemTagMapContainer"></div>
-            </section>
-            
-            <hr>
-            <button id="applyAllButton" class="apply-all-button" type="button">全ての変更をデータベースに適用</button>
-        </div>
+        <div id="categoryTasks" style="margin-top: 30px;"></div>
     </div>
 
     <script type="module" src="js/restore.js"></script>
