@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カテゴリ親子関係 復旧ツール</title>
+    <title>ID再設定 支援ツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
     <style>
@@ -19,7 +19,7 @@
 </head>
 <body id="admin-page">
     <div id="password-prompt">
-        <h2>復旧ツール ログイン</h2>
+        <h2>支援ツール ログイン</h2>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
         <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
         <button id="loginButton" type="button">ログイン</button>
@@ -28,19 +28,19 @@
 
     <div id="main-content" class="container" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>カテゴリ親子関係 復旧ツール</h1>
+            <h1>ID再設定 支援ツール</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
 
         <div class="info-box">
             <h3>使い方</h3>
-            <p>IDの関連性が失われたカテゴリの「親子関係」を再設定します。</p>
+            <p>IDの関連性が失われた現在のデータベースを、古いバックアップファイルを参考に手動で修正する作業を支援します。</p>
             <ol>
                 <li><strong>IDが壊れる前</strong>のバックアップJSONファイルを選択してください。</li>
                 <li>「分析開始」ボタンを押し、現在の親子関係グループを読み込みます。</li>
-                <li>各グループごとに、ドロップダウンから**本来の正しい親カテゴリ**を選択します。ツールが候補を「(推奨)」として表示します。</li>
-                <li>「このグループの親を更新」ボタンを押すと、選択した子カテゴリすべての`parentId`が一括で更新されます。</li>
+                <li>下に表示されるリストを参考に、<strong>別のタブで開いた管理画面 (`admin.html`)</strong> で、各項目を一つずつ修正・保存してください。</li>
             </ol>
+            <p style="font-weight: bold;">このツールはデータベースを自動で書き換えません。すべての修正は管理画面から手動で行います。</p>
         </div>
 
         <div class="form-group">
@@ -48,10 +48,9 @@
             <input type="file" id="backupFile" accept="application/json,.json">
         </div>
 
-        <button id="analyzeButton" type="button" disabled>分析開始</button>
+        <button id="analyzeButton" type="button" disabled>分析して修正リストを作成</button>
 
-        <!-- ★★★ ここのIDを修正 ★★★ -->
-        <div id="categoryTasks" style="margin-top: 30px;"></div>
+        <div id="tasksArea" style="margin-top: 30px;"></div>
     </div>
 
     <script type="module" src="js/restore.js"></script>
