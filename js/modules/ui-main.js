@@ -1,17 +1,17 @@
 // js/modules/ui-main.js
-import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js'; 
+import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js';
 
 let getIsSelectingForSimulatorCb = () => false;
 let cancelItemSelectionCb = () => {};
 let initializeSimulatorDisplayCb = () => {};
-let itemSourcesCacheForUI = []; 
+let itemSourcesCacheForUI = [];
 
 const DOM = {
     sideNav: null,
     hamburgerButton: null,
     closeNavButton: null,
     openSimulatorButtonNav: null,
-    itemDetailModal: null, 
+    itemDetailModal: null,
     itemDetailContent: null,
     simulatorModal: null,
     imagePreviewModal: null,
@@ -25,13 +25,13 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     getIsSelectingForSimulatorCb = getIsSelectingForSimulator;
     cancelItemSelectionCb = cancelItemSelection;
     initializeSimulatorDisplayCb = initializeSimulatorDisplay;
-    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); 
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader();
 
     DOM.sideNav = document.getElementById('sideNav');
     DOM.hamburgerButton = document.getElementById('hamburgerButton');
     DOM.closeNavButton = document.getElementById('closeNavButton');
     DOM.openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
-    
+
     DOM.itemDetailModal = document.getElementById('itemDetailModal');
     DOM.itemDetailContent = document.getElementById('itemDetailContent');
     DOM.simulatorModal = document.getElementById('simulatorModal');
@@ -58,7 +58,7 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
             if (getIsSelectingForSimulatorCb()) {
                 return;
             }
-            if (DOM.simulatorModal) { 
+            if (DOM.simulatorModal) {
                 DOM.simulatorModal.style.display = 'flex';
                 if(initializeSimulatorDisplayCb) initializeSimulatorDisplayCb();
             }
@@ -76,18 +76,18 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
         }
         if (!modal.dataset.overlayListenerAttached) {
             modal.addEventListener('click', function(event) {
-                if (event.target === this) { 
+                if (event.target === this) {
                     handleCloseButtonClick(this);
                 }
             });
             modal.dataset.overlayListenerAttached = 'true';
         }
     });
-    
+
     document.addEventListener('click', (event) => {
-        if (DOM.sideNav && DOM.sideNav.classList.contains('open') && 
-            !DOM.sideNav.contains(event.target) && 
-            event.target !== DOM.hamburgerButton && 
+        if (DOM.sideNav && DOM.sideNav.classList.contains('open') &&
+            !DOM.sideNav.contains(event.target) &&
+            event.target !== DOM.hamburgerButton &&
             !event.target.closest('.side-navigation')) {
             DOM.sideNav.classList.remove('open');
         }
@@ -105,26 +105,40 @@ function getRarityStarsHTML(rarityValue, maxStars = 5) {
     return starsHtml;
 }
 
-function buildPathForItemSource(nodeId, allItemSources) {
+// ===== 変更箇所: item-source-manager.js の buildFullPathForSourceNode と同様のロジックをここに実装 =====
+/**
+ * 指定された入手経路ノードIDに基づいて、完全な階層パス文字列を構築します。
+ * 例: "ダンジョンA > フロア1 > ボス部屋"
+ * @param {string} nodeId - 表示パスを構築する対象のノードID。
+ * @param {Array<Object>} allItemSources - 全ての入手経路データの配列（キャッシュ）。
+ * @returns {string} - 完全な階層パス文字列。
+ */
+function buildFullPathForItemSourceInternal(nodeId, allItemSources) {
+    if (!nodeId || !allItemSources || allItemSources.length === 0) {
+        return "経路情報なし";
+    }
+
     const pathParts = [];
     let currentId = nodeId;
     let sanityCheck = 0;
-    while (currentId && sanityCheck < 10) {
+    while(currentId && sanityCheck < 10) { // MAX_SOURCE_DEPTH より少し大きめに設定
         const node = allItemSources.find(s => s.id === currentId);
         if (node) {
             pathParts.unshift(node.name);
             currentId = node.parentId;
         } else {
-            pathParts.unshift(`[不明なID:${currentId.substring(0,5)}...]`);
+            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // 親が見つからない場合
             break;
         }
         sanityCheck++;
     }
     return pathParts.join(' > ');
 }
+// ===== ここまで =====
+
 
 export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
-    const currentItemDetailModal = document.getElementById('itemDetailModal'); 
+    const currentItemDetailModal = document.getElementById('itemDetailModal');
     const currentItemDetailContent = document.getElementById('itemDetailContent');
 
     if (!item || !currentItemDetailContent || !currentItemDetailModal) {
@@ -132,9 +146,9 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         return;
     }
     console.log("[ui-main] Opening item detail modal for:", item.name, JSON.parse(JSON.stringify(item)));
-    itemSourcesCacheForUI = getItemSourcesCacheFromLoader(); // 念のため最新を取得
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader();
 
-    currentItemDetailContent.innerHTML = ''; 
+    currentItemDetailContent.innerHTML = '';
 
     const cardFull = document.createElement('div');
     cardFull.classList.add('item-card-full');
@@ -148,7 +162,6 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
 
     const rarityHtml = getRarityStarsHTML(item.rarity || 0);
 
-    // 効果表示
     let effectsDisplayHtml = '<p><strong>効果:</strong> なし</p>';
     if (item.effects && Array.isArray(item.effects) && item.effects.length > 0) {
         effectsDisplayHtml = '<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
@@ -169,12 +182,12 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
             }
         });
         effectsDisplayHtml += '</ul></div>';
-    } else if (item.effectsInputMode === 'manual' && typeof item.manualEffectsString === 'string' && item.manualEffectsString.trim() !== "") { // 古いデータフォールバック
+    } else if (item.effectsInputMode === 'manual' && typeof item.manualEffectsString === 'string' && item.manualEffectsString.trim() !== "") {
         effectsDisplayHtml = `<div class="structured-effects"><strong>効果:</strong><p style="margin-top: 5px;">${item.manualEffectsString.replace(/\n/g, '<br>')}</p></div>`;
-    } else if (item.structured_effects && item.structured_effects.length > 0 ) { // さらに古いデータフォールバック
+    } else if (item.structured_effects && item.structured_effects.length > 0 ) {
         effectsDisplayHtml = '<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
         item.structured_effects.forEach(eff => {
-            const effectType = effectTypesCache.find(et => et.id === eff.type); // 古い形式では effectTypeId ではなく type
+            const effectType = effectTypesCache.find(et => et.id === eff.type);
             const typeName = effectType ? effectType.name : `不明`;
             let effectTextPart = eff.value !== undefined ? eff.value.toString() : '';
             if (eff.unit && eff.unit !== 'none') {
@@ -189,39 +202,50 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     }
 
 
-    // 入手手段表示
     let sourcesDisplayHtml = '<p><strong>入手手段:</strong> 不明</p>';
     if (item.sources && Array.isArray(item.sources) && item.sources.length > 0) {
-        if (item.sources.length === 1) { // 1つの場合はリストにしない
+        if (item.sources.length === 1) {
             const src = item.sources[0];
             let text = '不明';
             if (src.type === 'manual') {
                 text = src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(記載なし)';
             } else if (src.type === 'tree' && src.nodeId) {
-                const node = itemSourcesCacheForUI.find(s => s.id === src.nodeId);
-                text = (node && node.displayString && node.displayString.trim() !== "") ? node.displayString : buildPathForItemSource(src.nodeId, itemSourcesCacheForUI);
+                // ===== 変更箇所: resolvedDisplay を優先し、なければ完全パスを構築 =====
+                if (src.resolvedDisplay) { // resolvedDisplay は「末端名 or displayString」のはず
+                    text = src.resolvedDisplay;
+                } else { // resolvedDisplay がない場合 (古いデータなど)、完全パスを構築
+                    text = buildFullPathForItemSourceInternal(src.nodeId, itemSourcesCacheForUI);
+                }
+                // ===== ここまで =====
             }
             sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${text}</p>`;
-        } else { // 複数の場合
+        } else {
             sourcesDisplayHtml = '<div style="margin-top: 10px;"><strong>入手手段:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
             item.sources.forEach(src => {
                 if (src.type === 'manual') {
                     sourcesDisplayHtml += `<li>${src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(記載なし)'}</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
-                    const node = itemSourcesCacheForUI.find(s => s.id === src.nodeId);
-                    const pathText = (node && node.displayString && node.displayString.trim() !== "") ? node.displayString : buildPathForItemSource(src.nodeId, itemSourcesCacheForUI);
+                    // ===== 変更箇所: resolvedDisplay を優先し、なければ完全パスを構築 =====
+                    let pathText;
+                    if (src.resolvedDisplay) {
+                        pathText = src.resolvedDisplay;
+                    } else {
+                        pathText = buildFullPathForItemSourceInternal(src.nodeId, itemSourcesCacheForUI);
+                    }
+                    // ===== ここまで =====
                     sourcesDisplayHtml += `<li>${pathText}</li>`;
                 }
             });
             sourcesDisplayHtml += '</ul></div>';
         }
-    } else if (item.sourceInputMode === 'manual' && typeof item.manualSourceString === 'string' && item.manualSourceString.trim() !== "") { // 古いデータフォールバック
+    } else if (item.sourceInputMode === 'manual' && typeof item.manualSourceString === 'string' && item.manualSourceString.trim() !== "") {
         sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${item.manualSourceString.replace(/\n/g, '<br>')}</p>`;
-    } else if (item.sourceNodeId && itemSourcesCacheForUI && itemSourcesCacheForUI.length > 0) { // 古いデータフォールバック
-        const node = itemSourcesCacheForUI.find(s => s.id === item.sourceNodeId);
-        const text = (node && node.displayString && node.displayString.trim() !== "") ? node.displayString : buildPathForItemSource(item.sourceNodeId, itemSourcesCacheForUI);
+    } else if (item.sourceNodeId && itemSourcesCacheForUI && itemSourcesCacheForUI.length > 0) {
+        // ===== 変更箇所: 古い形式でも完全パスを構築 =====
+        const text = buildFullPathForItemSourceInternal(item.sourceNodeId, itemSourcesCacheForUI);
+        // ===== ここまで =====
         sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${text} (旧形式)</p>`;
-    } else if (typeof item.入手手段 === 'string' && item.入手手段.trim() !== "") { // 最も古いデータ形式
+    } else if (typeof item.入手手段 === 'string' && item.入手手段.trim() !== "") {
          sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${item.入手手段} (最旧形式)</p>`;
     }
 
@@ -235,7 +259,7 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         }).filter(Boolean);
 
         if (displayableTags.length > 0) {
-            tagsHtml = `<div class="tags" style="margin-top:10px;"><strong>タグ:</strong> ${displayableTags.join(' ')}</div>`; 
+            tagsHtml = `<div class="tags" style="margin-top:10px;"><strong>タグ:</strong> ${displayableTags.join(' ')}</div>`;
         }
     }
 
@@ -247,15 +271,15 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
         ${rarityHtml}
         <div style="text-align: left; width: 100%; margin-top: 10px; font-size: 0.95em; line-height: 1.7;">
             ${effectsDisplayHtml}
-            ${sourcesDisplayHtml} {/* 修正: pタグではなくdivやulが直接入るように */}
+            ${sourcesDisplayHtml}
             <p style="margin-top: 5px;"><strong>売値:</strong> ${priceText}</p>
             ${tagsHtml}
         </div>
-    `; 
+    `;
     currentItemDetailContent.appendChild(cardFull);
-    
-    currentItemDetailModal.style.display = 'flex'; 
-    
+
+    currentItemDetailModal.style.display = 'flex';
+
     console.log("[ui-main] Item detail modal content set. Current display style:", currentItemDetailModal.style.display);
     if (getComputedStyle(currentItemDetailModal).display !== 'flex') {
         console.warn("[ui-main] Modal display style was not set to flex! Computed style:", getComputedStyle(currentItemDetailModal).display);
@@ -265,18 +289,18 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
 export function handleCloseButtonClick(modalElement) {
     if (!modalElement) return;
     console.log(`[ui-main] Closing modal: ${modalElement.id}`);
-    modalElement.style.display = "none"; 
+    modalElement.style.display = "none";
 
     if (modalElement.id === 'simulatorModal' && getIsSelectingForSimulatorCb()) {
         if(cancelItemSelectionCb) cancelItemSelectionCb();
     }
     if (modalElement.id === 'imagePreviewModal') {
-        const imgPreview = document.getElementById('generatedImagePreview'); 
+        const imgPreview = document.getElementById('generatedImagePreview');
         if (imgPreview) imgPreview.src = "#";
     }
     if (modalElement.id === 'itemDetailModal') {
-        const content = document.getElementById('itemDetailContent'); 
-        if (content) content.innerHTML = ''; 
+        const content = document.getElementById('itemDetailContent');
+        if (content) content.innerHTML = '';
     }
 }
 
@@ -299,7 +323,7 @@ export function showConfirmSelectionButton(show = true) {
 
 export function closeAllModals() {
     console.log("[ui-main] closeAllModals called");
-    const allModalsCurrentlyInDOM = document.querySelectorAll('.modal'); 
+    const allModalsCurrentlyInDOM = document.querySelectorAll('.modal');
     if (allModalsCurrentlyInDOM) {
         allModalsCurrentlyInDOM.forEach(modal => {
             if(modal) modal.style.display = 'none';
