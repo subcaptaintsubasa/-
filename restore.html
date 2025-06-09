@@ -1,77 +1,296 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>データベース復元ツール</title>
-    <link rel="stylesheet" href="css/admin-base.css">
-    <link rel="stylesheet" href="css/admin-forms.css">
-    <!-- JSZipライブラリを読み込み -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        body { background-color: #e9ecef; }
-        .restore-container { max-width: 800px; margin: 50px auto; padding: 40px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .warning-box { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
-        .warning-box h3 { margin-top: 0; color: #856404; }
-        .preview-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 15px; border-radius: 5px; margin-top: 20px; font-family: monospace; }
-        .progress-area { margin-top: 20px; font-family: monospace; font-size: 0.9em; background-color: #212529; color: #f8f9fa; padding: 15px; border-radius: 4px; height: 300px; overflow-y: scroll; white-space: pre-wrap; }
-        #restoreButton { background-color: #dc3545; }
-        #restoreButton:hover { background-color: #c82333; }
-        #restoreButton:disabled { background-color: #6c757d; cursor: not-allowed; }
-    </style>
-</head>
-<body id="admin-page">
-    <div id="password-prompt">
-        <h2>復元ツール ログイン</h2>
-        <p style="color: #f8d7da; max-width: 320px; text-align: center; margin-bottom: 15px;">このツールはデータベースを上書きします。操作には細心の注意を払ってください。</p>
-        <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
-        <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
-        <button id="loginButton" type="button">ログイン</button>
-        <p id="passwordError" class="error-message"></p>
-    </div>
+// js/restore.js
+import { auth, db } from '../firebase-config.js';
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+import { collection, getDocs, writeBatch, doc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-    <div id="restore-content" class="restore-container" style="display:none;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>データベース復元ツール</h1>
-            <button id="logoutButton" type="button">ログアウト</button>
-        </div>
+const DOM = {
+    passwordPrompt: document.getElementById('password-prompt'),
+    restoreContent: document.getElementById('restore-content'),
+    loginButton: document.getElementById('loginButton'),
+    logoutButton: document.getElementById('logoutButton'),
+    adminEmailInput: document.getElementById('adminEmailInput'),
+    adminPasswordInput: document.getElementById('adminPasswordInput'),
+    passwordError: document.getElementById('passwordError'),
+    backupFileInput: document.getElementById('backupFile'),
+    confirmTextInput: document.getElementById('confirmText'),
+    restoreButton: document.getElementById('restoreButton'),
+    progressArea: document.getElementById('progressArea'),
+    previewButton: document.getElementById('previewButton'),
+    previewArea: document.getElementById('previewArea'),
+    previewContent: document.getElementById('previewContent'),
+    forceBackupLink: document.getElementById('forceBackupLink'),
+};
+
+const COLLECTIONS_TO_BACKUP = [
+    'categories', 'tags', 'effect_units', 'effect_super_categories', 'effect_types', 'items', 'item_sources'
+];
+const CHARACTER_BASES_COLLECTION_NAME = 'character_bases';
+const CHARACTER_BASE_TYPES = ['headShape', 'correction', 'color', 'pattern'];
+
+let parsedBackupData = null;
+
+// --- 認証処理 (変更なし) ---
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        DOM.passwordPrompt.style.display = 'none';
+        DOM.restoreContent.style.display = 'block';
+    } else {
+        DOM.passwordPrompt.style.display = 'flex';
+        DOM.restoreContent.style.display = 'none';
+    }
+});
+DOM.loginButton.addEventListener('click', () => {
+    const email = DOM.adminEmailInput.value;
+    const password = DOM.adminPasswordInput.value;
+    signInWithEmailAndPassword(auth, email, password).catch(err => {
+        DOM.passwordError.textContent = 'ログインに失敗しました。';
+        console.error(err);
+    });
+});
+DOM.logoutButton.addEventListener('click', () => signOut(auth));
+
+
+// --- UI制御ロジック (変更なし) ---
+function updateButtonStates() {
+    const fileSelected = DOM.backupFileInput.files.length > 0;
+    const confirmTextEntered = DOM.confirmTextInput.value === 'RESTORE';
+    DOM.previewButton.disabled = !fileSelected;
+    DOM.restoreButton.disabled = !(fileSelected && confirmTextEntered && parsedBackupData);
+}
+DOM.backupFileInput.addEventListener('change', () => {
+    parsedBackupData = null;
+    DOM.previewArea.style.display = 'none';
+    updateButtonStates();
+});
+DOM.confirmTextInput.addEventListener('input', updateButtonStates);
+
+
+// --- プレビュー機能 (★ここを修正) ---
+DOM.previewButton.addEventListener('click', async () => {
+    const file = DOM.backupFileInput.files[0];
+    if (!file) return;
+
+    DOM.previewButton.disabled = true;
+    DOM.previewArea.style.display = 'block';
+    DOM.previewContent.textContent = 'バックアップファイルを解析中...';
+
+    try {
+        let jsonString;
+        // ファイルの拡張子によって処理を分岐
+        if (file.name.toLowerCase().endsWith('.zip')) {
+            DOM.previewContent.textContent = 'ZIPファイルを解凍中...';
+            const zip = await JSZip.loadAsync(file);
+            const jsonFile = Object.values(zip.files).find(f => f.name.endsWith('.json'));
+
+            if (!jsonFile) {
+                throw new Error('ZIPファイル内にJSONファイルが見つかりません。');
+            }
+            jsonString = await jsonFile.async('string');
+        } else if (file.name.toLowerCase().endsWith('.json')) {
+            jsonString = await file.text();
+        } else {
+            throw new Error('サポートされていないファイル形式です (.zip または .jsonを選択してください)。');
+        }
+
+        const data = JSON.parse(jsonString);
+
+        if (!data.version || !data.collections) {
+            throw new Error('バックアップファイルの形式が正しくありません。(version/collectionsが見つかりません)');
+        }
         
-        <div class="warning-box">
-            <h3><span class="icon">⚠️</span> 警告：これは非常に危険な操作です</h3>
-            <p>このツールは、現在のデータベースの<strong>すべてのデータ（アイテム、カテゴリ、タグ等）を完全に削除</strong>し、アップロードしたバックアップファイルの内容で上書きします。</p>
-            <ul>
-                <li>この操作は元に戻せません。</li>
-                <li>必ず、操作の直前に手動バックアップを取得してください。</li>
-                <li>操作内容を十分に理解しているマスター管理者のみが使用してください。</li>
-            </ul>
-        </div>
-
-        <div class="form-group">
-            <label for="backupFile">バックアップファイル (.zip) を選択してください:</label>
-            <input type="file" id="backupFile" accept=".zip,application/zip">
-        </div>
-
-        <button id="previewButton" type="button" disabled>バックアップ内容をプレビュー</button>
+        parsedBackupData = data;
         
-        <div id="previewArea" class="preview-box" style="display: none;">
-            <h4>バックアップ内容のプレビュー</h4>
-            <pre id="previewContent"></pre>
-        </div>
+        let previewText = `バックアップバージョン: ${data.version}\n`;
+        previewText += `作成日時: ${new Date(data.createdAt).toLocaleString('ja-JP')}\n\n`;
+        previewText += `[コレクション別件数]\n`;
 
-        <div class="form-group" style="margin-top: 20px;">
-            <label for="confirmText">上記の警告とプレビュー内容を理解し、復元を実行する場合は、以下のボックスに「RESTORE」と入力してください:</label>
-            <input type="text" id="confirmText" placeholder="RESTORE">
-        </div>
+        for(const collName of COLLECTIONS_TO_BACKUP) {
+            previewText += `- ${collName}: ${data.collections[collName]?.length || 0}件\n`;
+        }
+        const charBaseData = data.collections.character_bases || {};
+        for(const baseType of CHARACTER_BASE_TYPES) {
+            previewText += `- character_bases/${baseType}: ${charBaseData[baseType]?.length || 0}件\n`;
+        }
+        
+        DOM.previewContent.textContent = previewText;
+    } catch (error) {
+        DOM.previewContent.textContent = `エラー: ${error.message}`;
+        parsedBackupData = null;
+    } finally {
+        updateButtonStates();
+    }
+});
 
-        <button id="restoreButton" type="button" disabled>復元を実行</button>
 
-        <div id="progressArea" class="progress-area" style="display: none;"></div>
+// --- 復元処理 (以降の関数は変更なし) ---
+DOM.restoreButton.addEventListener('click', async () => {
+    if (!parsedBackupData) {
+        alert('先にプレビューを実行して、バックアップファイルの内容を確認してください。');
+        return;
+    }
 
-        <!-- 強制バックアップ用の隠しリンク -->
-        <a id="forceBackupLink" style="display: none;"></a>
-    </div>
+    if (!confirm('【最終確認】現在のデータベースを完全に上書きします。この操作は絶対に元に戻せません。')) {
+        return;
+    }
 
-    <script type="module" src="js/restore.js"></script>
+    DOM.restoreButton.disabled = true;
+    DOM.progressArea.style.display = 'block';
+    logProgress('復元処理を開始します...');
 
-</body>
-</html>
+    try {
+        await forceBackupCurrentData();
+
+        if (prompt('最終バックアップがダウンロードされました。安全な場所に保存しましたか？\n復元を続けるには「OK」と入力してください。') !== 'OK') {
+             throw new Error('ユーザーにより復元がキャンセルされました。');
+        }
+
+        logProgress('\n--- 現在の全データを削除しています ---');
+        await deleteAllData();
+
+        logProgress('\n--- バックアップからデータを復元しています ---');
+        await restoreAllData(parsedBackupData);
+
+        logProgress('\n--- 復元完了 ---');
+        alert('データベースの復元が完了しました。管理ページをリロードして確認してください。');
+
+    } catch (error) {
+        logProgress(`\nエラー発生: ${error.message}`);
+        console.error(error);
+        alert(`復元処理中にエラーが発生しました。\nメッセージ: ${error.message}`);
+    } finally {
+        DOM.backupFileInput.value = '';
+        DOM.confirmTextInput.value = '';
+        parsedBackupData = null;
+        DOM.previewArea.style.display = 'none';
+        updateButtonStates();
+    }
+});
+
+function logProgress(message) {
+    DOM.progressArea.textContent += message + '\n';
+    DOM.progressArea.scrollTop = DOM.progressArea.scrollHeight;
+}
+
+async function forceBackupCurrentData() {
+    logProgress('\n--- 保険機能: 現在のデータをバックアップしています ---');
+    const collectionsData = {};
+    for (const collName of COLLECTIONS_TO_BACKUP) {
+        const snapshot = await getDocs(collection(db, collName));
+        collectionsData[collName] = snapshot.docs.map(d => d.data());
+    }
+    collectionsData[CHARACTER_BASES_COLLECTION_NAME] = {};
+    for (const baseType of CHARACTER_BASE_TYPES) {
+        const snapshot = await getDocs(collection(db, `${CHARACTER_BASES_COLLECTION_NAME}/${baseType}/options`));
+        collectionsData[CHARACTER_BASES_COLLECTION_NAME][baseType] = snapshot.docs.map(d => d.data());
+    }
+    
+    const data = {
+        version: "pre-restore-force-backup",
+        createdAt: new Date().toISOString(),
+        collections: collectionsData
+    };
+    
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+    
+    DOM.forceBackupLink.href = url;
+    DOM.forceBackupLink.download = `force-backup-before-restore-${timestamp}.json`;
+    DOM.forceBackupLink.click();
+    URL.revokeObjectURL(url);
+    logProgress('-> 強制バックアップファイルをダウンロードしました。');
+}
+
+
+async function deleteAllData() {
+    for (const collName of COLLECTIONS_TO_BACKUP) {
+        await deleteCollection(collName);
+    }
+    for (const baseType of CHARACTER_BASE_TYPES) {
+        await deleteCollection(`${CHARACTER_BASES_COLLECTION_NAME}/${baseType}/options`);
+    }
+    logProgress('全データの削除完了。');
+}
+
+async function deleteCollection(collectionPath) {
+    logProgress(`コレクション[${collectionPath}]を削除中...`);
+    const collRef = collection(db, collectionPath);
+    const snapshot = await getDocs(collRef);
+    if (snapshot.size === 0) {
+        logProgress(` -> スキップ (空)`);
+        return;
+    }
+    const batchSize = 499;
+    let count = 0;
+    let batch = writeBatch(db);
+    for (const docSnap of snapshot.docs) {
+        batch.delete(docSnap.ref);
+        count++;
+        if (count % batchSize === 0) {
+            await batch.commit();
+            batch = writeBatch(db);
+        }
+    }
+    if (count % batchSize !== 0) {
+        await batch.commit();
+    }
+    logProgress(` -> ${count}件のドキュメントを削除しました。`);
+}
+
+async function restoreAllData(backupData) {
+    const collections = backupData.collections;
+    for (const collName of COLLECTIONS_TO_BACKUP) {
+        if (collections[collName]) {
+            await restoreCollection(collName, collections[collName]);
+        }
+    }
+    const charBasesData = collections.character_bases;
+    if (charBasesData) {
+        for (const baseType in charBasesData) {
+            if (charBasesData[baseType]) {
+                await restoreCollection(`${CHARACTER_BASES_COLLECTION_NAME}/${baseType}/options`, charBasesData[baseType]);
+            }
+        }
+    }
+}
+
+async function restoreCollection(collectionPath, dataArray) {
+    logProgress(`コレクション[${collectionPath}]を復元中...`);
+    if (!dataArray || dataArray.length === 0) {
+        logProgress(` -> スキップ (データなし)`);
+        return;
+    }
+    const collRef = collection(db, collectionPath);
+    const batchSize = 499;
+    let count = 0;
+    let batch = writeBatch(db);
+    for (const data of dataArray) {
+        const docRef = doc(collRef); 
+        const dataWithTimestamps = convertTimestamps(data);
+        batch.set(docRef, dataWithTimestamps);
+        count++;
+        if (count % batchSize === 0) {
+            await batch.commit();
+            batch = writeBatch(db);
+        }
+    }
+    if (count % batchSize !== 0) {
+        await batch.commit();
+    }
+    logProgress(` -> ${count}件のドキュメントを復元しました。`);
+}
+
+function convertTimestamps(data) {
+    for (const key in data) {
+        if (typeof data[key] === 'object' && data[key] !== null) {
+            if ('seconds' in data[key] && 'nanoseconds' in data[key] && Object.keys(data[key]).length === 2) {
+            } else {
+                convertTimestamps(data[key]);
+            }
+        } else if (typeof data[key] === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(data[key])) {
+            data[key] = serverTimestamp();
+        }
+    }
+    return data;
+}
