@@ -1,159 +1,307 @@
-// js/restore.js (親子関係パズルツール)
-import { auth, db } from '../firebase-config.js';
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-import { collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-const DOM = {
-    passwordPrompt: document.getElementById('password-prompt'),
-    mainContent: document.getElementById('main-content'),
-    loginButton: document.getElementById('loginButton'),
-    logoutButton: document.getElementById('logoutButton'),
-    adminEmailInput: document.getElementById('adminEmailInput'),
-    adminPasswordInput: document.getElementById('adminPasswordInput'),
-    passwordError: document.getElementById('passwordError'),
-    backupFileInput: document.getElementById('backupFile'),
-    analyzeButton: document.getElementById('analyzeButton'),
-    tasksContainer: document.getElementById('tasksContainer'),
+// --- Firebase Configuration ---
+// ※重要※ ここに実際のFirebaseプロジェクト設定を記述してください。
+// admin-main.js などからコピーすることを想定しています。
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
-// --- 認証 ---
-onAuthStateChanged(auth, user => {
-    DOM.passwordPrompt.style.display = user ? 'none' : 'flex';
-    DOM.mainContent.style.display = user ? 'block' : 'none';
-});
-DOM.loginButton.addEventListener('click', () => signInWithEmailAndPassword(auth, DOM.adminEmailInput.value, DOM.adminPasswordInput.value).catch(err => DOM.passwordError.textContent = 'ログイン失敗'));
-DOM.logoutButton.addEventListener('click', () => signOut(auth));
+// --- Initialize Firebase ---
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-// --- UI制御 ---
-DOM.backupFileInput.addEventListener('change', () => {
-    DOM.analyzeButton.disabled = DOM.backupFileInput.files.length === 0;
-});
+// --- Global Variables ---
+let allCategoriesFromBackup = [];
+let allCategoriesFromDB = []; // { id: string, name: string, parentId: string | null }[]
 
-// --- 分析と描画 ---
-DOM.analyzeButton.addEventListener('click', async () => {
-    const file = DOM.backupFileInput.files[0];
-    if (!file) return;
+// --- DOM Elements ---
+const passwordPrompt = document.getElementById('password-prompt');
+const mainContent = document.getElementById('main-content');
+const adminEmailInput = document.getElementById('adminEmailInput');
+const adminPasswordInput = document.getElementById('adminPasswordInput');
+const loginButton = document.getElementById('loginButton');
+const logoutButton = document.getElementById('logoutButton');
+const passwordError = document.getElementById('passwordError');
+const backupFileElement = document.getElementById('backupFile');
+const analyzeButton = document.getElementById('analyzeButton');
+const tasksContainer = document.getElementById('tasksContainer');
 
-    DOM.analyzeButton.disabled = true;
-    DOM.analyzeButton.textContent = '分析中...';
-    DOM.tasksContainer.innerHTML = '<p>データを読み込んで分析しています...</p>';
-
-    try {
-        // 1. 両方のデータを読み込む
-        const oldBackupString = await file.text();
-        const oldData = JSON.parse(oldBackupString).collections;
-
-        const currentSnapshot = await getDocs(collection(db, 'categories'));
-        const currentCategories = currentSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        DOM.tasksContainer.innerHTML = ''; 
-        
-        // 2. 親カテゴリのリストを作成 (現在のDBから)
-        const currentParentCategories = currentCategories.filter(c => !c.parentId || c.parentId === "").sort((a,b) => a.name.localeCompare(b.name));
-        
-        // 3. 古いデータから子カテゴリグループを作成
-        const oldChildrenByParentId = oldData.categories
-            .filter(c => c.parentId)
-            .reduce((acc, cat) => {
-                const parentId = cat.parentId;
-                if (!acc[parentId]) acc[parentId] = [];
-                acc[parentId].push(cat.name);
-                return acc;
-            }, {});
-
-        // 4. UIを生成
-        if (Object.keys(oldChildrenByParentId).length === 0) {
-            DOM.tasksContainer.innerHTML = '<p>バックアップファイルに子カテゴリが見つかりませんでした。</p>';
-        }
-
-        for (const oldParentId in oldChildrenByParentId) {
-            const childNames = oldChildrenByParentId[oldParentId];
-            const oldParent = oldData.categories.find(c => c.id === oldParentId);
-            
-            if (!oldParent) {
-                console.warn(`旧データに親ID: ${oldParentId} が見つかりません。スキップします。`);
-                continue;
-            }
-
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'task-group';
-
-            groupDiv.innerHTML = `<h4>旧 親カテゴリ: 「${oldParent.name}」</h4>`;
-
-            const taskItem = document.createElement('div');
-            taskItem.className = 'task-item';
-
-            const childList = document.createElement('div');
-            childList.className = 'child-list';
-            childList.innerHTML = `<strong>このグループの子カテゴリ:</strong><ul>${childNames.map(name => `<li>${name}</li>`).join('')}</ul>`;
-
-            const selectorDiv = document.createElement('div');
-            const selectorLabel = document.createElement('label');
-            selectorLabel.textContent = '新しい親を選択してください:';
-            selectorLabel.style.display = 'block';
-
-            const selector = document.createElement('select');
-            let optionsHtml = '<option value="">親を選択...</option>';
-            currentParentCategories.forEach(p => {
-                // 名前が一致するものを推奨として選択状態にする
-                const isRecommended = (p.name === oldParent.name);
-                optionsHtml += `<option value="${p.id}" ${isRecommended ? 'selected' : ''}>${p.name}</option>`;
-            });
-            selector.innerHTML = optionsHtml;
-
-            const updateButton = document.createElement('button');
-            updateButton.textContent = 'このグループの親を更新';
-            updateButton.onclick = async () => {
-                const newParentId = selector.value;
-                if (!newParentId && !confirm('本当にこのグループを最上位（親なし）に設定しますか？')) {
-                    return;
-                }
-                
-                const newParentName = newParentId ? currentParentCategories.find(p => p.id === newParentId).name : "なし";
-
-                if (!confirm(`グループ(${childNames.join(', ')})の親を「${newParentName}」に設定しますか？`)) return;
-
-                updateButton.disabled = true;
-                updateButton.textContent = '更新中...';
-                try {
-                    const batch = writeBatch(db);
-                    childNames.forEach(name => {
-                        const childToUpdate = currentCategories.find(c => c.name === name);
-                        if (childToUpdate) {
-                            const docRef = doc(db, 'categories', childToUpdate.id);
-                            batch.update(docRef, { parentId: newParentId });
-                        } else {
-                            console.warn(`現在のDBに子カテゴリ「${name}」が見つかりませんでした。スキップします。`);
-                        }
-                    });
-                    await batch.commit();
-                    alert('更新しました！');
-                    taskItem.style.backgroundColor = '#d4edda'; 
-                    selector.disabled = true;
-                    updateButton.textContent = '更新完了';
-                } catch (err) {
-                    alert('更新に失敗しました: ' + err.message);
-                    updateButton.disabled = false;
-                    updateButton.textContent = 'このグループを更新';
-                }
-            };
-            
-            selectorDiv.appendChild(selectorLabel);
-            selectorDiv.appendChild(selector);
-            
-            taskItem.appendChild(childList);
-            taskItem.appendChild(selectorDiv);
-            taskItem.appendChild(updateButton);
-            
-            groupDiv.appendChild(taskItem);
-            DOM.tasksContainer.appendChild(groupDiv);
-        }
-        
-    } catch (error) {
-        DOM.tasksContainer.innerHTML = `<p style="color: red;">処理エラー: ${error.message}</p>`;
-        console.error(error);
-    } finally {
-        DOM.analyzeButton.disabled = false;
-        DOM.analyzeButton.textContent = '分析＆リスト表示';
+// --- Authentication ---
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        passwordPrompt.style.display = 'none';
+        mainContent.style.display = 'block';
+        adminEmailInput.value = '';
+        adminPasswordInput.value = '';
+        loadCurrentDBCategories(); // ログイン後に現在のDBカテゴリを読み込む
+    } else {
+        passwordPrompt.style.display = 'flex';
+        mainContent.style.display = 'none';
+        tasksContainer.innerHTML = ''; // ログアウト時にタスクリストをクリア
+        allCategoriesFromBackup = [];
+        allCategoriesFromDB = [];
+        backupFileElement.value = '';
+        analyzeButton.disabled = true;
     }
 });
+
+loginButton.addEventListener('click', async () => {
+    const email = adminEmailInput.value;
+    const password = adminPasswordInput.value;
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        passwordError.textContent = '';
+    } catch (error) {
+        console.error("Login failed:", error);
+        passwordError.textContent = "ログインに失敗しました: " + error.message;
+    }
+});
+
+logoutButton.addEventListener('click', async () => {
+    try {
+        await signOut(auth);
+    } catch (error) {
+        console.error("Logout failed:", error);
+        alert("ログアウトに失敗しました。");
+    }
+});
+
+// --- File Handling ---
+backupFileElement.addEventListener('change', (event) => {
+    if (event.target.files.length > 0) {
+        analyzeButton.disabled = false;
+    } else {
+        analyzeButton.disabled = true;
+    }
+});
+
+analyzeButton.addEventListener('click', handleFileAndAnalyze);
+
+async function handleFileAndAnalyze() {
+    if (backupFileElement.files.length === 0) {
+        alert("まずバックアップファイルを選択してください。");
+        return;
+    }
+    const file = backupFileElement.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+        try {
+            const fileContent = e.target.result;
+            const backupData = JSON.parse(fileContent);
+            
+            if (!backupData.categories || !Array.isArray(backupData.categories)) {
+                throw new Error("バックアップファイルに 'categories' 配列が含まれていません。");
+            }
+            allCategoriesFromBackup = backupData.categories;
+            console.log("Backup categories loaded:", allCategoriesFromBackup);
+
+            if (allCategoriesFromDB.length === 0) {
+                await loadCurrentDBCategories(); // 念のため再ロード
+            }
+            if (allCategoriesFromDB.length === 0) {
+                 alert("現在のデータベースからカテゴリ情報を取得できませんでした。ログイン状態を確認してください。");
+                 return;
+            }
+
+            displayCategoryRestorationTasks();
+        } catch (error) {
+            console.error("Error processing backup file:", error);
+            alert("バックアップファイルの処理中にエラーが発生しました: " + error.message);
+            tasksContainer.innerHTML = '<p style="color:red;">エラー: バックアップファイルを処理できませんでした。</p>';
+        }
+    };
+    reader.onerror = () => {
+        console.error("Error reading file:", reader.error);
+        alert("ファイルの読み込み中にエラーが発生しました。");
+        tasksContainer.innerHTML = '<p style="color:red;">エラー: ファイルを読み込めませんでした。</p>';
+    };
+    reader.readAsText(file);
+}
+
+// --- Firestore Data Fetching ---
+async function loadCurrentDBCategories() {
+    try {
+        const categoriesCol = collection(db, "categories");
+        const categorySnapshot = await getDocs(categoriesCol);
+        allCategoriesFromDB = categorySnapshot.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name || "名前なし", // nameがない場合を考慮
+            parentId: doc.data().parentId || null
+        }));
+        console.log("Current DB categories loaded:", allCategoriesFromDB);
+    } catch (error) {
+        console.error("Error loading categories from DB:", error);
+        alert("データベースから現在のカテゴリ情報を読み込めませんでした: " + error.message);
+        allCategoriesFromDB = []; // エラー時は空にする
+    }
+}
+
+
+// --- UI Rendering for Category Restoration ---
+function displayCategoryRestorationTasks() {
+    tasksContainer.innerHTML = ''; // Clear previous tasks
+
+    if (allCategoriesFromBackup.length === 0) {
+        tasksContainer.innerHTML = "<p>バックアップデータにカテゴリが見つかりません。</p>";
+        return;
+    }
+    if (allCategoriesFromDB.length === 0) {
+        tasksContainer.innerHTML = "<p>現在のデータベースからカテゴリ情報を取得できていません。</p>";
+        return;
+    }
+
+    // 1. Group backup children by their old parentId
+    const childrenByOldParentId = {};
+    allCategoriesFromBackup.forEach(cat => {
+        if (cat.parentId) { // Only consider children
+            if (!childrenByOldParentId[cat.parentId]) {
+                childrenByOldParentId[cat.parentId] = [];
+            }
+            childrenByOldParentId[cat.parentId].push(cat);
+        }
+    });
+
+    if (Object.keys(childrenByOldParentId).length === 0) {
+        tasksContainer.innerHTML = "<p>バックアップデータに親子関係を持つカテゴリが見つかりませんでした（ルートカテゴリのみか、データ構造が異なります）。</p>";
+        return;
+    }
+
+    // 2. Get current potential parent categories from DB (those without a parentId)
+    const currentPotentialParents = allCategoriesFromDB.filter(cat => !cat.parentId);
+    currentPotentialParents.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+
+    // 3. Create UI for each group
+    for (const oldParentId in childrenByOldParentId) {
+        const childGroupFromBackup = childrenByOldParentId[oldParentId];
+        
+        // Try to find the name of the old parent from the backup data
+        // This assumes the oldParentId was an ID that existed on another category in the backup.
+        // Since backup doesn't have explicit IDs, we can't directly look it up.
+        // For now, we'll just show the oldParentId. A more advanced version might try to guess based on names.
+        // OR, if your backup has a structure like { "oldIdValue": { name: "Parent", ... } }, this would be different.
+        // Assuming parentId is just a string ID from the old system.
+        const oldParentNameGuess = `(旧親ID: ${oldParentId})`; // Placeholder
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'task-group';
+        groupDiv.dataset.oldParentId = oldParentId;
+
+        let childrenHtml = childGroupFromBackup.map(child => `<li>${child.name || "名前なし"}</li>`).join('');
+        
+        groupDiv.innerHTML = `
+            <h4>
+                バックアップ時の親情報: <span class="old-parent-id-display">${oldParentNameGuess}</span>
+            </h4>
+            <p>このグループに属していた子カテゴリ (バックアップ時の名前):</p>
+            <ul class="child-list">${childrenHtml}</ul>
+            <div class="task-item">
+                <label for="parent-select-${oldParentId}">現在の正しい親カテゴリを選択:</label>
+                <select id="parent-select-${oldParentId}">
+                    <option value="">親を選択...</option>
+                    ${currentPotentialParents.map(p => `<option value="${p.id}">${p.name} (ID: ${p.id.substring(0,5)}...)</option>`).join('')}
+                </select>
+                <button class="update-parent-button" type="button">このグループの親を更新</button>
+            </div>
+            <div class="status-message" style="margin-top: 10px; font-style: italic;"></div>
+        `;
+        tasksContainer.appendChild(groupDiv);
+    }
+
+    // Add event listeners to "Update" buttons
+    document.querySelectorAll('.update-parent-button').forEach(button => {
+        button.addEventListener('click', handleUpdateParentForGroup);
+    });
+}
+
+// --- Update Logic ---
+async function handleUpdateParentForGroup(event) {
+    const button = event.target;
+    const groupDiv = button.closest('.task-group');
+    const oldParentId = groupDiv.dataset.oldParentId;
+    const selectElement = groupDiv.querySelector('select');
+    const newParentDbId = selectElement.value;
+    const statusMessageDiv = groupDiv.querySelector('.status-message');
+
+    statusMessageDiv.textContent = '更新中...';
+    button.disabled = true;
+    selectElement.disabled = true;
+
+    if (!newParentDbId) {
+        alert("新しい親カテゴリを選択してください。");
+        statusMessageDiv.textContent = 'エラー: 新しい親が選択されていません。';
+        statusMessageDiv.style.color = 'red';
+        button.disabled = false;
+        selectElement.disabled = false;
+        return;
+    }
+
+    const childGroupFromBackup = allCategoriesFromBackup.filter(cat => cat.parentId === oldParentId);
+
+    if (childGroupFromBackup.length === 0) {
+        statusMessageDiv.textContent = 'エラー: 更新対象の子カテゴリが見つかりません (バックアップデータ内)。';
+        statusMessageDiv.style.color = 'red';
+        button.disabled = false;
+        selectElement.disabled = false;
+        return;
+    }
+    
+    const batch = writeBatch(db);
+    let updatesCount = 0;
+    const updatedChildrenInfo = [];
+
+    for (const backupChild of childGroupFromBackup) {
+        // Find the corresponding child in the current DB by name
+        const currentDbChild = allCategoriesFromDB.find(dbCat => dbCat.name === backupChild.name);
+        
+        if (currentDbChild) {
+            if (currentDbChild.parentId !== newParentDbId) { // Only update if different
+                const childRef = doc(db, "categories", currentDbChild.id);
+                batch.update(childRef, { parentId: newParentDbId });
+                updatesCount++;
+                updatedChildrenInfo.push(`"${backupChild.name}" (DB ID: ${currentDbChild.id.substring(0,5)}...)`);
+            } else {
+                 updatedChildrenInfo.push(`"${backupChild.name}" は既に正しい親です。`);
+            }
+        } else {
+            console.warn(`Backup child "${backupChild.name}" not found in current DB by name.`);
+            updatedChildrenInfo.push(`警告: "${backupChild.name}" は現在のDBに見つかりませんでした。`);
+        }
+    }
+
+    if (updatesCount > 0) {
+        try {
+            await batch.commit();
+            statusMessageDiv.textContent = `${updatesCount}件の子カテゴリの親を更新しました: ${updatedChildrenInfo.join(', ')}. ページを再読み込みして確認してください。`;
+            statusMessageDiv.style.color = 'green';
+            // Reflect change in local allCategoriesFromDB for subsequent operations (optional, better to re-fetch)
+            childGroupFromBackup.forEach(backupChild => {
+                const currentDbChild = allCategoriesFromDB.find(dbCat => dbCat.name === backupChild.name);
+                if (currentDbChild) currentDbChild.parentId = newParentDbId;
+            });
+
+        } catch (error) {
+            console.error("Error updating parent IDs:", error);
+            statusMessageDiv.textContent = `エラー: 親IDの更新中に問題が発生しました: ${error.message}`;
+            statusMessageDiv.style.color = 'red';
+        }
+    } else {
+        statusMessageDiv.textContent = `更新する変更はありませんでした。(${updatedChildrenInfo.join(', ')})`;
+        statusMessageDiv.style.color = 'orange';
+    }
+    button.disabled = false; // Re-enable button, but not select, to prevent re-submitting same group
+    // selectElement.disabled = false; // If you want to allow re-selection
+}
+
+// --- Initial Load (if already logged in) ---
+// This is handled by onAuthStateChanged
