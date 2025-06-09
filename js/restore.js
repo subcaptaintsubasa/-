@@ -27,9 +27,9 @@ const COLLECTIONS_TO_BACKUP = [
 const CHARACTER_BASES_COLLECTION_NAME = 'character_bases';
 const CHARACTER_BASE_TYPES = ['headShape', 'correction', 'color', 'pattern'];
 
-let parsedBackupData = null; // 読み込んだバックアップデータを保持
+let parsedBackupData = null;
 
-// --- 認証処理 ---
+// --- 認証処理 (変更なし) ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         DOM.passwordPrompt.style.display = 'none';
@@ -39,24 +39,21 @@ onAuthStateChanged(auth, (user) => {
         DOM.restoreContent.style.display = 'none';
     }
 });
-
 DOM.loginButton.addEventListener('click', () => {
     const email = DOM.adminEmailInput.value;
     const password = DOM.adminPasswordInput.value;
-    signInWithEmailAndPassword(auth, email, password)
-        .catch(err => {
-            DOM.passwordError.textContent = 'ログインに失敗しました。';
-            console.error(err);
-        });
+    signInWithEmailAndPassword(auth, email, password).catch(err => {
+        DOM.passwordError.textContent = 'ログインに失敗しました。';
+        console.error(err);
+    });
 });
-
 DOM.logoutButton.addEventListener('click', () => signOut(auth));
 
-// --- UI制御ロジック ---
+
+// --- UI制御ロジック (変更なし) ---
 function updateButtonStates() {
     const fileSelected = DOM.backupFileInput.files.length > 0;
     const confirmTextEntered = DOM.confirmTextInput.value === 'RESTORE';
-
     DOM.previewButton.disabled = !fileSelected;
     DOM.restoreButton.disabled = !(fileSelected && confirmTextEntered && parsedBackupData);
 }
@@ -67,31 +64,41 @@ DOM.backupFileInput.addEventListener('change', () => {
 });
 DOM.confirmTextInput.addEventListener('input', updateButtonStates);
 
-// --- プレビュー機能 ---
+
+// --- プレビュー機能 (★ここを修正) ---
 DOM.previewButton.addEventListener('click', async () => {
     const file = DOM.backupFileInput.files[0];
     if (!file) return;
 
     DOM.previewButton.disabled = true;
     DOM.previewArea.style.display = 'block';
-    DOM.previewContent.textContent = 'ZIPファイルを解凍・解析中...';
+    DOM.previewContent.textContent = 'バックアップファイルを解析中...';
 
     try {
-        const zip = await JSZip.loadAsync(file);
-        const jsonFile = Object.values(zip.files).find(f => f.name.endsWith('.json'));
+        let jsonString;
+        // ファイルの拡張子によって処理を分岐
+        if (file.name.toLowerCase().endsWith('.zip')) {
+            DOM.previewContent.textContent = 'ZIPファイルを解凍中...';
+            const zip = await JSZip.loadAsync(file);
+            const jsonFile = Object.values(zip.files).find(f => f.name.endsWith('.json'));
 
-        if (!jsonFile) {
-            throw new Error('ZIPファイル内にJSONファイルが見つかりません。');
+            if (!jsonFile) {
+                throw new Error('ZIPファイル内にJSONファイルが見つかりません。');
+            }
+            jsonString = await jsonFile.async('string');
+        } else if (file.name.toLowerCase().endsWith('.json')) {
+            jsonString = await file.text();
+        } else {
+            throw new Error('サポートされていないファイル形式です (.zip または .jsonを選択してください)。');
         }
 
-        const jsonString = await jsonFile.async('string');
         const data = JSON.parse(jsonString);
 
         if (!data.version || !data.collections) {
             throw new Error('バックアップファイルの形式が正しくありません。(version/collectionsが見つかりません)');
         }
         
-        parsedBackupData = data; // 復元用にデータを保持
+        parsedBackupData = data;
         
         let previewText = `バックアップバージョン: ${data.version}\n`;
         previewText += `作成日時: ${new Date(data.createdAt).toLocaleString('ja-JP')}\n\n`;
@@ -108,14 +115,14 @@ DOM.previewButton.addEventListener('click', async () => {
         DOM.previewContent.textContent = previewText;
     } catch (error) {
         DOM.previewContent.textContent = `エラー: ${error.message}`;
-        parsedBackupData = null; // エラー時はデータをクリア
+        parsedBackupData = null;
     } finally {
         updateButtonStates();
     }
 });
 
 
-// --- 復元処理 ---
+// --- 復元処理 (以降の関数は変更なし) ---
 DOM.restoreButton.addEventListener('click', async () => {
     if (!parsedBackupData) {
         alert('先にプレビューを実行して、バックアップファイルの内容を確認してください。');
@@ -131,11 +138,9 @@ DOM.restoreButton.addEventListener('click', async () => {
     logProgress('復元処理を開始します...');
 
     try {
-        // 保険①: 現在のデータの強制バックアップ
         await forceBackupCurrentData();
 
-        // 保険②: ユーザーに最終確認を促す
-        if (!prompt('最終バックアップがダウンロードされました。安全な場所に保存しましたか？\n復元を続けるには「OK」と入力してください。') === 'OK') {
+        if (prompt('最終バックアップがダウンロードされました。安全な場所に保存しましたか？\n復元を続けるには「OK」と入力してください。') !== 'OK') {
              throw new Error('ユーザーにより復元がキャンセルされました。');
         }
 
@@ -262,7 +267,6 @@ async function restoreCollection(collectionPath, dataArray) {
     let batch = writeBatch(db);
     for (const data of dataArray) {
         const docRef = doc(collRef); 
-        // タイムスタンプが文字列の場合、FirestoreのTimestampオブジェクトに変換する
         const dataWithTimestamps = convertTimestamps(data);
         batch.set(docRef, dataWithTimestamps);
         count++;
@@ -280,15 +284,12 @@ async function restoreCollection(collectionPath, dataArray) {
 function convertTimestamps(data) {
     for (const key in data) {
         if (typeof data[key] === 'object' && data[key] !== null) {
-            // FirestoreのTimestamp形式 `{ seconds: ..., nanoseconds: ... }` をチェック
             if ('seconds' in data[key] && 'nanoseconds' in data[key] && Object.keys(data[key]).length === 2) {
-                // これは既にTimestampオブジェクトとして扱える形式なので何もしない
             } else {
-                convertTimestamps(data[key]); // 再帰的に探索
+                convertTimestamps(data[key]);
             }
         } else if (typeof data[key] === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(data[key])) {
-             // ISO文字列の日付をTimestampに変換
-            data[key] = serverTimestamp(); // 復元時の時間でタイムスタンプを更新
+            data[key] = serverTimestamp();
         }
     }
     return data;
