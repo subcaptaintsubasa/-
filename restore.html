@@ -11,9 +11,10 @@
         .container { max-width: 1200px; margin: 30px auto; padding: 30px; }
         .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
         .task-group { border: 1px solid #ccc; border-radius: 5px; padding: 20px; margin-bottom: 20px; background: #fff; }
-        .task-group h4 { margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .task-group h4 { margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; font-family: monospace; }
         .task-item { display: flex; align-items: center; gap: 15px; padding: 10px; }
         .task-item .child-list { flex: 1; }
+        .task-item ul { list-style-type: none; padding-left: 0; }
     </style>
 </head>
 <body id="admin-page">
@@ -27,7 +28,7 @@
 
     <div id="main-content" class="container" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>カテゴリ親子関係 復旧ツール</h1>
+            <h1>カテゴリ親子関係 復旧ツール (パズル版)</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
 
