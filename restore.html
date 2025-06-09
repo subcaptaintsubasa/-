@@ -3,44 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>データベース救出ツール</title>
+    <title>ID再マッピングツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
     <style>
-        body { background-color: #fbeaea; }
-        .restore-container { max-width: 800px; margin: 50px auto; padding: 40px; background-color: #fff; border: 2px solid #dc3545; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .warning-box { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
-        .warning-box h3 { margin-top: 0; color: #721c24; }
-        .progress-area { margin-top: 20px; font-family: monospace; font-size: 0.9em; background-color: #212529; color: #f8f9fa; padding: 15px; border-radius: 4px; height: 400px; overflow-y: scroll; white-space: pre-wrap; }
-        #rescueButton { background-color: #dc3545; font-size: 1.2em; padding: 15px; width: 100%; }
-        #rescueButton:hover { background-color: #c82333; }
-        #rescueButton:disabled { background-color: #6c757d; cursor: not-allowed; }
+        body { background-color: #f0f8ff; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 30px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
+        .mapping-section { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 5px; }
+        .mapping-section h3 { margin-top: 0; }
+        .mapping-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .mapping-row:last-child { border-bottom: none; }
+        .mapping-row .group-members { font-size: 0.9em; line-height: 1.4; }
+        .apply-all-button { font-size: 1.2em; padding: 15px; width: 100%; margin-top: 20px; background-color: #28a745; }
+        .apply-all-button:hover { background-color: #218838; }
     </style>
 </head>
 <body id="admin-page">
     <div id="password-prompt">
-        <h2>救出ツール ログイン</h2>
-        <p style="color: #f8d7da; max-width: 320px; text-align: center; margin-bottom: 15px;">これは緊急用のツールです。マスター管理者のみが操作してください。</p>
+        <h2>ID再マッピングツール ログイン</h2>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
         <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
         <button id="loginButton" type="button">ログイン</button>
         <p id="passwordError" class="error-message"></p>
     </div>
 
-    <div id="restore-content" class="restore-container" style="display:none;">
+    <div id="main-content" class="container" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>データベース救出ツール</h1>
+            <h1>ID再マッピングツール</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
-        
-        <div class="warning-box">
-            <h3><span class="icon">🚨</span>【最重要・最終警告】</h3>
-            <p>このツールは、IDの関連性が失われたデータベースを、古いバックアップファイルを使って修復する**最終手段**です。</p>
-            <ul>
-                <li>現在のデータベースを**完全に削除**し、修復したデータで上書きします。</li>
-                <li>**IDが壊れる前の、古い形式のバックアップJSONファイル**（`version: "1.0"`のもの）を選択してください。</li>
-                <li>この操作は一度しか行えません。失敗は許されません。</li>
-            </ul>
+
+        <div class="info-box">
+            <h3>使い方</h3>
+            <p>このツールは、IDの関連性が失われたデータベースを、古いバックアップファイルを参考に、パズルを組み合わせるように修復します。</p>
+            <ol>
+                <li><strong>IDが壊れる前</strong>のバックアップJSONファイルを選択し、「マッピングリストを作成」ボタンを押してください。</li>
+                <li>各セクションで、左側に表示される「現在のグループ」が、右側のどの「元の名前」に該当するかをドロップダウンから選択してください。</li>
+                <li>すべての対応付けが完了したら、一番下の「全ての変更をデータベースに適用」ボタンを押してデータを修復します。</li>
+            </ol>
         </div>
 
         <div class="form-group">
@@ -48,17 +49,35 @@
             <input type="file" id="backupFile" accept="application/json,.json">
         </div>
 
-        <div class="form-group">
-            <label for="confirmText">上記の警告をすべて理解し、救出を実行する場合は、以下のボックスに「RESCUE MY DATA」と入力してください:</label>
-            <input type="text" id="confirmText" placeholder="RESCUE MY DATA">
+        <button id="generateMapButton" type="button" disabled>マッピングリストを作成</button>
+        
+        <div id="mappingArea" style="display: none; margin-top: 20px;">
+            <!-- カテゴリの親子関係 -->
+            <section id="categoryParentMapping" class="mapping-section">
+                <h3>1. カテゴリの親子関係の再設定</h3>
+                <p>以下のグループが、どの「親カテゴリ」に所属していたか選択してください。</p>
+                <div id="categoryParentMapContainer"></div>
+            </section>
+            
+            <!-- タグのカテゴリ所属 -->
+            <section id="tagCategoryMapping" class="mapping-section">
+                <h3>2. タグの所属カテゴリの再設定</h3>
+                <p>以下のタグが、どの「子カテゴリ」に所属していたか選択してください。</p>
+                <div id="tagCategoryMapContainer"></div>
+            </section>
+
+            <!-- アイテムのタグ付け -->
+            <section id="itemTagMapping" class="mapping-section">
+                 <h3>3. アイテムのタグの再設定</h3>
+                 <p>以下のアイテムに、どのタグが付けられていたか選択してください。（複数選択可）</p>
+                 <div id="itemTagMapContainer"></div>
+            </section>
+            
+            <hr>
+            <button id="applyAllButton" class="apply-all-button" type="button">全ての変更をデータベースに適用</button>
         </div>
-
-        <button id="rescueButton" type="button" disabled>救出を実行</button>
-
-        <div id="progressArea" class="progress-area" style="display: none;"></div>
     </div>
 
     <script type="module" src="js/restore.js"></script>
-
 </body>
 </html>
