@@ -3,684 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>アイテム管理ツール (Firebase v9版)</title>
-    <!-- Admin CSS Files -->
+    <title>データベース復元ツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
-    <link rel="stylesheet" href="css/admin-lists.css">
-    <link rel="stylesheet" href="css/admin-modal.css">
-    <link rel="stylesheet" href="css/admin-responsive.css">
-    
-    <!-- JSZipライブラリを追加 -->
+    <!-- JSZipライブラリを読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body { background-color: #e9ecef; }
+        .restore-container { max-width: 800px; margin: 50px auto; padding: 40px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .warning-box { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
+        .warning-box h3 { margin-top: 0; color: #856404; }
+        .preview-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 15px; border-radius: 5px; margin-top: 20px; font-family: monospace; }
+        .progress-area { margin-top: 20px; font-family: monospace; font-size: 0.9em; background-color: #212529; color: #f8f9fa; padding: 15px; border-radius: 4px; height: 300px; overflow-y: scroll; white-space: pre-wrap; }
+        #restoreButton { background-color: #dc3545; }
+        #restoreButton:hover { background-color: #c82333; }
+        #restoreButton:disabled { background-color: #6c757d; cursor: not-allowed; }
+    </style>
 </head>
 <body id="admin-page">
     <div id="password-prompt">
-        <h2>管理者ログイン</h2>
-        <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email" aria-label="管理者メールアドレス">
-        <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password" aria-label="管理者パスワード">
+        <h2>復元ツール ログイン</h2>
+        <p style="color: #f8d7da; max-width: 320px; text-align: center; margin-bottom: 15px;">このツールはデータベースを上書きします。操作には細心の注意を払ってください。</p>
+        <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
+        <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
         <button id="loginButton" type="button">ログイン</button>
-        <p id="passwordError" class="error-message" role="alert" aria-live="assertive"></p>
+        <p id="passwordError" class="error-message"></p>
     </div>
 
-    <div id="admin-content" style="display:none;">
-        <header class="admin-header">
-            <div class="admin-header-main">
-                <h1 class="admin-site-title">管理ツール</h1>
-            </div>
-            <div class="admin-header-actions">
-                <span id="currentUserEmail"></span>
-                <button id="logoutButton" type="button">ログアウト</button>
-                <button id="adminHamburgerButton" class="admin-hamburger-button" aria-label="メニューを開く" aria-expanded="false" aria-controls="adminSideNav">☰</button>
-            </div>
-        </header>
-
-        <nav id="adminSideNav" class="admin-side-navigation" aria-hidden="true">
-            <button id="adminCloseNavButton" class="admin-close-nav-button" aria-label="メニューを閉じる">×</button>
+    <!-- 復元ツール本体 -->
+    <div id="restore-content" class="restore-container" style="display:none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>データベース復元ツール</h1>
+            <button id="logoutButton" type="button">ログアウト</button>
+        </div>
+        
+        <div class="warning-box">
+            <h3><span class="icon">⚠️</span> 警告：これは非常に危険な操作です</h3>
+            <p>このツールは、現在のデータベースの<strong>すべてのデータ（アイテム、カテゴリ、タグ等）を完全に削除</strong>し、アップロードしたバックアップファイルの内容で上書きします。</p>
             <ul>
-                <li><button class="admin-nav-button" data-modal-target="categoryManagementModal">カテゴリ管理</button></li>
-                <li><button class="admin-nav-button" data-modal-target="tagManagementModal">タグ管理</button></li>
-                <li><button class="admin-nav-button" data-modal-target="effectUnitManagementModal">効果単位管理</button></li>
-                <li><button class="admin-nav-button" data-modal-target="effectSuperCategoryManagementModal">効果大分類管理</button></li>
-                <li><button class="admin-nav-button" data-modal-target="effectTypeManagementModal">効果種類管理</button></li>
-                <li><button class="admin-nav-button" data-modal-target="characterBaseManagementModal">キャラクター基礎情報管理</button></li>
-                <li><button class="admin-nav-button" data-modal-target="itemSourceManagementModal">入手経路管理</button></li>
-                <li style="border-top: 2px solid #4a4f54; margin-top: 10px; padding-top: 10px;">
-                    <button id="manualBackupButton" class="admin-nav-button" style="color: #ffc107;">
-                        <span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ
-                    </button>
-                </li>
+                <li>この操作は元に戻せません。</li>
+                <li>必ず、操作の直前に手動バックアップを取得してください。</li>
+                <li>操作内容を十分に理解しているマスター管理者のみが使用してください。</li>
             </ul>
-        </nav>
-
-
-        <div class="container">
-            <p class="info-message" style="text-align: center; margin-bottom: 20px;">
-                アイテムの変更は、保存ボタンを押すとFirebaseに直接保存されます。<br>
-                カテゴリ、タグ、効果種類、入手経路などの管理は、ヘッダー右上のメニューから各管理ダイアログを開いてください。
-            </p>
-            <hr>
-
-            <!-- アイテム管理 -->
-            <section id="item-management" aria-labelledby="itemManagementHeading">
-                <h2 id="itemManagementHeading"><span class="icon" aria-hidden="true"></span> アイテム管理</h2>
-                <form id="itemForm">
-                    <input type="hidden" id="itemIdToEdit">
-                    <div class="form-group">
-                        <label for="itemName">名前:</label>
-                        <input type="text" id="itemName">
-                    </div>
-                    <div class="form-group">
-                        <label for="itemImageFile">画像:</label>
-                        <input type="file" id="itemImageFile" accept="image/*">
-                        <img id="itemImagePreview" src="#" alt="画像プレビュー" style="max-width: 100px; max-height: 100px; display: none; margin-top: 10px; object-fit: contain; cursor: pointer;" data-modal-target="imagePreviewModal">
-                        <input type="hidden" id="itemImageUrl">
-                        <p class="info">新しい画像をアップロードすると、縦横比1:1の正方形になるよう自動で余白が追加されます。<br>推奨サイズ: 100x100程度, 最大5MB。プレビュー画像クリックで拡大表示できます。</p>
-                        <div id="uploadProgressContainer" style="display:none;">
-                            <progress id="uploadProgress" value="0" max="100" aria-label="アップロード進捗"></progress>
-                            <span id="uploadProgressText"></span>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="itemPrice">売値 (G):</label>
-                        <input type="number" id="itemPrice" placeholder="例: 100 (未入力で「未設定」)" min="0" step="1">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="itemRaritySelector">レア度:</label>
-                        <div id="itemRaritySelector" class="rarity-selector-container">
-                        </div>
-                        <input type="hidden" id="itemRarityValue" value="0">
-                    </div>
-
-                    <div class="form-group">
-                        <label>効果設定:</label> 
-                        <div class="effect-input-area"> 
-                            <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
-                                <button type="button" id="toggleEffectsInputModeButton" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">入力欄に切り替え</button>
-                            </div>
-                            
-                            <div id="structuredEffectsInputArea"> 
-                                 <div class="effect-input-row">
-                                     <select id="effectTypeSelect" class="form-control-short" aria-label="効果種類">
-                                         <option value="">効果種類を選択...</option>
-                                     </select>
-                                     <input type="number" id="effectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
-                                     <span id="effectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
-                                     <button type="button" id="addEffectToListButton">効果をリストに追加</button> 
-                                 </div>
-                            </div>
-                            <div id="manualEffectsInputArea" style="display:none;"> 
-                                <textarea id="manualEffectsString" rows="3" placeholder="効果を自由記述 (例: 攻撃力+10、HP自動回復)"></textarea>
-                                <button type="button" id="addManualEffectToListButton" style="margin-top: 5px;">手動入力をリストに追加</button>
-                                <p class="info">入力した文字列がそのまま効果としてリストに追加されます。</p>
-                            </div>
-                            <hr style="margin: 15px 0;">
-                            <label>現在の効果リスト:</label>
-                            <div id="currentEffectsList" class="effects-list-container">
-                               <p>効果が追加されていません。</p>
-                            </div>
-                       </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>入手手段設定:</label> 
-                        <div class="effect-input-area"> 
-                            <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
-                                 <button type="button" id="toggleSourceInputModeButton" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">入力欄に切り替え</button>
-                            </div>
-                            
-                            <div id="treeSourceInputArea"> 
-                                <p class="info" style="margin-bottom: 0.5rem;">下の階層から順に選択してください。選択肢は動的に表示されます。</p>
-                                <div id="itemSourceButtonSelectionArea" class="item-source-button-selection-levels" style="border: 1px solid #eee; padding: 10px; border-radius: 4px; margin-bottom:10px;">
-                                    {/* JSがここに階層ボタンコンテナを生成 */}
-                                </div>
-                                <div class="form-group">
-                                    <label for="selectedItemSourcePathDisplay">選択中のパス (ボタン名):</label>
-                                    <input type="text" id="selectedItemSourcePathDisplay" readonly placeholder="未選択" aria-label="現在選択中の入手経路パス（ボタン名）">
-                                    <input type="hidden" id="selectedItemSourceNodeId_temp">
-                                </div>
-                                {/* ===== 追加 ===== */}
-                                <div class="form-group">
-                                    <label for="finalSourceDisplayPreview">最終表示テキストプレビュー:</label>
-                                    <input type="text" id="finalSourceDisplayPreview" readonly placeholder="表示テキストがここにプレビューされます" aria-label="最終表示テキストプレビュー" style="background-color: #e9ecef; cursor: default;">
-                                </div>
-                                {/* ===== 追加ここまで ===== */}
-                                <button type="button" id="addTreeSourceToListButton">選択した経路をリストに追加</button>
-                            </div>
-                            <div id="manualSourceInputArea" style="display:none;"> 
-                                <textarea id="manualSourceStringTextarea" rows="2" placeholder="入手手段を自由記述 (例: イベントAの報酬)"></textarea>
-                                <button type="button" id="addManualSourceToListButton" style="margin-top: 5px;">手動入力をリストに追加</button>
-                                <p class="info">入力した文字列がそのまま入手手段としてリストに追加されます。</p>
-                            </div>
-                            <hr style="margin: 15px 0;">
-                            <label>現在の入手手段リスト:</label>
-                            <div id="currentSourcesList" class="effects-list-container"> 
-                               <p>入手手段が追加されていません。</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label id="itemTagsLabel">このアイテムのタグ:</label>
-                        <div id="itemTagsButtonContainer" class="tag-button-selection-container" role="group" aria-labelledby="itemTagsLabel">
-                            {/* JSがここにカテゴリごとのタグボタンを生成 */}
-                            <p>タグをロード中...</p>
-                        </div>
-                    </div>
-                    <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                        <button type="button" id="deleteItemFromFormButton" class="button-like delete" style="background-color: #dc3545; display: none;">このアイテムを削除</button>
-                        <div>
-                            <button type="button" id="clearFormButton" class="button-like secondary">フォームクリア</button>
-                            <button type="submit" id="saveItemButton">アイテム保存</button>
-                        </div>
-                    </div>
-                </form>
-
-                <h3 style="margin-top:30px;"><span class="icon" aria-hidden="true"></span> アイテム一覧</h3>
-                <p class="info-message-small">一覧の行をクリックすると、そのアイテムの情報が上の編集フォームに読み込まれます。</p>
-                <div class="form-group">
-                    <label for="itemSearchAdmin" class="sr-only">アイテム検索</label>
-                    <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." aria-label="登録済みアイテムを検索">
-                </div>
-                <div style="overflow-x: auto;">
-                    <table id="itemsTable">
-                        <thead>
-                            <tr><th>画像</th><th>名前</th><th>レア度</th><th>売値</th><th>効果</th><th>タグ</th><th>入手経路</th></tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div><!-- closing .container -->
-    </div><!-- closing #admin-content -->
-
-    <!-- 管理機能モーダル群 (変更なしのため省略しません) -->
-    <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h2 id="categoryManagementModalTitle"><span class="icon" aria-hidden="true"></span> カテゴリ管理</h2>
-            <p class="info-message">カテゴリの変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
-            <div class="form-group">
-                 <label for="newCategoryName">新しいカテゴリ名:</label>
-                 <input type="text" id="newCategoryName" placeholder="カテゴリ名">
-            </div>
-             <div class="form-group">
-                 <label id="newCategoryParentLabel">親カテゴリ設定:</label>
-                 <div id="newCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="newCategoryParentLabel">
-                 </div>
-                 <input type="hidden" id="selectedNewParentCategoryId" value="">
-             </div>
-            <button id="addCategoryButton" type="button">カテゴリ追加</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <h3>カテゴリ一覧</h3>
-                <button type="button" id="enlargeCategoryListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="カテゴリ一覧を拡大表示">
-                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
-                </button>
-            </div>
-            <p class="info-message-small">一覧の項目名（カテゴリ名部分）をクリックすると編集モーダルが開きます。</p>
-            <div class="form-group list-search-bar">
-                <label for="categorySearchInput" class="sr-only">カテゴリ検索</label>
-                <input type="text" id="categorySearchInput" placeholder="カテゴリ名で検索..." aria-label="カテゴリを検索">
-            </div>
-            <div id="categoryListContainer" class="list-container">
-            </div>
         </div>
+
+        <div class="form-group">
+            <label for="backupFile">バックアップファイル (.zip または .json) を選択してください:</label>
+            <input type="file" id="backupFile" accept=".zip,application/zip,application/json,.json">
+        </div>
+
+        <button id="previewButton" type="button" disabled>バックアップ内容をプレビュー</button>
+        
+        <div id="previewArea" class="preview-box" style="display: none;">
+            <h4>バックアップ内容のプレビュー</h4>
+            <pre id="previewContent"></pre>
+        </div>
+
+        <div class="form-group" style="margin-top: 20px;">
+            <label for="confirmText">上記の警告とプレビュー内容を理解し、復元を実行する場合は、以下のボックスに「RESTORE」と入力してください:</label>
+            <input type="text" id="confirmText" placeholder="RESTORE">
+        </div>
+
+        <button id="restoreButton" type="button" disabled>復元を実行</button>
+
+        <div id="progressArea" class="progress-area" style="display: none;"></div>
+
+        <!-- 強制バックアップ用の隠しリンク -->
+        <a id="forceBackupLink" style="display: none;"></a>
     </div>
 
-    <div id="tagManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="tagManagementModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h2 id="tagManagementModalTitle"><span class="icon" aria-hidden="true"></span> タグ管理</h2>
-            <p class="info-message">タグの変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
-            <div class="form-group">
-                <label for="newTagName">新しいタグ名:</label>
-                <input type="text" id="newTagName" placeholder="タグの名前">
-            </div>
-            <div class="form-group">
-                <label id="newTagCategoriesLabel">このタグが所属するカテゴリ (子カテゴリのみ選択可):</label>
-                <div id="newTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="newTagCategoriesLabel">
-                </div>
-            </div>
-            <button id="addTagButton" type="button">タグ追加</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <h3>既存タグ一覧</h3>
-                <button type="button" id="enlargeTagListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="タグ一覧を拡大表示">
-                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
-                </button>
-            </div>
-            <p class="info-message-small">一覧の項目名（タグ名部分）をクリックすると編集モーダルが開きます。</p>
-            <div class="form-group list-search-bar">
-                <label for="tagSearchInput" class="sr-only">タグ検索</label>
-                <input type="text" id="tagSearchInput" placeholder="タグ名で検索..." aria-label="タグを検索">
-            </div>
-            <div id="tagListContainer" class="list-container">
-            </div>
-        </div>
-    </div>
+    <script type="module" src="js/restore.js"></script>
 
-    <div id="effectUnitManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectUnitManagementModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h2 id="effectUnitManagementModalTitle"><span class="icon" aria-hidden="true">📏</span> 効果単位管理</h2>
-            <p class="info-message">効果単位の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
-            <div class="form-group">
-                <label for="newEffectUnitName">新しい効果単位名:</label>
-                <input type="text" id="newEffectUnitName" placeholder="単位名 (例: ポイント, %, 秒)">
-            </div>
-            <div class="form-group">
-                <label>単位の位置:</label>
-                <div class="radio-group responsive-radio-group">
-                    <div>
-                        <input type="radio" id="newEffectUnitPositionSuffix" name="newEffectUnitPosition" value="suffix" checked>
-                        <label for="newEffectUnitPositionSuffix">値の後 (例: 100 G)</label>
-                    </div>
-                    <div>
-                        <input type="radio" id="newEffectUnitPositionPrefix" name="newEffectUnitPosition" value="prefix">
-                        <label for="newEffectUnitPositionPrefix">値の前 (例: ¥ 100)</label>
-                    </div>
-                </div>
-            </div>
-            <button id="addEffectUnitButton" type="button">効果単位を追加</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <h3>既存の効果単位一覧</h3>
-                <button type="button" id="enlargeEffectUnitListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果単位一覧を拡大表示">
-                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
-                </button>
-            </div>
-            <p class="info-message-small">一覧の項目名（単位名部分）をクリックすると編集モーダルが開きます。</p>
-            <div id="effectUnitListContainer" class="list-container">
-            </div>
-        </div>
-    </div>
-
-    <div id="effectSuperCategoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectSuperCategoryManagementModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h2 id="effectSuperCategoryManagementModalTitle"><span class="icon" aria-hidden="true">📂</span> 効果大分類管理</h2>
-            <p class="info-message">効果大分類の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
-            <div class="form-group">
-                <label for="newEffectSuperCategoryName">新しい効果大分類名:</label>
-                <input type="text" id="newEffectSuperCategoryName" placeholder="大分類名 (例: 攻撃系)">
-            </div>
-            <button id="addEffectSuperCategoryButton" type="button">効果大分類を追加</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <h3>既存の効果大分類一覧</h3>
-                <button type="button" id="enlargeEffectSuperCategoryListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果大分類一覧を拡大表示">
-                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
-                </button>
-            </div>
-            <p class="info-message-small">一覧の項目名（大分類名部分）をクリックすると編集モーダルが開きます。</p>
-            <div id="effectSuperCategoryListContainer" class="list-container">
-            </div>
-        </div>
-    </div>
-
-    <div id="effectTypeManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectTypeManagementModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h2 id="effectTypeManagementModalTitle"><span class="icon" aria-hidden="true">✨</span> 効果種類管理</h2>
-            <p class="info-message">効果種類の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
-             <div class="form-group">
-                 <label for="newEffectTypeName">新しい効果種類名:</label>
-                 <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
-             </div>
-             <div class="form-group">
-                <label for="newEffectTypeSuperCategory">効果大分類:</label>
-                <select id="newEffectTypeSuperCategory" class="form-control-short">
-                    <option value="">大分類を選択...</option>
-                </select>
-            </div>
-             <div class="form-group">
-                 <label for="newEffectTypeUnit">デフォルト単位:</label>
-                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
-                     <select id="newEffectTypeUnit" class="form-control-short"></select>
-                     <button type="button" id="manageUnitsForNewEffectTypeButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
-                 </div>
-             </div>
-             <div class="form-group">
-                 <label>計算方法:</label>
-                 <div class="radio-group responsive-radio-group">
-                     <div>
-                         <input type="radio" id="newCalcMethodSum" name="newCalcMethod" value="sum" checked>
-                         <label for="newCalcMethodSum">加算</label>
-                     </div>
-                     <div>
-                         <input type="radio" id="newCalcMethodMax" name="newCalcMethod" value="max">
-                         <label for="newCalcMethodMax">最大値</label>
-                     </div>
-                 </div>
-             </div>
-             <div class="form-group" id="newEffectTypeSumCapGroup">
-                 <label for="newEffectTypeSumCap">加算時の最大値 (任意):</label>
-                 <input type="number" id="newEffectTypeSumCap" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short">
-                 <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
-             </div>
-             <button id="addEffectTypeButton" type="button">効果種類を追加</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <h3>既存の効果種類一覧</h3>
-                <button type="button" id="enlargeEffectTypeListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果種類一覧を拡大表示">
-                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
-                </button>
-            </div>
-            <p class="info-message-small">一覧の項目名（効果種類名部分）をクリックすると編集モーダルが開きます。</p>
-             <div id="effectTypeListContainer" class="list-container">
-             </div>
-        </div>
-    </div>
-
-    <div id="characterBaseManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="charBaseManagementModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h2 id="charBaseManagementModalTitle"><span class="icon" aria-hidden="true">👤</span> キャラクター基礎情報管理</h2>
-            <p class="info-message">キャラクター基礎情報の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
-            <div class="form-group" style="align-items: baseline;">
-                <label id="charBaseTypeLabel" style="margin-bottom: 0.5rem; display: block;">基礎情報の種類:</label>
-                <div id="charBaseTypeButtons" class="category-button-group admin" role="group" aria-labelledby="charBaseTypeLabel">
-                </div>
-                <input type="hidden" id="selectedCharBaseType" value="headShape">
-                <button type="button" id="addNewCharBaseOptionButton" class="button-like" style="margin-top: 0.5rem;">新しい選択肢を追加</button>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <h3><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
-                <button type="button" id="enlargeCharBaseOptionListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="キャラクター基礎情報オプション一覧を拡大表示">
-                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
-                </button>
-            </div>
-            <p class="info-message-small">一覧の項目名（選択肢名部分）をクリックすると編集モーダルが開きます。</p>
-            <div id="charBaseOptionListContainer" class="list-container">
-            </div>
-        </div>
-    </div>
-
-    <div id="itemSourceManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="itemSourceManagementModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h2 id="itemSourceManagementModalTitle"><span class="icon" aria-hidden="true">🗺️</span> 入手経路管理</h2>
-            <p class="info-message">入手経路の変更は、保存ボタンを押すとFirebaseに直接保存されます。最大4階層まで設定可能です。</p>
-            <div class="form-group">
-                 <label for="newItemSourceName">新しい入手経路名:</label>
-                 <input type="text" id="newItemSourceName" placeholder="経路名 (例: ダンジョンA, フロア1)">
-            </div>
-             <div class="form-group">
-                 <label id="newItemSourceParentLabel">親経路設定 (選択した経路の子として追加):</label>
-                 <div id="newItemSourceParentSelector" class="category-button-group admin item-source-parent-selector" role="group" aria-labelledby="newItemSourceParentLabel" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                 </div>
-                 <input type="hidden" id="selectedNewParentSourceId" value="">
-             </div>
-             <div class="form-group" id="newItemSourceDisplayStringGroup"> 
-                <label for="newItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
-                <input type="text" id="newItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
-                <p class="info">アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。</p>
-             </div>
-            <button id="addItemSourceButton" type="button">入手経路追加</button>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <h3>入手経路一覧</h3>
-                <button type="button" id="enlargeItemSourceListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="入手経路一覧を拡大表示">
-                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
-                </button>
-            </div>
-            <p class="info-message-small">一覧の項目名をクリックすると編集モーダルが開きます。</p>
-            <div class="form-group list-search-bar">
-                <label for="itemSourceSearchInput" class="sr-only">入手経路検索</label>
-                <input type="text" id="itemSourceSearchInput" placeholder="経路名で検索..." aria-label="入手経路を検索">
-            </div>
-            <div id="itemSourceListContainer" class="list-container">
-            </div>
-        </div>
-    </div>
-
-
-    <!-- 既存の編集モーダル群 -->
-    <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
-        <div class="modal-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="editCategoryModalTitle">カテゴリ編集</h3>
-            <input type="hidden" id="editingCategoryDocId">
-            <div class="form-group">
-                <label for="editingCategoryName">カテゴリ名:</label>
-                <input type="text" id="editingCategoryName">
-            </div>
-            <div class="form-group">
-                <label id="editingCategoryParentLabel">親カテゴリ:</label>
-                 <div id="editingCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="editingCategoryParentLabel">
-                 </div>
-                 <input type="hidden" id="selectedEditingParentCategoryId">
-            </div>
-             <div class="form-group" id="editCategoryTagsGroup" style="display: none;">
-                 <label id="editingCategoryTagsLabel">この子カテゴリに所属させるタグ (複数選択可):</label>
-                 <div id="editingCategoryTagsSelector" class="tag-button-container admin" role="group" aria-labelledby="editingCategoryTagsLabel">
-                 </div>
-             </div>
-             <div class="form-group" id="tagSearchModeGroup" style="display: none;">
-                 <label for="editingTagSearchMode">同カテゴリ内タグ検索モード (子カテゴリ専用):</label>
-                 <select id="editingTagSearchMode" class="form-control-short">
-                     <option value="AND">AND検索</option>
-                     <option value="OR">OR検索</option>
-                 </select>
-             </div>
-             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button id="deleteCategoryFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このカテゴリを削除</button>
-                <button id="saveCategoryEditButton" type="button">変更を保存</button>
-            </div>
-        </div>
-    </div>
-    <div id="editTagModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editTagModalTitle">
-        <div class="modal-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="editTagModalTitle">タグ編集</h3>
-            <input type="hidden" id="editingTagDocId">
-            <div class="form-group">
-                <label for="editingTagName">タグ名:</label>
-                <input type="text" id="editingTagName">
-            </div>
-            <div class="form-group">
-                <label id="editingTagCategoriesLabel">このタグが所属する子カテゴリ (複数選択可):</label>
-                <div id="editingTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="editingTagCategoriesLabel">
-                </div>
-            </div>
-            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button id="deleteTagFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このタグを削除</button>
-                <button id="saveTagEditButton" type="button">変更を保存</button>
-            </div>
-        </div>
-    </div>
-    <div id="editEffectSuperCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectSuperCategoryModalTitle">
-        <div class="modal-content" style="max-width: 500px;">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="editEffectSuperCategoryModalTitle">効果大分類編集</h3>
-            <input type="hidden" id="editingEffectSuperCategoryDocId">
-            <div class="form-group">
-                <label for="editingEffectSuperCategoryName">大分類名:</label>
-                <input type="text" id="editingEffectSuperCategoryName">
-            </div>
-            <div class="form-group">
-                <label id="editingSuperCategoryEffectTypesLabel">この大分類に所属させる効果種類 (複数選択可):</label>
-                <div id="editingSuperCategoryEffectTypesSelector" class="tag-button-container admin" role="group" aria-labelledby="editingSuperCategoryEffectTypesLabel" style="max-height: 200px; overflow-y: auto;">
-                </div>
-            </div>
-            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button id="deleteEffectSuperCategoryFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この大分類を削除</button>
-                <button id="saveEffectSuperCategoryEditButton" type="button">変更を保存</button>
-            </div>
-        </div>
-    </div>
-    <div id="editEffectTypeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectTypeModalTitle">
-        <div class="modal-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="editEffectTypeModalTitle">効果種類編集</h3>
-            <input type="hidden" id="editingEffectTypeDocId">
-            <div class="form-group">
-                <label for="editingEffectTypeName">効果種類名:</label>
-                <input type="text" id="editingEffectTypeName">
-            </div>
-            <div class="form-group">
-                <label for="editingEffectTypeSuperCategory">効果大分類:</label>
-                <select id="editingEffectTypeSuperCategory" class="form-control-short">
-                    <option value="">大分類を選択...</option>
-                </select>
-            </div>
-             <div class="form-group">
-                 <label for="editingEffectTypeUnit">デフォルト単位:</label>
-                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
-                     <select id="editingEffectTypeUnit" class="form-control-short"></select>
-                     <button type="button" id="manageUnitsForEditingEffectTypeButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
-                 </div>
-             </div>
-             <div class="form-group">
-                 <label>計算方法:</label>
-                 <div class="radio-group responsive-radio-group">
-                     <div>
-                         <input type="radio" id="editCalcMethodSum" name="editCalcMethod" value="sum">
-                         <label for="editCalcMethodSum">加算</label>
-                     </div>
-                     <div>
-                         <input type="radio" id="editCalcMethodMax" name="editCalcMethod" value="max">
-                         <label for="editCalcMethodMax">最大値</label>
-                     </div>
-                 </div>
-             </div>
-             <div class="form-group" id="editingEffectTypeSumCapGroup">
-                <label for="editingEffectTypeSumCap">加算時の最大値 (任意):</label>
-                <input type="number" id="editingEffectTypeSumCap" placeholder="例: 100 (空欄で上限なし)" min="0" class="form-control-short">
-                <p class="info">計算方法が「加算」の場合のみ適用されます。空欄にすると上限なしとして扱われます。</p>
-            </div>
-            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button id="deleteEffectTypeFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この効果種類を削除</button>
-                <button id="saveEffectTypeEditButton" type="button">変更を保存</button>
-            </div>
-        </div>
-    </div>
-    <div id="editEffectUnitModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectUnitModalTitle">
-        <div class="modal-content" style="max-width: 400px;">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="editEffectUnitModalTitle">効果単位編集</h3>
-            <input type="hidden" id="editingEffectUnitDocId">
-            <div class="form-group">
-                <label for="editingEffectUnitName">単位名:</label>
-                <input type="text" id="editingEffectUnitName">
-            </div>
-            <div class="form-group">
-                <label>単位の位置:</label>
-                <div class="radio-group responsive-radio-group">
-                    <div>
-                        <input type="radio" id="editEffectUnitPositionSuffix" name="editEffectUnitPosition" value="suffix">
-                        <label for="editEffectUnitPositionSuffix">値の後</label>
-                    </div>
-                    <div>
-                        <input type="radio" id="editEffectUnitPositionPrefix" name="editEffectUnitPosition" value="prefix">
-                        <label for="editEffectUnitPositionPrefix">値の前</label>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button id="deleteEffectUnitFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この効果単位を削除</button>
-                <button id="saveEffectUnitEditButton" type="button">単位を保存</button>
-            </div>
-        </div>
-    </div>
-    <div id="editCharBaseOptionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCharBaseOptionModalTitle">
-        <div class="modal-content" style="max-width: 600px;">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="editCharBaseOptionModalTitle">基礎情報オプション編集</h3>
-            <input type="hidden" id="editingCharBaseType">
-            <input type="hidden" id="editingCharBaseOptionDocId">
-            <div class="form-group">
-                <label for="editingCharBaseOptionName">選択肢の名前:</label>
-                <input type="text" id="editingCharBaseOptionName" placeholder="例: 丸型ヘッド">
-            </div>
-            <div class="form-group">
-                <label>この選択肢の効果:</label>
-                <div class="effect-input-area" id="charBaseOptionEffectInputArea">
-                     <div class="effect-input-row">
-                         <select id="charBaseOptionEffectTypeSelect" class="form-control-short" aria-label="効果種類">
-                             <option value="">効果種類を選択...</option>
-                         </select>
-                         <input type="number" id="charBaseOptionEffectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
-                         <span id="charBaseOptionEffectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
-                         <button type="button" id="addCharBaseOptionEffectButton">効果を追加</button>
-                     </div>
-                     <div id="currentCharBaseOptionEffectsList" class="effects-list-container">
-                        <p>効果が追加されていません。</p>
-                     </div>
-                </div>
-            </div>
-            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button id="deleteCharBaseOptionFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このオプションを削除</button>
-                <button id="saveCharBaseOptionButton" type="button">オプションを保存</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="editItemSourceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editItemSourceModalTitle">
-        <div class="modal-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="editItemSourceModalTitle">入手経路編集</h3>
-            <input type="hidden" id="editingItemSourceDocId">
-            <div class="form-group">
-                <label for="editingItemSourceName">経路名:</label>
-                <input type="text" id="editingItemSourceName">
-            </div>
-            <div class="form-group">
-                <label id="editingItemSourceParentLabel">親経路:</label>
-                 <div id="editingItemSourceParentSelector" class="category-button-group admin item-source-parent-selector" role="group" aria-labelledby="editingItemSourceParentLabel" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                 </div>
-                 <input type="hidden" id="selectedEditingParentSourceId">
-            </div>
-            <div class="form-group" id="editingItemSourceDisplayStringGroup"> 
-                <label for="editingItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
-                <input type="text" id="editingItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
-                <p class="info">アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。</p>
-            </div>
-             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button id="deleteItemSourceFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この入手経路を削除</button>
-                <button id="saveItemSourceEditButton" type="button">変更を保存</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- アイテム入手経路選択モーダル (ボタン式UIに変更するための準備) -->
-    <div id="selectItemSourceForButtonUIModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="selectItemSourceForButtonUIModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content" style="max-width: 600px;">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="selectItemSourceForButtonUIModalTitle">入手経路の選択 (ボタン式)</h3>
-            <p class="info-message-small">各階層のボタンを選択し、目的の経路で「この経路に決定」を押してください。</p>
-            <div id="itemSourceButtonSelectionUiContainer" class="item-source-button-selection-levels">
-            </div>
-            <div class="form-group" style="margin-top: 15px;">
-                <label>現在の選択パス:</label>
-                <p id="currentPathDisplayForButtonUI" style="font-weight: bold; min-height: 1.2em; background-color: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #e9ecef;">未選択</p>
-            </div>
-            <div class="modal-actions" style="margin-top: 20px; text-align: right;">
-                <button id="confirmItemSourceSelectionForButtonUIButton" type="button" disabled>この経路に決定</button>
-            </div>
-        </div>
-    </div>
-
-
-    <div id="listEnlargementModal" class="modal admin-enlarged-list-modal" role="dialog" aria-modal="true" aria-labelledby="listEnlargementModalTitle" style="display: none;">
-        <div class="modal-content scrollable-content">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h2 id="listEnlargementModalTitle">一覧表示</h2>
-            <div id="listEnlargementModalSearchContainer" style="margin-bottom: 1rem;">
-            </div>
-            <div id="listEnlargementModalContent" class="list-container" style="max-height: calc(80vh - 150px); min-height: 300px;">
-            </div>
-        </div>
-    </div>
-
-    <div id="imagePreviewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="imagePreviewModalTitle" style="display: none;">
-        <div class="modal-content" style="max-width: 80vw; max-height: 80vh; padding: 15px; background-color: #f0f0f0;">
-            <span class="close-button" aria-label="閉じる">×</span>
-            <h3 id="imagePreviewModalTitle" class="sr-only">画像プレビュー</h3>
-            <img id="enlargedImagePreview" src="#" alt="拡大画像プレビュー" style="width: 100%; height: 100%; object-fit: contain;">
-        </div>
-    </div>
-
-
-    <script type="module" src="js/admin-main.js"></script>
 </body>
 </html>
