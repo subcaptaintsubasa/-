@@ -1,8 +1,9 @@
-// js/restore.js (ID再接続パズルツール)
+// js/restore.js (ID再接続パズルツール - ID修正版)
 import { auth, db } from '../firebase-config.js';
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import { collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
+// ★★★ DOM定義の修正 ★★★
 const DOM = {
     passwordPrompt: document.getElementById('password-prompt'),
     mainContent: document.getElementById('main-content'),
@@ -13,7 +14,7 @@ const DOM = {
     passwordError: document.getElementById('passwordError'),
     backupFileInput: document.getElementById('backupFile'),
     analyzeButton: document.getElementById('analyzeButton'),
-    tasksArea: document.getElementById('tasksArea'),
+    tasksArea: document.getElementById('tasksArea'), // categoryTasks -> tasksArea に変更
 };
 
 // --- 認証 (変更なし) ---
@@ -29,13 +30,15 @@ DOM.backupFileInput.addEventListener('change', () => {
     DOM.analyzeButton.disabled = DOM.backupFileInput.files.length === 0;
 });
 
-// --- 分析＆UI生成 ---
+// --- 分析処理 ---
 DOM.analyzeButton.addEventListener('click', async () => {
     const file = DOM.backupFileInput.files[0];
     if (!file) return;
 
     DOM.analyzeButton.disabled = true;
     DOM.analyzeButton.textContent = '分析中...';
+    // ★★★ DOM変数名の修正 ★★★
+    DOM.tasksArea.style.display = 'block';
     DOM.tasksArea.innerHTML = '<p>データを読み込んで分析しています...</p>';
 
     try {
@@ -47,6 +50,7 @@ DOM.analyzeButton.addEventListener('click', async () => {
         
         const newParentCategories = newCategories.filter(c => !c.parentId);
 
+        // ★★★ DOM変数名の修正 ★★★
         DOM.tasksArea.innerHTML = '<h3>カテゴリの親子関係 再接続</h3>';
         
         // 古いデータから親子関係のグループを作成
@@ -82,7 +86,6 @@ DOM.analyzeButton.addEventListener('click', async () => {
             const selector = document.createElement('select');
             selector.innerHTML = `<option value="">選択してください...</option>`;
             newParentCategories.forEach(p => {
-                // 名前の類似度で推奨を出す
                 const isRecommended = p.name === oldParent.name;
                 selector.innerHTML += `<option value="${p.id}" ${isRecommended ? 'selected' : ''}>${p.name} ${isRecommended ? '(推奨)' : ''}</option>`;
             });
@@ -110,7 +113,7 @@ DOM.analyzeButton.addEventListener('click', async () => {
                     });
                     
                     await batch.commit();
-                    alert('更新が完了しました！');
+                    alert('更新しました！');
                     groupDiv.style.border = '2px solid #28a745';
                     groupDiv.style.backgroundColor = '#d4edda';
                 } catch (err) {
@@ -124,10 +127,12 @@ DOM.analyzeButton.addEventListener('click', async () => {
             taskItem.appendChild(selector);
             taskItem.appendChild(updateButton);
             groupDiv.appendChild(taskItem);
+            // ★★★ DOM変数名の修正 ★★★
             DOM.tasksArea.appendChild(groupDiv);
         }
         
     } catch (error) {
+        // ★★★ DOM変数名の修正 ★★★
         DOM.tasksArea.innerHTML = `<p style="color: red;">エラー: ${error.message}</p>`;
         console.error(error);
     } finally {
