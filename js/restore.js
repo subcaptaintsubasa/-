@@ -1,4 +1,4 @@
-// js/restore.js (カテゴリ親子関係 復旧ツール - グルーピング修正版)
+// js/restore.js (ID再接続パズルツール)
 import { auth, db } from '../firebase-config.js';
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import { collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
@@ -13,12 +13,8 @@ const DOM = {
     passwordError: document.getElementById('passwordError'),
     backupFileInput: document.getElementById('backupFile'),
     analyzeButton: document.getElementById('analyzeButton'),
-    categoryTasks: document.getElementById('categoryTasks'),
+    tasksArea: document.getElementById('tasksArea'),
 };
-
-let oldBackupData = null;
-let currentCategories = [];
-let parentCategories = [];
 
 // --- 認証 (変更なし) ---
 onAuthStateChanged(auth, user => {
@@ -33,136 +29,109 @@ DOM.backupFileInput.addEventListener('change', () => {
     DOM.analyzeButton.disabled = DOM.backupFileInput.files.length === 0;
 });
 
-// --- 分析処理 (変更なし) ---
+// --- 分析＆UI生成 ---
 DOM.analyzeButton.addEventListener('click', async () => {
     const file = DOM.backupFileInput.files[0];
     if (!file) return;
 
     DOM.analyzeButton.disabled = true;
     DOM.analyzeButton.textContent = '分析中...';
-    DOM.categoryTasks.innerHTML = '<p>データを読み込んでいます...</p>';
+    DOM.tasksArea.innerHTML = '<p>データを読み込んで分析しています...</p>';
 
     try {
         const oldBackupString = await file.text();
-        oldBackupData = JSON.parse(oldBackupString).collections;
+        const oldData = JSON.parse(oldBackupString).collections;
 
-        const snapshot = await getDocs(collection(db, 'categories'));
-        currentCategories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const newDataSnapshot = await getDocs(collection(db, 'categories'));
+        const newCategories = newDataSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        // ★★★ 親カテゴリの定義を修正 ★★★
-        // 旧バックアップを参考に、本来親だったカテゴリ名をリストアップ
-        const oldParentNames = oldBackupData.categories
-            .filter(c => !c.parentId)
-            .map(c => c.name);
-        
-        // 現在のDBから、名前に基づいて「親候補」を特定
-        parentCategories = currentCategories.filter(c => oldParentNames.includes(c.name));
-        
-        DOM.categoryTasks.innerHTML = '';
-        renderCategoryTasks();
-        alert('分析が完了しました。下のリストから親子関係を修正してください。');
+        const newParentCategories = newCategories.filter(c => !c.parentId);
 
+        DOM.tasksArea.innerHTML = '<h3>カテゴリの親子関係 再接続</h3>';
+        
+        // 古いデータから親子関係のグループを作成
+        const oldChildrenByParentId = oldData.categories
+            .filter(c => c.parentId)
+            .reduce((acc, cat) => {
+                const parentId = cat.parentId;
+                if (!acc[parentId]) acc[parentId] = [];
+                acc[parentId].push(cat.name);
+                return acc;
+            }, {});
+
+        // グループごとにUIを生成
+        for (const oldParentId in oldChildrenByParentId) {
+            const oldChildrenNames = oldChildrenByParentId[oldParentId];
+            const oldParent = oldData.categories.find(c => c.id === oldParentId);
+
+            if (!oldParent) continue;
+
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'task-group';
+            groupDiv.innerHTML = `
+                <p>以下のグループは、本来「<strong>${oldParent.name}</strong>」の子カテゴリでした。</p>
+                <ul>${oldChildrenNames.map(name => `<li>${name}</li>`).join('')}</ul>
+            `;
+            
+            const taskItem = document.createElement('div');
+            taskItem.className = 'task-item';
+
+            const selectorLabel = document.createElement('label');
+            selectorLabel.textContent = '現在の親カテゴリから正しいものを選択 →';
+            
+            const selector = document.createElement('select');
+            selector.innerHTML = `<option value="">選択してください...</option>`;
+            newParentCategories.forEach(p => {
+                // 名前の類似度で推奨を出す
+                const isRecommended = p.name === oldParent.name;
+                selector.innerHTML += `<option value="${p.id}" ${isRecommended ? 'selected' : ''}>${p.name} ${isRecommended ? '(推奨)' : ''}</option>`;
+            });
+
+            const updateButton = document.createElement('button');
+            updateButton.textContent = 'このグループの親を更新';
+            updateButton.onclick = async () => {
+                const newParentId = selector.value;
+                if (!newParentId) {
+                    alert('親カテゴリを選択してください。');
+                    return;
+                }
+                if (!confirm(`このグループの親を「${newParentCategories.find(p=>p.id===newParentId).name}」に設定します。よろしいですか？`)) return;
+                
+                updateButton.disabled = true;
+                updateButton.textContent = '更新中...';
+
+                try {
+                    const batch = writeBatch(db);
+                    const childrenToUpdate = newCategories.filter(c => oldChildrenNames.includes(c.name));
+                    
+                    childrenToUpdate.forEach(child => {
+                        const docRef = doc(db, 'categories', child.id);
+                        batch.update(docRef, { parentId: newParentId });
+                    });
+                    
+                    await batch.commit();
+                    alert('更新が完了しました！');
+                    groupDiv.style.border = '2px solid #28a745';
+                    groupDiv.style.backgroundColor = '#d4edda';
+                } catch (err) {
+                    alert('更新に失敗しました: ' + err.message);
+                    updateButton.disabled = false;
+                    updateButton.textContent = 'このグループの親を更新';
+                }
+            };
+            
+            taskItem.appendChild(selectorLabel);
+            taskItem.appendChild(selector);
+            taskItem.appendChild(updateButton);
+            groupDiv.appendChild(taskItem);
+            DOM.tasksArea.appendChild(groupDiv);
+        }
+        
     } catch (error) {
-        DOM.categoryTasks.innerHTML = `<p style="color: red;">分析エラー: ${error.message}</p>`;
+        DOM.tasksArea.innerHTML = `<p style="color: red;">エラー: ${error.message}</p>`;
         console.error(error);
     } finally {
         DOM.analyzeButton.disabled = false;
         DOM.analyzeButton.textContent = '再分析';
     }
 });
-
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// ★★★ レンダリング関数を全面的に修正 ★★★
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-function renderCategoryTasks() {
-    // 親カテゴリではないものをすべて「子カテゴリ候補」としてグループ化する
-    const parentCategoryIds = new Set(parentCategories.map(p => p.id));
-    const childCandidateCategories = currentCategories.filter(c => !parentCategoryIds.has(c.id));
-
-    if (childCandidateCategories.length === 0) {
-        DOM.categoryTasks.innerHTML = '<p>修正対象の子カテゴリが見つかりませんでした。すべてのカテゴリが親として認識されています。</p>';
-        return;
-    }
-    
-    // UIを作成
-    const groupDiv = document.createElement('div');
-    groupDiv.className = 'task-group';
-
-    groupDiv.innerHTML = `
-        <h3>親子関係の修正</h3>
-        <p>以下のカテゴリは、現在「親」として扱われていないため、子カテゴリの可能性があります。</p>
-        <p>リストから本来の親を選択し、「選択したカテゴリの親を更新」ボタンを押してください。</p>
-    `;
-
-    const taskItem = document.createElement('div');
-    taskItem.className = 'task-item';
-    taskItem.style.flexDirection = 'column';
-    taskItem.style.alignItems = 'flex-start';
-
-    // 子カテゴリのリストをチェックボックスで表示
-    const childList = document.createElement('div');
-    childList.className = 'child-list';
-    childList.innerHTML = `<h4>子に設定するカテゴリを選択:</h4>` + 
-        childCandidateCategories.map(c => `
-            <div class="checkbox-item">
-                <input type="checkbox" id="cat-${c.id}" value="${c.id}" class="child-checkbox">
-                <label for="cat-${c.id}">${c.name}</label>
-            </div>
-        `).join('');
-    
-    // 親を選択するドロップダウン
-    const selectorDiv = document.createElement('div');
-    selectorDiv.style.marginTop = '20px';
-    selectorDiv.innerHTML = `<label for="parent-selector" style="display:block; margin-bottom:5px;"><b>割り当てる親カテゴリを選択:</b></label>`;
-    
-    const selector = document.createElement('select');
-    selector.id = 'parent-selector';
-    selector.innerHTML = `<option value="">親なし (最上位にする)</option>`;
-    parentCategories.sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
-        selector.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-    });
-    
-    const updateButton = document.createElement('button');
-    updateButton.textContent = '選択したカテゴリの親を更新';
-    updateButton.style.marginTop = '15px';
-
-    updateButton.onclick = async () => {
-        const selectedChildIds = Array.from(childList.querySelectorAll('.child-checkbox:checked')).map(cb => cb.value);
-        const newParentId = selector.value;
-        
-        if (selectedChildIds.length === 0) {
-            alert('親を設定する子カテゴリを1つ以上選択してください。');
-            return;
-        }
-
-        const newParentName = newParentId ? parentCategories.find(p => p.id === newParentId).name : 'なし';
-        if (!confirm(`${selectedChildIds.length}件の子カテゴリの親を「${newParentName}」に更新しますか？`)) return;
-        
-        updateButton.disabled = true;
-        updateButton.textContent = '更新中...';
-        try {
-            const batch = writeBatch(db);
-            selectedChildIds.forEach(childId => {
-                const docRef = doc(db, 'categories', childId);
-                batch.update(docRef, { parentId: newParentId });
-            });
-            await batch.commit();
-            alert('更新しました！ページを再読み込みするか、再分析して結果を確認してください。');
-            DOM.analyzeButton.click(); // 自動で再分析
-        } catch (err) {
-            alert('更新に失敗しました: ' + err.message);
-        } finally {
-            updateButton.disabled = false;
-            updateButton.textContent = '選択したカテゴリの親を更新';
-        }
-    };
-    
-    selectorDiv.appendChild(selector);
-    
-    taskItem.appendChild(childList);
-    taskItem.appendChild(selectorDiv);
-    taskItem.appendChild(updateButton);
-    
-    groupDiv.appendChild(taskItem);
-    DOM.categoryTasks.appendChild(groupDiv);
-}
