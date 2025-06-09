@@ -1,243 +1,228 @@
-// js/restore.js (ID再マッピング救出ツール)
+// js/restore.js (ID再マッピング・パズルツール)
 import { auth, db } from '../firebase-config.js';
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-import { collection, getDocs, writeBatch, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
 const DOM = {
+    // ... (UI要素の取得はhtmlに合わせて調整)
     passwordPrompt: document.getElementById('password-prompt'),
-    restoreContent: document.getElementById('restore-content'),
+    mainContent: document.getElementById('main-content'),
     loginButton: document.getElementById('loginButton'),
     logoutButton: document.getElementById('logoutButton'),
-    adminEmailInput: document.getElementById('adminEmailInput'),
-    adminPasswordInput: document.getElementById('adminPasswordInput'),
-    passwordError: document.getElementById('passwordError'),
     backupFileInput: document.getElementById('backupFile'),
-    confirmTextInput: document.getElementById('confirmText'),
-    rescueButton: document.getElementById('rescueButton'),
-    progressArea: document.getElementById('progressArea'),
+    generateMapButton: document.getElementById('generateMapButton'),
+    mappingArea: document.getElementById('mappingArea'),
+    categoryParentMapContainer: document.getElementById('categoryParentMapContainer'),
+    tagCategoryMapContainer: document.getElementById('tagCategoryMapContainer'),
+    itemTagMapContainer: document.getElementById('itemTagMapContainer'),
+    applyAllButton: document.getElementById('applyAllButton'),
 };
 
-const COLLECTIONS_TO_RESCUE = ['categories', 'tags', 'effect_units', 'effect_super_categories', 'effect_types', 'items', 'item_sources'];
-const CHARACTER_BASES_COLLECTION_NAME = 'character_bases';
-const CHARACTER_BASE_TYPES = ['headShape', 'correction', 'color', 'pattern'];
+let oldData, newData, idMapByName;
 
 // --- 認証 ---
 onAuthStateChanged(auth, user => {
     DOM.passwordPrompt.style.display = user ? 'none' : 'flex';
-    DOM.restoreContent.style.display = user ? 'block' : 'none';
+    DOM.mainContent.style.display = user ? 'block' : 'none';
 });
-DOM.loginButton.addEventListener('click', () => signInWithEmailAndPassword(auth, DOM.adminEmailInput.value, DOM.adminPasswordInput.value).catch(err => DOM.passwordError.textContent = 'ログイン失敗'));
+DOM.loginButton.addEventListener('click', () => signInWithEmailAndPassword(auth, document.getElementById('adminEmailInput').value, document.getElementById('adminPasswordInput').value));
 DOM.logoutButton.addEventListener('click', () => signOut(auth));
 
 // --- UI制御 ---
-function checkRescueButtonState() {
-    const fileSelected = DOM.backupFileInput.files.length > 0;
-    const confirmTextEntered = DOM.confirmTextInput.value === 'RESCUE MY DATA';
-    DOM.rescueButton.disabled = !(fileSelected && confirmTextEntered);
-}
-DOM.backupFileInput.addEventListener('change', checkRescueButtonState);
-DOM.confirmTextInput.addEventListener('input', checkRescueButtonState);
-
-// --- 救出処理 ---
-DOM.rescueButton.addEventListener('click', async () => {
-    if (!confirm('【最終警告】本当にデータベースの救出を実行しますか？この操作は取り消せません。')) return;
-
-    DOM.rescueButton.disabled = true;
-    DOM.progressArea.style.display = 'block';
-    logProgress('救出プロセスを開始します...');
-
-    const file = DOM.backupFileInput.files[0];
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const oldBackupData = JSON.parse(e.target.result);
-            if (oldBackupData.version !== "1.0") {
-                throw new Error("このツールは version: 1.0 のバックアップファイル専用です。");
-            }
-            logProgress('古いバックアップファイルの読み込み完了。');
-
-            logProgress('\n--- STEP 1: 現在のデータベースから新IDを取得中 ---');
-            const newIdData = await fetchCurrentDataWithIds();
-            logProgress('新IDの取得完了。');
-
-            logProgress('\n--- STEP 2: 新旧IDのマッピングを作成中 ---');
-            const idMap = createFullIdMap(oldBackupData.collections, newIdData);
-            logProgress('IDマッピングの作成完了。');
-
-            logProgress('\n--- STEP 3: バックアップデータのIDを新しいIDに書き換え中 ---');
-            const remappedData = remapOldBackupData(oldBackupData.collections, idMap);
-            logProgress('IDの書き換え完了。');
-
-            logProgress('\n--- STEP 4: 現在のデータベースを全削除中 ---');
-            await deleteAllData(newIdData);
-            logProgress('全削除完了。');
-            
-            logProgress('\n--- STEP 5: 修復済みデータをデータベースに書き込み中 ---');
-            await restoreRemappedData(remappedData, idMap);
-            logProgress('データの書き込み完了。');
-
-            logProgress('\n--- ★★★ 救出完了 ★★★ ---');
-            alert('データベースの救出が完了しました。管理ページをリロードしてデータが正常に表示されるか確認してください。');
-
-        } catch (error) {
-            logProgress(`\n致命的なエラー: ${error.message}`);
-            console.error(error);
-            alert(`救出処理中にエラーが発生しました。\nメッセージ: ${error.message}`);
-        }
-    };
-    reader.readAsText(file);
+DOM.backupFileInput.addEventListener('change', () => {
+    DOM.generateMapButton.disabled = DOM.backupFileInput.files.length === 0;
 });
 
-function logProgress(message) {
-    DOM.progressArea.textContent += message + '\n';
-    DOM.progressArea.scrollTop = DOM.progressArea.scrollHeight;
-}
+// --- メイン処理 ---
+DOM.generateMapButton.addEventListener('click', async () => {
+    DOM.generateMapButton.disabled = true;
+    DOM.generateMapButton.textContent = '処理中...';
 
-// 1. 現在のDBからデータを取得
+    try {
+        const file = DOM.backupFileInput.files[0];
+        const oldBackupString = await file.text();
+        oldData = JSON.parse(oldBackupString).collections;
+        newData = await fetchCurrentDataWithIds();
+        idMapByName = createIdNameMaps(newData);
+
+        displayCategoryParentMappingUI();
+        displayTagCategoryMappingUI();
+        displayItemTagMappingUI();
+
+        DOM.mappingArea.style.display = 'block';
+    } catch (e) {
+        alert('エラー: ' + e.message);
+        console.error(e);
+    } finally {
+        DOM.generateMapButton.textContent = 'マッピングリストを再作成';
+        DOM.generateMapButton.disabled = false;
+    }
+});
+
+DOM.applyAllButton.addEventListener('click', async () => {
+    if(!confirm('本当にこれらの変更をデータベースに適用しますか？この操作は元に戻せません。')) return;
+
+    try {
+        const batch = writeBatch(db);
+        
+        // 1. カテゴリの親子関係
+        document.querySelectorAll('#categoryParentMapContainer .mapping-row').forEach(row => {
+            const newParentId = row.querySelector('select').value;
+            if (newParentId) {
+                const childIds = JSON.parse(row.dataset.childIds);
+                childIds.forEach(childId => {
+                    batch.update(doc(db, 'categories', childId), { parentId: newParentId });
+                });
+            }
+        });
+
+        // 2. タグのカテゴリ所属
+        document.querySelectorAll('#tagCategoryMapContainer .mapping-row').forEach(row => {
+            const newCategoryId = row.querySelector('select').value;
+            if (newCategoryId) {
+                 const tagId = row.dataset.tagId;
+                 batch.update(doc(db, 'tags', tagId), { categoryIds: [newCategoryId] });
+            }
+        });
+
+        // 3. アイテムのタグ
+        document.querySelectorAll('#itemTagMapContainer .mapping-row').forEach(row => {
+            const newItemTagIds = Array.from(row.querySelectorAll('select option:checked')).map(opt => opt.value);
+            const itemId = row.dataset.itemId;
+            batch.update(doc(db, 'items', itemId), { tags: newItemTagIds });
+        });
+
+        await batch.commit();
+        alert('データベースの更新が完了しました！管理ページをリロードして確認してください。');
+
+    } catch(e) {
+        alert('データベースの更新中にエラーが発生しました: ' + e.message);
+        console.error(e);
+    }
+});
+
+
+// --- データ取得・UI構築ヘルパー ---
 async function fetchCurrentDataWithIds() {
     const data = {};
-    for (const collName of COLLECTIONS_TO_RESCUE) {
+    const collections = ['categories', 'tags', 'effect_units', 'effect_super_categories', 'effect_types', 'items', 'item_sources'];
+    for (const collName of collections) {
         const snapshot = await getDocs(collection(db, collName));
         data[collName] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-    data.character_bases = {};
-    for (const baseType of CHARACTER_BASE_TYPES) {
-        const snapshot = await getDocs(collection(db, `${CHARACTER_BASES_COLLECTION_NAME}/${baseType}/options`));
-        data.character_bases[baseType] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     }
     return data;
 }
 
-// 2. ID対応表を作成
-function createFullIdMap(oldData, newData) {
-    const idMap = {};
-    const createMap = (collName, oldColl, newColl, keyFields = ['name']) => {
-        idMap[collName] = {};
-        if (!oldColl || !newColl) return;
-        oldColl.forEach(oldDoc => {
-            const newDoc = newColl.find(nd => keyFields.every(key => nd[key] === oldDoc[key]));
-            if (newDoc) {
-                // 旧データにはIDがないので、名前をキーにするしかない
-                const oldKey = keyFields.map(key => oldDoc[key]).join('-');
-                idMap[collName][oldKey] = newDoc.id;
-            }
+function createIdNameMaps(data) {
+    const maps = {};
+    for (const key in data) {
+        maps[key] = new Map(data[key].map(item => [item.name, item.id]));
+    }
+    return maps;
+}
+
+function displayCategoryParentMappingUI() {
+    const container = DOM.categoryParentMapContainer;
+    container.innerHTML = '';
+    const parentGroups = {};
+    newData.categories.filter(c => c.parentId).forEach(c => {
+        if (!parentGroups[c.parentId]) parentGroups[c.parentId] = [];
+        parentGroups[c.parentId].push(c);
+    });
+
+    const oldParents = oldData.categories.filter(c => !c.parentId);
+
+    for (const parentId in parentGroups) {
+        const children = parentGroups[parentId];
+        const row = document.createElement('div');
+        row.className = 'mapping-row';
+        row.dataset.childIds = JSON.stringify(children.map(c => c.id));
+
+        row.innerHTML = `
+            <div class="group-members">
+                <strong>現在のグループ:</strong><br>
+                ${children.map(c => c.name).join(', ')}
+            </div>
+            <div>
+                <label>元の親カテゴリ:</label>
+                <select>
+                    <option value="">選択してください</option>
+                    ${oldParents.map(p => `<option value="${idMapByName.categories.get(p.name)}">${p.name}</option>`).join('')}
+                </select>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+}
+
+function displayTagCategoryMappingUI() {
+    // タグは1対1なので、よりシンプルに
+    const container = DOM.tagCategoryMapContainer;
+    container.innerHTML = '';
+    const oldChildCategories = oldData.categories.filter(c => c.parentId);
+
+    newData.tags.forEach(newTag => {
+        const oldTag = oldData.tags.find(t => t.name === newTag.name);
+        if(!oldTag || !oldTag.categoryIds || oldTag.categoryIds.length === 0) return;
+
+        const row = document.createElement('div');
+        row.className = 'mapping-row';
+        row.dataset.tagId = newTag.id;
+        
+        row.innerHTML = `
+             <div class="group-members"><strong>タグ:</strong> ${newTag.name}</div>
+             <div>
+                <label>元の所属カテゴリ:</label>
+                <select>
+                    <option value="">選択してください</option>
+                    ${oldChildCategories.map(c => `<option value="${idMapByName.categories.get(c.name)}">${c.name}</option>`).join('')}
+                </select>
+            </div>
+        `;
+        container.appendChild(row);
+        // 推測して選択状態にする
+        const oldCatId = oldTag.categoryIds[0];
+        const oldCat = oldData.categories.find(c => c.id === oldCatId);
+        if(oldCat) {
+            const newCatId = idMapByName.categories.get(oldCat.name);
+            if(newCatId) row.querySelector('select').value = newCatId;
+        }
+    });
+}
+
+function displayItemTagMappingUI() {
+    const container = DOM.itemTagMapContainer;
+    container.innerHTML = '';
+
+    newData.items.forEach(newItem => {
+        const oldItem = oldData.items.find(i => i.name === newItem.name);
+        if(!oldItem || !oldItem.tags || oldItem.tags.length === 0) return;
+
+        const row = document.createElement('div');
+        row.className = 'mapping-row';
+        row.dataset.itemId = newItem.id;
+
+        const oldTagNames = oldItem.tags.map(oldTagId => oldData.tags.find(t => t.id === oldTagId)?.name).filter(Boolean);
+        
+        row.innerHTML = `
+            <div class="group-members">
+                <strong>アイテム:</strong> ${newItem.name}<br>
+                <small>（元々のタグ: ${oldTagNames.join(', ')}）</small>
+            </div>
+            <div>
+                <label>新しいタグを選択:</label>
+                <select multiple size="5">
+                    ${newData.tags.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                </select>
+            </div>
+        `;
+        container.appendChild(row);
+        // 推測して選択
+        const select = row.querySelector('select');
+        oldTagNames.forEach(oldName => {
+            const newId = idMapByName.tags.get(oldName);
+            const option = select.querySelector(`option[value="${newId}"]`);
+            if(option) option.selected = true;
         });
-    };
-
-    // 親子関係が重要なので、カテゴリから先に処理
-    logProgress('  - カテゴリのIDマップを作成中...');
-    idMap.categories = {};
-    const oldCategories = oldData.categories;
-    const newCategories = newData.categories;
-    // まず親カテゴリをマッピング
-    oldCategories.filter(c => !c.parentId).forEach(oldParent => {
-        const newParent = newCategories.find(nc => !nc.parentId && nc.name === oldParent.name);
-        if (newParent) {
-            // ここでは旧IDが不明なため、名前で仮マッピング
-            idMap.categories[oldParent.name] = newParent.id;
-        }
     });
-    // 次に子カテゴリをマッピング
-    oldCategories.filter(c => c.parentId).forEach(oldChild => {
-        const oldParent = oldCategories.find(p => p.name === oldCategories.find(oc => oc.parentId === oldChild.parentId)?.name); // 親の名前を取得
-        const newParent = newCategories.find(nc => nc.id === idMap.categories[oldParent.name]);
-        const newChild = newCategories.find(nc => nc.parentId === newParent?.id && nc.name === oldChild.name);
-        if(newChild){
-            idMap.categories[oldChild.name] = newChild.id;
-        }
-    });
-
-    createMap('tags', oldData.tags, newData.tags);
-    createMap('effect_units', oldData.effect_units, newData.effect_units);
-    createMap('effect_super_categories', oldData.effect_super_categories, newData.effect_super_categories);
-    createMap('effect_types', oldData.effect_types, newData.effect_types);
-    createMap('items', oldData.items, newData.items);
-    createMap('item_sources', oldData.item_sources, newData.item_sources);
-
-    idMap.character_bases = {};
-    for (const baseType of CHARACTER_BASE_TYPES) {
-        createMap(baseType, oldData.character_bases?.[baseType], newData.character_bases?.[baseType]);
-        idMap.character_bases[baseType] = idMap[baseType];
-    }
-    return idMap;
-}
-
-// 3. 古いデータのIDを書き換え
-function remapOldBackupData(oldData, idMap) {
-    const remappedData = JSON.parse(JSON.stringify(oldData)); // Deep clone
-    
-    remappedData.categories.forEach(cat => {
-        if(cat.parentId) cat.parentId = idMap.categories[oldData.categories.find(p => p.id === cat.parentId)?.name] || cat.parentId;
-    });
-
-    remappedData.tags.forEach(tag => {
-        tag.categoryIds = (tag.categoryIds || []).map(oldCatId => idMap.categories[oldData.categories.find(c => c.id === oldCatId)?.name] || oldCatId);
-    });
-
-    remappedData.items.forEach(item => {
-        item.tags = (item.tags || []).map(oldTagId => idMap.tags[oldData.tags.find(t => t.id === oldTagId)?.name] || oldTagId);
-        (item.structured_effects || []).forEach(eff => {
-            eff.type = idMap.effect_types[oldData.effect_types.find(et => et.id === eff.type)?.name] || eff.type;
-        });
-    });
-
-    return remappedData;
-}
-
-// 4. 全削除
-async function deleteAllData(currentDbData) {
-    for (const collName of COLLECTIONS_TO_RESCUE) {
-        await deleteCollection(collName, currentDbData[collName].map(d => d.id));
-    }
-    for (const baseType in currentDbData.character_bases) {
-        await deleteCollection(`${CHARACTER_BASES_COLLECTION_NAME}/${baseType}/options`, currentDbData.character_bases[baseType].map(d => d.id));
-    }
-}
-
-async function deleteCollection(collectionPath, docIds) {
-    logProgress(`コレクション[${collectionPath}]を削除中...`);
-    if (!docIds || docIds.length === 0) {
-        logProgress(` -> スキップ (空)`); return;
-    }
-    const batchSize = 499;
-    let batch = writeBatch(db);
-    for (let i = 0; i < docIds.length; i++) {
-        batch.delete(doc(db, collectionPath, docIds[i]));
-        if ((i + 1) % batchSize === 0) {
-            await batch.commit();
-            batch = writeBatch(db);
-        }
-    }
-    if (docIds.length % batchSize !== 0) {
-        await batch.commit();
-    }
-    logProgress(` -> ${docIds.length}件のドキュメントを削除しました。`);
-}
-
-// 5. 書き戻し
-async function restoreRemappedData(remappedData, idMap) {
-    const restore = async (collName, data, subKey = null) => {
-        let path = collName;
-        if(subKey) path = `${collName}/${subKey}/options`;
-        const batchSize = 499;
-        let batch = writeBatch(db);
-        let count = 0;
-        for(const docData of data) {
-            const newId = subKey ? idMap[subKey][docData.name] : idMap[collName][docData.name];
-            if(newId) {
-                batch.set(doc(db, path, newId), docData);
-                count++;
-                if (count % batchSize === 0) { await batch.commit(); batch = writeBatch(db); }
-            }
-        }
-        if (count > 0 && count % batchSize !== 0) { await batch.commit(); }
-        logProgress(` -> [${path}] ${count}件を復元しました。`);
-    };
-
-    for (const collName of COLLECTIONS_TO_RESCUE) {
-        await restore(collName, remappedData[collName]);
-    }
-    for (const baseType in remappedData.character_bases) {
-        await restore(CHARACTER_BASES_COLLECTION_NAME, remappedData.character_bases[baseType], baseType);
-    }
 }
