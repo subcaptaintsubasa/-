@@ -38,6 +38,7 @@ const DOM = {
     adminHamburgerButton: null,
     adminCloseNavButton: null,
     adminNavButtons: null,
+    manualBackupButton: null, 
     listEnlargementModal: null,
     listEnlargementModalTitle: null,
     listEnlargementModalSearchContainer: null,
@@ -58,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     DOM.adminHamburgerButton = document.getElementById('adminHamburgerButton');
     DOM.adminCloseNavButton = document.getElementById('adminCloseNavButton');
     DOM.adminNavButtons = document.querySelectorAll('.admin-nav-button');
+    DOM.manualBackupButton = document.getElementById('manualBackupButton'); 
     DOM.listEnlargementModal = document.getElementById('listEnlargementModal');
     DOM.listEnlargementModalTitle = document.getElementById('listEnlargementModalTitle');
     DOM.listEnlargementModalSearchContainer = document.getElementById('listEnlargementModalSearchContainer');
@@ -99,6 +101,78 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 });
 
+async function handleManualBackup() {
+    if (!confirm('現在の全データをバックアップファイルとしてダウンロードします。よろしいですか？')) {
+        return;
+    }
+
+    const button = DOM.manualBackupButton;
+    button.disabled = true;
+    button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">⏳</span>作成中...`;
+
+    try {
+        // 全てのデータをキャッシュから取得
+        const backupData = {
+            version: "1.0",
+            createdAt: new Date().toISOString(),
+            collections: {
+                categories: getAllCategoriesCache(),
+                tags: getAllTagsCache(),
+                effect_units: getEffectUnitsCache(),
+                effect_super_categories: getEffectSuperCategoriesCache(),
+                effect_types: getEffectTypesCache(),
+                items: getItemsCache(),
+                item_sources: getItemSourcesCache(),
+                character_bases: getCharacterBasesCache()
+            }
+        };
+
+        // 不要なフィールド（主に復元時に邪魔になるID）をデータから削除する
+        // FirestoreのドキュメントIDはキーとして保持するため、データ内のidフィールドは不要
+        Object.values(backupData.collections).forEach(collectionData => {
+            if (Array.isArray(collectionData)) {
+                collectionData.forEach(doc => delete doc.id);
+            } else if (typeof collectionData === 'object' && collectionData !== null) {
+                // character_bases はオブジェクトなので個別に対応
+                Object.values(collectionData).forEach(subCollection => {
+                    if(Array.isArray(subCollection)) {
+                        subCollection.forEach(doc => delete doc.id);
+                    }
+                });
+            }
+        });
+        
+        // itemsのdocIdも削除
+        if (backupData.collections.items) {
+            backupData.collections.items.forEach(item => delete item.docId);
+        }
+
+
+        const jsonString = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, ''); // YYYYMMDDHHMMSS
+        a.href = url;
+        a.download = `denpa-item-backup-${timestamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert('バックアップファイルのダウンロードが開始されました。');
+
+    } catch (error) {
+        console.error('バックアップ作成中にエラーが発生しました:', error);
+        alert('バックアップの作成に失敗しました。コンソールを確認してください。');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ`;
+    }
+}
+
+
 function setupAdminNav() {
     if (DOM.adminHamburgerButton && DOM.adminSideNav) {
         DOM.adminHamburgerButton.addEventListener('click', () => {
@@ -112,6 +186,11 @@ function setupAdminNav() {
             if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
         });
     }
+
+    if (DOM.manualBackupButton) {
+        DOM.manualBackupButton.addEventListener('click', handleManualBackup);
+    }
+
     if (DOM.adminNavButtons) {
         DOM.adminNavButtons.forEach(button => {
             button.addEventListener('click', (e) => {
