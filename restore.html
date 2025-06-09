@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カテゴリ親子関係 復旧ツール</title>
-    <link rel="stylesheet" href="css/admin-base.css"> <!-- Reuse admin styles -->
+    <title>データ復旧ツール</title>
+    <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
     <style>
-        /* Custom styles for restore tool */
-        body#admin-page { /* Ensure admin-base styles apply */
-            background-color: #eef2f5; /* Slightly different background for distinction */
+        body#admin-page {
+            background-color: #eef2f5;
         }
         .container {
             max-width: 1200px;
@@ -28,8 +27,28 @@
             margin-bottom: 20px;
             font-size: 0.9em;
         }
-        .info-box ol {
-            padding-left: 20px;
+        .info-box ol { padding-left: 20px; }
+        .warning-box {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .step-section {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 25px;
+            background-color: #fdfdfd;
+        }
+        .step-section h3 {
+            margin-top: 0;
+            color: #007bff;
+            border-bottom: 1px solid #007bff;
+            padding-bottom: 10px;
         }
         .task-group {
             border: 1px solid #ccc;
@@ -45,83 +64,43 @@
             font-size: 1.1em;
             color: #333;
         }
-        .task-group h4 .old-id {
-            font-size: 0.8em;
-            color: #777;
-            font-weight: normal;
-        }
-        .task-item {
-            padding: 10px 0;
-            border-bottom: 1px dashed #eee;
-        }
-        .task-item:last-child {
-            border-bottom: none;
-        }
-        .task-item .child-list {
-            margin-bottom: 10px;
-        }
-        .task-item .child-list ul {
-            list-style-type: none;
-            padding-left: 0;
-            max-height: 150px;
+        .task-group h4 .old-id { font-size: 0.8em; color: #777; font-weight: normal; }
+        .task-item { padding: 10px 0; border-bottom: 1px dashed #eee; }
+        .task-item:last-child { border-bottom: none; }
+        .task-item .child-list { margin-bottom: 10px; }
+        .task-item .child-list ul { list-style-type: none; padding-left: 0; max-height: 150px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 8px; background-color: #fff; border-radius: 3px; }
+        .task-item .child-list li { padding: 2px 0; }
+        .task-item .selector-container { display: flex; flex-direction: column; }
+        .task-item label { font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
+        .task-item select { width: 100%; max-width: 350px; margin-bottom: 10px; }
+        .status-message { font-style: italic; margin-top: 10px; font-weight: bold; }
+        .status-message.success { color: green; }
+        .status-message.error { color: red; }
+        .status-message.info { color: blue; }
+        #password-prompt h2 { text-align: center; }
+        #main-content .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd; }
+        #main-content .header-bar h1 { margin: 0; }
+        #logoutButton { background-color: #6c757d; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem; }
+        #logoutButton:hover { background-color: #5a6268; }
+        .button-danger { background-color: #dc3545 !important; color: white !important; }
+        .button-danger:hover { background-color: #c82333 !important; }
+        #step1ExecutionLog, #step2ExecutionLog {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #eee;
+            background-color: #f8f9fa;
+            max-height: 200px;
             overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            padding: 8px;
-            background-color: #fff;
-            border-radius: 3px;
+            font-size: 0.85em;
+            white-space: pre-wrap; /* Preserve line breaks and spaces */
         }
-        .task-item .child-list li {
-            padding: 2px 0;
-        }
-        .task-item .selector-container {
-            display: flex;
-            flex-direction: column;
-        }
-        .task-item label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-        }
-        .task-item select {
-            width: 100%;
-            max-width: 350px; /* Limit select width */
-            margin-bottom: 10px;
-        }
-        .status-message {
-            font-style: italic;
-            color: green;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        #password-prompt h2 {
-            text-align: center;
-        }
-        #main-content .header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #ddd;
-        }
-        #main-content .header-bar h1 {
-            margin: 0;
-        }
-        #logoutButton { 
-            background-color: #6c757d;
-            color: white;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        #logoutButton:hover {
-            background-color: #5a6268;
-        }
+        .log-entry { margin-bottom: 5px; }
+        .log-entry.error { color: red; }
+        .log-entry.success { color: green; }
+        .log-entry.warning { color: orange; }
     </style>
 </head>
-<body id="admin-page"> 
+<body id="admin-page">
     <div id="password-prompt">
         <h2>復旧ツール ログイン</h2>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email" aria-label="管理者メールアドレス">
@@ -132,32 +111,47 @@
 
     <div id="main-content" class="container" style="display:none;">
         <div class="header-bar">
-            <h1>カテゴリ親子関係 復旧ツール</h1>
+            <h1>データ復旧ツール</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
-        
+
         <div class="info-box">
-            <h3><span class="icon" aria-hidden="true">ℹ️</span> 使い方</h3>
+            <h3><span class="icon" aria-hidden="true">ℹ️</span> 復旧手順</h3>
             <ol>
-                <li><strong>IDが壊れる前</strong>のバックアップJSONファイルを選択してください。このJSONファイルには、各カテゴリの<code>name</code>, <code>id</code> (旧ID), <code>parentId</code> (旧親子関係) が含まれている想定です。</li>
-                <li>「分析＆リスト表示」ボタンを押します。</li>
-                <li>バックアップファイル内の子カテゴリが、その親カテゴリごとにグループ化されて表示されます。</li>
-                <li>各グループについて、ドロップダウンから現在のデータベース上の新しい親カテゴリを選択します。旧親カテゴリ名と一致するものが推奨として選択されます。</li>
-                <li>「このグループの親を更新」ボタンで、現在のデータベース上の該当子カテゴリの<code>parentId</code>を更新します。</li>
+                <li><strong>ステップ1: DB洗い替え</strong> - <strong>IDが壊れる前</strong>のバックアップJSONファイルを選択し、「DB洗い替え実行」ボタンを押します。これにより、現在の関連コレクションのデータが全て削除され、バックアップ内容でFirestoreが上書きされます（新しいドキュメントIDが付与されます）。</li>
+                <li><strong>ステップ2: 関係性修復</strong> - DB洗い替え後、「カテゴリ親子関係の修復開始」ボタンを押し、表示される指示に従って親子関係を再設定してください。</li>
             </ol>
-            <p><strong>重要:</strong> このツールは、現在のデータベースに存在するカテゴリの<code>parentId</code>フィールドのみを更新します。カテゴリの追加や削除は行いません。名前を元にマッチングを行います。</p>
         </div>
 
         <div class="form-group">
             <label for="backupFile">バックアップJSONファイル (.json) を選択:</label>
             <input type="file" id="backupFile" accept="application/json,.json">
         </div>
+        
+        <hr>
 
-        <button id="analyzeButton" type="button" disabled>分析＆リスト表示</button>
+        <section id="step1Section" class="step-section">
+            <h3>ステップ1: DB洗い替え (バックアップからの完全復元)</h3>
+            <div class="warning-box">
+                <strong>警告:</strong> この操作は、現在のFirestoreデータベースの<strong>Categories, Tags, Items, EffectTypes, EffectUnits, EffectSuperCategories, CharacterBases, ItemSources</strong>コレクション内の全データを削除し、アップロードされたバックアップファイルの内容で完全に上書きします。操作は元に戻せません。
+            </div>
+            <p>対象コレクション: Categories, Tags, Items, EffectTypes, EffectUnits, EffectSuperCategories, CharacterBases (全種別), ItemSources</p>
+            <button id="executeDbWashButton" type="button" class="button-danger" disabled>DB洗い替え実行</button>
+            <div id="step1ExecutionLog">ログはここに表示されます...</div>
+        </section>
 
-        <div id="tasksContainer" style="margin-top: 25px;">
-            <p>バックアップファイルを選択し、分析ボタンを押してください。</p>
-        </div>
+        <hr>
+
+        <section id="step2Section" class="step-section">
+            <h3>ステップ2: 関係性修復 (カテゴリ親子関係)</h3>
+            <p>ステップ1のDB洗い替えが完了した後、または既に洗い替え済みの場合は、このボタンを押してカテゴリの親子関係修復を開始してください。</p>
+            <button id="startCategoryRestoreButton" type="button" disabled>カテゴリ親子関係の修復開始</button>
+            <div id="tasksContainer" style="margin-top: 20px;">
+                <p>カテゴリ親子関係の修復タスクはここに表示されます。</p>
+            </div>
+            <div id="step2ExecutionLog">ログはここに表示されます...</div>
+        </section>
+
     </div>
 
     <script type="module" src="js/restore.js"></script>
