@@ -48,6 +48,8 @@ const DOMI = {
     clearFormButton: null,
     itemsTableBody: null,
     itemSearchAdminInput: null,
+    enlargedImagePreviewModal: null,
+    enlargedImagePreview: null,
 };
 
 let dbInstance = null;
@@ -132,9 +134,26 @@ export function initItemManager(dependencies) {
     DOMI.itemsTableBody = document.querySelector('#itemsTable tbody');
     DOMI.itemSearchAdminInput = document.getElementById('itemSearchAdmin');
 
+    DOMI.enlargedImagePreviewModal = document.getElementById('imagePreviewModal');
+    DOMI.enlargedImagePreview = document.getElementById('enlargedImagePreview');
+
+
     if (DOMI.itemForm) DOMI.itemForm.addEventListener('submit', saveItem);
     if (DOMI.clearFormButton) DOMI.clearFormButton.addEventListener('click', clearItemFormInternal);
     if (DOMI.itemImageFileInput) DOMI.itemImageFileInput.addEventListener('change', handleImageFileSelect);
+
+    if (DOMI.itemImagePreview) {
+        DOMI.itemImagePreview.addEventListener('click', () => {
+            if (DOMI.itemImagePreview.src && DOMI.itemImagePreview.style.display !== 'none') {
+                if (DOMI.enlargedImagePreview) {
+                    DOMI.enlargedImagePreview.src = DOMI.itemImagePreview.src;
+                }
+                if (DOMI.enlargedImagePreviewModal) {
+                    DOMI.enlargedImagePreviewModal.classList.add('active-modal');
+                }
+            }
+        });
+    }
 
     if (DOMI.addEffectToListButton) DOMI.addEffectToListButton.addEventListener('click', handleAddOrUpdateStructuredEffect);
     if (DOMI.addManualEffectToListButton) DOMI.addManualEffectToListButton.addEventListener('click', handleAddManualEffect);
@@ -447,6 +466,53 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
     }
 }
 
+/**
+ * 選択された画像ファイルを1:1の正方形に加工（余白追加）する
+ * @param {File} file - ユーザーが選択した画像ファイル
+ * @returns {Promise<File>} - 加工後のFileオブジェクトを返すPromise
+ */
+function processImageFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxDim = Math.max(img.width, img.height);
+                const canvas = document.createElement('canvas');
+                canvas.width = maxDim;
+                canvas.height = maxDim;
+                
+                const ctx = canvas.getContext('2d');
+                // 余白を白で塗りつぶす (PNGの透過を維持したい場合は `ctx.clearRect(0, 0, maxDim, maxDim);` にする)
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, maxDim, maxDim);
+
+                // 画像を中央に描画
+                const dx = (maxDim - img.width) / 2;
+                const dy = (maxDim - img.height) / 2;
+                ctx.drawImage(img, dx, dy, img.width, img.height);
+                
+                // canvasからBlobを生成
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        // 元のファイル名とタイプを継承しつつ、拡張子を.pngに統一
+                        const filename = file.name.replace(/\.[^/.]+$/, "") + ".png";
+                        const processedFile = new File([blob], filename, { type: 'image/png' });
+                        resolve(processedFile);
+                    } else {
+                        reject(new Error('Canvas to Blob conversion failed.'));
+                    }
+                }, 'image/png', 0.95); // PNG形式、品質95%で出力
+            };
+            img.onerror = (err) => reject(new Error('Image could not be loaded.'));
+            img.src = e.target.result;
+        };
+        reader.onerror = (err) => reject(new Error('File could not be read.'));
+        reader.readAsDataURL(file);
+    });
+}
+
+
 function handleImageFileSelect(event) {
     const file = event.target.files[0];
     if (file) {
@@ -464,17 +530,31 @@ function handleImageFileSelect(event) {
             if (DOMI.itemImagePreview) { DOMI.itemImagePreview.style.display = 'none'; DOMI.itemImagePreview.src = '#';}
             return;
         }
-        selectedImageFile = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            if (DOMI.itemImagePreview) {
-                DOMI.itemImagePreview.src = e.target.result;
-                DOMI.itemImagePreview.style.display = 'block';
-            }
-        }
-        reader.readAsDataURL(selectedImageFile);
-        DOMI.itemImageUrlInput.value = '';
-        if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none';
+
+        // processImageFileを呼び出して、加工後のファイルを処理
+        processImageFile(file).then(processedFile => {
+            selectedImageFile = processedFile; // 加工後のファイルを保持
+            
+            // プレビュー用に再度FileReaderを使用
+            const previewReader = new FileReader();
+            previewReader.onload = (e) => {
+                if (DOMI.itemImagePreview) {
+                    DOMI.itemImagePreview.src = e.target.result;
+                    DOMI.itemImagePreview.style.display = 'block';
+                }
+            };
+            previewReader.readAsDataURL(processedFile);
+
+            DOMI.itemImageUrlInput.value = ''; // URL入力はクリア
+            if (DOMI.uploadProgressContainer) DOMI.uploadProgressContainer.style.display = 'none';
+
+        }).catch(error => {
+            console.error("Image processing error:", error);
+            alert("画像の加工に失敗しました。詳細はコンソールで確認してください。");
+            event.target.value = null;
+            selectedImageFile = null;
+        });
+
     } else {
         selectedImageFile = null;
     }
@@ -934,13 +1014,11 @@ export function _renderItemsAdminTableInternal() {
                     sourceDisplayHtml += `<li>・${src.manualString ? src.manualString.replace(/\n/g, '<br>') : ''}</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
                     let pathText = src.resolvedDisplay;
-                    // ===== 変更箇所: buildFullPathForSourceNode を使用 =====
                     if (!pathText && window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildFullPathForSourceNode === 'function') {
                         pathText = window.adminModules.itemSourceManager.buildFullPathForSourceNode(src.nodeId, itemSourcesCacheData);
-                    } else if (!pathText) { // フォールバック
+                    } else if (!pathText) {
                         pathText = `経路ID: ${src.nodeId.substring(0,8)}... (表示不可)`;
                     }
-                    // ===== ここまで =====
                     sourceDisplayHtml += `<li>・${pathText}</li>`;
                 }
             });
@@ -948,11 +1026,9 @@ export function _renderItemsAdminTableInternal() {
             sourceDisplayHtml += `<li>・${item.manualSourceString.replace(/\n/g, '<br>')}</li>`;
         } else if (item.sourceNodeId && itemSourcesCacheData.length > 0) {
             let pathText = `(経路ID: ${item.sourceNodeId.substring(0,8)}...)`;
-            // ===== 変更箇所: buildFullPathForSourceNode を使用 =====
             if (window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildFullPathForSourceNode === 'function') {
                 pathText = window.adminModules.itemSourceManager.buildFullPathForSourceNode(item.sourceNodeId, itemSourcesCacheData);
             }
-            // ===== ここまで =====
             sourceDisplayHtml += `<li>・${pathText}</li>`;
         } else if (item.入手手段) {
              sourceDisplayHtml += `<li>・${item.入手手段}</li>`;
@@ -1018,13 +1094,11 @@ async function loadItemForEdit(docId) {
                 currentItemSources = JSON.parse(JSON.stringify(itemData.sources));
                 for (const src of currentItemSources) {
                     if(src.type === 'tree' && src.nodeId && !src.resolvedDisplay) {
-                        // ===== 変更箇所: buildDisplayPathForSourceNode (末端名またはdisplayString) を使用 =====
                         if (window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildDisplayPathForSourceNode === 'function') {
                              src.resolvedDisplay = window.adminModules.itemSourceManager.buildDisplayPathForSourceNode(src.nodeId, getItemSourcesFuncCache());
-                        } else { // フォールバック
+                        } else {
                              src.resolvedDisplay = `経路ID(再構築不可): ${src.nodeId.substring(0,8)}...`;
                         }
-                        // ===== ここまで =====
                     }
                 }
             } else {
@@ -1033,11 +1107,9 @@ async function loadItemForEdit(docId) {
                     currentItemSources.push({ type: 'manual', manualString: itemData.manualSourceString });
                 } else if (itemData.sourceNodeId) {
                     let display = `ID:${itemData.sourceNodeId.substring(0,5)}..`;
-                     // ===== 変更箇所: buildDisplayPathForSourceNode (末端名またはdisplayString) を使用 =====
                     if (window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildDisplayPathForSourceNode === 'function') {
                         display = window.adminModules.itemSourceManager.buildDisplayPathForSourceNode(itemData.sourceNodeId, getItemSourcesFuncCache());
                     }
-                     // ===== ここまで =====
                     currentItemSources.push({ type: 'tree', nodeId: itemData.sourceNodeId, resolvedDisplay: display });
                 } else if (itemData.入手手段) {
                      currentItemSources.push({ type: 'manual', manualString: itemData.入手手段 });
