@@ -3,68 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>データベース復元ツール</title>
+    <title>データベース救出ツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
-    <!-- JSZipライブラリはJSONのみの復元では不要ですが、将来性のため残します -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { background-color: #e9ecef; }
-        .restore-container { max-width: 800px; margin: 50px auto; padding: 40px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .warning-box { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
-        .warning-box h3 { margin-top: 0; color: #856404; }
-        .preview-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 15px; border-radius: 5px; margin-top: 20px; font-family: monospace; }
-        .progress-area { margin-top: 20px; font-family: monospace; font-size: 0.9em; background-color: #212529; color: #f8f9fa; padding: 15px; border-radius: 4px; height: 300px; overflow-y: scroll; white-space: pre-wrap; }
-        #restoreButton { background-color: #dc3545; }
-        #restoreButton:hover { background-color: #c82333; }
-        #restoreButton:disabled { background-color: #6c757d; cursor: not-allowed; }
+        body { background-color: #fbeaea; }
+        .restore-container { max-width: 800px; margin: 50px auto; padding: 40px; background-color: #fff; border: 2px solid #dc3545; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .warning-box { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
+        .warning-box h3 { margin-top: 0; color: #721c24; }
+        .progress-area { margin-top: 20px; font-family: monospace; font-size: 0.9em; background-color: #212529; color: #f8f9fa; padding: 15px; border-radius: 4px; height: 400px; overflow-y: scroll; white-space: pre-wrap; }
+        #rescueButton { background-color: #dc3545; font-size: 1.2em; padding: 15px; width: 100%; }
+        #rescueButton:hover { background-color: #c82333; }
+        #rescueButton:disabled { background-color: #6c757d; cursor: not-allowed; }
     </style>
 </head>
 <body id="admin-page">
     <div id="password-prompt">
-        <h2>復元ツール ログイン</h2>
-        <p style="color: #f8d7da; max-width: 320px; text-align: center; margin-bottom: 15px;">このツールはデータベースを上書きします。操作には細心の注意を払ってください。</p>
+        <h2>救出ツール ログイン</h2>
+        <p style="color: #f8d7da; max-width: 320px; text-align: center; margin-bottom: 15px;">これは緊急用のツールです。マスター管理者のみが操作してください。</p>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
         <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
         <button id="loginButton" type="button">ログイン</button>
         <p id="passwordError" class="error-message"></p>
     </div>
 
-    <!-- 復元ツール本体 -->
     <div id="restore-content" class="restore-container" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>データベース復元ツール</h1>
+            <h1>データベース救出ツール</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
         
         <div class="warning-box">
-            <h3><span class="icon">⚠️</span> 警告：これは非常に危険な操作です</h3>
-            <p>このツールは、現在のデータベースの<strong>すべてのデータ（アイテム、カテゴリ、タグ等）を完全に削除</strong>し、アップロードしたバックアップファイルの内容で上書きします。</p>
+            <h3><span class="icon">🚨</span>【最重要・最終警告】</h3>
+            <p>このツールは、IDの関連性が失われたデータベースを、古いバックアップファイルを使って修復する**最終手段**です。</p>
             <ul>
-                <li>この操作は元に戻せません。</li>
-                <li>**復元に使用するファイルが、IDを保持した正しいバックアップであることを必ず確認してください。**</li>
-                <li>操作内容を十分に理解しているマスター管理者のみが使用してください。</li>
+                <li>現在のデータベースを**完全に削除**し、修復したデータで上書きします。</li>
+                <li>**IDが壊れる前の、古い形式のバックアップJSONファイル**（`version: "1.0"`のもの）を選択してください。</li>
+                <li>この操作は一度しか行えません。失敗は許されません。</li>
             </ul>
         </div>
 
         <div class="form-group">
-            <label for="backupFile">バックアップファイル (.json) を選択してください:</label>
+            <label for="backupFile">**IDが壊れる前**のバックアップファイル (.json) を選択してください:</label>
             <input type="file" id="backupFile" accept="application/json,.json">
         </div>
 
-        <button id="previewButton" type="button" disabled>バックアップ内容をプレビュー</button>
-        
-        <div id="previewArea" class="preview-box" style="display: none;">
-            <h4>バックアップ内容のプレビュー</h4>
-            <pre id="previewContent"></pre>
+        <div class="form-group">
+            <label for="confirmText">上記の警告をすべて理解し、救出を実行する場合は、以下のボックスに「RESCUE MY DATA」と入力してください:</label>
+            <input type="text" id="confirmText" placeholder="RESCUE MY DATA">
         </div>
 
-        <div class="form-group" style="margin-top: 20px;">
-            <label for="confirmText">上記の警告とプレビュー内容を理解し、復元を実行する場合は、以下のボックスに「RESTORE」と入力してください:</label>
-            <input type="text" id="confirmText" placeholder="RESTORE">
-        </div>
-
-        <button id="restoreButton" type="button" disabled>復元を実行</button>
+        <button id="rescueButton" type="button" disabled>救出を実行</button>
 
         <div id="progressArea" class="progress-area" style="display: none;"></div>
     </div>
