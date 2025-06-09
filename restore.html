@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カテゴリ親子関係 復旧ツール</title>
+    <title>カテゴリ親子関係 再設定ツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
     <style>
         body { background-color: #f0f8ff; }
         .container { max-width: 1200px; margin: 30px auto; padding: 30px; }
         .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
-        .task-group { border: 1px solid #ccc; border-radius: 5px; padding: 20px; margin-bottom: 20px; }
-        .task-group h3 { margin-top: 0; }
-        .task-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
-        .task-item:last-child { border-bottom: none; }
-        .task-item .child-list { flex: 1; }
+        .task-container { display: flex; gap: 30px; }
+        .column { flex: 1; border: 1px solid #ccc; padding: 20px; border-radius: 5px; background: #fff; }
+        .column h3 { margin-top: 0; }
+        .parent-list li, .child-item { padding: 8px; border-bottom: 1px solid #eee; }
+        .child-item { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+        .child-item select { flex-grow: 1; }
     </style>
 </head>
 <body id="admin-page">
     <div id="password-prompt">
-        <h2>復旧ツール ログイン</h2>
+        <h2>再設定ツール ログイン</h2>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
         <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
         <button id="loginButton" type="button">ログイン</button>
@@ -28,29 +29,34 @@
 
     <div id="main-content" class="container" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>カテゴリ親子関係 復旧ツール</h1>
+            <h1>カテゴリ親子関係 再設定ツール</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
 
         <div class="info-box">
             <h3>使い方</h3>
-            <p>IDの関連性が失われたカテゴリの「親子関係」を再設定します。</p>
             <ol>
-                <li><strong>IDが壊れる前</strong>のバックアップJSONファイルを選択してください。</li>
-                <li>「分析開始」ボタンを押し、現在の親子関係グループを読み込みます。</li>
-                <li>各グループごとに、ドロップダウンから**本来の正しい親カテゴリ**を選択します。</li>
-                <li>「このグループの親を更新」ボタンを押すと、選択した子カテゴリすべての`parentId`が一括で更新されます。</li>
+                <li>下の「子カテゴリ」リストに、現在親が設定されているカテゴリが表示されます。</li>
+                <li>各子カテゴリの横にあるドロップダウンから、正しい親を選択してください。</li>
+                <li>「保存」ボタンを押すと、そのカテゴリの親子関係がデータベースに保存されます。</li>
             </ol>
+            <p style="font-weight: bold;">一つずつ確実に修正を行ってください。このページの再読み込みで、最新の状態が反映されます。</p>
         </div>
 
-        <div class="form-group">
-            <label for="backupFile">**IDが壊れる前**のバックアップファイル (.json) を選択してください:</label>
-            <input type="file" id="backupFile" accept="application/json,.json">
+        <div class="task-container">
+            <div class="column">
+                <h3>親カテゴリ一覧</h3>
+                <ul id="parentList" class="parent-list">
+                    <li>読み込み中...</li>
+                </ul>
+            </div>
+            <div class="column">
+                <h3>子カテゴリ</h3>
+                <div id="childListContainer">
+                    <p>読み込み中...</p>
+                </div>
+            </div>
         </div>
-
-        <button id="analyzeButton" type="button" disabled>分析開始</button>
-
-        <div id="tasksArea" style="margin-top: 30px;"></div>
     </div>
 
     <script type="module" src="js/restore.js"></script>
