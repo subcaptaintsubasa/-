@@ -1,4 +1,4 @@
-// js/restore.js (最終確定版・親子関係再設定ツール)
+// js/restore.js (親子関係パズルツール)
 import { auth, db } from '../firebase-config.js';
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import { collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
@@ -36,7 +36,7 @@ DOM.analyzeButton.addEventListener('click', async () => {
 
     DOM.analyzeButton.disabled = true;
     DOM.analyzeButton.textContent = '分析中...';
-    DOM.tasksContainer.innerHTML = '<p>データを読み込んでいます...</p>';
+    DOM.tasksContainer.innerHTML = '<p>データを読み込んで分析しています...</p>';
 
     try {
         // 1. 両方のデータを読み込む
@@ -44,12 +44,12 @@ DOM.analyzeButton.addEventListener('click', async () => {
         const oldData = JSON.parse(oldBackupString).collections;
 
         const currentSnapshot = await getDocs(collection(db, 'categories'));
-        const currentData = currentSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const currentCategories = currentSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        DOM.tasksContainer.innerHTML = ''; // コンテナをクリア
+        DOM.tasksContainer.innerHTML = ''; 
         
-        // 2. 親カテゴリのリストを作成 (これは現在のDBのデータでOK)
-        const currentParentCategories = currentData.filter(c => !c.parentId || c.parentId === "").sort((a,b) => a.name.localeCompare(b.name));
+        // 2. 親カテゴリのリストを作成 (現在のDBから)
+        const currentParentCategories = currentCategories.filter(c => !c.parentId || c.parentId === "").sort((a,b) => a.name.localeCompare(b.name));
         
         // 3. 古いデータから子カテゴリグループを作成
         const oldChildrenByParentId = oldData.categories
@@ -62,40 +62,53 @@ DOM.analyzeButton.addEventListener('click', async () => {
             }, {});
 
         // 4. UIを生成
+        if (Object.keys(oldChildrenByParentId).length === 0) {
+            DOM.tasksContainer.innerHTML = '<p>バックアップファイルに子カテゴリが見つかりませんでした。</p>';
+        }
+
         for (const oldParentId in oldChildrenByParentId) {
             const childNames = oldChildrenByParentId[oldParentId];
             const oldParent = oldData.categories.find(c => c.id === oldParentId);
             
-            if (!oldParent) continue;
+            if (!oldParent) {
+                console.warn(`旧データに親ID: ${oldParentId} が見つかりません。スキップします。`);
+                continue;
+            }
 
             const groupDiv = document.createElement('div');
             groupDiv.className = 'task-group';
 
-            groupDiv.innerHTML = `<h4>旧親カテゴリ: 「${oldParent.name}」</h4>`;
+            groupDiv.innerHTML = `<h4>旧 親カテゴリ: 「${oldParent.name}」</h4>`;
 
             const taskItem = document.createElement('div');
             taskItem.className = 'task-item';
 
             const childList = document.createElement('div');
             childList.className = 'child-list';
-            childList.innerHTML = `<strong>子カテゴリ:</strong><ul>${childNames.map(name => `<li>${name}</li>`).join('')}</ul>`;
+            childList.innerHTML = `<strong>このグループの子カテゴリ:</strong><ul>${childNames.map(name => `<li>${name}</li>`).join('')}</ul>`;
 
             const selectorDiv = document.createElement('div');
             const selectorLabel = document.createElement('label');
-            selectorLabel.textContent = '新しい親を選択:';
+            selectorLabel.textContent = '新しい親を選択してください:';
             selectorLabel.style.display = 'block';
 
             const selector = document.createElement('select');
-            let optionsHtml = '<option value="">親なし (最上位)</option>';
+            let optionsHtml = '<option value="">親を選択...</option>';
             currentParentCategories.forEach(p => {
-                optionsHtml += `<option value="${p.id}">${p.name}</option>`;
+                // 名前が一致するものを推奨として選択状態にする
+                const isRecommended = (p.name === oldParent.name);
+                optionsHtml += `<option value="${p.id}" ${isRecommended ? 'selected' : ''}>${p.name}</option>`;
             });
             selector.innerHTML = optionsHtml;
 
             const updateButton = document.createElement('button');
-            updateButton.textContent = 'このグループを更新';
+            updateButton.textContent = 'このグループの親を更新';
             updateButton.onclick = async () => {
                 const newParentId = selector.value;
+                if (!newParentId && !confirm('本当にこのグループを最上位（親なし）に設定しますか？')) {
+                    return;
+                }
+                
                 const newParentName = newParentId ? currentParentCategories.find(p => p.id === newParentId).name : "なし";
 
                 if (!confirm(`グループ(${childNames.join(', ')})の親を「${newParentName}」に設定しますか？`)) return;
@@ -105,15 +118,17 @@ DOM.analyzeButton.addEventListener('click', async () => {
                 try {
                     const batch = writeBatch(db);
                     childNames.forEach(name => {
-                        const childToUpdate = currentData.find(c => c.name === name);
+                        const childToUpdate = currentCategories.find(c => c.name === name);
                         if (childToUpdate) {
                             const docRef = doc(db, 'categories', childToUpdate.id);
                             batch.update(docRef, { parentId: newParentId });
+                        } else {
+                            console.warn(`現在のDBに子カテゴリ「${name}」が見つかりませんでした。スキップします。`);
                         }
                     });
                     await batch.commit();
                     alert('更新しました！');
-                    taskItem.style.backgroundColor = '#d4edda';
+                    taskItem.style.backgroundColor = '#d4edda'; 
                     selector.disabled = true;
                     updateButton.textContent = '更新完了';
                 } catch (err) {
