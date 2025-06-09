@@ -4,14 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>データベース復元ツール</title>
-    <!-- admin.cssを流用して最低限のスタイルを適用 -->
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
+    <!-- JSZipライブラリを読み込み -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { background-color: #e9ecef; }
         .restore-container { max-width: 800px; margin: 50px auto; padding: 40px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .warning-box { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
         .warning-box h3 { margin-top: 0; color: #856404; }
+        .preview-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 15px; border-radius: 5px; margin-top: 20px; font-family: monospace; }
         .progress-area { margin-top: 20px; font-family: monospace; font-size: 0.9em; background-color: #212529; color: #f8f9fa; padding: 15px; border-radius: 4px; height: 300px; overflow-y: scroll; white-space: pre-wrap; }
         #restoreButton { background-color: #dc3545; }
         #restoreButton:hover { background-color: #c82333; }
@@ -19,7 +21,6 @@
     </style>
 </head>
 <body id="admin-page">
-    <!-- ログインプロンプト (admin.htmlから流用) -->
     <div id="password-prompt">
         <h2>復元ツール ログイン</h2>
         <p style="color: #f8d7da; max-width: 320px; text-align: center; margin-bottom: 15px;">このツールはデータベースを上書きします。操作には細心の注意を払ってください。</p>
@@ -29,7 +30,6 @@
         <p id="passwordError" class="error-message"></p>
     </div>
 
-    <!-- 復元ツール本体 -->
     <div id="restore-content" class="restore-container" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h1>データベース復元ツール</h1>
@@ -47,21 +47,30 @@
         </div>
 
         <div class="form-group">
-            <label for="backupFile">バックアップファイル (.json) を選択してください:</label>
-            <input type="file" id="backupFile" accept="application/json">
+            <label for="backupFile">バックアップファイル (.zip) を選択してください:</label>
+            <input type="file" id="backupFile" accept=".zip,application/zip">
         </div>
 
-        <div class="form-group">
-            <label for="confirmText">上記の警告を理解し、復元を実行する場合は、以下のボックスに「RESTORE」と入力してください:</label>
+        <button id="previewButton" type="button" disabled>バックアップ内容をプレビュー</button>
+        
+        <div id="previewArea" class="preview-box" style="display: none;">
+            <h4>バックアップ内容のプレビュー</h4>
+            <pre id="previewContent"></pre>
+        </div>
+
+        <div class="form-group" style="margin-top: 20px;">
+            <label for="confirmText">上記の警告とプレビュー内容を理解し、復元を実行する場合は、以下のボックスに「RESTORE」と入力してください:</label>
             <input type="text" id="confirmText" placeholder="RESTORE">
         </div>
 
         <button id="restoreButton" type="button" disabled>復元を実行</button>
 
         <div id="progressArea" class="progress-area" style="display: none;"></div>
+
+        <!-- 強制バックアップ用の隠しリンク -->
+        <a id="forceBackupLink" style="display: none;"></a>
     </div>
 
-    <!-- 必要なJSモジュールを読み込み -->
     <script type="module" src="js/restore.js"></script>
 
 </body>
