@@ -1,58 +1,139 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID再設定 支援ツール</title>
-    <link rel="stylesheet" href="css/admin-base.css">
-    <link rel="stylesheet" href="css/admin-forms.css">
-    <style>
-        body { background-color: #f0f8ff; }
-        .container { max-width: 1200px; margin: 30px auto; padding: 30px; }
-        .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 20px; border-radius: 5px; margin-bottom: 25px; }
-        .task-group { border: 1px solid #ccc; border-radius: 5px; padding: 20px; margin-bottom: 20px; }
-        .task-group h3 { margin-top: 0; }
-        .task-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
-        .task-item:last-child { border-bottom: none; }
-        .task-item .child-list { flex: 1; }
-    </style>
-</head>
-<body id="admin-page">
-    <div id="password-prompt">
-        <h2>支援ツール ログイン</h2>
-        <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email">
-        <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password">
-        <button id="loginButton" type="button">ログイン</button>
-        <p id="passwordError" class="error-message"></p>
-    </div>
+// js/restore.js (ID再接続パズルツール - 最終版)
+import { auth, db } from '../firebase-config.js';
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+import { collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-    <div id="main-content" class="container" style="display:none;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>ID再設定 支援ツール</h1>
-            <button id="logoutButton" type="button">ログアウト</button>
-        </div>
+const DOM = {
+    passwordPrompt: document.getElementById('password-prompt'),
+    mainContent: document.getElementById('main-content'),
+    loginButton: document.getElementById('loginButton'),
+    logoutButton: document.getElementById('logoutButton'),
+    adminEmailInput: document.getElementById('adminEmailInput'),
+    adminPasswordInput: document.getElementById('adminPasswordInput'),
+    passwordError: document.getElementById('passwordError'),
+    backupFileInput: document.getElementById('backupFile'),
+    analyzeButton: document.getElementById('analyzeButton'),
+    tasksArea: document.getElementById('tasksArea'),
+};
 
-        <div class="info-box">
-            <h3>使い方</h3>
-            <p>IDの関連性が失われた現在のデータベースを、古いバックアップファイルを参考に手動で修正する作業を支援します。</p>
-            <ol>
-                <li><strong>IDが壊れる前</strong>のバックアップJSONファイルを選択してください。</li>
-                <li>「分析開始」ボタンを押し、現在の親子関係グループを読み込みます。</li>
-                <li>下に表示されるリストを参考に、<strong>別のタブで開いた管理画面 (`admin.html`)</strong> で、各項目を一つずつ修正・保存してください。</li>
-            </ol>
-            <p style="font-weight: bold;">このツールはデータベースを自動で書き換えません。すべての修正は管理画面から手動で行います。</p>
-        </div>
+// --- 認証 (変更なし) ---
+onAuthStateChanged(auth, user => {
+    DOM.passwordPrompt.style.display = user ? 'none' : 'flex';
+    DOM.mainContent.style.display = user ? 'block' : 'none';
+});
+DOM.loginButton.addEventListener('click', () => signInWithEmailAndPassword(auth, DOM.adminEmailInput.value, DOM.adminPasswordInput.value).catch(err => DOM.passwordError.textContent = 'ログイン失敗'));
+DOM.logoutButton.addEventListener('click', () => signOut(auth));
 
-        <div class="form-group">
-            <label for="backupFile">**IDが壊れる前**のバックアップファイル (.json) を選択してください:</label>
-            <input type="file" id="backupFile" accept="application/json,.json">
-        </div>
+// --- UI制御 (変更なし) ---
+DOM.backupFileInput.addEventListener('change', () => {
+    DOM.analyzeButton.disabled = DOM.backupFileInput.files.length === 0;
+});
 
-        <button id="analyzeButton" type="button" disabled>分析して修正リストを作成</button>
+// --- 分析処理 ---
+DOM.analyzeButton.addEventListener('click', async () => {
+    const file = DOM.backupFileInput.files[0];
+    if (!file) return;
 
-        <div id="tasksArea" style="margin-top: 30px;"></div>
-    </div>
+    DOM.analyzeButton.disabled = true;
+    DOM.analyzeButton.textContent = '分析中...';
+    DOM.tasksArea.innerHTML = '<p>データを読み込んで分析しています...</p>';
+    DOM.tasksArea.style.display = 'block';
 
-    <script type="module" src="js/restore.js"></script>
-</body>
-</html>
+    try {
+        const oldBackupString = await file.text();
+        const oldData = JSON.parse(oldBackupString).collections;
+
+        const snapshot = await getDocs(collection(db, 'categories'));
+        const newCategories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const newParentCategories = newCategories.filter(c => !c.parentId);
+
+        DOM.tasksArea.innerHTML = '<h3>カテゴリの親子関係 再接続</h3>';
+        
+        // ★★★ 新ロジック: 古いバックアップから親子関係の「名前のペア」を作成 ★★★
+        const oldParentIdToNameMap = new Map();
+        oldData.categories.forEach(c => {
+            // バックアップに自身のIDがないため、名前をキーにする
+            oldParentIdToNameMap.set(c.name, c.parentId);
+        });
+
+        // 現在のDBデータから、同じ親を持つ子をグループ化
+        const childrenGroupedByCurrentParent = newCategories
+            .filter(c => c.parentId)
+            .reduce((acc, cat) => {
+                const parentId = cat.parentId;
+                if (!acc[parentId]) acc[parentId] = [];
+                acc[parentId].push(cat);
+                return acc;
+            }, {});
+
+        // グループごとにUIを生成
+        for (const currentParentId in childrenGroupedByCurrentParent) {
+            const childrenGroup = childrenGroupedByCurrentParent[currentParentId];
+            
+            // このグループの代表として、最初の子供の古い親の名前を取得
+            const representativeChild = childrenGroup[0];
+            const oldParentIdForThisGroup = oldParentIdToNameMap.get(representativeChild.name);
+            const oldParent = oldData.categories.find(c => c.id === oldParentIdForThisGroup);
+            const oldParentName = oldParent ? oldParent.name : "不明(元々親なし？)";
+
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'task-group';
+            groupDiv.innerHTML = `
+                <p>以下のグループは、本来は「<strong>${oldParentName}</strong>」の子カテゴリでした。</p>
+                <ul>${childrenGroup.map(c => `<li>${c.name}</li>`).join('')}</ul>
+            `;
+            
+            const taskItem = document.createElement('div');
+            taskItem.className = 'task-item';
+
+            const selectorLabel = document.createElement('label');
+            selectorLabel.textContent = '割り当てる新しい親を選択 →';
+            
+            const selector = document.createElement('select');
+            selector.innerHTML = `<option value="">親なし (最上位にする)</option>`;
+            newParentCategories.forEach(p => {
+                selector.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+            });
+            
+            const updateButton = document.createElement('button');
+            updateButton.textContent = 'このグループの親を更新';
+            updateButton.onclick = async () => {
+                const newParentId = selector.value;
+                const newParentName = newParentId ? newParentCategories.find(p=>p.id===newParentId).name : "なし";
+                if (!confirm(`このグループ(${childrenGroup.length}件)の親を「${newParentName}」に設定します。よろしいですか？`)) return;
+                
+                updateButton.disabled = true;
+                updateButton.textContent = '更新中...';
+
+                try {
+                    const batch = writeBatch(db);
+                    childrenGroup.forEach(child => {
+                        const docRef = doc(db, 'categories', child.id);
+                        batch.update(docRef, { parentId: newParentId });
+                    });
+                    await batch.commit();
+                    alert('更新が完了しました！');
+                    groupDiv.style.border = '2px solid #28a745';
+                    groupDiv.style.backgroundColor = '#d4edda';
+                } catch (err) {
+                    alert('更新に失敗しました: ' + err.message);
+                    updateButton.disabled = false;
+                    updateButton.textContent = 'このグループの親を更新';
+                }
+            };
+            
+            taskItem.appendChild(selectorLabel);
+            taskItem.appendChild(selector);
+            taskItem.appendChild(updateButton);
+            groupDiv.appendChild(taskItem);
+            DOM.tasksArea.appendChild(groupDiv);
+        }
+        
+    } catch (error) {
+        DOM.tasksArea.innerHTML = `<p style="color: red;">エラー: ${error.message}</p>`;
+        console.error(error);
+    } finally {
+        DOM.analyzeButton.disabled = false;
+        DOM.analyzeButton.textContent = '再分析';
+    }
+});
