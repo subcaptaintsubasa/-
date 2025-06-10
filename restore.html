@@ -58,12 +58,11 @@
             <h3><span class="icon" aria-hidden="true">ℹ️</span> 現在のステップ: アイテムと効果種類の関連付け修復</h3>
             <p>このツールは、各アイテムの「効果」が正しい「効果種類」を参照するようにIDを更新します。</p>
             <ol>
-                <li><strong>バックアップJSONファイルの選択</strong>: まだ選択していない場合は、ページ上部で「IDが壊れる前のバックアップJSONファイル」を選択してください。このファイルは、旧効果種類名などを参照するために使用されます。</li>
-                <li><strong>アイテムの絞り込み</strong>: 下の入力欄でアイテム名を部分一致で絞り込みます。</li>
+                <li><strong>バックアップJSONファイルの選択</strong>: (必須) 「IDが壊れる前のバックアップJSONファイル」を選択してください。</li>
+                <li><strong>アイテムの絞り込み (任意)</strong>: 下の入力欄でアイテム名を部分一致で絞り込み表示できます。空の場合は全アイテムが表示されます。</li>
                 <li><strong>効果種類の再設定</strong>: 表示された各アイテムの各効果について、ドロップダウンから現在のデータベース上の正しい効果種類を選択します。</li>
                 <li><strong>更新</strong>: 「このアイテムの効果を更新」ボタンで、データベースの情報を更新します。</li>
             </ol>
-            <p><strong>注意:</strong> このツールは、アイテムの<code>effects</code>配列内の構造化された効果 (<code>type: "structured"</code>) の<code>effectTypeId</code>を更新します。手動入力効果 (<code>type: "manual"</code>) は変更されません。</p>
         </div>
 
         <div class="form-group">
@@ -76,10 +75,10 @@
         <section id="itemEffectRestoreSection" class="step-section">
             <h3>アイテムと効果種類の関連付け修復</h3>
             <div class="form-group">
-                <input type="text" id="itemSearchInputForEffects" class="search-filter-input" placeholder="アイテム名で絞り込み...">
+                <input type="text" id="itemSearchInputForEffects" class="search-filter-input" placeholder="アイテム名で絞り込み (空欄で全件表示)...">
             </div>
             <div id="tasksContainerItemToEffectType" class="tasks-container" style="margin-top: 20px;">
-                <p>アイテム名を入力して絞り込んでください。</p>
+                <p>バックアップファイルを選択し、必要ならアイテム名で絞り込んでください。</p>
             </div>
             <div id="itemEffectRestoreLog" class="execution-log">ログはここに表示されます...</div>
         </section>
