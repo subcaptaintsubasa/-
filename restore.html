@@ -50,7 +50,7 @@
             border-bottom: 1px solid #007bff;
             padding-bottom: 10px;
         }
-        .item-to-restore { /* Used for tag items in step 4 */
+        .item-to-restore {
             border: 1px solid #ccc;
             border-radius: 4px;
             padding: 10px 15px;
@@ -65,11 +65,11 @@
             color: #555;
             margin-bottom: 8px;
         }
-        .item-info .old-value { /* Generic class for displaying old values */
-            color: #dc3545; /* Red for old/unresolved parent */
+        .item-info .old-value {
+            color: #dc3545; 
             font-style: italic;
         }
-        .category-checkbox-group {
+        .checkbox-group { /* General checkbox group styling */
             max-height: 200px;
             overflow-y: auto;
             border: 1px solid #e0e0e0;
@@ -79,11 +79,11 @@
             background-color: #f8f9fa;
             border-radius: 3px;
         }
-        .category-checkbox-group .checkbox-item {
-            display: block; /* Stack checkboxes */
+        .checkbox-group .checkbox-item {
+            display: block; 
             margin-bottom: 5px;
         }
-        .category-checkbox-group .checkbox-item label {
+        .checkbox-group .checkbox-item label {
             font-weight: normal;
             font-size: 0.9em;
         }
@@ -141,7 +141,7 @@
             margin-bottom: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            width: calc(100% - 18px); /* Account for padding */
+            width: calc(100% - 18px); 
         }
     </style>
 </head>
@@ -164,9 +164,10 @@
             <h3><span class="icon" aria-hidden="true">ℹ️</span> 復旧手順</h3>
             <ol>
                 <li><strong>ステップ1: DB洗い替え</strong> - バックアップJSONファイルを選択し、「DB洗い替え実行」。</li>
-                <li><strong>ステップ2: カテゴリ親子関係の修復</strong> - 「カテゴリ親子関係の修復開始」ボタンで実施。</li>
-                <li><strong>ステップ3: 効果大分類 と 効果種類の関係修復</strong> - 「効果大分類→効果種類 関係修復開始」ボタンで実施。</li>
+                <li><strong>ステップ2: カテゴリ親子関係の修復</strong> - 実施済み。</li>
+                <li><strong>ステップ3: 効果大分類 と 効果種類の関係修復</strong> - 実施済み。</li>
                 <li><strong>ステップ4: 子カテゴリ と タグの所属関係修復</strong> - このステップのボタンで実施。</li>
+                <li><strong>ステップ5: アイテム と タグの関連付け修復</strong> - このステップのボタンで実施。</li>
                 <li>以降、順次他の関連性を修復。</li>
             </ol>
         </div>
@@ -180,9 +181,6 @@
 
         <section id="step1Section" class="step-section">
             <h3>ステップ1: DB洗い替え (バックアップからの完全復元)</h3>
-            <div class="warning-box">
-                <strong>警告:</strong> この操作は、現在のFirestoreデータベースの主要コレクションの全データを削除し、バックアップファイルの内容で完全に上書きします。
-            </div>
             <button id="executeDbWashButton" type="button" class="button-danger" disabled>DB洗い替え実行</button>
             <div id="step1ExecutionLog" class="execution-log">ログはここに表示されます...</div>
         </section>
@@ -213,7 +211,6 @@
 
         <section id="step4Section" class="step-section">
             <h3>ステップ4: 関係性修復 (子カテゴリ と タグの所属)</h3>
-            <p>ステップ1のDB洗い替えが完了した後、このボタンを押してタグと子カテゴリの関連性修復を開始してください。</p>
             <div class="form-group">
                 <input type="text" id="tagSearchInputForStep4" class="search-filter-input" placeholder="タグ名で絞り込み...">
             </div>
@@ -222,6 +219,21 @@
                 <p>タグと子カテゴリの関連性修復タスクはここに表示されます。</p>
             </div>
             <div id="step4ExecutionLog" class="execution-log">ログはここに表示されます...</div>
+        </section>
+
+        <hr>
+
+        <section id="step5Section" class="step-section">
+            <h3>ステップ5: 関係性修復 (アイテム と タグの関連付け)</h3>
+            <p>ステップ1のDB洗い替えが完了した後、このボタンを押してアイテムとタグの関連性修復を開始してください。</p>
+            <div class="form-group">
+                <input type="text" id="itemSearchInputForStep5" class="search-filter-input" placeholder="アイテム名で検索...">
+                <button id="searchItemsForStep5Button" type="button" disabled style="margin-top:5px;">アイテム検索</button>
+            </div>
+            <div id="tasksContainerItemToTag" class="tasks-container" style="margin-top: 20px;">
+                <p>アイテムとタグの関連性修復タスクはここに表示されます。(まずアイテムを検索してください)</p>
+            </div>
+            <div id="step5ExecutionLog" class="execution-log">ログはここに表示されます...</div>
         </section>
 
     </div>
