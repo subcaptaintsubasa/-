@@ -1,5 +1,5 @@
 // js/admin-main.js
-import { auth, db as firebaseDb } from '../firebase-config.js'; // Renamed db to firebaseDb to avoid conflict
+import { auth, db } from '../firebase-config.js';
 import { initAuth } from './admin-modules/auth.js';
 import {
     loadInitialData,
@@ -30,8 +30,8 @@ import {
     openEditItemSourceModalById,
 } from './admin-modules/item-source-manager.js';
 
-import { getFirestore, collection, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-
+// JSZip will be available globally via the script tag in admin.html
+// import JSZip from 'jszip'; // Not needed if using global script
 
 const DOM = {
     adminSideNav: null,
@@ -79,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initUIHelpers();
     initAuth(auth, 
         (user) => { 
-            console.log("[admin-main] User logged in, displaying admin content.");
             document.getElementById('password-prompt').style.display = 'none';
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'block';
@@ -89,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
             loadAndInitializeAdminModules();
         }, 
         () => { 
-            console.log("[admin-main] User logged out, hiding admin content.");
             document.getElementById('password-prompt').style.display = 'flex';
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'none';
@@ -102,105 +100,91 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function handleManualBackup() {
-    if (!confirm('現在の全データをバックアップファイルとしてダウンロードします（ドキュメントID含む、ZIP形式）。よろしいですか？')) {
+    if (!confirm('現在の全データをバックアップファイルとしてダウンロードします。よろしいですか？')) {
         return;
     }
 
     const button = DOM.manualBackupButton;
-    if (button) {
-        button.disabled = true;
-        button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">⏳</span>作成中...`;
-    }
-
-    if (typeof window.JSZip === 'undefined') { // ★★★ JSZipの存在をチェック ★★★
-        alert('JSZipライブラリが読み込まれていません。バックアップ機能は利用できません。\nHTMLの<head>にJSZipのCDNリンクが含まれているか確認してください。');
-        console.error("JSZip library is not loaded. Cannot create ZIP backup.");
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ`;
-        }
-        return;
-    }
+    button.disabled = true;
+    button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">⏳</span>バックアップ作成中...`;
 
     try {
         const backupData = {
-            version: "2.0",
+            version: "2.0", // Indicate new format with doc IDs
             createdAt: new Date().toISOString(),
             collections: {}
         };
 
-        const currentDb = getFirestore(auth.app); 
-
-        const fetchCollectionData = async (collectionName) => {
-            const snapshot = await getDocs(collection(currentDb, collectionName));
-            return snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
+        const collectionsToBackup = {
+            "categories": getAllCategoriesCache,
+            "tags": getAllTagsCache,
+            "effect_units": getEffectUnitsCache,
+            "effect_super_categories": getEffectSuperCategoriesCache,
+            "effect_types": getEffectTypesCache,
+            "items": getItemsCache, // items now have docId
+            "item_sources": getItemSourcesCache
         };
 
-        backupData.collections.categories = await fetchCollectionData("categories");
-        backupData.collections.tags = await fetchCollectionData("tags");
-        backupData.collections.items = await fetchCollectionData("items");
-        backupData.collections.effect_types = await fetchCollectionData("effect_types");
-        backupData.collections.effect_units = await fetchCollectionData("effect_units");
-        backupData.collections.effect_super_categories = await fetchCollectionData("effect_super_categories");
-        backupData.collections.item_sources = await fetchCollectionData("item_sources");
+        for (const collName in collectionsToBackup) {
+            const data = collectionsToBackup[collName]();
+            // Ensure each document includes its Firestore ID
+            backupData.collections[collName] = data.map(doc => ({
+                docId: doc.id || doc.docId, // Cater for items using docId, others use id
+                ...doc 
+            }));
+            // Clean up potentially redundant id field if docId is the primary key used internally
+            backupData.collections[collName].forEach(doc => {
+                if (doc.docId && doc.id && doc.docId === doc.id) delete doc.id;
+            });
+        }
         
+        // Handle character_bases (it's an object of arrays)
+        const charBases = getCharacterBasesCache();
         backupData.collections.character_bases = {};
-        const charBaseTypes = Object.keys(baseTypeMappings || { headShape: "", correction: "", color: "", pattern: "" }); 
-        for (const type of charBaseTypes) {
-            if (!type) continue;
-            const optionsPath = `character_bases/${type}/options`;
-            const optionsSnap = await getDocs(collection(currentDb, optionsPath));
-            if (!backupData.collections.character_bases[type]) {
-                backupData.collections.character_bases[type] = {};
-            }
-            backupData.collections.character_bases[type].options = optionsSnap.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
+        for (const baseType in charBases) {
+            backupData.collections.character_bases[baseType] = charBases[baseType].map(doc => ({
+                docId: doc.id, // Character base options also use 'id'
+                ...doc
+            }));
+            backupData.collections.character_bases[baseType].forEach(doc => {
+                 if (doc.docId && doc.id && doc.docId === doc.id) delete doc.id;
+            });
         }
 
-        const jsonString = JSON.stringify(backupData, (key, value) => {
-            if (value instanceof Timestamp) { // ★★★ Firestore Timestampインスタンスかチェック ★★★
-                return {
-                    _datatype: "timestamp", 
-                    value: value.toDate().toISOString()
-                };
-            }
-            return value;
-        }, 2);
+        const jsonString = JSON.stringify(backupData, null, 2);
+        
+        // Create ZIP file
+        const zip = new JSZip();
+        zip.file("denpa_item_backup_data.json", jsonString);
+        
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, ''); // YYYYMMDDHHMMSS
+        const zipFileName = `denpa-item-backup-${timestamp}.zip`;
 
-        const zip = new window.JSZip(); // ★★★ window.JSZip を使用 ★★★
-        zip.file("denpa_item_backup.json", jsonString); 
-
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-        const zipFileName = `denpa-item-backup-full-${timestamp}.zip`;
-
-        zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: {level: 9} })
+        zip.generateAsync({type:"blob", compression: "DEFLATE", compressionOptions: {level: 9}})
             .then(function(content) {
+                const url = URL.createObjectURL(content);
                 const a = document.createElement('a');
-                a.href = URL.createObjectURL(content);
+                a.href = url;
                 a.download = zipFileName;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                URL.revokeObjectURL(a.href);
-                alert('ZIP形式でのバックアップファイルのダウンロードが開始されました。');
-            })
-            .catch(err => {
-                console.error('ZIP生成エラー:', err);
-                alert('バックアップZIPファイルの生成に失敗しました。');
+                URL.revokeObjectURL(url);
+                alert('バックアップZIPファイルのダウンロードが開始されました。');
             });
 
     } catch (error) {
         console.error('バックアップ作成中にエラーが発生しました:', error);
         alert('バックアップの作成に失敗しました。コンソールを確認してください。');
     } finally {
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ`;
-        }
+        button.disabled = false;
+        button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ (ZIP)`;
     }
 }
 
 
 function setupAdminNav() {
+    // ... (no changes to this function itself, but handleManualBackup it calls is changed) ...
     if (DOM.adminHamburgerButton && DOM.adminSideNav) {
         DOM.adminHamburgerButton.addEventListener('click', () => {
             DOM.adminSideNav.classList.add('open');
@@ -220,12 +204,17 @@ function setupAdminNav() {
 
     if (DOM.adminNavButtons) {
         DOM.adminNavButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
+            // Ensure event listeners are not duplicated if setupAdminNav is called multiple times
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+
+            newButton.addEventListener('click', (e) => {
                 const targetModalId = e.currentTarget.dataset.modalTarget;
                 if (targetModalId) {
                     openModalHelper(targetModalId);
                     if (DOM.adminSideNav) DOM.adminSideNav.classList.remove('open');
                     if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+                    // Specific modal refresh logic (remains the same)
                     if (targetModalId === 'characterBaseManagementModal' && typeof renderCharBaseOptionsUI === 'function') {
                         renderCharBaseOptionsUI();
                     } else if (targetModalId === 'effectSuperCategoryManagementModal' && typeof renderEffectSuperCategoriesUI === 'function') {
@@ -242,6 +231,7 @@ function setupAdminNav() {
 }
 
 function setupCharBaseTypeButtons() {
+    // ... (no changes to this function) ...
     if (!DOM.charBaseTypeButtons || !DOM.selectedCharBaseTypeInput) return;
     DOM.charBaseTypeButtons.innerHTML = ''; 
     Object.entries(baseTypeMappings).forEach(([key, displayName]) => {
@@ -250,19 +240,25 @@ function setupCharBaseTypeButtons() {
         button.textContent = displayName;
         button.dataset.baseTypeKey = key;
         if (DOM.selectedCharBaseTypeInput.value === key) button.classList.add('active');
-        button.addEventListener('click', () => {
+        
+        // Avoid duplicate listeners if called multiple times
+        const newButton = button.cloneNode(true);
+        button.parentNode?.replaceChild(newButton, button); // If button was already in DOM
+
+        newButton.addEventListener('click', () => {
             DOM.charBaseTypeButtons.querySelectorAll('.active').forEach(b => b.classList.remove('active'));
-            button.classList.add('active');
+            newButton.classList.add('active');
             DOM.selectedCharBaseTypeInput.value = key;
             const displaySpan = document.getElementById('selectedCharBaseTypeDisplay');
             if (displaySpan) displaySpan.textContent = displayName;
             if (typeof renderCharBaseOptionsUI === 'function') renderCharBaseOptionsUI();
         });
-        DOM.charBaseTypeButtons.appendChild(button);
+        DOM.charBaseTypeButtons.appendChild(newButton); // Append if not already in DOM
     });
 }
 
 function clearAdminUIAndData() {
+    // ... (no changes to this function) ...
     console.log("[admin-main] Clearing admin UI and data cache...");
     const listContainersIds = ['categoryListContainer', 'tagListContainer', 'effectUnitListContainer', 'effectSuperCategoryListContainer', 'effectTypeListContainer', 'charBaseOptionListContainer', 'itemSourceListContainer'];
     listContainersIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p>ログアウトしました。</p>'; });
@@ -279,11 +275,12 @@ function clearAdminUIAndData() {
 }
 
 async function loadAndInitializeAdminModules() {
+    // ... (no changes to this function) ...
     console.log("[admin-main] Starting to load data and initialize modules...");
     try {
-        await loadInitialData(firebaseDb); // ★★★ Use firebaseDb passed from top ★★★
+        await loadInitialData(db);
         const commonDependencies = {
-            db: firebaseDb, // ★★★ Use firebaseDb ★★★
+            db,
             getAllCategories: getAllCategoriesCache,
             getAllTags: getAllTagsCache,
             getItems: getItemsCache,
@@ -294,7 +291,7 @@ async function loadAndInitializeAdminModules() {
             getItemSources: getItemSourcesCache,
             refreshAllData: async () => {
                 console.log("[admin-main] Refreshing all data and UI...");
-                await loadInitialData(firebaseDb); // ★★★ Use firebaseDb ★★★
+                await loadInitialData(db);
                 renderAllAdminUISections();
                 console.log("[admin-main] All data and UI refreshed.");
             },
@@ -317,7 +314,7 @@ async function loadAndInitializeAdminModules() {
         initEffectSuperCategoryManager(commonDependencies);
         initEffectTypeManager(commonDependencies);
         initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
-        initItemSourceManager(commonDependencies);
+        initItemSourceManager(commonDependencies); 
         initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
         renderAllAdminUISections();
@@ -331,6 +328,7 @@ async function loadAndInitializeAdminModules() {
 }
 
 function renderAllAdminUISections() {
+    // ... (no changes to this function) ...
     console.log("[admin-main] Rendering all admin UI sections...");
     if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
     if (typeof renderTagsUI === 'function') renderTagsUI();
@@ -353,6 +351,7 @@ function renderAllAdminUISections() {
 }
 
 function setupEnlargementButtonListeners() {
+    // ... (no changes to this function) ...
     const buttonConfig = [
         { btn: DOM.enlargeCategoryListButton, type: 'category', title: 'カテゴリ一覧', sourceFn: getAllCategoriesCache, searchInputId: 'categorySearchInput', editFn: openEditCategoryModalById, displayRenderer: buildCategoryTreeDOMFromManager },
         { btn: DOM.enlargeTagListButton, type: 'tag', title: 'タグ一覧', sourceFn: getAllTagsCache, searchInputId: 'tagSearchInput', editFn: openEditTagModalById },
@@ -373,14 +372,10 @@ function setupEnlargementButtonListeners() {
 
     buttonConfig.forEach(config => {
         if (config.btn) {
-            // Re-binding to prevent issues if this function is called multiple times
             const newBtn = config.btn.cloneNode(true); 
             if (config.btn.parentNode) {
                  config.btn.parentNode.replaceChild(newBtn, config.btn);
             }
-             // Update the DOM reference in the config to the new button for future calls if necessary
-            config.btn = newBtn;
-
 
             newBtn.addEventListener('click', () => {
                 const items = config.sourceFn();
@@ -402,6 +397,7 @@ function setupEnlargementButtonListeners() {
 }
 
 function openEnlargedListModal(items, type, title, originalSearchInputId, editFunction, displayRenderer, initialSearchTerm = "") {
+    // ... (no changes to this function) ...
     if (!DOM.listEnlargementModal || !DOM.listEnlargementModalTitle || !DOM.listEnlargementModalContent || !DOM.listEnlargementModalSearchContainer) {
         console.error("Enlargement modal DOM elements not found!");
         return;
@@ -445,10 +441,9 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
                     const contentDiv = li.querySelector('.category-tree-content');
                     if (contentDiv && typeof editFunction === 'function') {
                         contentDiv.classList.add('list-item-name-clickable');
-                        // Re-bind event listener to new/cloned contentDiv to avoid multiple listeners on original
-                        const newContentDiv = contentDiv.cloneNode(true);
-                        contentDiv.parentNode.replaceChild(newContentDiv, contentDiv);
-
+                        const newContentDiv = contentDiv.cloneNode(true); // Avoid duplicate listeners
+                        if(contentDiv.parentNode) contentDiv.parentNode.replaceChild(newContentDiv, contentDiv);
+                        
                         newContentDiv.addEventListener('click', (e) => {
                             if (e.target.closest('.category-tree-expander')) return;
                             const itemId = type === 'category' ? li.dataset.categoryId : li.dataset.sourceId;
@@ -500,22 +495,26 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
                 nameSpan.dataset.id = item.id;
 
                 if (typeof editFunction === 'function') {
-                    nameSpan.addEventListener('click', (e) => {
+                    const newNameSpan = nameSpan.cloneNode(true); // Avoid duplicate listeners
+                    nameSpan.parentNode?.replaceChild(newNameSpan, nameSpan);
+                    newNameSpan.addEventListener('click', (e) => {
                         const itemId = e.target.dataset.id;
                         editFunction(itemId);
                     });
                 } else { nameSpan.style.cursor = 'default'; }
-                itemDiv.appendChild(nameSpan);
+                itemDiv.appendChild(nameSpan); // Original or new if editFunction exists
                 DOM.listEnlargementModalContent.appendChild(itemDiv);
             });
         }
     };
 
     if (searchInputForEnlarged) {
-        searchInputForEnlarged.addEventListener('input', (e) => {
+        const newSearchInput = searchInputForEnlarged.cloneNode(true);
+        searchInputForEnlarged.parentNode.replaceChild(newSearchInput, searchInputForEnlarged);
+        newSearchInput.addEventListener('input', (e) => {
             renderContent(e.target.value);
         });
-        renderContent(searchInputForEnlarged.value); 
+        renderContent(newSearchInput.value); 
     } else {
         renderContent(); 
     }
