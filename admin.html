@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="css/admin-lists.css">
     <link rel="stylesheet" href="css/admin-modal.css">
     <link rel="stylesheet" href="css/admin-responsive.css">
+    <!-- JSZip Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1P5TLoPaBIvdjhmA1UwAbdnrLOYR9Ln17Qo9Sg2PZX/L0lb8IREf3D4GcsLCrTfYsK7NLOALjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body id="admin-page">
     <div id="password-prompt">
@@ -138,12 +140,10 @@
                                     <input type="text" id="selectedItemSourcePathDisplay" readonly placeholder="未選択" aria-label="現在選択中の入手経路パス（ボタン名）">
                                     <input type="hidden" id="selectedItemSourceNodeId_temp">
                                 </div>
-                                {/* ===== 追加 ===== */}
                                 <div class="form-group">
                                     <label for="finalSourceDisplayPreview">最終表示テキストプレビュー:</label>
                                     <input type="text" id="finalSourceDisplayPreview" readonly placeholder="表示テキストがここにプレビューされます" aria-label="最終表示テキストプレビュー" style="background-color: #e9ecef; cursor: default;">
                                 </div>
-                                {/* ===== 追加ここまで ===== */}
                                 <button type="button" id="addTreeSourceToListButton">選択した経路をリストに追加</button>
                             </div>
                             <div id="manualSourceInputArea" style="display:none;"> 
@@ -194,7 +194,7 @@
         </div><!-- closing .container -->
     </div><!-- closing #admin-content -->
 
-    <!-- 管理機能モーダル群 (変更なしのため省略しません) -->
+    <!-- 管理機能モーダル群 -->
     <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -676,7 +676,6 @@
             <img id="enlargedImagePreview" src="#" alt="拡大画像プレビュー" style="width: 100%; height: 100%; object-fit: contain;">
         </div>
     </div>
-
 
     <script type="module" src="js/admin-main.js"></script>
 </body>
