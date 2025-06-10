@@ -50,7 +50,30 @@
             border-bottom: 1px solid #007bff;
             padding-bottom: 10px;
         }
-        .task-group {
+        .item-to-restore {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            background-color: #fff;
+        }
+        .item-to-restore strong {
+            font-size: 1.05em;
+        }
+        .item-info {
+            font-size: 0.85em;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        .item-info .current-parent-name {
+            font-weight: bold;
+            color: #28a745; /* Green for current valid parent */
+        }
+        .item-info .old-parent-name {
+            color: #dc3545; /* Red for old/unresolved parent */
+        }
+
+        .task-group { /* From previous category restore, might be reusable or adapted */
             border: 1px solid #ccc;
             border-radius: 5px;
             padding: 15px;
@@ -73,6 +96,7 @@
         .task-item .selector-container { display: flex; flex-direction: column; }
         .task-item label { font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
         .task-item select { width: 100%; max-width: 350px; margin-bottom: 10px; }
+
         .status-message { font-style: italic; margin-top: 10px; font-weight: bold; }
         .status-message.success { color: green; }
         .status-message.error { color: red; }
@@ -84,7 +108,7 @@
         #logoutButton:hover { background-color: #5a6268; }
         .button-danger { background-color: #dc3545 !important; color: white !important; }
         .button-danger:hover { background-color: #c82333 !important; }
-        #step1ExecutionLog, #step2ExecutionLog {
+        .execution-log { /* Common class for logs */
             margin-top: 15px;
             padding: 10px;
             border: 1px solid #eee;
@@ -92,7 +116,7 @@
             max-height: 200px;
             overflow-y: auto;
             font-size: 0.85em;
-            white-space: pre-wrap; /* Preserve line breaks and spaces */
+            white-space: pre-wrap;
         }
         .log-entry { margin-bottom: 5px; }
         .log-entry.error { color: red; }
@@ -119,7 +143,8 @@
             <h3><span class="icon" aria-hidden="true">ℹ️</span> 復旧手順</h3>
             <ol>
                 <li><strong>ステップ1: DB洗い替え</strong> - <strong>IDが壊れる前</strong>のバックアップJSONファイルを選択し、「DB洗い替え実行」ボタンを押します。これにより、現在の関連コレクションのデータが全て削除され、バックアップ内容でFirestoreが上書きされます（新しいドキュメントIDが付与されます）。</li>
-                <li><strong>ステップ2: 関係性修復</strong> - DB洗い替え後、「カテゴリ親子関係の修復開始」ボタンを押し、表示される指示に従って親子関係を再設定してください。</li>
+                <li><strong>ステップ2: カテゴリ親子関係の修復</strong> - DB洗い替え後、「カテゴリ親子関係の修復開始」ボタンを押し、表示される指示に従って親子関係を再設定してください。</li>
+                <li><strong>ステップ3以降: 各種関連性の修復</strong> - ステップ2完了後、順次他の関連性（効果大分類と効果種類など）の修復を進めます。</li>
             </ol>
         </div>
 
@@ -137,7 +162,7 @@
             </div>
             <p>対象コレクション: Categories, Tags, Items, EffectTypes, EffectUnits, EffectSuperCategories, CharacterBases (全種別), ItemSources</p>
             <button id="executeDbWashButton" type="button" class="button-danger" disabled>DB洗い替え実行</button>
-            <div id="step1ExecutionLog">ログはここに表示されます...</div>
+            <div id="step1ExecutionLog" class="execution-log">ログはここに表示されます...</div>
         </section>
 
         <hr>
@@ -146,11 +171,24 @@
             <h3>ステップ2: 関係性修復 (カテゴリ親子関係)</h3>
             <p>ステップ1のDB洗い替えが完了した後、または既に洗い替え済みの場合は、このボタンを押してカテゴリの親子関係修復を開始してください。</p>
             <button id="startCategoryRestoreButton" type="button" disabled>カテゴリ親子関係の修復開始</button>
-            <div id="tasksContainer" style="margin-top: 20px;">
+            <div id="tasksContainerCategories" class="tasks-container" style="margin-top: 20px;">
                 <p>カテゴリ親子関係の修復タスクはここに表示されます。</p>
             </div>
-            <div id="step2ExecutionLog">ログはここに表示されます...</div>
+            <div id="step2ExecutionLog" class="execution-log">ログはここに表示されます...</div>
         </section>
+
+        <hr>
+
+        <section id="step3Section" class="step-section">
+            <h3>ステップ3: 関係性修復 (効果大分類 と 効果種類)</h3>
+            <p>ステップ1のDB洗い替えが完了した後、このボタンを押して効果大分類と効果種類の関連性修復を開始してください。</p>
+            <button id="startEffectSuperCategoryToTypeRestoreButton" type="button" disabled>効果大分類→効果種類 関係修復開始</button>
+            <div id="tasksContainerEffectSuperCategoryToType" class="tasks-container" style="margin-top: 20px;">
+                <p>効果大分類と効果種類の関連性修復タスクはここに表示されます。</p>
+            </div>
+            <div id="step3ExecutionLog" class="execution-log">ログはここに表示されます...</div>
+        </section>
+
 
     </div>
 
