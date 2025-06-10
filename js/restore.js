@@ -14,15 +14,16 @@ const DOMR = {
     passwordError: document.getElementById('passwordError'),
     
     backupZipFileInput: document.getElementById('backupZipFile'),
+    backupFileDetailsDiv: document.getElementById('backupFileDetails'), // Renamed from backupFileInfo
     fileNameDisplay: document.getElementById('fileNameDisplay'),
     backupCreatedAtDisplay: document.getElementById('backupCreatedAtDisplay'),
-    detectedCollectionsList: document.getElementById('detectedCollectionsList'),
+    detectedCollectionsSummaryDiv: document.getElementById('detectedCollectionsSummary'), // Renamed from detectedCollectionsList
     washDataBeforeRestoreCheckbox: document.getElementById('washDataBeforeRestore'),
     executeRestoreButton: document.getElementById('executeRestoreButton'),
     restoreExecutionLog: document.getElementById('restoreExecutionLog'),
 };
 
-let parsedBackupJsonData = null; // To store the content of the JSON file from the ZIP
+let parsedBackupJsonData = null;
 
 // --- Authentication ---
 onAuthStateChanged(auth, user => {
@@ -51,7 +52,8 @@ function resetRestoreUI() {
     parsedBackupJsonData = null;
     DOMR.fileNameDisplay.textContent = '-';
     DOMR.backupCreatedAtDisplay.textContent = '-';
-    DOMR.detectedCollectionsList.innerHTML = '<li>-</li>';
+    DOMR.detectedCollectionsSummaryDiv.innerHTML = '<p>ファイルを選択してください。</p>';
+    DOMR.backupFileDetailsDiv.style.display = 'none';
     DOMR.washDataBeforeRestoreCheckbox.checked = true;
     DOMR.restoreExecutionLog.innerHTML = 'ログはここに表示されます...';
     updateRestoreButtonState();
@@ -65,26 +67,25 @@ function updateRestoreButtonState() {
 
 DOMR.backupZipFileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
-    parsedBackupJsonData = null; // Reset previous data
+    parsedBackupJsonData = null; 
     DOMR.fileNameDisplay.textContent = '-';
     DOMR.backupCreatedAtDisplay.textContent = '-';
-    DOMR.detectedCollectionsList.innerHTML = '<li>-</li>';
-    logToUI(DOMR.restoreExecutionLog, "新しいファイルが選択されました。解析中...");
+    DOMR.detectedCollectionsSummaryDiv.innerHTML = '';
+    DOMR.backupFileDetailsDiv.style.display = 'none';
+    logToUI(DOMR.restoreExecutionLog, "新しいファイルが選択されました。解析中...", 'info', true); // Clear previous logs
 
     if (file) {
         DOMR.fileNameDisplay.textContent = file.name;
-        if (file.type !== 'application/zip' && file.type !== 'application/x-zip-compressed') {
-            logToUI(DOMR.restoreExecutionLog, `エラー: 選択されたファイルはZIPファイルではありません。(タイプ: ${file.type})`, "error");
+        if (file.type !== 'application/zip' && file.type !== 'application/x-zip-compressed' && !file.name.toLowerCase().endsWith('.zip')) {
+            logToUI(DOMR.restoreExecutionLog, `エラー: 選択されたファイルはZIPファイルではありません。(タイプ: ${file.type}, 名前: ${file.name})`, "error");
             alert("ZIPファイルを選択してください。");
-            resetRestoreUI(); // Clear file input
+            resetRestoreUI(); 
             return;
         }
 
         try {
             const jszip = new JSZip();
             const zipContents = await jszip.loadAsync(file);
-            
-            // Assuming the JSON file is named 'denpa_item_backup_data.json' inside the ZIP
             const jsonFileInZip = zipContents.file("denpa_item_backup_data.json");
 
             if (jsonFileInZip) {
@@ -96,16 +97,12 @@ DOMR.backupZipFileInput.addEventListener('change', async (event) => {
                     throw new Error("ZIP内のJSONファイルの形式が正しくありません。'collections'または'version'プロパティが見つかりません。");
                 }
                 logToUI(DOMR.restoreExecutionLog, "バックアップZIPの解析に成功しました。", "success");
+                DOMR.backupFileDetailsDiv.style.display = 'block';
                 DOMR.backupCreatedAtDisplay.textContent = parsedBackupJsonData.createdAt ? 
                     new Date(parsedBackupJsonData.createdAt).toLocaleString('ja-JP') : '不明';
                 
-                const detectedCollections = Object.keys(parsedBackupJsonData.collections);
-                if (detectedCollections.length > 0) {
-                    DOMR.detectedCollectionsList.innerHTML = detectedCollections.map(c => `<li>${c}</li>`).join('');
-                } else {
-                    DOMR.detectedCollectionsList.innerHTML = '<li>コレクションが検出されませんでした。</li>';
-                    parsedBackupJsonData = null; // Invalidate if no collections
-                }
+                displayCollectionSummaries(parsedBackupJsonData.collections);
+
             } else {
                 parsedBackupJsonData = null;
                 throw new Error("ZIPファイル内に 'denpa_item_backup_data.json' が見つかりません。");
@@ -121,9 +118,63 @@ DOMR.backupZipFileInput.addEventListener('change', async (event) => {
     updateRestoreButtonState();
 });
 
+function displayCollectionSummaries(collections) {
+    DOMR.detectedCollectionsSummaryDiv.innerHTML = ''; // Clear previous
+    const summaryList = document.createElement('ul');
+    summaryList.style.listStyleType = 'none';
+    summaryList.style.paddingLeft = '0';
 
-function logToUI(logAreaElement, message, type = 'info') {
+    for (const collName in collections) {
+        const listItem = document.createElement('li');
+        listItem.className = 'collection-summary';
+        const dataArray = collections[collName];
+        
+        let count = 0;
+        let sampleHtml = '';
+
+        if (collName === 'character_bases' && typeof dataArray === 'object' && !Array.isArray(dataArray)) {
+            // Handle character_bases specifically as it's an object of arrays
+            let totalCharBaseOptions = 0;
+            let charBaseSamples = [];
+            for (const baseType in dataArray) {
+                if (Array.isArray(dataArray[baseType])) {
+                    totalCharBaseOptions += dataArray[baseType].length;
+                    if(dataArray[baseType].length > 0 && charBaseSamples.length < 3){
+                        charBaseSamples.push(`<strong>${baseType}</strong>: ${dataArray[baseType][0].name || '(名称なし)'} (ID: ${dataArray[baseType][0].docId.substring(0,5)}...)`);
+                    }
+                }
+            }
+            count = totalCharBaseOptions; // Or count distinct baseTypes if preferred
+            sampleHtml = charBaseSamples.join('<br>');
+            listItem.innerHTML = `<strong>${collName}</strong>: ${count}オプション (タイプ数: ${Object.keys(dataArray).length})`;
+
+        } else if (Array.isArray(dataArray)) {
+            count = dataArray.length;
+            const samples = dataArray.slice(0, 3).map(doc => {
+                return `${doc.name || '(名称なし)'} (ID: ${doc.docId ? doc.docId.substring(0, 5) : '不明'}...)`;
+            });
+            sampleHtml = samples.join('<br>');
+            listItem.innerHTML = `<strong>${collName}</strong>: ${count}件`;
+        } else {
+            listItem.innerHTML = `<strong>${collName}</strong>: データ形式不明`;
+        }
+
+
+        if (sampleHtml) {
+            const sampleDiv = document.createElement('div');
+            sampleDiv.className = 'sample-data';
+            sampleDiv.innerHTML = `サンプル:<br>${sampleHtml}`;
+            listItem.appendChild(sampleDiv);
+        }
+        summaryList.appendChild(listItem);
+    }
+    DOMR.detectedCollectionsSummaryDiv.appendChild(summaryList);
+}
+
+
+function logToUI(logAreaElement, message, type = 'info', clearPrevious = false) {
     if (!logAreaElement) return;
+    if (clearPrevious) logAreaElement.innerHTML = '';
     const logEntry = document.createElement('div');
     logEntry.className = `log-entry ${type}`;
     logEntry.textContent = `[${new Date().toLocaleTimeString('ja-JP')}] ${message}`;
@@ -154,7 +205,7 @@ DOMR.executeRestoreButton.addEventListener('click', async () => {
 
     DOMR.executeRestoreButton.disabled = true;
     DOMR.executeRestoreButton.textContent = '復元実行中...';
-    logToUI(DOMR.restoreExecutionLog, "復元処理を開始します...");
+    logToUI(DOMR.restoreExecutionLog, "復元処理を開始します...", 'info', true); // Clear previous logs
 
     try {
         const backupCollections = parsedBackupJsonData.collections;
@@ -163,24 +214,6 @@ DOMR.executeRestoreButton.addEventListener('click', async () => {
             logToUI(DOMR.restoreExecutionLog, `コレクション「${collName}」の処理を開始...`);
             const collectionDataFromBackup = backupCollections[collName];
 
-            if (!Array.isArray(collectionDataFromBackup) && collName !== "character_bases") { // character_bases is an object
-                 logToUI(DOMR.restoreExecutionLog, `コレクション「${collName}」のデータが配列形式ではありません。スキップします。`, 'warning');
-                continue;
-            }
-
-            if (performWash && collName !== "character_bases") {
-                logToUI(DOMR.restoreExecutionLog, `  「${collName}」の既存データを削除中...`);
-                const snapshot = await getDocs(collection(db, collName));
-                let deleteCount = 0;
-                if (snapshot.size > 0) {
-                    const deleteBatch = writeBatch(db);
-                    snapshot.docs.forEach(d => deleteBatch.delete(d.ref));
-                    await deleteBatch.commit();
-                    deleteCount = snapshot.size;
-                }
-                logToUI(DOMR.restoreExecutionLog, `  「${collName}」のデータ削除完了 (${deleteCount}件)。`);
-            }
-            
             if (collName === "character_bases") {
                  logToUI(DOMR.restoreExecutionLog, `  「character_bases」のサブコレクションを処理中...`);
                 const charBaseTypes = Object.keys(collectionDataFromBackup);
@@ -204,44 +237,74 @@ DOMR.executeRestoreButton.addEventListener('click', async () => {
                         logToUI(DOMR.restoreExecutionLog, `    「${subCollPath}」のデータ削除完了 (${subDeleteCount}件)。`);
                     }
                     logToUI(DOMR.restoreExecutionLog, `    「${subCollPath}」にバックアップデータを書き込み中...`);
-                    const writeBatchForSubColl = writeBatch(db);
-                    let writeCountSub = 0;
-                    optionsData.forEach(docData => {
-                        const docId = docData.docId; // Use docId from backup
+                    // Batch writes for subcollection
+                    let subCollBatch = writeBatch(db);
+                    let subCollWriteCount = 0;
+                    for (const docData of optionsData) {
+                        const docId = docData.docId;
                         if (!docId) {
                             logToUI(DOMR.restoreExecutionLog, `      ドキュメントIDがありません。スキップ: ${JSON.stringify(docData).substring(0,50)}...`, 'warning');
-                            return;
+                            continue;
                         }
                         const dataToWrite = { ...docData };
-                        delete dataToWrite.docId; // Remove docId from data payload
-                        // Ensure server timestamps for consistency if needed, or use backup's
-                        // dataToWrite.updatedAt = serverTimestamp(); 
-                        
-                        writeBatchForSubColl.set(doc(db, subCollPath, docId), dataToWrite);
-                        writeCountSub++;
-                    });
-                    if (writeCountSub > 0) await writeBatchForSubColl.commit();
-                    logToUI(DOMR.restoreExecutionLog, `    「${subCollPath}」への書き込み完了 (${writeCountSub}件)。`);
+                        delete dataToWrite.docId; 
+                        // dataToWrite.updatedAt = serverTimestamp(); // Or use timestamp from backup
+                        subCollBatch.set(doc(db, subCollPath, docId), dataToWrite);
+                        subCollWriteCount++;
+                        if (subCollWriteCount % 490 === 0) { // Commit batch periodically
+                            await subCollBatch.commit();
+                            subCollBatch = writeBatch(db);
+                            logToUI(DOMR.restoreExecutionLog, `    「${subCollPath}」バッチ書き込み実行 (${subCollWriteCount}件時点)...`);
+                        }
+                    }
+                    if (subCollWriteCount % 490 !== 0 || subCollWriteCount === 0 && optionsData.length > 0) { // Commit any remaining operations
+                       if (subCollWriteCount > 0 && (subCollWriteCount % 490 !== 0)) await subCollBatch.commit();
+                    }
+                    logToUI(DOMR.restoreExecutionLog, `    「${subCollPath}」への書き込み完了 (合計 ${optionsData.length}件試行、${subCollWriteCount}件成功)。`);
                 }
-            } else { // For other collections
+            } else { // For other, non-nested collections
+                if (!Array.isArray(collectionDataFromBackup)) {
+                    logToUI(DOMR.restoreExecutionLog, `コレクション「${collName}」のデータが配列形式ではありません。スキップします。`, 'warning');
+                    continue;
+                }
+                if (performWash) {
+                    logToUI(DOMR.restoreExecutionLog, `  「${collName}」の既存データを削除中...`);
+                    const snapshot = await getDocs(collection(db, collName));
+                    let deleteCount = 0;
+                    if (snapshot.size > 0) {
+                        const deleteBatch = writeBatch(db);
+                        snapshot.docs.forEach(d => deleteBatch.delete(d.ref));
+                        await deleteBatch.commit();
+                        deleteCount = snapshot.size;
+                    }
+                    logToUI(DOMR.restoreExecutionLog, `  「${collName}」のデータ削除完了 (${deleteCount}件)。`);
+                }
+
                 logToUI(DOMR.restoreExecutionLog, `  「${collName}」にバックアップデータを書き込み中...`);
-                const writeBatchForColl = writeBatch(db);
-                let writeCount = 0;
-                collectionDataFromBackup.forEach(docData => {
+                let collBatch = writeBatch(db);
+                let collWriteCount = 0;
+                for (const docData of collectionDataFromBackup) {
                     const docId = docData.docId; 
                     if (!docId) {
                         logToUI(DOMR.restoreExecutionLog, `    ドキュメントIDがありません。スキップ: ${JSON.stringify(docData).substring(0,50)}...`, 'warning');
-                        return;
+                        continue;
                     }
                     const dataToWrite = { ...docData };
                     delete dataToWrite.docId;
                     // dataToWrite.updatedAt = serverTimestamp();
 
-                    writeBatchForColl.set(doc(db, collName, docId), dataToWrite);
-                    writeCount++;
-                });
-                if (writeCount > 0) await writeBatchForColl.commit();
-                logToUI(DOMR.restoreExecutionLog, `  「${collName}」への書き込み完了 (${writeCount}件)。`);
+                    collBatch.set(doc(db, collName, docId), dataToWrite);
+                    collWriteCount++;
+                    if (collWriteCount % 490 === 0) { // Commit batch periodically
+                        await collBatch.commit();
+                        collBatch = writeBatch(db);
+                        logToUI(DOMR.restoreExecutionLog, `  「${collName}」バッチ書き込み実行 (${collWriteCount}件時点)...`);
+                    }
+                }
+                if (collWriteCount % 490 !== 0 || collWriteCount === 0 && collectionDataFromBackup.length > 0) {
+                    if (collWriteCount > 0 && (collWriteCount % 490 !== 0)) await collBatch.commit();
+                }
+                logToUI(DOMR.restoreExecutionLog, `  「${collName}」への書き込み完了 (合計 ${collectionDataFromBackup.length}件試行、 ${collWriteCount}件成功)。`);
             }
         }
         logToUI(DOMR.restoreExecutionLog, "復元処理が正常に完了しました。", 'success');
@@ -257,7 +320,8 @@ DOMR.executeRestoreButton.addEventListener('click', async () => {
     }
 });
 
-// Initial load if user is already logged in (though not much to load for this page initially)
+// Initial load if user is already logged in
 if (auth.currentUser) {
-    // Placeholder for any initial data loading if needed in the future
+    // No initial data loading needed specifically for this page's core function,
+    // as it primarily operates on the uploaded backup file.
 }
