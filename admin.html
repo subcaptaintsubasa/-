@@ -10,8 +10,8 @@
     <link rel="stylesheet" href="css/admin-lists.css">
     <link rel="stylesheet" href="css/admin-modal.css">
     <link rel="stylesheet" href="css/admin-responsive.css">
-    <!-- JSZip Library - ★★★ この行を追加 ★★★ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1P5TLoPaBIvdjhmA1UwAbdnrLOYR9Ln17Qo9Sg2PZX/L0lb8IREf3D4GcsLCrTfYsK7NLOALjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- JSZip Library (for backup ZIP functionality) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH5MOe9GRMfrMxtPxSSsgBUAkmUfYPcPBYVIcAirKhzfHZs6CJRAXHyExtJVDRrbSFUzSSqLLBBuFA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body id="admin-page">
     <div id="password-prompt">
@@ -46,8 +46,13 @@
                 <li><button class="admin-nav-button" data-modal-target="itemSourceManagementModal">入手経路管理</button></li>
                 <li style="border-top: 2px solid #4a4f54; margin-top: 10px; padding-top: 10px;">
                     <button id="manualBackupButton" class="admin-nav-button" style="color: #ffc107;">
-                        <span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ
+                        <span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ (ZIP)
                     </button>
+                </li>
+                 <li style="border-top: 1px solid #4a4f54; margin-top: 10px; padding-top: 10px;">
+                    <a href="restore.html" target="_blank" class="admin-nav-button" style="text-decoration: none; color: #17a2b8;">
+                        <span class="icon" aria-hidden="true" style="margin-right: 8px;">🔧</span>復元ツールを開く
+                    </a>
                 </li>
             </ul>
         </nav>
@@ -56,7 +61,8 @@
         <div class="container">
             <p class="info-message" style="text-align: center; margin-bottom: 20px;">
                 アイテムの変更は、保存ボタンを押すとFirebaseに直接保存されます。<br>
-                カテゴリ、タグ、効果種類、入手経路などの管理は、ヘッダー右上のメニューから各管理ダイアログを開いてください。
+                カテゴリ、タグ、効果種類、入手経路などの管理は、ヘッダー右上のメニューから各管理ダイアログを開いてください。<br>
+                <strong style="color: #dc3545;">重要:</strong> 定期的なバックアップを推奨します。「手動バックアップ (ZIP)」をご利用ください。
             </p>
             <hr>
 
@@ -194,7 +200,7 @@
         </div><!-- closing .container -->
     </div><!-- closing #admin-content -->
 
-    <!-- 管理機能モーダル群 (変更なしのため省略しません) -->
+    <!-- 管理機能モーダル群 -->
     <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
         <div class="modal-content scrollable-content">
             <span class="close-button" aria-label="閉じる">×</span>
@@ -675,6 +681,7 @@
             <img id="enlargedImagePreview" src="#" alt="拡大画像プレビュー" style="width: 100%; height: 100%; object-fit: contain;">
         </div>
     </div>
+
 
     <script type="module" src="js/admin-main.js"></script>
 </body>
