@@ -1,7 +1,7 @@
 // js/restore.js
 import { auth, db } from '../firebase-config.js';
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-import { collection, getDocs, writeBatch, doc, deleteDoc, addDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { collection, getDocs, writeBatch, doc, deleteDoc, addDoc, serverTimestamp, query, where, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"; // Added updateDoc
 
 const DOMR = {
     passwordPrompt: document.getElementById('password-prompt'),
@@ -26,6 +26,12 @@ const DOMR = {
     startEffectSuperCategoryToTypeRestoreButton: document.getElementById('startEffectSuperCategoryToTypeRestoreButton'),
     tasksContainerEffectSuperCategoryToType: document.getElementById('tasksContainerEffectSuperCategoryToType'),
     step3ExecutionLog: document.getElementById('step3ExecutionLog'),
+
+    step4Section: document.getElementById('step4Section'), // New Step 4
+    tagSearchInputForStep4: document.getElementById('tagSearchInputForStep4'),
+    startTagToCategoryRestoreButton: document.getElementById('startTagToCategoryRestoreButton'),
+    tasksContainerTagToCategory: document.getElementById('tasksContainerTagToCategory'),
+    step4ExecutionLog: document.getElementById('step4ExecutionLog'),
 };
 
 const COLLECTIONS_TO_WASH = [
@@ -69,15 +75,19 @@ function resetFullUI() {
     DOMR.step2ExecutionLog.innerHTML = 'ログはここに表示されます...';
     DOMR.tasksContainerEffectSuperCategoryToType.innerHTML = '<p>効果大分類と効果種類の関連性修復タスクはここに表示されます。</p>';
     DOMR.step3ExecutionLog.innerHTML = 'ログはここに表示されます...';
+    DOMR.tasksContainerTagToCategory.innerHTML = '<p>タグと子カテゴリの関連性修復タスクはここに表示されます。</p>';
+    DOMR.step4ExecutionLog.innerHTML = 'ログはここに表示されます...';
+    if (DOMR.tagSearchInputForStep4) DOMR.tagSearchInputForStep4.value = '';
 }
 
 function updateButtonStatesBasedOnLoginAndFile() {
     const isLoggedIn = auth.currentUser !== null;
-    const fileSelected = DOMR.backupFileInput.files.length > 0 && parsedBackupDataGlobal !== null; // Check if parsed successfully
+    const fileSelectedAndParsed = DOMR.backupFileInput.files.length > 0 && parsedBackupDataGlobal !== null;
 
-    DOMR.executeDbWashButton.disabled = !(isLoggedIn && fileSelected);
+    DOMR.executeDbWashButton.disabled = !(isLoggedIn && fileSelectedAndParsed);
     DOMR.startCategoryRestoreButton.disabled = !isLoggedIn;
     DOMR.startEffectSuperCategoryToTypeRestoreButton.disabled = !isLoggedIn;
+    DOMR.startTagToCategoryRestoreButton.disabled = !isLoggedIn;
 }
 
 DOMR.backupFileInput.addEventListener('change', async (event) => {
@@ -113,7 +123,7 @@ function logToUI(logAreaElement, message, type = 'info') {
     logAreaElement.scrollTop = logAreaElement.scrollHeight;
 }
 
-// --- Step 1: DB Wash ---
+// --- Step 1: DB Wash (No changes from previous version) ---
 DOMR.executeDbWashButton.addEventListener('click', async () => {
     if (!parsedBackupDataGlobal) {
         alert("バックアップファイルが読み込まれていません。ファイルを選択し直してください。");
@@ -170,7 +180,7 @@ DOMR.executeDbWashButton.addEventListener('click', async () => {
             const collectionData = collectionsFromBackup[collName];
             for (const docData of collectionData) {
                 const dataToWrite = { ...docData };
-                if (dataToWrite.hasOwnProperty('id')) { // Preserve old id if it exists in backup for reference during step 2+
+                if (dataToWrite.hasOwnProperty('id')) {
                     dataToWrite.old_id_from_backup = dataToWrite.id;
                 }
                 delete dataToWrite.id; 
@@ -219,7 +229,7 @@ DOMR.executeDbWashButton.addEventListener('click', async () => {
 });
 
 
-// --- Step 2: Category Parent Relationship Restore ---
+// --- Step 2: Category Parent Relationship Restore (No changes from previous version) ---
 DOMR.startCategoryRestoreButton.addEventListener('click', async () => {
     if (!parsedBackupDataGlobal || !parsedBackupDataGlobal.collections || !parsedBackupDataGlobal.collections.categories) {
         alert("ステップ2を開始する前に、ステップ1で有効なバックアップファイルを読み込んでください。");
@@ -244,13 +254,7 @@ DOMR.startCategoryRestoreButton.addEventListener('click', async () => {
 
         DOMR.tasksContainerCategories.innerHTML = ''; 
         logToUI(DOMR.step2ExecutionLog, `現在のDBから ${currentCategories.length} 件のカテゴリを読み込みました。`);
-
-        const currentParentCategoryCandidates = currentCategories
-            .filter(c => !c.parentId || c.parentId === "") 
-            .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
         
-        logToUI(DOMR.step2ExecutionLog, `親カテゴリ候補 (洗い替え後のDBでparentIdが空または旧IDのままのもの): ${currentParentCategoryCandidates.length} 件`);
-
         const childrenGroupsByOldParentId = {};
         currentCategories.forEach(cat => {
             if (cat.parentId && cat.parentId !== "") {
@@ -309,7 +313,6 @@ DOMR.startCategoryRestoreButton.addEventListener('click', async () => {
             const selector = document.createElement('select');
             selector.id = `selector-cat-${oldParentIdStr.replace(/[^a-zA-Z0-9]/g, "")}`;
             let optionsHtml = '<option value="">親なし (最上位にする)</option>';
-            // 親候補は、洗い替え後のDBで、現時点で parentId が設定されていないもの（つまり真の親候補）
             const actualParentCandidatesInDB = currentCategories
                 .filter(c => !c.parentId || c.parentId === "")
                 .sort((a,b)=>a.name.localeCompare(b.name, 'ja'));
@@ -335,7 +338,7 @@ DOMR.startCategoryRestoreButton.addEventListener('click', async () => {
                 let statusMessage = taskItem.querySelector('.status-message');
                 if (!statusMessage) {
                     statusMessage = document.createElement('p');
-                    statusMessage.className = 'status-message';
+                    statusMessage.className = 'status-message'; 
                     taskItem.appendChild(statusMessage);
                 }
                 statusMessage.textContent = "処理中...";
@@ -396,7 +399,7 @@ DOMR.startCategoryRestoreButton.addEventListener('click', async () => {
     }
 });
 
-// --- Step 3: Effect SuperCategory to EffectType Relationship Restore ---
+// --- Step 3: Effect SuperCategory to EffectType Relationship Restore (No changes from previous version) ---
 DOMR.startEffectSuperCategoryToTypeRestoreButton.addEventListener('click', async () => {
     if (!parsedBackupDataGlobal || !parsedBackupDataGlobal.collections || 
         !parsedBackupDataGlobal.collections.effect_types || 
@@ -417,7 +420,7 @@ DOMR.startEffectSuperCategoryToTypeRestoreButton.addEventListener('click', async
         const currentEffectTypes = currentEffectTypesSnapshot.docs.map(d => ({ 
             id: d.id,
             name: d.data().name, 
-            superCategoryId: d.data().superCategoryId // This is an OLD SuperCategory ID from backup
+            superCategoryId: d.data().superCategoryId 
         }));
         
         const currentSuperCategoriesSnapshot = await getDocs(collection(db, 'effect_super_categories'));
@@ -577,5 +580,201 @@ DOMR.startEffectSuperCategoryToTypeRestoreButton.addEventListener('click', async
     } finally {
         DOMR.startEffectSuperCategoryToTypeRestoreButton.disabled = false;
         DOMR.startEffectSuperCategoryToTypeRestoreButton.textContent = '効果大分類→効果種類 関係修復開始';
+    }
+});
+
+
+// --- Step 4: Tag to Category Relationship Restore ---
+DOMR.startTagToCategoryRestoreButton.addEventListener('click', async () => {
+    if (!parsedBackupDataGlobal || !parsedBackupDataGlobal.collections || 
+        !parsedBackupDataGlobal.collections.tags || 
+        !parsedBackupDataGlobal.collections.categories) {
+        alert("ステップ4を開始する前に、ステップ1で有効なバックアップファイルを読み込んでください。");
+        logToUI(DOMR.step4ExecutionLog, "バックアップデータ (tags または categories) が読み込まれていません。", "error");
+        return;
+    }
+
+    DOMR.startTagToCategoryRestoreButton.disabled = true;
+    DOMR.startTagToCategoryRestoreButton.textContent = '分析中...';
+    DOMR.tasksContainerTagToCategory.innerHTML = '<p>現在のデータを読み込んで分析しています...</p>';
+    DOMR.step4ExecutionLog.innerHTML = '';
+    logToUI(DOMR.step4ExecutionLog, "タグと子カテゴリの関連性修復を開始します...");
+
+    try {
+        const currentTagsSnapshot = await getDocs(collection(db, 'tags'));
+        const currentTags = currentTagsSnapshot.docs.map(d => ({ 
+            id: d.id, // New Firestore ID
+            name: d.data().name, 
+            categoryIds: d.data().categoryIds || [] // OLD Category IDs from backup
+        }));
+        
+        const currentCategoriesSnapshot = await getDocs(collection(db, 'categories'));
+        const currentCategories = currentCategoriesSnapshot.docs.map(d => ({ 
+            id: d.id, // New Firestore ID
+            name: d.data().name,
+            parentId: d.data().parentId // New Parent ID (if step 2 was run) or Old Parent ID
+        }));
+
+        const oldCategoriesFromBackup = parsedBackupDataGlobal.collections.categories;
+
+        DOMR.tasksContainerTagToCategory.innerHTML = '';
+        logToUI(DOMR.step4ExecutionLog, `現在のDBから ${currentTags.length} 件のタグ、${currentCategories.length} 件のカテゴリを読み込みました。`);
+
+        if (currentTags.length === 0) {
+            DOMR.tasksContainerTagToCategory.innerHTML = '<p>現在のデータベースにタグが見つかりません。</p>';
+            DOMR.startTagToCategoryRestoreButton.disabled = false;
+            DOMR.startTagToCategoryRestoreButton.textContent = 'タグ→子カテゴリ 関係修復開始';
+            return;
+        }
+        
+        const currentChildCategories = currentCategories
+            .filter(cat => cat.parentId && cat.parentId !== "") // Filter for child categories
+            .sort((a,b) => { // Sort by parent name, then child name
+                const parentA = currentCategories.find(p => p.id === a.parentId);
+                const parentB = currentCategories.find(p => p.id === b.parentId);
+                const parentNameA = parentA ? parentA.name : 'zzz'; // Place unknown parents last
+                const parentNameB = parentB ? parentB.name : 'zzz';
+                if (parentNameA !== parentNameB) {
+                    return parentNameA.localeCompare(parentNameB, 'ja');
+                }
+                return a.name.localeCompare(b.name, 'ja');
+            });
+
+        logToUI(DOMR.step4ExecutionLog, `現在のDBの子カテゴリ候補: ${currentChildCategories.length} 件`);
+
+        const renderTagItems = (tagsToRender) => {
+            DOMR.tasksContainerTagToCategory.innerHTML = ''; // Clear previous items
+            if (tagsToRender.length === 0) {
+                 DOMR.tasksContainerTagToCategory.innerHTML = '<p>表示するタグがありません (フィルタ結果)。</p>';
+                 return;
+            }
+            tagsToRender.forEach(currentTag => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item-to-restore';
+
+                const oldCategoryIds = currentTag.categoryIds; // List of OLD Category IDs
+                const oldCategoryNames = oldCategoryIds
+                    .map(oldCatId => {
+                        const oldCatInfo = oldCategoriesFromBackup.find(c => c.id === oldCatId);
+                        return oldCatInfo ? oldCatInfo.name : `不明旧CatID:${oldCatId.substring(0,5)}`;
+                    })
+                    .join(', ') || 'なし';
+
+                itemDiv.innerHTML = `
+                    <strong>タグ: ${currentTag.name}</strong> (現ID: ${currentTag.id.substring(0,5)}...)
+                    <div class="item-info">旧所属カテゴリ: <span class="old-value">${oldCategoryNames}</span></div>
+                `;
+
+                const checkboxGroupLabel = document.createElement('label');
+                checkboxGroupLabel.textContent = '新しい所属子カテゴリを選択 (複数選択可):';
+                checkboxGroupLabel.style.display = 'block';
+                checkboxGroupLabel.style.marginTop = '5px';
+                checkboxGroupLabel.style.fontWeight = 'bold';
+
+                const checkboxGroupDiv = document.createElement('div');
+                checkboxGroupDiv.className = 'category-checkbox-group';
+
+                currentChildCategories.forEach(childCat => {
+                    const checkboxId = `cb-tag-${currentTag.id}-cat-${childCat.id}`;
+                    const checkboxItem = document.createElement('div');
+                    checkboxItem.className = 'checkbox-item';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.id = checkboxId;
+                    input.value = childCat.id; // NEW Category ID
+                    input.name = `tag-${currentTag.id}-categories`;
+
+                    // Pre-check if old category name matches current child category name
+                    if (oldCategoryIds.some(oldCatId => {
+                        const oldCatInfo = oldCategoriesFromBackup.find(c => c.id === oldCatId);
+                        return oldCatInfo && oldCatInfo.name === childCat.name;
+                    })) {
+                        input.checked = true;
+                    }
+
+                    const label = document.createElement('label');
+                    label.htmlFor = checkboxId;
+                    const parentCat = currentCategories.find(p => p.id === childCat.parentId);
+                    label.textContent = `${childCat.name} (親: ${parentCat ? parentCat.name : '不明'})`;
+                    
+                    checkboxItem.appendChild(input);
+                    checkboxItem.appendChild(label);
+                    checkboxGroupDiv.appendChild(checkboxItem);
+                });
+
+                const updateButton = document.createElement('button');
+                updateButton.textContent = 'このタグの所属を更新';
+                updateButton.style.marginTop = '10px';
+                updateButton.addEventListener('click', async () => {
+                    const selectedNewCategoryIds = Array.from(checkboxGroupDiv.querySelectorAll(`input[name="tag-${currentTag.id}-categories"]:checked`))
+                        .map(cb => cb.value);
+
+                    if (!confirm(`タグ「${currentTag.name}」の所属カテゴリを更新しますか？選択されたカテゴリ: ${selectedNewCategoryIds.length}件`)) {
+                        return;
+                    }
+                    
+                    updateButton.disabled = true;
+                    updateButton.textContent = '更新中...';
+                    let statusMessage = itemDiv.querySelector('.status-message');
+                    if (!statusMessage) {
+                        statusMessage = document.createElement('p');
+                        statusMessage.className = 'status-message';
+                        itemDiv.appendChild(statusMessage);
+                    }
+                    statusMessage.textContent = "処理中...";
+                    statusMessage.className = 'status-message info';
+
+                    try {
+                        const docRef = doc(db, 'tags', currentTag.id);
+                        await updateDoc(docRef, { categoryIds: selectedNewCategoryIds });
+                        
+                        statusMessage.textContent = 'タグの所属カテゴリを更新しました。';
+                        statusMessage.className = 'status-message success';
+                        logToUI(DOMR.step4ExecutionLog, `タグ「${currentTag.name}」の所属カテゴリを更新 (新IDリスト: ${selectedNewCategoryIds.join(', ') || 'なし'})。`, "success");
+                        itemDiv.style.backgroundColor = '#d4edda'; 
+                        // Disable checkboxes after successful update
+                        checkboxGroupDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+                        updateButton.textContent = '更新完了';
+                    } catch (err) {
+                        console.error("Tag-Category Update error:", err);
+                        statusMessage.textContent = `更新失敗: ${err.message}`;
+                        statusMessage.className = 'status-message error';
+                        logToUI(DOMR.step4ExecutionLog, `タグ「${currentTag.name}」の所属カテゴリ更新失敗: ${err.message}`, "error");
+                        updateButton.disabled = false;
+                        updateButton.textContent = 'このタグの所属を更新';
+                    }
+                });
+
+                itemDiv.appendChild(checkboxGroupLabel);
+                itemDiv.appendChild(checkboxGroupDiv);
+                itemDiv.appendChild(updateButton);
+                DOMR.tasksContainerTagToCategory.appendChild(itemDiv);
+            });
+        };
+        
+        const sortedCurrentTags = currentTags.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+        renderTagItems(sortedCurrentTags); // Initial render
+
+        if(DOMR.tagSearchInputForStep4){
+            DOMR.tagSearchInputForStep4.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                if (!searchTerm) {
+                    renderTagItems(sortedCurrentTags);
+                } else {
+                    const filteredTags = sortedCurrentTags.filter(tag => tag.name.toLowerCase().includes(searchTerm));
+                    renderTagItems(filteredTags);
+                }
+            });
+        }
+
+
+    } catch (error) {
+        console.error("Tag to Category Restore Error:", error);
+        DOMR.tasksContainerTagToCategory.innerHTML = `<p style="color: red;">タグ→子カテゴリ 関係修復の分析エラー: ${error.message}</p>`;
+        logToUI(DOMR.step4ExecutionLog, `タグ→子カテゴリ 関係修復の分析エラー: ${error.message}`, 'error');
+    } finally {
+        DOMR.startTagToCategoryRestoreButton.disabled = false;
+        DOMR.startTagToCategoryRestoreButton.textContent = 'タグ→子カテゴリ 関係修復開始';
     }
 });
