@@ -3,35 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>完全復元ツール</title>
+    <title>データ復元ツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
-    <!-- JSZip Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1P5TLoPaBIvdjhmA1UwAbdnrLOYR9Ln17Qo9Sg2PZX/L0lb8IREf3D4GcsLCrTfYsK7NLOALjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- JSZip Library (for restore ZIP functionality) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH5MOe9GRMfrMxtPxSSsgBUAkmUfYPcPBYVIcAirKhzfHZs6CJRAXHyExtJVDRrbSFUzSSqLLBBuFA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
-        body#admin-page { background-color: #f5eef2; } 
-        .container { max-width: 900px; }
-        .warning-box { background-color: #fff3cd; border-color: #ffeeba; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid; }
-        .danger-zone { border: 2px dashed #dc3545; padding: 20px; margin-top: 20px; border-radius: 5px; }
-        .danger-zone h4 { color: #dc3545; margin-top: 0; }
-        .button-extreme-danger { background-color: #b22222 !important; color: white !important; font-weight: bold; }
-        .button-extreme-danger:hover { background-color: #8b0000 !important; }
+        body#admin-page { background-color: #eef2f5; }
+        .container { max-width: 900px; margin: 20px auto; padding: 25px; background-color: #fff; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .info-box, .warning-box { padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9em; }
+        .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .warning-box { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; font-weight: bold; }
+        .step-section { border: 1px solid #ddd; border-radius: 5px; padding: 20px; margin-bottom: 25px; background-color: #fdfdfd; }
+        .step-section h3 { margin-top: 0; color: #007bff; border-bottom: 1px solid #007bff; padding-bottom: 10px; }
+        #password-prompt h2 { text-align: center; }
+        #main-content .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd; }
+        #main-content .header-bar h1 { margin: 0; }
+        #logoutButton { background-color: #6c757d; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem; }
+        #logoutButton:hover { background-color: #5a6268; }
+        .button-danger { background-color: #dc3545 !important; color: white !important; }
+        .button-danger:hover { background-color: #c82333 !important; }
         .execution-log { margin-top: 15px; padding: 10px; border: 1px solid #eee; background-color: #f8f9fa; max-height: 300px; overflow-y: auto; font-size: 0.85em; white-space: pre-wrap; }
-        .log-entry { margin-bottom: 5px; }
+        .log-entry { margin-bottom: 5px; font-family: monospace; }
         .log-entry.error { color: red; }
         .log-entry.success { color: green; }
         .log-entry.warning { color: orange; }
-        #password-prompt h2 { text-align: center; }
-         #main-content .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #ddd;}
-        #main-content .header-bar h1 {margin:0;}
-        #logoutButton { background-color: #6c757d; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem; }
-        #logoutButton:hover { background-color: #5a6268; }
-
+        .collections-to-restore-list { list-style: none; padding: 0; margin-top: 5px; }
+        .collections-to-restore-list li { background-color: #f0f0f0; padding: 3px 8px; border-radius: 3px; display: inline-block; margin-right: 5px; margin-bottom: 5px; font-size: 0.9em;}
+        .checkbox-inline-label { margin-left: 5px; font-weight: normal; }
     </style>
 </head>
-<body id="admin-page"> 
+<body id="admin-page">
     <div id="password-prompt">
-        <h2>完全復元ツール ログイン</h2>
+        <h2>復元ツール ログイン</h2>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email" aria-label="管理者メールアドレス">
         <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password" aria-label="管理者パスワード">
         <button id="loginButton" type="button">ログイン</button>
@@ -40,39 +44,48 @@
 
     <div id="main-content" class="container" style="display:none;">
         <div class="header-bar">
-            <h1>データベース完全復元ツール</h1>
+            <h1>データ復元ツール (ZIPバックアップ対応)</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
-        
-        <div class="info-box" style="background-color: #ffe4e1; border-color: #f5c6cb; color: #721c24;">
-            <h3><span class="icon" aria-hidden="true">⚠️</span> 超重要警告</h3>
-            <p>このツールは、現在のFirestoreデータベースの関連コレクションの<strong>全てのデータを削除</strong>し、アップロードされたバックアップZIPファイルの内容で<strong>完全に上書き</strong>します。</p>
-            <p>この操作は<strong>元に戻すことができません。</strong>実行する前に、必ず以下のことを確認してください：</p>
-            <ul>
-                <li>選択するZIPファイルが、正しい完全バックアップ（バージョン2.0、ドキュメントID含む）であること。</li>
-                <li>現在のデータベースの状態を理解し、本当にこの操作が必要であること。</li>
-                <li>可能であれば、事前にFirestoreのコンソールから手動でエクスポート（バックアップ）を取得しておくこと。</li>
-            </ul>
-            <p><strong>細心の注意を払って操作してください。</strong></p>
+
+        <div class="info-box">
+            <h3><span class="icon" aria-hidden="true">ℹ️</span> 復元手順</h3>
+            <ol>
+                <li><strong>バックアップZIPファイルの選択</strong>: 「ファイルを選択」ボタンで、管理画面からダウンロードしたZIP形式のバックアップファイルを選択します。</li>
+                <li><strong>復元オプションの確認</strong>:
+                    <ul>
+                        <li>「既存データを削除してから復元 (洗い替え)」: チェックを入れると、復元対象コレクションの既存データが全て削除された後、バックアップデータが書き込まれます。チェックを外すと、既存データは残したまま、バックアップデータがIDを元に上書き（存在しないIDは新規追加）されます。</li>
+                    </ul>
+                </li>
+                <li><strong>復元実行</strong>: 「復元実行」ボタンを押します。処理には時間がかかる場合があります。</li>
+            </ol>
+            <p><strong>重要:</strong> 復元処理はデータベースに大きな変更を加えます。事前に必ず現在のデータベースのバックアップを取得し、内容をよく確認した上で実行してください。</p>
         </div>
 
-        <div class="form-group">
-            <label for="backupZipFile">完全バックアップZIPファイル (.zip) を選択:</label>
-            <input type="file" id="backupZipFile" accept=".zip,application/zip,application/x-zip-compressed">
-        </div>
-        
-        <div class="danger-zone">
-            <h4>危険ゾーン</h4>
-            <p>以下のボタンを押すと、上記の警告に基づきデータベースの完全復元が開始されます。</p>
-            <input type="checkbox" id="confirmDeleteCheckbox" style="margin-right: 5px;">
-            <label for="confirmDeleteCheckbox" style="font-weight:normal; color: #dc3545;">はい、現在の関連データを全て削除し、バックアップで上書きすることを理解し、同意します。</label>
-            <br><br>
-            <button id="executeFullRestoreButton" type="button" class="button-extreme-danger" disabled>データベース完全復元を実行</button>
-        </div>
+        <section id="restoreSection" class="step-section">
+            <h3>バックアップからの復元</h3>
+            <div class="form-group">
+                <label for="backupZipFile">バックアップZIPファイル (.zip) を選択:</label>
+                <input type="file" id="backupZipFile" accept=".zip,application/zip,application/x-zip-compressed">
+            </div>
 
-        <div id="restoreLog" class="execution-log" style="margin-top: 25px;">復元ログはここに表示されます...</div>
+            <div id="backupFileInfo" style="margin-bottom: 15px; font-size:0.9em;">
+                <p>ファイル名: <span id="fileNameDisplay">-</span></p>
+                <p>バックアップ作成日時: <span id="backupCreatedAtDisplay">-</span> (ZIP内JSONより)</p>
+                <p>検出されたコレクション: <ul id="detectedCollectionsList" class="collections-to-restore-list"><li>-</li></ul></p>
+            </div>
+
+            <div class="form-group">
+                <input type="checkbox" id="washDataBeforeRestore" checked>
+                <label for="washDataBeforeRestore" class="checkbox-inline-label">既存データを削除してから復元 (洗い替え)</label>
+            </div>
+            
+            <button id="executeRestoreButton" type="button" class="button-danger" disabled>復元実行</button>
+            <div id="restoreExecutionLog" class="execution-log">ログはここに表示されます...</div>
+        </section>
+
     </div>
 
-    <script type="module" src="js/full_restore.js"></script>
+    <script type="module" src="js/restore.js"></script>
 </body>
 </html>
