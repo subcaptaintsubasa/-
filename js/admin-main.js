@@ -1,5 +1,5 @@
 // js/admin-main.js
-import { auth, db } from '../firebase-config.js'; // Ensure this path is correct
+import { auth, db as firebaseDb } from '../firebase-config.js'; // Renamed db to firebaseDb to avoid conflict
 import { initAuth } from './admin-modules/auth.js';
 import {
     loadInitialData,
@@ -30,7 +30,6 @@ import {
     openEditItemSourceModalById,
 } from './admin-modules/item-source-manager.js';
 
-// Firestore Timestamp for backup/restore
 import { getFirestore, collection, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
 
@@ -113,6 +112,16 @@ async function handleManualBackup() {
         button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">⏳</span>作成中...`;
     }
 
+    if (typeof window.JSZip === 'undefined') { // ★★★ JSZipの存在をチェック ★★★
+        alert('JSZipライブラリが読み込まれていません。バックアップ機能は利用できません。\nHTMLの<head>にJSZipのCDNリンクが含まれているか確認してください。');
+        console.error("JSZip library is not loaded. Cannot create ZIP backup.");
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ`;
+        }
+        return;
+    }
+
     try {
         const backupData = {
             version: "2.0",
@@ -120,7 +129,7 @@ async function handleManualBackup() {
             collections: {}
         };
 
-        const currentDb = getFirestore(auth.app); // Get Firestore instance associated with the initialized app
+        const currentDb = getFirestore(auth.app); 
 
         const fetchCollectionData = async (collectionName) => {
             const snapshot = await getDocs(collection(currentDb, collectionName));
@@ -136,8 +145,6 @@ async function handleManualBackup() {
         backupData.collections.item_sources = await fetchCollectionData("item_sources");
         
         backupData.collections.character_bases = {};
-        // baseTypeMappings is defined in char-base-manager.js and exported. Ensure it's accessible here.
-        // If not directly, define it or import it properly. For now, assuming it's available.
         const charBaseTypes = Object.keys(baseTypeMappings || { headShape: "", correction: "", color: "", pattern: "" }); 
         for (const type of charBaseTypes) {
             if (!type) continue;
@@ -150,7 +157,7 @@ async function handleManualBackup() {
         }
 
         const jsonString = JSON.stringify(backupData, (key, value) => {
-            if (value && value.toDate && typeof value.toDate === 'function') { // Firestore Timestamp
+            if (value instanceof Timestamp) { // ★★★ Firestore Timestampインスタンスかチェック ★★★
                 return {
                     _datatype: "timestamp", 
                     value: value.toDate().toISOString()
@@ -159,12 +166,7 @@ async function handleManualBackup() {
             return value;
         }, 2);
 
-        if (typeof JSZip === 'undefined') {
-            alert('JSZipライブラリが読み込まれていません。バックアップ機能は利用できません。');
-            throw new Error('JSZip not loaded');
-        }
-
-        const zip = new JSZip();
+        const zip = new window.JSZip(); // ★★★ window.JSZip を使用 ★★★
         zip.file("denpa_item_backup.json", jsonString); 
 
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
@@ -279,9 +281,9 @@ function clearAdminUIAndData() {
 async function loadAndInitializeAdminModules() {
     console.log("[admin-main] Starting to load data and initialize modules...");
     try {
-        await loadInitialData(db);
+        await loadInitialData(firebaseDb); // ★★★ Use firebaseDb passed from top ★★★
         const commonDependencies = {
-            db,
+            db: firebaseDb, // ★★★ Use firebaseDb ★★★
             getAllCategories: getAllCategoriesCache,
             getAllTags: getAllTagsCache,
             getItems: getItemsCache,
@@ -292,7 +294,7 @@ async function loadAndInitializeAdminModules() {
             getItemSources: getItemSourcesCache,
             refreshAllData: async () => {
                 console.log("[admin-main] Refreshing all data and UI...");
-                await loadInitialData(db);
+                await loadInitialData(firebaseDb); // ★★★ Use firebaseDb ★★★
                 renderAllAdminUISections();
                 console.log("[admin-main] All data and UI refreshed.");
             },
@@ -371,10 +373,14 @@ function setupEnlargementButtonListeners() {
 
     buttonConfig.forEach(config => {
         if (config.btn) {
+            // Re-binding to prevent issues if this function is called multiple times
             const newBtn = config.btn.cloneNode(true); 
             if (config.btn.parentNode) {
                  config.btn.parentNode.replaceChild(newBtn, config.btn);
             }
+             // Update the DOM reference in the config to the new button for future calls if necessary
+            config.btn = newBtn;
+
 
             newBtn.addEventListener('click', () => {
                 const items = config.sourceFn();
@@ -439,8 +445,10 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
                     const contentDiv = li.querySelector('.category-tree-content');
                     if (contentDiv && typeof editFunction === 'function') {
                         contentDiv.classList.add('list-item-name-clickable');
+                        // Re-bind event listener to new/cloned contentDiv to avoid multiple listeners on original
                         const newContentDiv = contentDiv.cloneNode(true);
                         contentDiv.parentNode.replaceChild(newContentDiv, contentDiv);
+
                         newContentDiv.addEventListener('click', (e) => {
                             if (e.target.closest('.category-tree-expander')) return;
                             const itemId = type === 'category' ? li.dataset.categoryId : li.dataset.sourceId;
