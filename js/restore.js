@@ -33,9 +33,9 @@ const DOMR = {
     tasksContainerTagToCategory: document.getElementById('tasksContainerTagToCategory'),
     step4ExecutionLog: document.getElementById('step4ExecutionLog'),
 
-    step5Section: document.getElementById('step5Section'), // New Step 5
+    step5Section: document.getElementById('step5Section'),
     itemSearchInputForStep5: document.getElementById('itemSearchInputForStep5'),
-    searchItemsForStep5Button: document.getElementById('searchItemsForStep5Button'),
+    startItemToTagRestoreButton: document.getElementById('startItemToTagRestoreButton'), // Changed from searchItemsForStep5Button
     tasksContainerItemToTag: document.getElementById('tasksContainerItemToTag'),
     step5ExecutionLog: document.getElementById('step5ExecutionLog'),
 };
@@ -84,7 +84,7 @@ function resetFullUI() {
     DOMR.tasksContainerTagToCategory.innerHTML = '<p>タグと子カテゴリの関連性修復タスクはここに表示されます。</p>';
     DOMR.step4ExecutionLog.innerHTML = 'ログはここに表示されます...';
     if (DOMR.tagSearchInputForStep4) DOMR.tagSearchInputForStep4.value = '';
-    DOMR.tasksContainerItemToTag.innerHTML = '<p>アイテムとタグの関連性修復タスクはここに表示されます。(まずアイテムを検索してください)</p>';
+    DOMR.tasksContainerItemToTag.innerHTML = '<p>アイテムとタグの関連性修復タスクはここに表示されます。</p>';
     DOMR.step5ExecutionLog.innerHTML = 'ログはここに表示されます...';
     if (DOMR.itemSearchInputForStep5) DOMR.itemSearchInputForStep5.value = '';
 }
@@ -97,7 +97,7 @@ function updateButtonStatesBasedOnLoginAndFile() {
     DOMR.startCategoryRestoreButton.disabled = !isLoggedIn;
     DOMR.startEffectSuperCategoryToTypeRestoreButton.disabled = !isLoggedIn;
     DOMR.startTagToCategoryRestoreButton.disabled = !isLoggedIn;
-    DOMR.searchItemsForStep5Button.disabled = !isLoggedIn; // Step 5 search button
+    DOMR.startItemToTagRestoreButton.disabled = !isLoggedIn; // Changed from searchItemsForStep5Button
 }
 
 DOMR.backupFileInput.addEventListener('change', async (event) => {
@@ -528,7 +528,6 @@ DOMR.startEffectSuperCategoryToTypeRestoreButton.addEventListener('click', async
     }
 });
 
-
 // --- Step 4: Tag to Category Relationship Restore (No changes) ---
 DOMR.startTagToCategoryRestoreButton.addEventListener('click', async () => {
     if (!parsedBackupDataGlobal || !parsedBackupDataGlobal.collections || 
@@ -598,7 +597,7 @@ DOMR.startTagToCategoryRestoreButton.addEventListener('click', async () => {
                 checkboxGroupLabel.style.marginTop = '5px';
                 checkboxGroupLabel.style.fontWeight = 'bold';
                 const checkboxGroupDiv = document.createElement('div');
-                checkboxGroupDiv.className = 'category-checkbox-group'; // Changed from checkbox-group to avoid conflict
+                checkboxGroupDiv.className = 'category-checkbox-group';
                 currentChildCategories.forEach(childCat => {
                     const checkboxId = `cb-tag-${currentTag.id}-cat-${childCat.id}`;
                     const checkboxItem = document.createElement('div');
@@ -683,7 +682,7 @@ DOMR.startTagToCategoryRestoreButton.addEventListener('click', async () => {
 });
 
 // --- Step 5: Item to Tag Relationship Restore ---
-DOMR.searchItemsForStep5Button.addEventListener('click', async () => {
+DOMR.startItemToTagRestoreButton.addEventListener('click', async () => { // Changed from searchItemsForStep5Button
     if (!parsedBackupDataGlobal || !parsedBackupDataGlobal.collections || 
         !parsedBackupDataGlobal.collections.items || 
         !parsedBackupDataGlobal.collections.tags) {
@@ -691,160 +690,168 @@ DOMR.searchItemsForStep5Button.addEventListener('click', async () => {
         logToUI(DOMR.step5ExecutionLog, "バックアップデータ (items または tags) が読み込まれていません。", "error");
         return;
     }
-    const searchTerm = DOMR.itemSearchInputForStep5.value.trim().toLowerCase();
-    if (!searchTerm) {
-        alert("検索するアイテム名を入力してください。");
-        DOMR.tasksContainerItemToTag.innerHTML = '<p>アイテム名を入力して検索してください。</p>';
-        return;
-    }
-
-    DOMR.searchItemsForStep5Button.disabled = true;
-    DOMR.searchItemsForStep5Button.textContent = '検索中...';
-    DOMR.tasksContainerItemToTag.innerHTML = '<p>現在のアイテムデータを検索しています...</p>';
+    
+    DOMR.startItemToTagRestoreButton.disabled = true;
+    DOMR.startItemToTagRestoreButton.textContent = '分析中...';
+    DOMR.tasksContainerItemToTag.innerHTML = '<p>現在のアイテムデータを読み込んで分析しています...</p>';
     DOMR.step5ExecutionLog.innerHTML = '';
-    logToUI(DOMR.step5ExecutionLog, `アイテム名「${searchTerm}」で検索を開始します...`);
+    logToUI(DOMR.step5ExecutionLog, `アイテムとタグの関連付け修復を開始します...`);
 
     try {
         const currentItemsSnapshot = await getDocs(collection(db, 'items'));
         const currentItems = currentItemsSnapshot.docs.map(d => ({ 
-            id: d.id, // New Firestore ID
+            id: d.id, 
             name: d.data().name, 
             tags: d.data().tags || [] // OLD Tag IDs from backup
         }));
 
         const currentTagsSnapshot = await getDocs(collection(db, 'tags'));
-        const currentTags = currentTagsSnapshot.docs.map(d => ({
-            id: d.id, // New Firestore ID
+        const currentTagsFromDB = currentTagsSnapshot.docs.map(d => ({ // Renamed to avoid conflict
+            id: d.id, 
             name: d.data().name
         }));
         
         const oldTagsFromBackup = parsedBackupDataGlobal.collections.tags;
 
-        const filteredItems = currentItems.filter(item => item.name && item.name.toLowerCase().includes(searchTerm));
+        DOMR.tasksContainerItemToTag.innerHTML = ''; // Clear previous content
+        logToUI(DOMR.step5ExecutionLog, `現在のDBから ${currentItems.length} 件のアイテム、${currentTagsFromDB.length} 件のタグを読み込みました。`);
 
-        DOMR.tasksContainerItemToTag.innerHTML = '';
-        logToUI(DOMR.step5ExecutionLog, `現在のDBから ${currentItems.length} 件のアイテム、${currentTags.length} 件のタグを読み込みました。`);
-        logToUI(DOMR.step5ExecutionLog, `検索結果: ${filteredItems.length} 件のアイテムがヒットしました。`);
-
-        if (filteredItems.length === 0) {
-            DOMR.tasksContainerItemToTag.innerHTML = `<p>アイテム名「${searchTerm}」に一致するアイテムは見つかりませんでした。</p>`;
+        if (currentItems.length === 0) {
+            DOMR.tasksContainerItemToTag.innerHTML = '<p>現在のデータベースにアイテムが見つかりません。</p>';
+            DOMR.startItemToTagRestoreButton.disabled = false;
+            DOMR.startItemToTagRestoreButton.textContent = 'アイテム→タグ 関係修復開始';
             return;
         }
-        if (filteredItems.length > 20) { // Limit display if too many results
-             logToUI(DOMR.step5ExecutionLog, `検索結果が多すぎます (${filteredItems.length}件)。最初の20件のみ表示します。より具体的な名前で検索してください。`, "warning");
-        }
+        
+        const renderItemToTagTasks = (itemsToDisplay) => {
+            DOMR.tasksContainerItemToTag.innerHTML = ''; // Clear before rendering
+            if (itemsToDisplay.length === 0) {
+                DOMR.tasksContainerItemToTag.innerHTML = `<p>表示するアイテムがありません (フィルタ結果)。</p>`;
+                return;
+            }
+            itemsToDisplay.forEach(currentItem => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item-to-restore';
 
+                const oldTagIdsForItem = currentItem.tags; 
+                const oldTagNamesForItem = oldTagIdsForItem
+                    .map(oldTagId => {
+                        const oldTagInfo = oldTagsFromBackup.find(t => t.id === oldTagId);
+                        return oldTagInfo ? oldTagInfo.name : `不明旧TagID:${oldTagId.substring(0,5)}`;
+                    })
+                    .join(', ') || 'なし';
 
-        const itemsToDisplay = filteredItems.slice(0, 20).sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+                itemDiv.innerHTML = `
+                    <strong>アイテム: ${currentItem.name}</strong> (現ID: ${currentItem.id.substring(0,5)}...)
+                    <div class="item-info">旧関連タグ: <span class="old-value">${oldTagNamesForItem}</span></div>
+                `;
 
-        itemsToDisplay.forEach(currentItem => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'item-to-restore';
+                const checkboxGroupLabel = document.createElement('label');
+                checkboxGroupLabel.textContent = '新しい関連タグを選択 (複数選択可):';
+                checkboxGroupLabel.style.display = 'block';
+                checkboxGroupLabel.style.marginTop = '5px';
+                checkboxGroupLabel.style.fontWeight = 'bold';
 
-            const oldTagIds = currentItem.tags; // List of OLD Tag IDs
-            const oldTagNames = oldTagIds
-                .map(oldTagId => {
-                    const oldTagInfo = oldTagsFromBackup.find(t => t.id === oldTagId);
-                    return oldTagInfo ? oldTagInfo.name : `不明旧TagID:${oldTagId.substring(0,5)}`;
-                })
-                .join(', ') || 'なし';
+                const tagCheckboxGroupDiv = document.createElement('div');
+                tagCheckboxGroupDiv.className = 'checkbox-group';
 
-            itemDiv.innerHTML = `
-                <strong>アイテム: ${currentItem.name}</strong> (現ID: ${currentItem.id.substring(0,5)}...)
-                <div class="item-info">旧関連タグ: <span class="old-value">${oldTagNames}</span></div>
-            `;
-
-            const checkboxGroupLabel = document.createElement('label');
-            checkboxGroupLabel.textContent = '新しい関連タグを選択 (複数選択可):';
-            checkboxGroupLabel.style.display = 'block';
-            checkboxGroupLabel.style.marginTop = '5px';
-            checkboxGroupLabel.style.fontWeight = 'bold';
-
-            const tagCheckboxGroupDiv = document.createElement('div');
-            tagCheckboxGroupDiv.className = 'checkbox-group'; // Generic class
-
-            currentTags.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(tagFromCurrentDB => {
-                const checkboxId = `cb-item-${currentItem.id}-tag-${tagFromCurrentDB.id}`;
-                const checkboxItem = document.createElement('div');
-                checkboxItem.className = 'checkbox-item';
-                
-                const input = document.createElement('input');
-                input.type = 'checkbox';
-                input.id = checkboxId;
-                input.value = tagFromCurrentDB.id; // NEW Tag ID
-                input.name = `item-${currentItem.id}-tags`;
-
-                // Pre-check if old tag name matches current tag name
-                if (oldTagIds.some(oldTagId => {
-                    const oldTagInfo = oldTagsFromBackup.find(t => t.id === oldTagId);
-                    return oldTagInfo && oldTagInfo.name === tagFromCurrentDB.name;
-                })) {
-                    input.checked = true;
-                }
-
-                const label = document.createElement('label');
-                label.htmlFor = checkboxId;
-                label.textContent = `${tagFromCurrentDB.name}`;
-                
-                checkboxItem.appendChild(input);
-                checkboxItem.appendChild(label);
-                tagCheckboxGroupDiv.appendChild(checkboxItem);
-            });
-
-            const updateButton = document.createElement('button');
-            updateButton.textContent = 'このアイテムのタグを更新';
-            updateButton.style.marginTop = '10px';
-            updateButton.addEventListener('click', async () => {
-                const selectedNewTagIds = Array.from(tagCheckboxGroupDiv.querySelectorAll(`input[name="item-${currentItem.id}-tags"]:checked`))
-                    .map(cb => cb.value);
-
-                if (!confirm(`アイテム「${currentItem.name}」のタグを更新しますか？選択されたタグ: ${selectedNewTagIds.length}件`)) {
-                    return;
-                }
-                
-                updateButton.disabled = true;
-                updateButton.textContent = '更新中...';
-                let statusMessage = itemDiv.querySelector('.status-message');
-                if (!statusMessage) {
-                    statusMessage = document.createElement('p');
-                    statusMessage.className = 'status-message';
-                    itemDiv.appendChild(statusMessage);
-                }
-                statusMessage.textContent = "処理中...";
-                statusMessage.className = 'status-message info';
-
-                try {
-                    const docRef = doc(db, 'items', currentItem.id);
-                    await updateDoc(docRef, { tags: selectedNewTagIds });
+                currentTagsFromDB.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(tagFromCurrentDB => {
+                    const checkboxId = `cb-item-${currentItem.id}-tag-${tagFromCurrentDB.id}`;
+                    const checkboxItem = document.createElement('div');
+                    checkboxItem.className = 'checkbox-item';
                     
-                    statusMessage.textContent = 'アイテムのタグを更新しました。';
-                    statusMessage.className = 'status-message success';
-                    logToUI(DOMR.step5ExecutionLog, `アイテム「${currentItem.name}」のタグを更新 (新IDリスト: ${selectedNewTagIds.join(', ') || 'なし'})。`, "success");
-                    itemDiv.style.backgroundColor = '#d4edda'; 
-                    tagCheckboxGroupDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
-                    updateButton.textContent = '更新完了';
-                } catch (err) {
-                    console.error("Item-Tag Update error:", err);
-                    statusMessage.textContent = `更新失敗: ${err.message}`;
-                    statusMessage.className = 'status-message error';
-                    logToUI(DOMR.step5ExecutionLog, `アイテム「${currentItem.name}」のタグ更新失敗: ${err.message}`, "error");
-                    updateButton.disabled = false;
-                    updateButton.textContent = 'このアイテムのタグを更新';
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.id = checkboxId;
+                    input.value = tagFromCurrentDB.id; 
+                    input.name = `item-${currentItem.id}-tags-chk`; // Unique name for this item's tag checkboxes
+
+                    if (oldTagIdsForItem.some(oldTagId => {
+                        const oldTagInfo = oldTagsFromBackup.find(t => t.id === oldTagId);
+                        return oldTagInfo && oldTagInfo.name === tagFromCurrentDB.name;
+                    })) {
+                        input.checked = true;
+                    }
+
+                    const label = document.createElement('label');
+                    label.htmlFor = checkboxId;
+                    label.textContent = `${tagFromCurrentDB.name}`;
+                    
+                    checkboxItem.appendChild(input);
+                    checkboxItem.appendChild(label);
+                    tagCheckboxGroupDiv.appendChild(checkboxItem);
+                });
+
+                const updateButton = document.createElement('button');
+                updateButton.textContent = 'このアイテムのタグを更新';
+                updateButton.style.marginTop = '10px';
+                updateButton.addEventListener('click', async () => {
+                    const selectedNewTagIds = Array.from(tagCheckboxGroupDiv.querySelectorAll(`input[name="item-${currentItem.id}-tags-chk"]:checked`))
+                        .map(cb => cb.value);
+
+                    if (!confirm(`アイテム「${currentItem.name}」のタグを更新しますか？選択されたタグ: ${selectedNewTagIds.length}件`)) {
+                        return;
+                    }
+                    
+                    updateButton.disabled = true;
+                    updateButton.textContent = '更新中...';
+                    let statusMessage = itemDiv.querySelector('.status-message');
+                    if (!statusMessage) {
+                        statusMessage = document.createElement('p');
+                        statusMessage.className = 'status-message';
+                        itemDiv.appendChild(statusMessage);
+                    }
+                    statusMessage.textContent = "処理中...";
+                    statusMessage.className = 'status-message info';
+
+                    try {
+                        const docRef = doc(db, 'items', currentItem.id);
+                        await updateDoc(docRef, { tags: selectedNewTagIds });
+                        
+                        statusMessage.textContent = 'アイテムのタグを更新しました。';
+                        statusMessage.className = 'status-message success';
+                        logToUI(DOMR.step5ExecutionLog, `アイテム「${currentItem.name}」のタグを更新 (新IDリスト: ${selectedNewTagIds.join(', ') || 'なし'})。`, "success");
+                        itemDiv.style.backgroundColor = '#d4edda'; 
+                        tagCheckboxGroupDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+                        updateButton.textContent = '更新完了';
+                    } catch (err) {
+                        console.error("Item-Tag Update error:", err);
+                        statusMessage.textContent = `更新失敗: ${err.message}`;
+                        statusMessage.className = 'status-message error';
+                        logToUI(DOMR.step5ExecutionLog, `アイテム「${currentItem.name}」のタグ更新失敗: ${err.message}`, "error");
+                        updateButton.disabled = false;
+                        updateButton.textContent = 'このアイテムのタグを更新';
+                    }
+                });
+
+                itemDiv.appendChild(checkboxGroupLabel);
+                itemDiv.appendChild(tagCheckboxGroupDiv);
+                itemDiv.appendChild(updateButton);
+                DOMR.tasksContainerItemToTag.appendChild(itemDiv);
+            });
+        };
+
+        const sortedCurrentItems = currentItems.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+        renderItemToTagTasks(sortedCurrentItems); // Initial full render for Step 5
+
+        if(DOMR.itemSearchInputForStep5){ // Add filter listener
+            DOMR.itemSearchInputForStep5.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                if (!searchTerm) {
+                    renderItemToTagTasks(sortedCurrentItems);
+                } else {
+                    const filteredItems = sortedCurrentItems.filter(item => item.name && item.name.toLowerCase().includes(searchTerm));
+                    renderItemToTagTasks(filteredItems);
                 }
             });
-
-            itemDiv.appendChild(checkboxGroupLabel);
-            itemDiv.appendChild(tagCheckboxGroupDiv);
-            itemDiv.appendChild(updateButton);
-            DOMR.tasksContainerItemToTag.appendChild(itemDiv);
-        });
+        }
 
     } catch (error) {
         console.error("Item to Tag Restore Error:", error);
-        DOMR.tasksContainerItemToTag.innerHTML = `<p style="color: red;">アイテム→タグ 関係修復の検索/分析エラー: ${error.message}</p>`;
-        logToUI(DOMR.step5ExecutionLog, `アイテム→タグ 関係修復の検索/分析エラー: ${error.message}`, 'error');
+        DOMR.tasksContainerItemToTag.innerHTML = `<p style="color: red;">アイテム→タグ 関係修復の分析エラー: ${error.message}</p>`;
+        logToUI(DOMR.step5ExecutionLog, `アイテム→タグ 関係修復の分析エラー: ${error.message}`, 'error');
     } finally {
-        DOMR.searchItemsForStep5Button.disabled = false;
-        DOMR.searchItemsForStep5Button.textContent = 'アイテム検索';
+        DOMR.startItemToTagRestoreButton.disabled = false;
+        DOMR.startItemToTagRestoreButton.textContent = 'アイテム→タグ 関係修復開始';
     }
 });
