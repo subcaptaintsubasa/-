@@ -6,7 +6,6 @@
     <title>データ復元ツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
-    <!-- JSZip Library (for restore ZIP functionality) - Local Path -->
     <script src="js/jszip.min.js"></script>
     <style>
         body#admin-page { background-color: #eef2f5; }
@@ -28,9 +27,29 @@
         .log-entry.error { color: red; }
         .log-entry.success { color: green; }
         .log-entry.warning { color: orange; }
-        .collections-to-restore-list { list-style: none; padding: 0; margin-top: 5px; }
-        .collections-to-restore-list li { background-color: #f0f0f0; padding: 3px 8px; border-radius: 3px; display: inline-block; margin-right: 5px; margin-bottom: 5px; font-size: 0.9em;}
         .checkbox-inline-label { margin-left: 5px; font-weight: normal; }
+        
+        #backupFileDetails {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        #backupFileDetails h4 { margin-top: 0; font-size: 1.1em; }
+        .collection-summary { margin-bottom: 10px; }
+        .collection-summary strong { font-size: 1em; }
+        .sample-data {
+            font-size: 0.8em;
+            background-color: #e9ecef;
+            padding: 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+            max-height: 100px;
+            overflow-y: auto;
+            white-space: pre; /* Preserve formatting for JSON sample */
+            font-family: monospace;
+        }
     </style>
 </head>
 <body id="admin-page">
@@ -52,6 +71,7 @@
             <h3><span class="icon" aria-hidden="true">ℹ️</span> 復元手順</h3>
             <ol>
                 <li><strong>バックアップZIPファイルの選択</strong>: 「ファイルを選択」ボタンで、管理画面からダウンロードしたZIP形式のバックアップファイルを選択します。</li>
+                <li><strong>ファイル内容の確認</strong>: アップロード後、ファイル名、バックアップ日時、検出されたコレクションと件数、サンプルデータが表示されます。内容を確認してください。</li>
                 <li><strong>復元オプションの確認</strong>:
                     <ul>
                         <li>「既存データを削除してから復元 (洗い替え)」: チェックを入れると、復元対象コレクションの既存データが全て削除された後、バックアップデータが書き込まれます。チェックを外すと、既存データは残したまま、バックアップデータがIDを元に上書き（存在しないIDは新規追加）されます。</li>
@@ -69,13 +89,16 @@
                 <input type="file" id="backupZipFile" accept=".zip,application/zip,application/x-zip-compressed">
             </div>
 
-            <div id="backupFileInfo" style="margin-bottom: 15px; font-size:0.9em;">
-                <p>ファイル名: <span id="fileNameDisplay">-</span></p>
-                <p>バックアップ作成日時: <span id="backupCreatedAtDisplay">-</span> (ZIP内JSONより)</p>
-                <p>検出されたコレクション: <ul id="detectedCollectionsList" class="collections-to-restore-list"><li>-</li></ul></p>
+            <div id="backupFileDetails" style="display: none;">
+                <h4>バックアップファイル詳細</h4>
+                <p>ファイル名: <strong id="fileNameDisplay">-</strong></p>
+                <p>バックアップ作成日時 (JSON内): <strong id="backupCreatedAtDisplay">-</strong></p>
+                <div id="detectedCollectionsSummary">
+                    <!-- Collection summaries will be injected here by JS -->
+                </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="margin-top: 20px;">
                 <input type="checkbox" id="washDataBeforeRestore" checked>
                 <label for="washDataBeforeRestore" class="checkbox-inline-label">既存データを削除してから復元 (洗い替え)</label>
             </div>
