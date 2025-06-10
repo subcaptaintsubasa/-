@@ -1,490 +1,682 @@
-// js/admin-main.js
-import { auth, db } from '../firebase-config.js';
-import { initAuth } from './admin-modules/auth.js';
-import {
-    loadInitialData,
-    clearAdminDataCache,
-    IMAGE_UPLOAD_WORKER_URL,
-    getAllCategoriesCache,
-    getAllTagsCache,
-    getItemsCache,
-    getEffectTypesCache,
-    getEffectUnitsCache,
-    getEffectSuperCategoriesCache,
-    getCharacterBasesCache,
-    getItemSourcesCache
-} from './admin-modules/data-loader-admin.js';
-import { initUIHelpers, openModal as openModalHelper, closeModal as closeModalHelper } from './admin-modules/ui-helpers.js';
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アイテム管理ツール (Firebase v9版)</title>
+    <!-- Admin CSS Files -->
+    <link rel="stylesheet" href="css/admin-base.css">
+    <link rel="stylesheet" href="css/admin-forms.css">
+    <link rel="stylesheet" href="css/admin-lists.css">
+    <link rel="stylesheet" href="css/admin-modal.css">
+    <link rel="stylesheet" href="css/admin-responsive.css">
+    <!-- JSZip Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1P5TLoPaBIvdjhmA1UwAbdnrLOYR9Ln17Qo9Sg2PZX/L0lb8IREf3D4GcsLCrTfYsK7NLOALjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body id="admin-page">
+    <div id="password-prompt">
+        <h2>管理者ログイン</h2>
+        <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email" aria-label="管理者メールアドレス">
+        <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password" aria-label="管理者パスワード">
+        <button id="loginButton" type="button">ログイン</button>
+        <p id="passwordError" class="error-message" role="alert" aria-live="assertive"></p>
+    </div>
 
-import { initCategoryManager, _renderCategoriesForManagementInternal as renderCategoriesUI, openEditCategoryModalById, buildCategoryTreeDOM as buildCategoryTreeDOMFromManager } from './admin-modules/category-manager.js';
-import { initTagManager, _renderTagsForManagementInternal as renderTagsUI, _populateCategoryCheckboxesForTagFormInternal as populateTagFormCategories, openEditTagModalById } from './admin-modules/tag-manager.js';
-import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as renderEffectUnitsUI, openEditEffectUnitModalById } from './admin-modules/effect-unit-manager.js';
-import { initEffectSuperCategoryManager, _renderEffectSuperCategoriesForManagementInternal as renderEffectSuperCategoriesUI, openEditEffectSuperCategoryModalById as openEditEscModal } from './admin-modules/effect-super-category-manager.js';
-import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms, openEditEffectTypeModalById as openEditEtModal } from './admin-modules/effect-type-manager.js';
-import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings, openEditCharBaseOptionModalById as openEditCboModal } from './admin-modules/char-base-manager.js';
-// item-manager からのインポート関数名が変更される可能性あり
-import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagButtonsForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js'; 
-import { 
-    initItemSourceManager, 
-    _renderItemSourcesForManagementInternal as renderItemSourcesUI, 
-    buildItemSourceTreeDOM,
-    openEditItemSourceModalById,
-    // openSelectItemSourceForButtonUIModalForItemForm // item-managerから呼ばれる想定
-} from './admin-modules/item-source-manager.js';
+    <div id="admin-content" style="display:none;">
+        <header class="admin-header">
+            <div class="admin-header-main">
+                <h1 class="admin-site-title">管理ツール</h1>
+            </div>
+            <div class="admin-header-actions">
+                <span id="currentUserEmail"></span>
+                <button id="logoutButton" type="button">ログアウト</button>
+                <button id="adminHamburgerButton" class="admin-hamburger-button" aria-label="メニューを開く" aria-expanded="false" aria-controls="adminSideNav">☰</button>
+            </div>
+        </header>
 
-
-const DOM = {
-    adminSideNav: null,
-    adminHamburgerButton: null,
-    adminCloseNavButton: null,
-    adminNavButtons: null,
-    manualBackupButton: null, 
-    listEnlargementModal: null,
-    listEnlargementModalTitle: null,
-    listEnlargementModalSearchContainer: null,
-    listEnlargementModalContent: null,
-    enlargeCategoryListButton: null,
-    enlargeTagListButton: null,
-    enlargeEffectUnitListButton: null,
-    enlargeEffectSuperCategoryListButton: null,
-    enlargeEffectTypeListButton: null,
-    enlargeCharBaseOptionListButton: null,
-    enlargeItemSourceListButton: null,
-    charBaseTypeButtons: null,
-    selectedCharBaseTypeInput: null,
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-    DOM.adminSideNav = document.getElementById('adminSideNav');
-    DOM.adminHamburgerButton = document.getElementById('adminHamburgerButton');
-    DOM.adminCloseNavButton = document.getElementById('adminCloseNavButton');
-    DOM.adminNavButtons = document.querySelectorAll('.admin-nav-button');
-    DOM.manualBackupButton = document.getElementById('manualBackupButton'); 
-    DOM.listEnlargementModal = document.getElementById('listEnlargementModal');
-    DOM.listEnlargementModalTitle = document.getElementById('listEnlargementModalTitle');
-    DOM.listEnlargementModalSearchContainer = document.getElementById('listEnlargementModalSearchContainer');
-    DOM.listEnlargementModalContent = document.getElementById('listEnlargementModalContent');
-    
-    DOM.enlargeCategoryListButton = document.getElementById('enlargeCategoryListButton');
-    DOM.enlargeTagListButton = document.getElementById('enlargeTagListButton');
-    DOM.enlargeEffectUnitListButton = document.getElementById('enlargeEffectUnitListButton');
-    DOM.enlargeEffectSuperCategoryListButton = document.getElementById('enlargeEffectSuperCategoryListButton');
-    DOM.enlargeEffectTypeListButton = document.getElementById('enlargeEffectTypeListButton');
-    DOM.enlargeCharBaseOptionListButton = document.getElementById('enlargeCharBaseOptionListButton');
-    DOM.enlargeItemSourceListButton = document.getElementById('enlargeItemSourceListButton');
-    
-    DOM.charBaseTypeButtons = document.getElementById('charBaseTypeButtons');
-    DOM.selectedCharBaseTypeInput = document.getElementById('selectedCharBaseType');
-
-    initUIHelpers();
-    initAuth(auth, 
-        (user) => { 
-            console.log("[admin-main] User logged in, displaying admin content.");
-            document.getElementById('password-prompt').style.display = 'none';
-            const adminContentEl = document.getElementById('admin-content');
-            if (adminContentEl) adminContentEl.style.display = 'block';
-            const currentUserEmailSpan = document.getElementById('currentUserEmail');
-            if (user && currentUserEmailSpan) currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
-            setupAdminNav();
-            loadAndInitializeAdminModules();
-        }, 
-        () => { 
-            console.log("[admin-main] User logged out, hiding admin content.");
-            document.getElementById('password-prompt').style.display = 'flex';
-            const adminContentEl = document.getElementById('admin-content');
-            if (adminContentEl) adminContentEl.style.display = 'none';
-            if (DOM.adminSideNav) DOM.adminSideNav.classList.remove('open');
-            const currentUserEmailSpan = document.getElementById('currentUserEmail');
-            if (currentUserEmailSpan) currentUserEmailSpan.textContent = '';
-            clearAdminUIAndData();
-        }
-    );
-});
-
-async function handleManualBackup() {
-    if (!confirm('現在の全データをバックアップファイルとしてダウンロードします。よろしいですか？')) {
-        return;
-    }
-
-    const button = DOM.manualBackupButton;
-    button.disabled = true;
-    button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">⏳</span>作成中...`;
-
-    try {
-        // 全てのデータをキャッシュから取得
-        const backupData = {
-            version: "1.0",
-            createdAt: new Date().toISOString(),
-            collections: {
-                categories: getAllCategoriesCache(),
-                tags: getAllTagsCache(),
-                effect_units: getEffectUnitsCache(),
-                effect_super_categories: getEffectSuperCategoriesCache(),
-                effect_types: getEffectTypesCache(),
-                items: getItemsCache(),
-                item_sources: getItemSourcesCache(),
-                character_bases: getCharacterBasesCache()
-            }
-        };
-
-        // 不要なフィールド（主に復元時に邪魔になるID）をデータから削除する
-        // FirestoreのドキュメントIDはキーとして保持するため、データ内のidフィールドは不要
-        Object.values(backupData.collections).forEach(collectionData => {
-            if (Array.isArray(collectionData)) {
-                collectionData.forEach(doc => delete doc.id);
-            } else if (typeof collectionData === 'object' && collectionData !== null) {
-                // character_bases はオブジェクトなので個別に対応
-                Object.values(collectionData).forEach(subCollection => {
-                    if(Array.isArray(subCollection)) {
-                        subCollection.forEach(doc => delete doc.id);
-                    }
-                });
-            }
-        });
-        
-        // itemsのdocIdも削除
-        if (backupData.collections.items) {
-            backupData.collections.items.forEach(item => delete item.docId);
-        }
+        <nav id="adminSideNav" class="admin-side-navigation" aria-hidden="true">
+            <button id="adminCloseNavButton" class="admin-close-nav-button" aria-label="メニューを閉じる">×</button>
+            <ul>
+                <li><button class="admin-nav-button" data-modal-target="categoryManagementModal">カテゴリ管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="tagManagementModal">タグ管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="effectUnitManagementModal">効果単位管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="effectSuperCategoryManagementModal">効果大分類管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="effectTypeManagementModal">効果種類管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="characterBaseManagementModal">キャラクター基礎情報管理</button></li>
+                <li><button class="admin-nav-button" data-modal-target="itemSourceManagementModal">入手経路管理</button></li>
+                <li style="border-top: 2px solid #4a4f54; margin-top: 10px; padding-top: 10px;">
+                    <button id="manualBackupButton" class="admin-nav-button" style="color: #ffc107;">
+                        <span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ
+                    </button>
+                </li>
+            </ul>
+        </nav>
 
 
-        const jsonString = JSON.stringify(backupData, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, ''); // YYYYMMDDHHMMSS
-        a.href = url;
-        a.download = `denpa-item-backup-${timestamp}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        <div class="container">
+            <p class="info-message" style="text-align: center; margin-bottom: 20px;">
+                アイテムの変更は、保存ボタンを押すとFirebaseに直接保存されます。<br>
+                カテゴリ、タグ、効果種類、入手経路などの管理は、ヘッダー右上のメニューから各管理ダイアログを開いてください。
+            </p>
+            <hr>
 
-        alert('バックアップファイルのダウンロードが開始されました。');
+            <!-- アイテム管理 -->
+            <section id="item-management" aria-labelledby="itemManagementHeading">
+                <h2 id="itemManagementHeading"><span class="icon" aria-hidden="true"></span> アイテム管理</h2>
+                <form id="itemForm">
+                    <input type="hidden" id="itemIdToEdit">
+                    <div class="form-group">
+                        <label for="itemName">名前:</label>
+                        <input type="text" id="itemName">
+                    </div>
+                    <div class="form-group">
+                        <label for="itemImageFile">画像:</label>
+                        <input type="file" id="itemImageFile" accept="image/*">
+                        <img id="itemImagePreview" src="#" alt="画像プレビュー" style="max-width: 100px; max-height: 100px; display: none; margin-top: 10px; object-fit: contain; cursor: pointer;" data-modal-target="imagePreviewModal">
+                        <input type="hidden" id="itemImageUrl">
+                        <p class="info">新しい画像をアップロードすると、縦横比1:1の正方形になるよう自動で余白が追加されます。<br>推奨サイズ: 100x100程度, 最大5MB。プレビュー画像クリックで拡大表示できます。</p>
+                        <div id="uploadProgressContainer" style="display:none;">
+                            <progress id="uploadProgress" value="0" max="100" aria-label="アップロード進捗"></progress>
+                            <span id="uploadProgressText"></span>
+                        </div>
+                    </div>
 
-    } catch (error) {
-        console.error('バックアップ作成中にエラーが発生しました:', error);
-        alert('バックアップの作成に失敗しました。コンソールを確認してください。');
-    } finally {
-        button.disabled = false;
-        button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ`;
-    }
-}
+                    <div class="form-group">
+                        <label for="itemPrice">売値 (G):</label>
+                        <input type="number" id="itemPrice" placeholder="例: 100 (未入力で「未設定」)" min="0" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="itemRaritySelector">レア度:</label>
+                        <div id="itemRaritySelector" class="rarity-selector-container">
+                        </div>
+                        <input type="hidden" id="itemRarityValue" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>効果設定:</label> 
+                        <div class="effect-input-area"> 
+                            <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+                                <button type="button" id="toggleEffectsInputModeButton" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">入力欄に切り替え</button>
+                            </div>
+                            
+                            <div id="structuredEffectsInputArea"> 
+                                 <div class="effect-input-row">
+                                     <select id="effectTypeSelect" class="form-control-short" aria-label="効果種類">
+                                         <option value="">効果種類を選択...</option>
+                                     </select>
+                                     <input type="number" id="effectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
+                                     <span id="effectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
+                                     <button type="button" id="addEffectToListButton">効果をリストに追加</button> 
+                                 </div>
+                            </div>
+                            <div id="manualEffectsInputArea" style="display:none;"> 
+                                <textarea id="manualEffectsString" rows="3" placeholder="効果を自由記述 (例: 攻撃力+10、HP自動回復)"></textarea>
+                                <button type="button" id="addManualEffectToListButton" style="margin-top: 5px;">手動入力をリストに追加</button>
+                                <p class="info">入力した文字列がそのまま効果としてリストに追加されます。</p>
+                            </div>
+                            <hr style="margin: 15px 0;">
+                            <label>現在の効果リスト:</label>
+                            <div id="currentEffectsList" class="effects-list-container">
+                               <p>効果が追加されていません。</p>
+                            </div>
+                       </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>入手手段設定:</label> 
+                        <div class="effect-input-area"> 
+                            <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+                                 <button type="button" id="toggleSourceInputModeButton" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">入力欄に切り替え</button>
+                            </div>
+                            
+                            <div id="treeSourceInputArea"> 
+                                <p class="info" style="margin-bottom: 0.5rem;">下の階層から順に選択してください。選択肢は動的に表示されます。</p>
+                                <div id="itemSourceButtonSelectionArea" class="item-source-button-selection-levels" style="border: 1px solid #eee; padding: 10px; border-radius: 4px; margin-bottom:10px;">
+                                    {/* JSがここに階層ボタンコンテナを生成 */}
+                                </div>
+                                <div class="form-group">
+                                    <label for="selectedItemSourcePathDisplay">選択中のパス (ボタン名):</label>
+                                    <input type="text" id="selectedItemSourcePathDisplay" readonly placeholder="未選択" aria-label="現在選択中の入手経路パス（ボタン名）">
+                                    <input type="hidden" id="selectedItemSourceNodeId_temp">
+                                </div>
+                                <div class="form-group">
+                                    <label for="finalSourceDisplayPreview">最終表示テキストプレビュー:</label>
+                                    <input type="text" id="finalSourceDisplayPreview" readonly placeholder="表示テキストがここにプレビューされます" aria-label="最終表示テキストプレビュー" style="background-color: #e9ecef; cursor: default;">
+                                </div>
+                                <button type="button" id="addTreeSourceToListButton">選択した経路をリストに追加</button>
+                            </div>
+                            <div id="manualSourceInputArea" style="display:none;"> 
+                                <textarea id="manualSourceStringTextarea" rows="2" placeholder="入手手段を自由記述 (例: イベントAの報酬)"></textarea>
+                                <button type="button" id="addManualSourceToListButton" style="margin-top: 5px;">手動入力をリストに追加</button>
+                                <p class="info">入力した文字列がそのまま入手手段としてリストに追加されます。</p>
+                            </div>
+                            <hr style="margin: 15px 0;">
+                            <label>現在の入手手段リスト:</label>
+                            <div id="currentSourcesList" class="effects-list-container"> 
+                               <p>入手手段が追加されていません。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label id="itemTagsLabel">このアイテムのタグ:</label>
+                        <div id="itemTagsButtonContainer" class="tag-button-selection-container" role="group" aria-labelledby="itemTagsLabel">
+                            {/* JSがここにカテゴリごとのタグボタンを生成 */}
+                            <p>タグをロード中...</p>
+                        </div>
+                    </div>
+                    <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                        <button type="button" id="deleteItemFromFormButton" class="button-like delete" style="background-color: #dc3545; display: none;">このアイテムを削除</button>
+                        <div>
+                            <button type="button" id="clearFormButton" class="button-like secondary">フォームクリア</button>
+                            <button type="submit" id="saveItemButton">アイテム保存</button>
+                        </div>
+                    </div>
+                </form>
+
+                <h3 style="margin-top:30px;"><span class="icon" aria-hidden="true"></span> アイテム一覧</h3>
+                <p class="info-message-small">一覧の行をクリックすると、そのアイテムの情報が上の編集フォームに読み込まれます。</p>
+                <div class="form-group">
+                    <label for="itemSearchAdmin" class="sr-only">アイテム検索</label>
+                    <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." aria-label="登録済みアイテムを検索">
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="itemsTable">
+                        <thead>
+                            <tr><th>画像</th><th>名前</th><th>レア度</th><th>売値</th><th>効果</th><th>タグ</th><th>入手経路</th></tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div><!-- closing .container -->
+    </div><!-- closing #admin-content -->
+
+    <!-- 管理機能モーダル群 -->
+    <div id="categoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="categoryManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="categoryManagementModalTitle"><span class="icon" aria-hidden="true"></span> カテゴリ管理</h2>
+            <p class="info-message">カテゴリの変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                 <label for="newCategoryName">新しいカテゴリ名:</label>
+                 <input type="text" id="newCategoryName" placeholder="カテゴリ名">
+            </div>
+             <div class="form-group">
+                 <label id="newCategoryParentLabel">親カテゴリ設定:</label>
+                 <div id="newCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="newCategoryParentLabel">
+                 </div>
+                 <input type="hidden" id="selectedNewParentCategoryId" value="">
+             </div>
+            <button id="addCategoryButton" type="button">カテゴリ追加</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>カテゴリ一覧</h3>
+                <button type="button" id="enlargeCategoryListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="カテゴリ一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
+            <p class="info-message-small">一覧の項目名（カテゴリ名部分）をクリックすると編集モーダルが開きます。</p>
+            <div class="form-group list-search-bar">
+                <label for="categorySearchInput" class="sr-only">カテゴリ検索</label>
+                <input type="text" id="categorySearchInput" placeholder="カテゴリ名で検索..." aria-label="カテゴリを検索">
+            </div>
+            <div id="categoryListContainer" class="list-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="tagManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="tagManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="tagManagementModalTitle"><span class="icon" aria-hidden="true"></span> タグ管理</h2>
+            <p class="info-message">タグの変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                <label for="newTagName">新しいタグ名:</label>
+                <input type="text" id="newTagName" placeholder="タグの名前">
+            </div>
+            <div class="form-group">
+                <label id="newTagCategoriesLabel">このタグが所属するカテゴリ (子カテゴリのみ選択可):</label>
+                <div id="newTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="newTagCategoriesLabel">
+                </div>
+            </div>
+            <button id="addTagButton" type="button">タグ追加</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>既存タグ一覧</h3>
+                <button type="button" id="enlargeTagListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="タグ一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
+            <p class="info-message-small">一覧の項目名（タグ名部分）をクリックすると編集モーダルが開きます。</p>
+            <div class="form-group list-search-bar">
+                <label for="tagSearchInput" class="sr-only">タグ検索</label>
+                <input type="text" id="tagSearchInput" placeholder="タグ名で検索..." aria-label="タグを検索">
+            </div>
+            <div id="tagListContainer" class="list-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="effectUnitManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectUnitManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="effectUnitManagementModalTitle"><span class="icon" aria-hidden="true">📏</span> 効果単位管理</h2>
+            <p class="info-message">効果単位の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                <label for="newEffectUnitName">新しい効果単位名:</label>
+                <input type="text" id="newEffectUnitName" placeholder="単位名 (例: ポイント, %, 秒)">
+            </div>
+            <div class="form-group">
+                <label>単位の位置:</label>
+                <div class="radio-group responsive-radio-group">
+                    <div>
+                        <input type="radio" id="newEffectUnitPositionSuffix" name="newEffectUnitPosition" value="suffix" checked>
+                        <label for="newEffectUnitPositionSuffix">値の後 (例: 100 G)</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="newEffectUnitPositionPrefix" name="newEffectUnitPosition" value="prefix">
+                        <label for="newEffectUnitPositionPrefix">値の前 (例: ¥ 100)</label>
+                    </div>
+                </div>
+            </div>
+            <button id="addEffectUnitButton" type="button">効果単位を追加</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>既存の効果単位一覧</h3>
+                <button type="button" id="enlargeEffectUnitListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果単位一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
+            <p class="info-message-small">一覧の項目名（単位名部分）をクリックすると編集モーダルが開きます。</p>
+            <div id="effectUnitListContainer" class="list-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="effectSuperCategoryManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectSuperCategoryManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="effectSuperCategoryManagementModalTitle"><span class="icon" aria-hidden="true">📂</span> 効果大分類管理</h2>
+            <p class="info-message">効果大分類の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group">
+                <label for="newEffectSuperCategoryName">新しい効果大分類名:</label>
+                <input type="text" id="newEffectSuperCategoryName" placeholder="大分類名 (例: 攻撃系)">
+            </div>
+            <button id="addEffectSuperCategoryButton" type="button">効果大分類を追加</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>既存の効果大分類一覧</h3>
+                <button type="button" id="enlargeEffectSuperCategoryListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果大分類一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
+            <p class="info-message-small">一覧の項目名（大分類名部分）をクリックすると編集モーダルが開きます。</p>
+            <div id="effectSuperCategoryListContainer" class="list-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="effectTypeManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="effectTypeManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="effectTypeManagementModalTitle"><span class="icon" aria-hidden="true">✨</span> 効果種類管理</h2>
+            <p class="info-message">効果種類の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+             <div class="form-group">
+                 <label for="newEffectTypeName">新しい効果種類名:</label>
+                 <input type="text" id="newEffectTypeName" placeholder="効果名 (例: 攻撃力UP)">
+             </div>
+             <div class="form-group">
+                <label for="newEffectTypeSuperCategory">効果大分類:</label>
+                <select id="newEffectTypeSuperCategory" class="form-control-short">
+                    <option value="">大分類を選択...</option>
+                </select>
+            </div>
+             <div class="form-group">
+                 <label for="newEffectTypeUnit">デフォルト単位:</label>
+                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
+                     <select id="newEffectTypeUnit" class="form-control-short"></select>
+                     <button type="button" id="manageUnitsForNewEffectTypeButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
+                 </div>
+             </div>
+             <div class="form-group">
+                 <label>計算方法:</label>
+                 <div class="radio-group responsive-radio-group">
+                     <div>
+                         <input type="radio" id="newCalcMethodSum" name="newCalcMethod" value="sum" checked>
+                         <label for="newCalcMethodSum">加算</label>
+                     </div>
+                     <div>
+                         <input type="radio" id="newCalcMethodMax" name="newCalcMethod" value="max">
+                         <label for="newCalcMethodMax">最大値</label>
+                     </div>
+                 </div>
+             </div>
+             <div class="form-group" id="newEffectTypeSumCapGroup">
+                 <label for="newEffectTypeSumCap">加算時の最大値 (任意):</label>
+                 <input type="number" id="newEffectTypeSumCap" placeholder="例: 100 (未入力の場合は上限なし)" min="0" class="form-control-short">
+                 <p class="info">計算方法が「加算」の場合のみ適用されます。未入力の場合は上限なしとして扱われます。</p>
+             </div>
+             <button id="addEffectTypeButton" type="button">効果種類を追加</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>既存の効果種類一覧</h3>
+                <button type="button" id="enlargeEffectTypeListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="効果種類一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
+            <p class="info-message-small">一覧の項目名（効果種類名部分）をクリックすると編集モーダルが開きます。</p>
+             <div id="effectTypeListContainer" class="list-container">
+             </div>
+        </div>
+    </div>
+
+    <div id="characterBaseManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="charBaseManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="charBaseManagementModalTitle"><span class="icon" aria-hidden="true">👤</span> キャラクター基礎情報管理</h2>
+            <p class="info-message">キャラクター基礎情報の変更は、保存ボタンを押すとFirebaseに直接保存されます。</p>
+            <div class="form-group" style="align-items: baseline;">
+                <label id="charBaseTypeLabel" style="margin-bottom: 0.5rem; display: block;">基礎情報の種類:</label>
+                <div id="charBaseTypeButtons" class="category-button-group admin" role="group" aria-labelledby="charBaseTypeLabel">
+                </div>
+                <input type="hidden" id="selectedCharBaseType" value="headShape">
+                <button type="button" id="addNewCharBaseOptionButton" class="button-like" style="margin-top: 0.5rem;">新しい選択肢を追加</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3><span id="selectedCharBaseTypeDisplay">頭の形</span> の選択肢一覧</h3>
+                <button type="button" id="enlargeCharBaseOptionListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="キャラクター基礎情報オプション一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
+            <p class="info-message-small">一覧の項目名（選択肢名部分）をクリックすると編集モーダルが開きます。</p>
+            <div id="charBaseOptionListContainer" class="list-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="itemSourceManagementModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="itemSourceManagementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="itemSourceManagementModalTitle"><span class="icon" aria-hidden="true">🗺️</span> 入手経路管理</h2>
+            <p class="info-message">入手経路の変更は、保存ボタンを押すとFirebaseに直接保存されます。最大4階層まで設定可能です。</p>
+            <div class="form-group">
+                 <label for="newItemSourceName">新しい入手経路名:</label>
+                 <input type="text" id="newItemSourceName" placeholder="経路名 (例: ダンジョンA, フロア1)">
+            </div>
+             <div class="form-group">
+                 <label id="newItemSourceParentLabel">親経路設定 (選択した経路の子として追加):</label>
+                 <div id="newItemSourceParentSelector" class="category-button-group admin item-source-parent-selector" role="group" aria-labelledby="newItemSourceParentLabel" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                 </div>
+                 <input type="hidden" id="selectedNewParentSourceId" value="">
+             </div>
+             <div class="form-group" id="newItemSourceDisplayStringGroup"> 
+                <label for="newItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
+                <input type="text" id="newItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
+                <p class="info">アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。</p>
+             </div>
+            <button id="addItemSourceButton" type="button">入手経路追加</button>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <h3>入手経路一覧</h3>
+                <button type="button" id="enlargeItemSourceListButton" class="button-like-icon" title="一覧を拡大表示" aria-label="入手経路一覧を拡大表示">
+                    <img src="./kakudai.png" alt="拡大" class="enlarge-icon-img">
+                </button>
+            </div>
+            <p class="info-message-small">一覧の項目名をクリックすると編集モーダルが開きます。</p>
+            <div class="form-group list-search-bar">
+                <label for="itemSourceSearchInput" class="sr-only">入手経路検索</label>
+                <input type="text" id="itemSourceSearchInput" placeholder="経路名で検索..." aria-label="入手経路を検索">
+            </div>
+            <div id="itemSourceListContainer" class="list-container">
+            </div>
+        </div>
+    </div>
 
 
-function setupAdminNav() {
-    if (DOM.adminHamburgerButton && DOM.adminSideNav) {
-        DOM.adminHamburgerButton.addEventListener('click', () => {
-            DOM.adminSideNav.classList.add('open');
-            DOM.adminHamburgerButton.setAttribute('aria-expanded', 'true');
-        });
-    }
-    if (DOM.adminCloseNavButton && DOM.adminSideNav) {
-        DOM.adminCloseNavButton.addEventListener('click', () => {
-            DOM.adminSideNav.classList.remove('open');
-            if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
-        });
-    }
+    <!-- 既存の編集モーダル群 -->
+    <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
+        <div class="modal-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editCategoryModalTitle">カテゴリ編集</h3>
+            <input type="hidden" id="editingCategoryDocId">
+            <div class="form-group">
+                <label for="editingCategoryName">カテゴリ名:</label>
+                <input type="text" id="editingCategoryName">
+            </div>
+            <div class="form-group">
+                <label id="editingCategoryParentLabel">親カテゴリ:</label>
+                 <div id="editingCategoryParentButtons" class="category-button-group admin" role="group" aria-labelledby="editingCategoryParentLabel">
+                 </div>
+                 <input type="hidden" id="selectedEditingParentCategoryId">
+            </div>
+             <div class="form-group" id="editCategoryTagsGroup" style="display: none;">
+                 <label id="editingCategoryTagsLabel">この子カテゴリに所属させるタグ (複数選択可):</label>
+                 <div id="editingCategoryTagsSelector" class="tag-button-container admin" role="group" aria-labelledby="editingCategoryTagsLabel">
+                 </div>
+             </div>
+             <div class="form-group" id="tagSearchModeGroup" style="display: none;">
+                 <label for="editingTagSearchMode">同カテゴリ内タグ検索モード (子カテゴリ専用):</label>
+                 <select id="editingTagSearchMode" class="form-control-short">
+                     <option value="AND">AND検索</option>
+                     <option value="OR">OR検索</option>
+                 </select>
+             </div>
+             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteCategoryFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このカテゴリを削除</button>
+                <button id="saveCategoryEditButton" type="button">変更を保存</button>
+            </div>
+        </div>
+    </div>
+    <div id="editTagModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editTagModalTitle">
+        <div class="modal-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editTagModalTitle">タグ編集</h3>
+            <input type="hidden" id="editingTagDocId">
+            <div class="form-group">
+                <label for="editingTagName">タグ名:</label>
+                <input type="text" id="editingTagName">
+            </div>
+            <div class="form-group">
+                <label id="editingTagCategoriesLabel">このタグが所属する子カテゴリ (複数選択可):</label>
+                <div id="editingTagCategoriesCheckboxes" class="checkbox-group-container" role="group" aria-labelledby="editingTagCategoriesLabel">
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteTagFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このタグを削除</button>
+                <button id="saveTagEditButton" type="button">変更を保存</button>
+            </div>
+        </div>
+    </div>
+    <div id="editEffectSuperCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectSuperCategoryModalTitle">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editEffectSuperCategoryModalTitle">効果大分類編集</h3>
+            <input type="hidden" id="editingEffectSuperCategoryDocId">
+            <div class="form-group">
+                <label for="editingEffectSuperCategoryName">大分類名:</label>
+                <input type="text" id="editingEffectSuperCategoryName">
+            </div>
+            <div class="form-group">
+                <label id="editingSuperCategoryEffectTypesLabel">この大分類に所属させる効果種類 (複数選択可):</label>
+                <div id="editingSuperCategoryEffectTypesSelector" class="tag-button-container admin" role="group" aria-labelledby="editingSuperCategoryEffectTypesLabel" style="max-height: 200px; overflow-y: auto;">
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteEffectSuperCategoryFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この大分類を削除</button>
+                <button id="saveEffectSuperCategoryEditButton" type="button">変更を保存</button>
+            </div>
+        </div>
+    </div>
+    <div id="editEffectTypeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectTypeModalTitle">
+        <div class="modal-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editEffectTypeModalTitle">効果種類編集</h3>
+            <input type="hidden" id="editingEffectTypeDocId">
+            <div class="form-group">
+                <label for="editingEffectTypeName">効果種類名:</label>
+                <input type="text" id="editingEffectTypeName">
+            </div>
+            <div class="form-group">
+                <label for="editingEffectTypeSuperCategory">効果大分類:</label>
+                <select id="editingEffectTypeSuperCategory" class="form-control-short">
+                    <option value="">大分類を選択...</option>
+                </select>
+            </div>
+             <div class="form-group">
+                 <label for="editingEffectTypeUnit">デフォルト単位:</label>
+                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap;">
+                     <select id="editingEffectTypeUnit" class="form-control-short"></select>
+                     <button type="button" id="manageUnitsForEditingEffectTypeButton" class="button-like secondary" style="padding: 6px 10px; font-size: 0.9em;">単位管理</button>
+                 </div>
+             </div>
+             <div class="form-group">
+                 <label>計算方法:</label>
+                 <div class="radio-group responsive-radio-group">
+                     <div>
+                         <input type="radio" id="editCalcMethodSum" name="editCalcMethod" value="sum">
+                         <label for="editCalcMethodSum">加算</label>
+                     </div>
+                     <div>
+                         <input type="radio" id="editCalcMethodMax" name="editCalcMethod" value="max">
+                         <label for="editCalcMethodMax">最大値</label>
+                     </div>
+                 </div>
+             </div>
+             <div class="form-group" id="editingEffectTypeSumCapGroup">
+                <label for="editingEffectTypeSumCap">加算時の最大値 (任意):</label>
+                <input type="number" id="editingEffectTypeSumCap" placeholder="例: 100 (空欄で上限なし)" min="0" class="form-control-short">
+                <p class="info">計算方法が「加算」の場合のみ適用されます。空欄にすると上限なしとして扱われます。</p>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteEffectTypeFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この効果種類を削除</button>
+                <button id="saveEffectTypeEditButton" type="button">変更を保存</button>
+            </div>
+        </div>
+    </div>
+    <div id="editEffectUnitModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editEffectUnitModalTitle">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editEffectUnitModalTitle">効果単位編集</h3>
+            <input type="hidden" id="editingEffectUnitDocId">
+            <div class="form-group">
+                <label for="editingEffectUnitName">単位名:</label>
+                <input type="text" id="editingEffectUnitName">
+            </div>
+            <div class="form-group">
+                <label>単位の位置:</label>
+                <div class="radio-group responsive-radio-group">
+                    <div>
+                        <input type="radio" id="editEffectUnitPositionSuffix" name="editEffectUnitPosition" value="suffix">
+                        <label for="editEffectUnitPositionSuffix">値の後</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="editEffectUnitPositionPrefix" name="editEffectUnitPosition" value="prefix">
+                        <label for="editEffectUnitPositionPrefix">値の前</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteEffectUnitFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この効果単位を削除</button>
+                <button id="saveEffectUnitEditButton" type="button">単位を保存</button>
+            </div>
+        </div>
+    </div>
+    <div id="editCharBaseOptionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCharBaseOptionModalTitle">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editCharBaseOptionModalTitle">基礎情報オプション編集</h3>
+            <input type="hidden" id="editingCharBaseType">
+            <input type="hidden" id="editingCharBaseOptionDocId">
+            <div class="form-group">
+                <label for="editingCharBaseOptionName">選択肢の名前:</label>
+                <input type="text" id="editingCharBaseOptionName" placeholder="例: 丸型ヘッド">
+            </div>
+            <div class="form-group">
+                <label>この選択肢の効果:</label>
+                <div class="effect-input-area" id="charBaseOptionEffectInputArea">
+                     <div class="effect-input-row">
+                         <select id="charBaseOptionEffectTypeSelect" class="form-control-short" aria-label="効果種類">
+                             <option value="">効果種類を選択...</option>
+                         </select>
+                         <input type="number" id="charBaseOptionEffectValueInput" placeholder="値" step="any" class="form-control-short" aria-label="効果の値">
+                         <span id="charBaseOptionEffectUnitDisplay" class="unit-display" aria-label="効果の単位"></span>
+                         <button type="button" id="addCharBaseOptionEffectButton">効果を追加</button>
+                     </div>
+                     <div id="currentCharBaseOptionEffectsList" class="effects-list-container">
+                        <p>効果が追加されていません。</p>
+                     </div>
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteCharBaseOptionFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">このオプションを削除</button>
+                <button id="saveCharBaseOptionButton" type="button">オプションを保存</button>
+            </div>
+        </div>
+    </div>
 
-    if (DOM.manualBackupButton) {
-        DOM.manualBackupButton.addEventListener('click', handleManualBackup);
-    }
+    <div id="editItemSourceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editItemSourceModalTitle">
+        <div class="modal-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="editItemSourceModalTitle">入手経路編集</h3>
+            <input type="hidden" id="editingItemSourceDocId">
+            <div class="form-group">
+                <label for="editingItemSourceName">経路名:</label>
+                <input type="text" id="editingItemSourceName">
+            </div>
+            <div class="form-group">
+                <label id="editingItemSourceParentLabel">親経路:</label>
+                 <div id="editingItemSourceParentSelector" class="category-button-group admin item-source-parent-selector" role="group" aria-labelledby="editingItemSourceParentLabel" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                 </div>
+                 <input type="hidden" id="selectedEditingParentSourceId">
+            </div>
+            <div class="form-group" id="editingItemSourceDisplayStringGroup"> 
+                <label for="editingItemSourceDisplayString">ユーザー表示用文字列 (任意):</label>
+                <input type="text" id="editingItemSourceDisplayString" placeholder="例: ダンジョンAのボスから稀に入手">
+                <p class="info">アイテムの入手手段としてこの文字列が表示されます。空の場合は経路名が使われます。</p>
+            </div>
+             <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="deleteItemSourceFromEditModalButton" type="button" class="button-like delete" style="background-color: #dc3545;">この入手経路を削除</button>
+                <button id="saveItemSourceEditButton" type="button">変更を保存</button>
+            </div>
+        </div>
+    </div>
 
-    if (DOM.adminNavButtons) {
-        DOM.adminNavButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                const targetModalId = e.currentTarget.dataset.modalTarget;
-                if (targetModalId) {
-                    openModalHelper(targetModalId);
-                    if (DOM.adminSideNav) DOM.adminSideNav.classList.remove('open');
-                    if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
-                    if (targetModalId === 'characterBaseManagementModal' && typeof renderCharBaseOptionsUI === 'function') {
-                        renderCharBaseOptionsUI();
-                    } else if (targetModalId === 'effectSuperCategoryManagementModal' && typeof renderEffectSuperCategoriesUI === 'function') {
-                        renderEffectSuperCategoriesUI();
-                    } else if (targetModalId === 'itemSourceManagementModal' && typeof renderItemSourcesUI === 'function') {
-                        renderItemSourcesUI();
-                    }
-                }
-            });
-        });
-    }
-    setupEnlargementButtonListeners();
-    setupCharBaseTypeButtons();
-}
+    <!-- アイテム入手経路選択モーダル (ボタン式UIに変更するための準備) -->
+    <div id="selectItemSourceForButtonUIModal" class="modal admin-management-modal" role="dialog" aria-modal="true" aria-labelledby="selectItemSourceForButtonUIModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content" style="max-width: 600px;">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="selectItemSourceForButtonUIModalTitle">入手経路の選択 (ボタン式)</h3>
+            <p class="info-message-small">各階層のボタンを選択し、目的の経路で「この経路に決定」を押してください。</p>
+            <div id="itemSourceButtonSelectionUiContainer" class="item-source-button-selection-levels">
+            </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label>現在の選択パス:</label>
+                <p id="currentPathDisplayForButtonUI" style="font-weight: bold; min-height: 1.2em; background-color: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #e9ecef;">未選択</p>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; text-align: right;">
+                <button id="confirmItemSourceSelectionForButtonUIButton" type="button" disabled>この経路に決定</button>
+            </div>
+        </div>
+    </div>
 
-function setupCharBaseTypeButtons() {
-    if (!DOM.charBaseTypeButtons || !DOM.selectedCharBaseTypeInput) return;
-    DOM.charBaseTypeButtons.innerHTML = ''; 
-    Object.entries(baseTypeMappings).forEach(([key, displayName]) => {
-        const button = document.createElement('div');
-        button.className = 'category-select-button';
-        button.textContent = displayName;
-        button.dataset.baseTypeKey = key;
-        if (DOM.selectedCharBaseTypeInput.value === key) button.classList.add('active');
-        button.addEventListener('click', () => {
-            DOM.charBaseTypeButtons.querySelectorAll('.active').forEach(b => b.classList.remove('active'));
-            button.classList.add('active');
-            DOM.selectedCharBaseTypeInput.value = key;
-            const displaySpan = document.getElementById('selectedCharBaseTypeDisplay');
-            if (displaySpan) displaySpan.textContent = displayName;
-            if (typeof renderCharBaseOptionsUI === 'function') renderCharBaseOptionsUI();
-        });
-        DOM.charBaseTypeButtons.appendChild(button);
-    });
-}
 
-function clearAdminUIAndData() {
-    console.log("[admin-main] Clearing admin UI and data cache...");
-    const listContainersIds = ['categoryListContainer', 'tagListContainer', 'effectUnitListContainer', 'effectSuperCategoryListContainer', 'effectTypeListContainer', 'charBaseOptionListContainer', 'itemSourceListContainer'];
-    listContainersIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p>ログアウトしました。</p>'; });
-    const itemsTableBody = document.querySelector('#itemsTable tbody');
-    if (itemsTableBody) itemsTableBody.innerHTML = '';
-    document.querySelectorAll('#admin-content form').forEach(form => { if (typeof form.reset === 'function') form.reset(); });
-    document.querySelectorAll('.checkbox-group-container, .category-button-group.admin, .tag-button-container.admin, .item-source-parent-selector, #itemSourceButtonSelectionArea, #itemTagsButtonContainer').forEach(c => c.innerHTML = ''); // UIクリア対象追加
-    ['currentEffectsList', 'currentCharBaseOptionEffectsList', 'currentSourcesList'].forEach(id => { 
-        const el = document.getElementById(id); if (el) el.innerHTML = '<p>追加されていません。</p>'; 
-    });
-    ['itemImagePreview'].forEach(id => { const el = document.getElementById(id); if (el) { el.src = '#'; el.style.display = 'none'; } });
-    clearAdminDataCache();
-    console.log("[admin-main] Admin UI cleared.");
-}
+    <div id="listEnlargementModal" class="modal admin-enlarged-list-modal" role="dialog" aria-modal="true" aria-labelledby="listEnlargementModalTitle" style="display: none;">
+        <div class="modal-content scrollable-content">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h2 id="listEnlargementModalTitle">一覧表示</h2>
+            <div id="listEnlargementModalSearchContainer" style="margin-bottom: 1rem;">
+            </div>
+            <div id="listEnlargementModalContent" class="list-container" style="max-height: calc(80vh - 150px); min-height: 300px;">
+            </div>
+        </div>
+    </div>
 
-async function loadAndInitializeAdminModules() {
-    console.log("[admin-main] Starting to load data and initialize modules...");
-    try {
-        await loadInitialData(db);
-        const commonDependencies = {
-            db,
-            getAllCategories: getAllCategoriesCache,
-            getAllTags: getAllTagsCache,
-            getItems: getItemsCache,
-            getEffectTypes: getEffectTypesCache,
-            getEffectUnits: getEffectUnitsCache,
-            getEffectSuperCategories: getEffectSuperCategoriesCache,
-            getCharacterBases: getCharacterBasesCache,
-            getItemSources: getItemSourcesCache,
-            refreshAllData: async () => {
-                console.log("[admin-main] Refreshing all data and UI...");
-                await loadInitialData(db);
-                renderAllAdminUISections();
-                console.log("[admin-main] All data and UI refreshed.");
-            },
-            openEnlargedListModal: (config) => {
-                openEnlargedListModal(
-                    config.sourceItems || (typeof config.sourceFn === 'function' ? config.sourceFn() : []),
-                    config.itemType,
-                    config.title,
-                    config.searchInputId || null,
-                    config.editFunction,
-                    config.displayRenderer,
-                    config.currentSearchTerm || ""
-                );
-            }
-        };
+    <div id="imagePreviewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="imagePreviewModalTitle" style="display: none;">
+        <div class="modal-content" style="max-width: 80vw; max-height: 80vh; padding: 15px; background-color: #f0f0f0;">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="imagePreviewModalTitle" class="sr-only">画像プレビュー</h3>
+            <img id="enlargedImagePreview" src="#" alt="拡大画像プレビュー" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+    </div>
 
-        initCategoryManager(commonDependencies);
-        initTagManager(commonDependencies);
-        initEffectUnitManager(commonDependencies);
-        initEffectSuperCategoryManager(commonDependencies);
-        initEffectTypeManager(commonDependencies);
-        initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
-        initItemSourceManager(commonDependencies); // item-source-manager を item-manager より先に初期化
-        initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
-
-        renderAllAdminUISections();
-        console.log("[admin-main] Admin modules initialized and initial UI rendered successfully.");
-    } catch (error) {
-        console.error("[admin-main] CRITICAL ERROR during admin panel initialization:", error);
-        alert("管理パネルの初期化中に重大なエラーが発生しました。コンソールを確認してください。");
-        const adminContainer = document.getElementById('admin-content')?.querySelector('.container');
-        if (adminContainer) adminContainer.innerHTML = `<p class="error-message" style="text-align:center;padding:20px;color:red;">管理データの読み込みまたは表示に失敗しました。</p>`;
-    }
-}
-
-function renderAllAdminUISections() {
-    console.log("[admin-main] Rendering all admin UI sections...");
-    if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
-    if (typeof renderTagsUI === 'function') renderTagsUI();
-    if (typeof renderEffectUnitsUI === 'function') renderEffectUnitsUI();
-    if (typeof renderEffectSuperCategoriesUI === 'function') renderEffectSuperCategoriesUI();
-    if (typeof renderEffectTypesUI === 'function') renderEffectTypesUI();
-    if (typeof renderItemSourcesUI === 'function') renderItemSourcesUI();
-    if (typeof renderCharBaseOptionsUI === 'function') {
-        const currentBaseType = DOM.selectedCharBaseTypeInput ? DOM.selectedCharBaseTypeInput.value : 'headShape';
-        const displaySpan = document.getElementById('selectedCharBaseTypeDisplay');
-        if (displaySpan && baseTypeMappings[currentBaseType]) displaySpan.textContent = baseTypeMappings[currentBaseType];
-        renderCharBaseOptionsUI();
-    }
-    if (typeof renderItemsTableUI === 'function') renderItemsTableUI();
-    if (typeof populateTagFormCategories === 'function') populateTagFormCategories(document.getElementById('newTagCategoriesCheckboxes'));
-    if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
-    if (typeof populateCharBaseEffectTypeSelectInModal === 'function') populateCharBaseEffectTypeSelectInModal();
-    if (typeof populateItemFormTags === 'function') populateItemFormTags(); // 関数名変更に対応
-    console.log("[admin-main] All admin UI sections rendering process complete.");
-}
-
-function setupEnlargementButtonListeners() {
-    const buttonConfig = [
-        { btn: DOM.enlargeCategoryListButton, type: 'category', title: 'カテゴリ一覧', sourceFn: getAllCategoriesCache, searchInputId: 'categorySearchInput', editFn: openEditCategoryModalById, displayRenderer: buildCategoryTreeDOMFromManager },
-        { btn: DOM.enlargeTagListButton, type: 'tag', title: 'タグ一覧', sourceFn: getAllTagsCache, searchInputId: 'tagSearchInput', editFn: openEditTagModalById },
-        { btn: DOM.enlargeEffectUnitListButton, type: 'effectUnit', title: '効果単位一覧', sourceFn: getEffectUnitsCache, searchInputId: null, editFn: openEditEffectUnitModalById },
-        { btn: DOM.enlargeEffectSuperCategoryListButton, type: 'effectSuperCategory', title: '効果大分類一覧', sourceFn: getEffectSuperCategoriesCache, searchInputId: null, editFn: openEditEscModal },
-        { btn: DOM.enlargeEffectTypeListButton, type: 'effectType', title: '効果種類一覧', sourceFn: getEffectTypesCache, searchInputId: null, editFn: openEditEtModal },
-        { btn: DOM.enlargeCharBaseOptionListButton, type: 'charBaseOption', titleGetter: () => `${baseTypeMappings[DOM.selectedCharBaseTypeInput.value] || '基礎情報'} の選択肢一覧`, sourceFn: () => (getCharacterBasesCache()[DOM.selectedCharBaseTypeInput.value] || []), searchInputId: null, editFn: (id) => openEditCboModal(id, DOM.selectedCharBaseTypeInput.value) },
-        { 
-            btn: DOM.enlargeItemSourceListButton, 
-            type: 'itemSource', 
-            title: '入手経路一覧', 
-            sourceFn: getItemSourcesCache,
-            searchInputId: 'itemSourceSearchInput', 
-            editFn: openEditItemSourceModalById, 
-            displayRenderer: buildItemSourceTreeDOM
-        }
-    ];
-
-    buttonConfig.forEach(config => {
-        if (config.btn) {
-            const newBtn = config.btn.cloneNode(true); 
-            if (config.btn.parentNode) {
-                 config.btn.parentNode.replaceChild(newBtn, config.btn);
-            }
-
-            newBtn.addEventListener('click', () => {
-                const items = config.sourceFn();
-                const title = typeof config.titleGetter === 'function' ? config.titleGetter() : config.title;
-                const currentSearchTerm = config.searchInputId ? document.getElementById(config.searchInputId)?.value || "" : "";
-                
-                openEnlargedListModal(
-                    items, 
-                    config.type, 
-                    title, 
-                    config.searchInputId, 
-                    config.editFn, 
-                    config.displayRenderer,
-                    currentSearchTerm
-                );
-            });
-        }
-    });
-}
-
-function openEnlargedListModal(items, type, title, originalSearchInputId, editFunction, displayRenderer, initialSearchTerm = "") {
-    if (!DOM.listEnlargementModal || !DOM.listEnlargementModalTitle || !DOM.listEnlargementModalContent || !DOM.listEnlargementModalSearchContainer) {
-        console.error("Enlargement modal DOM elements not found!");
-        return;
-    }
-
-    DOM.listEnlargementModalTitle.textContent = title;
-    DOM.listEnlargementModalSearchContainer.innerHTML = '';
-
-    let searchInputForEnlarged = null;
-    if (originalSearchInputId) {
-        searchInputForEnlarged = document.createElement('input');
-        searchInputForEnlarged.type = 'text';
-        searchInputForEnlarged.placeholder = `${title.replace('一覧','')}内をフィルタ...`;
-        searchInputForEnlarged.className = 'form-control';
-        searchInputForEnlarged.style.marginBottom = '1rem';
-        searchInputForEnlarged.ariaLabel = `${title}内を検索`;
-        DOM.listEnlargementModalSearchContainer.appendChild(searchInputForEnlarged);
-        searchInputForEnlarged.value = initialSearchTerm; 
-    }
-
-    const renderContent = (filterTerm = '') => {
-        DOM.listEnlargementModalContent.innerHTML = '';
-        let itemsToRender = items; 
-        if (filterTerm && items) {
-            itemsToRender = items.filter(item => item.name && item.name.toLowerCase().includes(filterTerm.toLowerCase()));
-        } else if (!items) {
-            itemsToRender = [];
-        }
-
-        if (!itemsToRender || itemsToRender.length === 0) {
-            DOM.listEnlargementModalContent.innerHTML = filterTerm ? '<p>検索条件に一致する項目はありません。</p>' : '<p>表示する項目がありません。</p>';
-            return;
-        }
-        
-        if (typeof displayRenderer === 'function' && (type === 'category' || type === 'itemSource')) {
-            const listDOM = displayRenderer(itemsToRender, (type === 'category' ? getAllCategoriesCache() : getItemSourcesCache()), true); 
-            if (listDOM) {
-                DOM.listEnlargementModalContent.appendChild(listDOM);
-                const clickableItemSelector = type === 'category' ? '.category-tree-item[data-category-id]' : '.category-tree-item[data-source-id]';
-                DOM.listEnlargementModalContent.querySelectorAll(clickableItemSelector).forEach(li => {
-                    const contentDiv = li.querySelector('.category-tree-content');
-                    if (contentDiv && typeof editFunction === 'function') {
-                        contentDiv.classList.add('list-item-name-clickable');
-                        const newContentDiv = contentDiv.cloneNode(true);
-                        contentDiv.parentNode.replaceChild(newContentDiv, contentDiv);
-                        newContentDiv.addEventListener('click', (e) => {
-                            if (e.target.closest('.category-tree-expander')) return;
-                            const itemId = type === 'category' ? li.dataset.categoryId : li.dataset.sourceId;
-                            editFunction(itemId); 
-                        });
-                    }
-                });
-            } else {
-                DOM.listEnlargementModalContent.innerHTML = `<p>${title}の表示に失敗しました。</p>`;
-            }
-        } else { 
-            itemsToRender.sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja')).forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.classList.add('list-item');
-                const nameSpan = document.createElement('span');
-                nameSpan.classList.add('list-item-name-clickable');
-                let displayText = item.name || '(名称未設定)';
-                if (type === 'tag') {
-                    const belongingCategoriesNames = (item.categoryIds || [])
-                       .map(catId => getAllCategoriesCache().find(c => c.id === catId)?.name)
-                       .filter(name => name).join(', ') || '未分類';
-                   displayText += ` (所属: ${belongingCategoriesNames})`;
-                } else if (type === 'effectUnit') {
-                   displayText += item.position === 'prefix' ? ' (前)' : ' (後)';
-                } else if (type === 'effectSuperCategory') {
-                    const typesCount = (getEffectTypesCache() || []).filter(et => et.superCategoryId === item.id).length;
-                    displayText += ` (${typesCount} 効果種類)`;
-                } else if (type === 'effectType') {
-                    const superCat = (getEffectSuperCategoriesCache() || []).find(sc => sc.id === item.superCategoryId);
-                    displayText += superCat ? ` (大分類: ${superCat.name})` : ' (大分類:未設定)';
-                    displayText += item.defaultUnit && item.defaultUnit !== 'none' ? ` [${item.defaultUnit}]` : ' [単位なし]';
-                } else if (type === 'charBaseOption') {
-                   if (item.effects && item.effects.length > 0) {
-                       const effectsSummary = item.effects.map(eff => {
-                           const typeInfo = getEffectTypesCache().find(et => et.id === eff.type);
-                           const unitInfo = getEffectUnitsCache().find(u => u.name === eff.unit);
-                           const unitPos = unitInfo ? unitInfo.position : 'suffix';
-                           const unitStr = eff.unit && eff.unit !== 'none' ? eff.unit : '';
-                           const valStr = eff.value;
-                           const effectValDisplay = unitPos === 'prefix' ? `${unitStr}${valStr}` : `${valStr}${unitStr}`;
-                           return `${typeInfo ? typeInfo.name : '不明'} ${effectValDisplay}`;
-                       }).join('; ');
-                       displayText += ` (効果: ${effectsSummary.substring(0, 30)}${effectsSummary.length > 30 ? '...' : ''})`;
-                   } else {
-                       displayText += ' (効果なし)';
-                   }
-                }
-                nameSpan.textContent = displayText;
-                nameSpan.dataset.id = item.id;
-
-                if (typeof editFunction === 'function') {
-                    nameSpan.addEventListener('click', (e) => {
-                        const itemId = e.target.dataset.id;
-                        editFunction(itemId);
-                    });
-                } else { nameSpan.style.cursor = 'default'; }
-                itemDiv.appendChild(nameSpan);
-                DOM.listEnlargementModalContent.appendChild(itemDiv);
-            });
-        }
-    };
-
-    if (searchInputForEnlarged) {
-        searchInputForEnlarged.addEventListener('input', (e) => {
-            renderContent(e.target.value);
-        });
-        renderContent(searchInputForEnlarged.value); 
-    } else {
-        renderContent(); 
-    }
-    openModalHelper('listEnlargementModal');
-}
+    <script type="module" src="js/admin-main.js"></script>
+</body>
+</html>
