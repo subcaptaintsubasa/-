@@ -3,66 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>データ復旧ツール</title>
+    <title>完全復元ツール</title>
     <link rel="stylesheet" href="css/admin-base.css">
     <link rel="stylesheet" href="css/admin-forms.css">
+    <!-- JSZip Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1P5TLoPaBIvdjhmA1UwAbdnrLOYR9Ln17Qo9Sg2PZX/L0lb8IREf3D4GcsLCrTfYsK7NLOALjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
-        body#admin-page { background-color: #eef2f5; }
-        .container { max-width: 1200px; margin: 20px auto; padding: 25px; background-color: #fff; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9em; }
-        .info-box ol { padding-left: 20px; }
-        .warning-box { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-weight: bold; }
-        .step-section { border: 1px solid #ddd; border-radius: 5px; padding: 20px; margin-bottom: 25px; background-color: #fdfdfd; }
-        .step-section h3 { margin-top: 0; color: #007bff; border-bottom: 1px solid #007bff; padding-bottom: 10px; }
-        .item-to-restore { border: 1px solid #ccc; border-radius: 4px; padding: 10px 15px; margin-bottom: 15px; background-color: #fff; }
-        .item-to-restore strong.item-name-header { font-size: 1.1em; display: block; margin-bottom: 5px;} /* Adjusted for char base options */
-        .item-info { font-size: 0.85em; color: #555; margin-bottom: 8px; }
-        .item-info .old-value { color: #dc3545; font-style: italic; }
-        .effect-list { margin-top: 10px; padding-left: 0; list-style: none; }
-        .effect-item { border-top: 1px dashed #eee; padding-top: 8px; margin-top: 8px; }
-        .effect-item:first-child { border-top: none; padding-top: 0; margin-top: 0; }
-        .effect-item label { font-weight: bold; display: block; margin-bottom: 3px; font-size: 0.9em; }
-        .effect-item select { width: 100%; max-width: 400px; margin-bottom: 5px; padding: 6px; font-size: 0.9em; }
-        .manual-effect-display { background-color: #f0f0f0; padding: 6px; border-radius: 3px; font-style: italic; margin-bottom: 5px; font-size: 0.9em;}
-        .checkbox-group { max-height: 200px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 10px; margin-top: 5px; margin-bottom: 10px; background-color: #f8f9fa; border-radius: 3px; }
-        .checkbox-group .checkbox-item { display: block; margin-bottom: 5px; }
-        .checkbox-group .checkbox-item label { font-weight: normal; font-size: 0.9em; }
-        .task-group { border: 1px solid #ccc; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9; }
-        .task-group h4 { margin-top: 0; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; font-size: 1.1em; color: #333; }
-        .task-group h4 .old-id { font-size: 0.8em; color: #777; font-weight: normal; }
-        .task-item { padding: 10px 0; border-bottom: 1px dashed #eee; }
-        .task-item:last-child { border-bottom: none; }
-        .task-item .child-list { margin-bottom: 10px; }
-        .task-item .child-list ul { list-style-type: none; padding-left: 0; max-height: 150px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 8px; background-color: #fff; border-radius: 3px; }
-        .task-item .child-list li { padding: 2px 0; }
-        .task-item .selector-container { display: flex; flex-direction: column; }
-        .task-item label { font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
-        .task-item select { width: 100%; max-width: 350px; margin-bottom: 10px; }
-        .status-message { font-style: italic; margin-top: 10px; font-weight: bold; }
-        .status-message.success { color: green; }
-        .status-message.error { color: red; }
-        .status-message.info { color: blue; }
-        #password-prompt h2 { text-align: center; }
-        #main-content .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd; }
-        #main-content .header-bar h1 { margin: 0; }
-        #logoutButton { background-color: #6c757d; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem; }
-        #logoutButton:hover { background-color: #5a6268; }
-        .button-danger { background-color: #dc3545 !important; color: white !important; }
-        .button-danger:hover { background-color: #c82333 !important; }
-        .execution-log { margin-top: 15px; padding: 10px; border: 1px solid #eee; background-color: #f8f9fa; max-height: 200px; overflow-y: auto; font-size: 0.85em; white-space: pre-wrap; }
+        body#admin-page { background-color: #f5eef2; } 
+        .container { max-width: 900px; }
+        .warning-box { background-color: #fff3cd; border-color: #ffeeba; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid; }
+        .danger-zone { border: 2px dashed #dc3545; padding: 20px; margin-top: 20px; border-radius: 5px; }
+        .danger-zone h4 { color: #dc3545; margin-top: 0; }
+        .button-extreme-danger { background-color: #b22222 !important; color: white !important; font-weight: bold; }
+        .button-extreme-danger:hover { background-color: #8b0000 !important; }
+        .execution-log { margin-top: 15px; padding: 10px; border: 1px solid #eee; background-color: #f8f9fa; max-height: 300px; overflow-y: auto; font-size: 0.85em; white-space: pre-wrap; }
         .log-entry { margin-bottom: 5px; }
         .log-entry.error { color: red; }
         .log-entry.success { color: green; }
         .log-entry.warning { color: orange; }
-        .search-filter-input { padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; width: calc(100% - 18px); }
-        .char-base-type-selector-container { margin-bottom: 15px; }
-        .char-base-type-selector-container label { margin-right: 10px; font-weight: bold;}
-        .char-base-type-selector-container select { padding: 6px; font-size: 0.95em; }
+        #password-prompt h2 { text-align: center; }
+         #main-content .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #ddd;}
+        #main-content .header-bar h1 {margin:0;}
+        #logoutButton { background-color: #6c757d; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem; }
+        #logoutButton:hover { background-color: #5a6268; }
+
     </style>
 </head>
-<body id="admin-page">
+<body id="admin-page"> 
     <div id="password-prompt">
-        <h2>復旧ツール ログイン</h2>
+        <h2>完全復元ツール ログイン</h2>
         <input type="email" id="adminEmailInput" placeholder="メールアドレス" autocomplete="email" aria-label="管理者メールアドレス">
         <input type="password" id="adminPasswordInput" placeholder="パスワード" autocomplete="current-password" aria-label="管理者パスワード">
         <button id="loginButton" type="button">ログイン</button>
@@ -71,59 +40,39 @@
 
     <div id="main-content" class="container" style="display:none;">
         <div class="header-bar">
-            <h1>データ復旧ツール</h1>
+            <h1>データベース完全復元ツール</h1>
             <button id="logoutButton" type="button">ログアウト</button>
         </div>
-
-        <div class="info-box">
-            <h3><span class="icon" aria-hidden="true">ℹ️</span> 復旧手順</h3>
-            <ol>
-                <li><strong>ステップ1: DB洗い替え</strong> - (実施済み想定)</li>
-                <li><strong>ステップ2: カテゴリ親子関係の修復</strong> - (実施済み想定)</li>
-                <li><strong>ステップ3: 効果大分類 と 効果種類の関係修復</strong> - (実施済み想定)</li>
-                <li><strong>ステップ4: 子カテゴリ と タグの所属関係修復</strong> - (実施済み想定)</li>
-                <li><strong>ステップ5: アイテム と タグの関連付け修復</strong> - (実施済み想定)</li>
-                <li><strong>ステップ6: キャラクター基礎情報 と 効果種類の関連付け修復</strong> - このステップのボタンで実施。</li>
-                <li>以降、順次他の関連性を修復。</li>
-            </ol>
+        
+        <div class="info-box" style="background-color: #ffe4e1; border-color: #f5c6cb; color: #721c24;">
+            <h3><span class="icon" aria-hidden="true">⚠️</span> 超重要警告</h3>
+            <p>このツールは、現在のFirestoreデータベースの関連コレクションの<strong>全てのデータを削除</strong>し、アップロードされたバックアップZIPファイルの内容で<strong>完全に上書き</strong>します。</p>
+            <p>この操作は<strong>元に戻すことができません。</strong>実行する前に、必ず以下のことを確認してください：</p>
+            <ul>
+                <li>選択するZIPファイルが、正しい完全バックアップ（バージョン2.0、ドキュメントID含む）であること。</li>
+                <li>現在のデータベースの状態を理解し、本当にこの操作が必要であること。</li>
+                <li>可能であれば、事前にFirestoreのコンソールから手動でエクスポート（バックアップ）を取得しておくこと。</li>
+            </ul>
+            <p><strong>細心の注意を払って操作してください。</strong></p>
         </div>
 
         <div class="form-group">
-            <label for="backupFile">バックアップJSONファイル (.json) を選択 (必須):</label>
-            <input type="file" id="backupFile" accept="application/json,.json">
+            <label for="backupZipFile">完全バックアップZIPファイル (.zip) を選択:</label>
+            <input type="file" id="backupZipFile" accept=".zip,application/zip,application/x-zip-compressed">
         </div>
         
-        <hr>
-        
-        <!-- ステップ1から5のHTMLは簡略化のため省略 (実際には残すかコメントアウト) -->
-        <section class="step-section" style="opacity:0.3; pointer-events:none;"> <!-- Visually indicate past steps -->
-            <h3>ステップ1-5 (完了済み)</h3>
-            <p>これらのステップは既に完了していると想定されます。</p>
-        </section>
+        <div class="danger-zone">
+            <h4>危険ゾーン</h4>
+            <p>以下のボタンを押すと、上記の警告に基づきデータベースの完全復元が開始されます。</p>
+            <input type="checkbox" id="confirmDeleteCheckbox" style="margin-right: 5px;">
+            <label for="confirmDeleteCheckbox" style="font-weight:normal; color: #dc3545;">はい、現在の関連データを全て削除し、バックアップで上書きすることを理解し、同意します。</label>
+            <br><br>
+            <button id="executeFullRestoreButton" type="button" class="button-extreme-danger" disabled>データベース完全復元を実行</button>
+        </div>
 
-        <hr>
-
-        <section id="step6Section" class="step-section">
-            <h3>ステップ6: 関係性修復 (キャラクター基礎情報 と 効果種類)</h3>
-            <p>ステップ1のDB洗い替えが完了した後、キャラクター基礎情報の種類を選択し、そのオプションの効果種類を修復してください。</p>
-            <div class="char-base-type-selector-container form-group">
-                <label for="charBaseTypeSelectorForStep6">キャラクター基礎情報の種類を選択:</label>
-                <select id="charBaseTypeSelectorForStep6">
-                    <option value="">種類を選択...</option>
-                    <option value="headShape">頭の形</option>
-                    <option value="correction">補正</option>
-                    <option value="color">色</option>
-                    <option value="pattern">柄</option>
-                </select>
-            </div>
-            <div id="tasksContainerCharBaseToEffectType" class="tasks-container" style="margin-top: 20px;">
-                <p>まず、上のドロップダウンからキャラクター基礎情報の種類を選択してください。</p>
-            </div>
-            <div id="step6ExecutionLog" class="execution-log">ログはここに表示されます...</div>
-        </section>
-
+        <div id="restoreLog" class="execution-log" style="margin-top: 25px;">復元ログはここに表示されます...</div>
     </div>
 
-    <script type="module" src="js/restore.js"></script>
+    <script type="module" src="js/full_restore.js"></script>
 </body>
 </html>
