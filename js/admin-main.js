@@ -31,13 +31,12 @@ import {
 } from './admin-modules/item-source-manager.js';
 
 // JSZip will be available globally via the script tag in admin.html
-// import JSZip from 'jszip'; // Not needed if using global script
 
 const DOM = {
     adminSideNav: null,
     adminHamburgerButton: null,
     adminCloseNavButton: null,
-    adminNavButtons: null,
+    adminNavButtons: null, // This will be a NodeList, re-queried if necessary
     manualBackupButton: null, 
     listEnlargementModal: null,
     listEnlargementModalTitle: null,
@@ -54,11 +53,11 @@ const DOM = {
     selectedCharBaseTypeInput: null,
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+function queryDOMElements() {
     DOM.adminSideNav = document.getElementById('adminSideNav');
     DOM.adminHamburgerButton = document.getElementById('adminHamburgerButton');
     DOM.adminCloseNavButton = document.getElementById('adminCloseNavButton');
-    DOM.adminNavButtons = document.querySelectorAll('.admin-nav-button');
+    DOM.adminNavButtons = document.querySelectorAll('#adminSideNav .admin-nav-button, #adminSideNav a.admin-nav-button'); // Include <a> tags too
     DOM.manualBackupButton = document.getElementById('manualBackupButton'); 
     DOM.listEnlargementModal = document.getElementById('listEnlargementModal');
     DOM.listEnlargementModalTitle = document.getElementById('listEnlargementModalTitle');
@@ -75,8 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     DOM.charBaseTypeButtons = document.getElementById('charBaseTypeButtons');
     DOM.selectedCharBaseTypeInput = document.getElementById('selectedCharBaseType');
+}
 
-    initUIHelpers();
+
+document.addEventListener('DOMContentLoaded', () => {
+    queryDOMElements(); // Initial DOM querying
+
+    initUIHelpers(); // Initialize modal close buttons etc.
     initAuth(auth, 
         (user) => { 
             document.getElementById('password-prompt').style.display = 'none';
@@ -84,6 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (adminContentEl) adminContentEl.style.display = 'block';
             const currentUserEmailSpan = document.getElementById('currentUserEmail');
             if (user && currentUserEmailSpan) currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
+            
+            queryDOMElements(); // Re-query DOM elements after content is shown
             setupAdminNav();
             loadAndInitializeAdminModules();
         }, 
@@ -91,7 +97,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('password-prompt').style.display = 'flex';
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'none';
-            if (DOM.adminSideNav) DOM.adminSideNav.classList.remove('open');
+            if (DOM.adminSideNav) {
+                 DOM.adminSideNav.classList.remove('open');
+                 DOM.adminSideNav.setAttribute('aria-hidden', 'true');
+            }
             const currentUserEmailSpan = document.getElementById('currentUserEmail');
             if (currentUserEmailSpan) currentUserEmailSpan.textContent = '';
             clearAdminUIAndData();
@@ -100,17 +109,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function handleManualBackup() {
+    console.log("handleManualBackup called");
     if (!confirm('現在の全データをバックアップファイルとしてダウンロードします。よろしいですか？')) {
         return;
     }
 
     const button = DOM.manualBackupButton;
+    if (!button) {
+        console.error("Backup button not found in DOM for handleManualBackup.");
+        return;
+    }
     button.disabled = true;
     button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">⏳</span>バックアップ作成中...`;
 
     try {
         const backupData = {
-            version: "2.0", // Indicate new format with doc IDs
+            version: "2.0",
             createdAt: new Date().toISOString(),
             collections: {}
         };
@@ -121,29 +135,26 @@ async function handleManualBackup() {
             "effect_units": getEffectUnitsCache,
             "effect_super_categories": getEffectSuperCategoriesCache,
             "effect_types": getEffectTypesCache,
-            "items": getItemsCache, // items now have docId
+            "items": getItemsCache,
             "item_sources": getItemSourcesCache
         };
 
         for (const collName in collectionsToBackup) {
             const data = collectionsToBackup[collName]();
-            // Ensure each document includes its Firestore ID
             backupData.collections[collName] = data.map(doc => ({
-                docId: doc.id || doc.docId, // Cater for items using docId, others use id
+                docId: doc.id || doc.docId,
                 ...doc 
             }));
-            // Clean up potentially redundant id field if docId is the primary key used internally
             backupData.collections[collName].forEach(doc => {
                 if (doc.docId && doc.id && doc.docId === doc.id) delete doc.id;
             });
         }
         
-        // Handle character_bases (it's an object of arrays)
         const charBases = getCharacterBasesCache();
         backupData.collections.character_bases = {};
         for (const baseType in charBases) {
             backupData.collections.character_bases[baseType] = charBases[baseType].map(doc => ({
-                docId: doc.id, // Character base options also use 'id'
+                docId: doc.id,
                 ...doc
             }));
             backupData.collections.character_bases[baseType].forEach(doc => {
@@ -153,11 +164,25 @@ async function handleManualBackup() {
 
         const jsonString = JSON.stringify(backupData, null, 2);
         
-        // Create ZIP file
+        if (typeof JSZip === 'undefined') {
+            alert("ZIP圧縮ライブラリ(JSZip)が読み込まれていません。バックアップはJSON形式でダウンロードされます。");
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+            a.href = url;
+            a.download = `denpa-item-backup-${timestamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            return;
+        }
+
         const zip = new JSZip();
         zip.file("denpa_item_backup_data.json", jsonString);
         
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, ''); // YYYYMMDDHHMMSS
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
         const zipFileName = `denpa-item-backup-${timestamp}.zip`;
 
         zip.generateAsync({type:"blob", compression: "DEFLATE", compressionOptions: {level: 9}})
@@ -177,44 +202,68 @@ async function handleManualBackup() {
         console.error('バックアップ作成中にエラーが発生しました:', error);
         alert('バックアップの作成に失敗しました。コンソールを確認してください。');
     } finally {
-        button.disabled = false;
-        button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ (ZIP)`;
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = `<span class="icon" aria-hidden="true" style="margin-right: 8px;">💾</span>手動バックアップ (ZIP)`;
+        }
     }
 }
 
-
 function setupAdminNav() {
-    // ... (no changes to this function itself, but handleManualBackup it calls is changed) ...
     if (DOM.adminHamburgerButton && DOM.adminSideNav) {
+        // Ensure listener isn't duplicated
+        const newHamburger = DOM.adminHamburgerButton.cloneNode(true);
+        DOM.adminHamburgerButton.parentNode.replaceChild(newHamburger, DOM.adminHamburgerButton);
+        DOM.adminHamburgerButton = newHamburger;
         DOM.adminHamburgerButton.addEventListener('click', () => {
             DOM.adminSideNav.classList.add('open');
             DOM.adminHamburgerButton.setAttribute('aria-expanded', 'true');
+            DOM.adminSideNav.setAttribute('aria-hidden', 'false');
         });
     }
     if (DOM.adminCloseNavButton && DOM.adminSideNav) {
+        const newCloseNav = DOM.adminCloseNavButton.cloneNode(true);
+        DOM.adminCloseNavButton.parentNode.replaceChild(newCloseNav, DOM.adminCloseNavButton);
+        DOM.adminCloseNavButton = newCloseNav;
         DOM.adminCloseNavButton.addEventListener('click', () => {
             DOM.adminSideNav.classList.remove('open');
             if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+            DOM.adminSideNav.setAttribute('aria-hidden', 'true');
         });
     }
 
     if (DOM.manualBackupButton) {
+        const newManualBackupButton = DOM.manualBackupButton.cloneNode(true);
+        DOM.manualBackupButton.parentNode.replaceChild(newManualBackupButton, DOM.manualBackupButton);
+        DOM.manualBackupButton = newManualBackupButton;
         DOM.manualBackupButton.addEventListener('click', handleManualBackup);
+        console.log("Event listener re-attached to manualBackupButton");
+    } else {
+        console.error("manualBackupButton not found during setupAdminNav");
     }
 
+    // Re-query adminNavButtons inside setupAdminNav to get current set after potential DOM changes
+    DOM.adminNavButtons = document.querySelectorAll('#adminSideNav .admin-nav-button, #adminSideNav a.admin-nav-button');
     if (DOM.adminNavButtons) {
         DOM.adminNavButtons.forEach(button => {
-            // Ensure event listeners are not duplicated if setupAdminNav is called multiple times
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
+            // Skip re-attaching to manualBackupButton as it's handled above
+            if (button.id === 'manualBackupButton') return;
 
-            newButton.addEventListener('click', (e) => {
-                const targetModalId = e.currentTarget.dataset.modalTarget;
-                if (targetModalId) {
+            const newButton = button.cloneNode(true);
+            if (button.parentNode) {
+                button.parentNode.replaceChild(newButton, button);
+            }
+            
+            if (newButton.dataset.modalTarget) {
+                newButton.addEventListener('click', (e) => {
+                    const targetModalId = e.currentTarget.dataset.modalTarget;
                     openModalHelper(targetModalId);
-                    if (DOM.adminSideNav) DOM.adminSideNav.classList.remove('open');
+                    if (DOM.adminSideNav) {
+                        DOM.adminSideNav.classList.remove('open');
+                        DOM.adminSideNav.setAttribute('aria-hidden', 'true');
+                    }
                     if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
-                    // Specific modal refresh logic (remains the same)
+                    
                     if (targetModalId === 'characterBaseManagementModal' && typeof renderCharBaseOptionsUI === 'function') {
                         renderCharBaseOptionsUI();
                     } else if (targetModalId === 'effectSuperCategoryManagementModal' && typeof renderEffectSuperCategoriesUI === 'function') {
@@ -222,16 +271,24 @@ function setupAdminNav() {
                     } else if (targetModalId === 'itemSourceManagementModal' && typeof renderItemSourcesUI === 'function') {
                         renderItemSourcesUI();
                     }
-                }
-            });
+                });
+            } else if (newButton.href && newButton.href.includes('restore.html')) {
+                newButton.addEventListener('click', (e) => { // For <a> tag, prevent default if we want to handle with JS, but here it's fine
+                    if (DOM.adminSideNav && DOM.adminSideNav.classList.contains('open')) {
+                        DOM.adminSideNav.classList.remove('open');
+                        DOM.adminSideNav.setAttribute('aria-hidden', 'true');
+                        if (DOM.adminHamburgerButton) DOM.adminHamburgerButton.setAttribute('aria-expanded', 'false');
+                    }
+                    // Allow default navigation for the <a> tag
+                });
+            }
         });
     }
-    setupEnlargementButtonListeners();
-    setupCharBaseTypeButtons();
+    setupEnlargementButtonListeners(); 
+    setupCharBaseTypeButtons(); 
 }
 
 function setupCharBaseTypeButtons() {
-    // ... (no changes to this function) ...
     if (!DOM.charBaseTypeButtons || !DOM.selectedCharBaseTypeInput) return;
     DOM.charBaseTypeButtons.innerHTML = ''; 
     Object.entries(baseTypeMappings).forEach(([key, displayName]) => {
@@ -241,24 +298,21 @@ function setupCharBaseTypeButtons() {
         button.dataset.baseTypeKey = key;
         if (DOM.selectedCharBaseTypeInput.value === key) button.classList.add('active');
         
-        // Avoid duplicate listeners if called multiple times
-        const newButton = button.cloneNode(true);
-        button.parentNode?.replaceChild(newButton, button); // If button was already in DOM
-
-        newButton.addEventListener('click', () => {
+        // No need to clone here if setupCharBaseTypeButtons is called only once after DOM is ready
+        // Or if DOM.charBaseTypeButtons content is cleared each time.
+        button.addEventListener('click', () => {
             DOM.charBaseTypeButtons.querySelectorAll('.active').forEach(b => b.classList.remove('active'));
-            newButton.classList.add('active');
+            button.classList.add('active');
             DOM.selectedCharBaseTypeInput.value = key;
             const displaySpan = document.getElementById('selectedCharBaseTypeDisplay');
             if (displaySpan) displaySpan.textContent = displayName;
             if (typeof renderCharBaseOptionsUI === 'function') renderCharBaseOptionsUI();
         });
-        DOM.charBaseTypeButtons.appendChild(newButton); // Append if not already in DOM
+        DOM.charBaseTypeButtons.appendChild(button);
     });
 }
 
 function clearAdminUIAndData() {
-    // ... (no changes to this function) ...
     console.log("[admin-main] Clearing admin UI and data cache...");
     const listContainersIds = ['categoryListContainer', 'tagListContainer', 'effectUnitListContainer', 'effectSuperCategoryListContainer', 'effectTypeListContainer', 'charBaseOptionListContainer', 'itemSourceListContainer'];
     listContainersIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p>ログアウトしました。</p>'; });
@@ -275,7 +329,6 @@ function clearAdminUIAndData() {
 }
 
 async function loadAndInitializeAdminModules() {
-    // ... (no changes to this function) ...
     console.log("[admin-main] Starting to load data and initialize modules...");
     try {
         await loadInitialData(db);
@@ -328,7 +381,6 @@ async function loadAndInitializeAdminModules() {
 }
 
 function renderAllAdminUISections() {
-    // ... (no changes to this function) ...
     console.log("[admin-main] Rendering all admin UI sections...");
     if (typeof renderCategoriesUI === 'function') renderCategoriesUI();
     if (typeof renderTagsUI === 'function') renderTagsUI();
@@ -351,16 +403,16 @@ function renderAllAdminUISections() {
 }
 
 function setupEnlargementButtonListeners() {
-    // ... (no changes to this function) ...
     const buttonConfig = [
-        { btn: DOM.enlargeCategoryListButton, type: 'category', title: 'カテゴリ一覧', sourceFn: getAllCategoriesCache, searchInputId: 'categorySearchInput', editFn: openEditCategoryModalById, displayRenderer: buildCategoryTreeDOMFromManager },
-        { btn: DOM.enlargeTagListButton, type: 'tag', title: 'タグ一覧', sourceFn: getAllTagsCache, searchInputId: 'tagSearchInput', editFn: openEditTagModalById },
-        { btn: DOM.enlargeEffectUnitListButton, type: 'effectUnit', title: '効果単位一覧', sourceFn: getEffectUnitsCache, searchInputId: null, editFn: openEditEffectUnitModalById },
-        { btn: DOM.enlargeEffectSuperCategoryListButton, type: 'effectSuperCategory', title: '効果大分類一覧', sourceFn: getEffectSuperCategoriesCache, searchInputId: null, editFn: openEditEscModal },
-        { btn: DOM.enlargeEffectTypeListButton, type: 'effectType', title: '効果種類一覧', sourceFn: getEffectTypesCache, searchInputId: null, editFn: openEditEtModal },
-        { btn: DOM.enlargeCharBaseOptionListButton, type: 'charBaseOption', titleGetter: () => `${baseTypeMappings[DOM.selectedCharBaseTypeInput.value] || '基礎情報'} の選択肢一覧`, sourceFn: () => (getCharacterBasesCache()[DOM.selectedCharBaseTypeInput.value] || []), searchInputId: null, editFn: (id) => openEditCboModal(id, DOM.selectedCharBaseTypeInput.value) },
+        { btnId: 'enlargeCategoryListButton', domRef: DOM.enlargeCategoryListButton, type: 'category', title: 'カテゴリ一覧', sourceFn: getAllCategoriesCache, searchInputId: 'categorySearchInput', editFn: openEditCategoryModalById, displayRenderer: buildCategoryTreeDOMFromManager },
+        { btnId: 'enlargeTagListButton', domRef: DOM.enlargeTagListButton, type: 'tag', title: 'タグ一覧', sourceFn: getAllTagsCache, searchInputId: 'tagSearchInput', editFn: openEditTagModalById },
+        { btnId: 'enlargeEffectUnitListButton', domRef: DOM.enlargeEffectUnitListButton, type: 'effectUnit', title: '効果単位一覧', sourceFn: getEffectUnitsCache, searchInputId: null, editFn: openEditEffectUnitModalById },
+        { btnId: 'enlargeEffectSuperCategoryListButton', domRef: DOM.enlargeEffectSuperCategoryListButton, type: 'effectSuperCategory', title: '効果大分類一覧', sourceFn: getEffectSuperCategoriesCache, searchInputId: null, editFn: openEditEscModal },
+        { btnId: 'enlargeEffectTypeListButton', domRef: DOM.enlargeEffectTypeListButton, type: 'effectType', title: '効果種類一覧', sourceFn: getEffectTypesCache, searchInputId: null, editFn: openEditEtModal },
+        { btnId: 'enlargeCharBaseOptionListButton', domRef: DOM.enlargeCharBaseOptionListButton, type: 'charBaseOption', titleGetter: () => `${baseTypeMappings[DOM.selectedCharBaseTypeInput.value] || '基礎情報'} の選択肢一覧`, sourceFn: () => (getCharacterBasesCache()[DOM.selectedCharBaseTypeInput.value] || []), searchInputId: null, editFn: (id) => openEditCboModal(id, DOM.selectedCharBaseTypeInput.value) },
         { 
-            btn: DOM.enlargeItemSourceListButton, 
+            btnId: 'enlargeItemSourceListButton', 
+            domRef: DOM.enlargeItemSourceListButton,
             type: 'itemSource', 
             title: '入手経路一覧', 
             sourceFn: getItemSourcesCache,
@@ -371,11 +423,18 @@ function setupEnlargementButtonListeners() {
     ];
 
     buttonConfig.forEach(config => {
-        if (config.btn) {
-            const newBtn = config.btn.cloneNode(true); 
-            if (config.btn.parentNode) {
-                 config.btn.parentNode.replaceChild(newBtn, config.btn);
+        let buttonElement = config.domRef || document.getElementById(config.btnId);
+        if (buttonElement) {
+            const newBtn = buttonElement.cloneNode(true); 
+            if (buttonElement.parentNode) {
+                 buttonElement.parentNode.replaceChild(newBtn, buttonElement);
             }
+            // Update DOM reference in the global DOM object if it exists
+            if (DOM[config.btnId.replace('enlarge','').replace('ListButton','').toLowerCase() + 'EnlargeButton']) { // Heuristic to match DOM key
+                DOM[config.btnId.replace('enlarge','').replace('ListButton','').toLowerCase() + 'EnlargeButton'] = newBtn;
+            } else if (config.btnId === 'enlargeCategoryListButton') DOM.enlargeCategoryListButton = newBtn; // Example specific updates
+            else if (config.btnId === 'enlargeTagListButton') DOM.enlargeTagListButton = newBtn;
+            // Add others if necessary or improve the heuristic
 
             newBtn.addEventListener('click', () => {
                 const items = config.sourceFn();
@@ -392,12 +451,13 @@ function setupEnlargementButtonListeners() {
                     currentSearchTerm
                 );
             });
+        } else {
+            console.warn(`Enlargement button with ID ${config.btnId} not found.`);
         }
     });
 }
 
 function openEnlargedListModal(items, type, title, originalSearchInputId, editFunction, displayRenderer, initialSearchTerm = "") {
-    // ... (no changes to this function) ...
     if (!DOM.listEnlargementModal || !DOM.listEnlargementModalTitle || !DOM.listEnlargementModalContent || !DOM.listEnlargementModalSearchContainer) {
         console.error("Enlargement modal DOM elements not found!");
         return;
@@ -421,10 +481,11 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
     const renderContent = (filterTerm = '') => {
         DOM.listEnlargementModalContent.innerHTML = '';
         let itemsToRender = items; 
-        if (filterTerm && items) {
+        if (filterTerm && items && typeof items.filter === 'function') {
             itemsToRender = items.filter(item => item.name && item.name.toLowerCase().includes(filterTerm.toLowerCase()));
-        } else if (!items) {
+        } else if (!items || typeof items.filter !== 'function') { 
             itemsToRender = [];
+            console.warn("openEnlargedListModal: 'items' is not an array or is undefined for filtering.");
         }
 
         if (!itemsToRender || itemsToRender.length === 0) {
@@ -441,13 +502,13 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
                     const contentDiv = li.querySelector('.category-tree-content');
                     if (contentDiv && typeof editFunction === 'function') {
                         contentDiv.classList.add('list-item-name-clickable');
-                        const newContentDiv = contentDiv.cloneNode(true); // Avoid duplicate listeners
+                        const newContentDiv = contentDiv.cloneNode(true);
                         if(contentDiv.parentNode) contentDiv.parentNode.replaceChild(newContentDiv, contentDiv);
                         
                         newContentDiv.addEventListener('click', (e) => {
                             if (e.target.closest('.category-tree-expander')) return;
                             const itemId = type === 'category' ? li.dataset.categoryId : li.dataset.sourceId;
-                            editFunction(itemId); 
+                            if (itemId) editFunction(itemId); 
                         });
                     }
                 });
@@ -495,14 +556,22 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
                 nameSpan.dataset.id = item.id;
 
                 if (typeof editFunction === 'function') {
-                    const newNameSpan = nameSpan.cloneNode(true); // Avoid duplicate listeners
-                    nameSpan.parentNode?.replaceChild(newNameSpan, nameSpan);
+                    const newNameSpan = nameSpan.cloneNode(true);
+                    // Replace nameSpan with newNameSpan in its parent (itemDiv)
+                    if (nameSpan.parentNode) {
+                        nameSpan.parentNode.replaceChild(newNameSpan, nameSpan);
+                    } else {
+                        // If nameSpan was not yet appended (though it should be if this path is reached)
+                        itemDiv.appendChild(newNameSpan); 
+                    }
                     newNameSpan.addEventListener('click', (e) => {
                         const itemId = e.target.dataset.id;
-                        editFunction(itemId);
+                        if(itemId) editFunction(itemId);
                     });
-                } else { nameSpan.style.cursor = 'default'; }
-                itemDiv.appendChild(nameSpan); // Original or new if editFunction exists
+                } else { 
+                    nameSpan.style.cursor = 'default'; 
+                    itemDiv.appendChild(nameSpan); // Append original if no edit function
+                }
                 DOM.listEnlargementModalContent.appendChild(itemDiv);
             });
         }
