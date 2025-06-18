@@ -885,6 +885,7 @@ async function uploadImageToWorkerAndGetURL(file) {
 }
 
 
+// ★★★ この saveItem 関数で置き換えてください ★★★
 async function saveItem(event) {
     event.preventDefault();
     if (DOMI.saveItemButton) {
@@ -894,7 +895,6 @@ async function saveItem(event) {
 
     const name = DOMI.itemNameInput.value.trim();
     const priceStr = DOMI.itemPriceInput.value.trim();
-
     let selectedItemTagIds = [];
     if (DOMI.itemTagsButtonContainer) {
         const activeTagButtons = DOMI.itemTagsButtonContainer.querySelectorAll('.tag-filter.admin-tag-select.active[data-tag-id]');
@@ -903,20 +903,17 @@ async function saveItem(event) {
                 selectedItemTagIds.push(button.dataset.tagId);
             }
         });
-    } else {
-        console.error("saveItem: DOMI.itemTagsButtonContainer is null.");
     }
-
     const editingDocId = DOMI.itemIdToEditInput.value;
     const rarity = parseInt(DOMI.itemRarityValueInput.value, 10) || 0;
-    let imageUrlToSave = DOMI.itemImageUrlInput.value || ""; // Use existing URL if no new file
+    let imageUrlToSave = DOMI.itemImageUrlInput.value || "";
 
     if (!name) {
         alert("アイテム名は必須です。");
         if (DOMI.saveItemButton) { DOMI.saveItemButton.disabled = false; DOMI.saveItemButton.textContent = editingDocId ? "アイテム更新" : "アイテム保存"; }
         return;
     }
-    let priceToSave = null; // Means "not set"
+    let priceToSave = null;
     if (priceStr !== "") {
         const parsedPrice = parseInt(priceStr, 10);
         if (!isNaN(parsedPrice) && parsedPrice >= 0) {
@@ -929,61 +926,70 @@ async function saveItem(event) {
     }
 
     try {
-        if (selectedImageFile) { // A new file was selected and processed
+        if (selectedImageFile) {
             const uploadedUrl = await uploadImageToWorkerAndGetURL(selectedImageFile);
             if (uploadedUrl) {
                 imageUrlToSave = uploadedUrl;
             } else if (editingDocId) {
-                // If upload failed but we are editing, keep the old image URL unless explicitly cleared
-                const oldItemSnap = await getDoc(doc(dbInstance, "items", editingDocId));
-                if (oldItemSnap.exists() && oldItemSnap.data().image) {
-                    imageUrlToSave = oldItemSnap.data().image;
-                } else {
-                    imageUrlToSave = ""; // Or some default/error state
+                // 画像アップロード失敗時、編集中なら既存の画像URLを維持する試み
+                try {
+                    const oldItemSnap = await getDoc(doc(dbInstance, "items", editingDocId));
+                    imageUrlToSave = (oldItemSnap.exists() && oldItemSnap.data().image) ? oldItemSnap.data().image : "";
+                    alert("画像アップロードに失敗しました。既存の画像情報を保持します（もしあれば）。");
+                } catch (e) {
+                    console.error("Error fetching old item data for image fallback:", e);
+                    imageUrlToSave = ""; // フォールバックも失敗
+                    alert("画像アップロードに失敗し、既存の画像情報の取得もできませんでした。");
                 }
-                alert("画像アップロードに失敗したため、既存の画像URLを保持しようとしましたが、失敗または存在しませんでした。画像が設定されない可能性があります。");
             } else {
-                 // New item and upload failed
-                 imageUrlToSave = ""; // Or default/error state
+                 imageUrlToSave = ""; // 新規でアップロード失敗
                  alert("画像アップロードに失敗したため、画像なしでアイテムが保存されます。");
             }
         }
 
-        const itemDataPayload = {
+        const itemDataPayloadBase = {
             name: name,
             image: imageUrlToSave,
             rarity: rarity,
             tags: selectedItemTagIds,
-            effects: currentItemEffects, // New unified effects array
-            sources: currentItemSources, // New unified sources array
-            isDeleted: false, // Always false for new/updated items
-            updatedAt: serverTimestamp(), // Always update timestamp
+            effects: currentItemEffects,
+            sources: currentItemSources,
+            isDeleted: false,
+            updatedAt: serverTimestamp(),
         };
-
-        // Handle price: set if value, deleteField if empty string (meaning "not set")
-        if (priceToSave !== null) {
-            itemDataPayload.price = priceToSave;
-        } else {
-            itemDataPayload.price = deleteField(); // Explicitly remove if empty
-        }
         
-        // Remove old specific fields that are now part of unified arrays or mode flags
-        // These ensure old data structures are cleaned up on update.
-        const fieldsToDelete = [
-            'effectsInputMode', 'manualEffectsString', 'structured_effects',
-            'sourceInputMode', 'manualSourceString', 'sourceNodeId', '入手手段'
-        ];
-        fieldsToDelete.forEach(field => itemDataPayload[field] = deleteField());
+        let finalItemDataPayload;
 
+        if (editingDocId) { // 更新の場合
+            finalItemDataPayload = { ...itemDataPayloadBase };
+            if (priceToSave !== null) {
+                finalItemDataPayload.price = priceToSave;
+            } else {
+                finalItemDataPayload.price = deleteField(); // 更新時、価格が空ならフィールドごと削除
+            }
 
-        if (editingDocId) {
-            await updateDoc(doc(dbInstance, 'items', editingDocId), itemDataPayload);
+            // 古い形式のフィールドを削除 (更新時のみでOK)
+            const fieldsToDeleteOnUpdate = [
+                'effectsInputMode', 'manualEffectsString', 'structured_effects',
+                'sourceInputMode', 'manualSourceString', 'sourceNodeId', '入手手段'
+            ];
+            fieldsToDeleteOnUpdate.forEach(field => finalItemDataPayload[field] = deleteField());
+            
+            await updateDoc(doc(dbInstance, 'items', editingDocId), finalItemDataPayload);
             console.log("Item updated:", editingDocId);
-        } else {
-            itemDataPayload.createdAt = serverTimestamp(); // Add createdAt for new items
-            await addDoc(collection(dbInstance, 'items'), itemDataPayload);
+
+        } else { // 新規追加の場合
+            finalItemDataPayload = { ...itemDataPayloadBase, createdAt: serverTimestamp() };
+            if (priceToSave !== null) { // 価格が設定されていれば含める
+                finalItemDataPayload.price = priceToSave;
+            }
+            // 新規追加時には古い形式のフィールドは最初から含めない
+            // deleteField() も使用しない
+
+            await addDoc(collection(dbInstance, 'items'), finalItemDataPayload);
             console.log("Item added.");
         }
+
         clearItemFormInternal();
         await refreshAllDataCallback();
     } catch (error) {
