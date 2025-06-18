@@ -1,5 +1,5 @@
 // js/admin-modules/char-base-manager.js
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { collection, getDocs, addDoc, doc, updateDoc, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"; // deleteDoc removed
 import { openModal, closeModal, populateSelect } from './ui-helpers.js';
 
 const DOMCB = {
@@ -8,6 +8,7 @@ const DOMCB = {
     addNewCharBaseOptionButton: null,
     selectedCharBaseTypeDisplay: null,
     charBaseOptionListContainer: null,
+    enlargeCharBaseOptionListButton: null, // Added for consistency
     editCharBaseOptionModal: null,
     editCharBaseOptionModalTitle: null,
     editingCharBaseTypeInput: null,
@@ -22,7 +23,9 @@ const DOMCB = {
     deleteCharBaseOptionFromEditModalButton: null,
 };
 
-export const baseTypeMappings = {
+// baseTypeMappings should be passed from admin-main.js to ensure consistency
+// For now, keep a local copy for standalone understanding, but prefer passed version.
+export const baseTypeMappings = { // This might be redundant if admin-main passes it.
     headShape: "頭の形",
     correction: "補正",
     color: "色",
@@ -30,11 +33,12 @@ export const baseTypeMappings = {
 };
 
 let dbInstance = null;
-let getCharacterBasesFuncCache = () => ({});
-let getEffectTypesFuncCache = () => [];
-let getEffectUnitsFuncCache = () => [];
-let getEffectSuperCategoriesFuncCache = () => [];
+let getCharacterBasesFuncCache = () => ({}); // Returns { headShape: [...], color: [...] } all non-deleted
+let getEffectTypesFuncCache = () => []; // Assumes non-deleted
+let getEffectUnitsFuncCache = () => []; // Assumes non-deleted
+let getEffectSuperCategoriesFuncCache = () => []; // Assumes non-deleted
 let refreshAllDataCallback = async () => {};
+let openEnlargedListModalCallbackFromMain = (config) => {};
 
 let currentCharBaseOptionEffects = [];
 let charBaseEffectEditMode = false;
@@ -45,14 +49,22 @@ export function initCharBaseManager(dependencies) {
     getCharacterBasesFuncCache = dependencies.getCharacterBases;
     getEffectTypesFuncCache = dependencies.getEffectTypes;
     getEffectUnitsFuncCache = dependencies.getEffectUnits;
-    getEffectSuperCategoriesFuncCache = dependencies.getEffectSuperCategories;
+    getEffectSuperCategoriesFuncCache = dependencies.getEffectSuperCategories; // For populating effect select
     refreshAllDataCallback = dependencies.refreshAllData;
+    if (typeof dependencies.openEnlargedListModal === 'function') {
+        openEnlargedListModalCallbackFromMain = dependencies.openEnlargedListModal;
+    }
+    // If baseTypeMappings is passed from admin-main.js, use that instead of the local one.
+    // e.g., if (dependencies.baseTypeMappingsFromMain) baseTypeMappings = dependencies.baseTypeMappingsFromMain;
+
 
     DOMCB.charBaseTypeButtons = document.getElementById('charBaseTypeButtons');
     DOMCB.selectedCharBaseTypeInput = document.getElementById('selectedCharBaseType');
     DOMCB.addNewCharBaseOptionButton = document.getElementById('addNewCharBaseOptionButton');
     DOMCB.selectedCharBaseTypeDisplay = document.getElementById('selectedCharBaseTypeDisplay');
     DOMCB.charBaseOptionListContainer = document.getElementById('charBaseOptionListContainer');
+    DOMCB.enlargeCharBaseOptionListButton = document.getElementById('enlargeCharBaseOptionListButton');
+
 
     DOMCB.editCharBaseOptionModal = document.getElementById('editCharBaseOptionModal');
     DOMCB.editCharBaseOptionModalTitle = document.getElementById('editCharBaseOptionModalTitle');
@@ -72,7 +84,7 @@ export function initCharBaseManager(dependencies) {
     if (DOMCB.addNewCharBaseOptionButton) {
         DOMCB.addNewCharBaseOptionButton.addEventListener('click', () => {
             const selectedType = DOMCB.selectedCharBaseTypeInput.value;
-            openEditCharBaseOptionModal(null, selectedType);
+            openEditCharBaseOptionModal(null, selectedType); // For new option
         });
     }
     if (DOMCB.addCharBaseOptionEffectButton) {
@@ -87,7 +99,7 @@ export function initCharBaseManager(dependencies) {
             const baseType = DOMCB.editingCharBaseTypeInput.value;
             const optionName = DOMCB.editingCharBaseOptionNameInput.value || '(名称未設定)';
             if (optionId && baseType) {
-                deleteCharBaseOption(optionId, baseType, optionName);
+                logicalDeleteCharBaseOption(optionId, baseType, optionName); // Changed to logicalDelete
             } else {
                 alert("削除対象のオプションが見つかりません。");
             }
@@ -102,14 +114,27 @@ export function initCharBaseManager(dependencies) {
             const clickableName = event.target.closest('.list-item-name-clickable[data-id]');
             if (clickableName) {
                 const optionId = clickableName.dataset.id;
-                const baseType = clickableName.dataset.type; // This needs to be set when rendering list items
+                const baseType = clickableName.dataset.type; 
                 if (optionId && baseType) {
                     openEditCharBaseOptionModalById(optionId, baseType);
                 }
             }
         });
     }
-    console.log("[CharBase Manager] Initialized.");
+    if (DOMCB.enlargeCharBaseOptionListButton && DOMCB.selectedCharBaseTypeInput) {
+        DOMCB.enlargeCharBaseOptionListButton.addEventListener('click', () => {
+             if (typeof openEnlargedListModalCallbackFromMain === 'function') {
+                const currentBaseTypeKey = DOMCB.selectedCharBaseTypeInput.value;
+                openEnlargedListModalCallbackFromMain({
+                    title: `${baseTypeMappings[currentBaseTypeKey] || '基礎情報'} の選択肢一覧 (拡大)`,
+                    sourceFn: () => (getCharacterBasesFuncCache()[currentBaseTypeKey] || []),
+                    itemType: 'charBaseOption',
+                    editFunction: (id) => openEditCharBaseOptionModalById(id, currentBaseTypeKey),
+                });
+            }
+        });
+    }
+    console.log("[CharBase Manager] Initialized for logical delete.");
 }
 
 function switchToAddCharBaseEffectMode() {
@@ -121,25 +146,21 @@ function switchToAddCharBaseEffectMode() {
     updateCharBaseOptionEffectUnitDisplay();
 }
 
-
+// Populates the effect type select in the character base option's effect editing area
 export function _populateCharBaseEffectTypeSelectInternal() {
-    const effectTypesCache = getEffectTypesFuncCache();
-    const superCategoriesCache = getEffectSuperCategoriesFuncCache(); 
+    // This function is similar to the one in effect-type-manager.js for populating itemFormEffectTypeSelect
+    // It should use non-deleted effect types and group them by non-deleted super categories.
+    const effectTypesCache = getEffectTypesFuncCache(); // Assumes non-deleted
+    const superCategoriesCache = getEffectSuperCategoriesFuncCache() || []; // Assumes non-deleted
     const selectElement = DOMCB.charBaseOptionEffectTypeSelect;
 
-    if (!selectElement || !effectTypesCache) {
-        console.warn("Required elements or caches not found for populating char base effect type select (effectTypesCache).");
-        if(selectElement) selectElement.innerHTML = '<option value="">効果種類読込エラー</option>';
+    if (!selectElement) {
+        console.warn("_populateCharBaseEffectTypeSelectInternal: Select element not found.");
         return;
     }
-     if (!superCategoriesCache) { 
-        console.warn("Super categories cache not available for populating char base effect type select. Displaying as flat list.");
-        const optionsForCharBase = effectTypesCache.map(et => ({
-            value: et.id,
-            text: et.name,
-            'data-unit-name': (et.defaultUnit && et.defaultUnit !== 'none') ? et.defaultUnit : '',
-        })).sort((a, b) => a.text.localeCompare(b.text, 'ja'));
-        populateSelect(selectElement, optionsForCharBase, '効果種類を選択...');
+    if (!effectTypesCache) {
+        console.warn("Effect types cache not available for populating char base effect type select.");
+        selectElement.innerHTML = '<option value="">効果種類読込エラー</option>';
         return;
     }
 
@@ -152,7 +173,7 @@ export function _populateCharBaseEffectTypeSelectInternal() {
         const optgroup = document.createElement('optgroup');
         optgroup.label = superCat.name;
         effectTypesCache
-            .filter(et => et.superCategoryId === superCat.id)
+            .filter(et => et.superCategoryId === superCat.id) // Already non-deleted
             .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
             .forEach(et => {
                 const option = document.createElement('option');
@@ -200,22 +221,23 @@ export function _renderCharacterBaseOptionsInternal() {
     DOMCB.selectedCharBaseTypeDisplay.textContent = selectedTypeName;
     DOMCB.charBaseOptionListContainer.innerHTML = '';
 
-    const characterBasesCache = getCharacterBasesFuncCache();
-    const options = (characterBasesCache[selectedTypeKey] || []).sort((a,b) => a.name.localeCompare(b.name, 'ja'));
-    const effectTypesCache = getEffectTypesFuncCache();
-    const effectUnitsCache = getEffectUnitsFuncCache();
+    const characterBasesCache = getCharacterBasesFuncCache(); // Assumes non-deleted options per type
+    const optionsForSelectedType = (characterBasesCache[selectedTypeKey] || []).sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+    const effectTypesCache = getEffectTypesFuncCache(); // Assumes non-deleted
+    const effectUnitsCache = getEffectUnitsFuncCache(); // Assumes non-deleted
 
-    if (options.length === 0) {
+    if (optionsForSelectedType.length === 0) {
         DOMCB.charBaseOptionListContainer.innerHTML = `<p>${selectedTypeName} の選択肢はまだ登録されていません。</p>`;
         return;
     }
 
-    options.forEach(option => {
+    optionsForSelectedType.forEach(option => {
+        // No need to check option.isDeleted as cache is pre-filtered
         let effectsSummary = '効果なし';
         if (option.effects && option.effects.length > 0) {
             effectsSummary = option.effects.map(eff => {
-                const typeInfo = effectTypesCache.find(et => et.id === eff.type);
-                const typeName = typeInfo ? typeInfo.name : `不明(${eff.type.substring(0, 6)}...)`;
+                const typeInfo = effectTypesCache.find(et => et.id === eff.type); // Char base effect stores effectTypeId as 'type'
+                const typeName = typeInfo ? typeInfo.name : `不明(${eff.type ? eff.type.substring(0, 6) : 'IDなし'}...)`;
                 
                 let effectTextPart;
                 const unitName = eff.unit;
@@ -242,25 +264,27 @@ export function _renderCharacterBaseOptionsInternal() {
         nameSpan.classList.add('list-item-name-clickable');
         nameSpan.innerHTML = `${option.name} <small>(${effectsSummary})</small>`;
         nameSpan.dataset.id = option.id;
-        nameSpan.dataset.type = selectedTypeKey;
+        nameSpan.dataset.type = selectedTypeKey; // Pass the baseType for edit context
         div.appendChild(nameSpan);
         
         DOMCB.charBaseOptionListContainer.appendChild(div);
     });
 }
 
-// ★★★ EXPORTED FOR admin-main.js ★★★
 export function openEditCharBaseOptionModalById(optionId, baseType) {
     const characterBasesCache = getCharacterBasesFuncCache();
-    const optionData = (characterBasesCache[baseType] || []).find(opt => opt.id === optionId);
-    if (!optionData && optionId) {
+    const optionsForBaseType = characterBasesCache[baseType] || [];
+    const optionData = optionsForBaseType.find(opt => opt.id === optionId); // Assumes non-deleted
+    
+    if (!optionData && optionId) { // optionId implies we are editing, so data should exist
         alert("編集するデータが見つかりません。"); 
         return; 
     }
-    openEditCharBaseOptionModal(optionData, baseType);
+    openEditCharBaseOptionModal(optionData, baseType); // Pass null for new option
 }
 
-function openEditCharBaseOptionModal(optionData, baseType) {
+// Internal function to open modal, handles both new and edit
+function openEditCharBaseOptionModal(optionData, baseType) { // optionData can be null for new
     DOMCB.editingCharBaseTypeInput.value = baseType;
     const typeName = baseTypeMappings[baseType] || "基礎情報";
     DOMCB.editCharBaseOptionModalTitle.textContent = optionData ? `${typeName}オプション編集` : `${typeName}オプション新規追加`;
@@ -269,9 +293,10 @@ function openEditCharBaseOptionModal(optionData, baseType) {
     DOMCB.editingCharBaseOptionNameInput.value = optionData ? optionData.name : '';
     currentCharBaseOptionEffects = optionData && Array.isArray(optionData.effects) ? JSON.parse(JSON.stringify(optionData.effects)) : [];
 
-    switchToAddCharBaseEffectMode();
-    renderCurrentCharBaseOptionEffectsListModal();
+    switchToAddCharBaseEffectMode(); // Reset effect input form
+    renderCurrentCharBaseOptionEffectsListModal(); // Render current/empty effects
 
+    // Ensure effect type select is populated
     if (DOMCB.charBaseOptionEffectTypeSelect.options.length <=1 || (DOMCB.charBaseOptionEffectTypeSelect.options[0] && DOMCB.charBaseOptionEffectTypeSelect.options[0].value === "")) {
         _populateCharBaseEffectTypeSelectInternal();
     }
@@ -280,6 +305,7 @@ function openEditCharBaseOptionModal(optionData, baseType) {
     if(DOMCB.editingCharBaseOptionNameInput) DOMCB.editingCharBaseOptionNameInput.focus();
 }
 
+// updateCharBaseOptionEffectUnitDisplay remains the same
 function updateCharBaseOptionEffectUnitDisplay() {
     if (!DOMCB.charBaseOptionEffectUnitDisplay || !DOMCB.charBaseOptionEffectTypeSelect) return;
     const selectedOption = DOMCB.charBaseOptionEffectTypeSelect.options[DOMCB.charBaseOptionEffectTypeSelect.selectedIndex];
@@ -287,6 +313,7 @@ function updateCharBaseOptionEffectUnitDisplay() {
     DOMCB.charBaseOptionEffectUnitDisplay.textContent = (unitName && unitName !== '' && unitName !== 'none') ? `(${unitName})` : '';
 }
 
+// handleAddOrUpdateCharBaseEffect remains the same
 function handleAddOrUpdateCharBaseEffect() {
     const typeId = DOMCB.charBaseOptionEffectTypeSelect.value;
     const valueStr = DOMCB.charBaseOptionEffectValueInput.value;
@@ -297,7 +324,7 @@ function handleAddOrUpdateCharBaseEffect() {
     const selectedOption = DOMCB.charBaseOptionEffectTypeSelect.options[DOMCB.charBaseOptionEffectTypeSelect.selectedIndex];
     const unit = (selectedOption && selectedOption.dataset.unitName && selectedOption.dataset.unitName !== 'none') ? selectedOption.dataset.unitName : null;
 
-    const newEffect = { type: typeId, value: value, unit: unit };
+    const newEffect = { type: typeId, value: value, unit: unit }; // Note: 'type' here is effectTypeId
 
     if (charBaseEffectEditMode && charBaseEffectEditingIndex >= 0 && charBaseEffectEditingIndex < currentCharBaseOptionEffects.length) {
         currentCharBaseOptionEffects[charBaseEffectEditingIndex] = newEffect;
@@ -305,22 +332,22 @@ function handleAddOrUpdateCharBaseEffect() {
         currentCharBaseOptionEffects.push(newEffect);
     }
     renderCurrentCharBaseOptionEffectsListModal();
-    switchToAddCharBaseEffectMode();
+    switchToAddCharBaseEffectMode(); // Reset form
 }
 
-
+// renderCurrentCharBaseOptionEffectsListModal remains the same
 function renderCurrentCharBaseOptionEffectsListModal() {
     if (!DOMCB.currentCharBaseOptionEffectsList) return;
     DOMCB.currentCharBaseOptionEffectsList.innerHTML = '';
-    const effectTypesCache = getEffectTypesFuncCache();
-    const effectUnitsCache = getEffectUnitsFuncCache();
+    const effectTypesCache = getEffectTypesFuncCache(); // Assumes non-deleted
+    const effectUnitsCache = getEffectUnitsFuncCache(); // Assumes non-deleted
 
     if (currentCharBaseOptionEffects.length === 0) {
         DOMCB.currentCharBaseOptionEffectsList.innerHTML = '<p>効果が追加されていません。</p>'; return;
     }
 
     currentCharBaseOptionEffects.forEach((effect, index) => {
-        const effectType = effectTypesCache.find(et => et.id === effect.type);
+        const effectType = effectTypesCache.find(et => et.id === effect.type); // 'type' is effectTypeId
         const typeName = effectType ? effectType.name : '不明な効果';
         
         let effectText;
@@ -350,9 +377,9 @@ function renderCurrentCharBaseOptionEffectsListModal() {
             const editIndex = parseInt(e.currentTarget.dataset.index, 10);
             const effectToEdit = currentCharBaseOptionEffects[editIndex];
             if (effectToEdit) {
-                DOMCB.charBaseOptionEffectTypeSelect.value = effectToEdit.type;
+                DOMCB.charBaseOptionEffectTypeSelect.value = effectToEdit.type; // 'type' is effectTypeId
                 DOMCB.charBaseOptionEffectValueInput.value = effectToEdit.value;
-                updateCharBaseOptionEffectUnitDisplay();
+                updateCharBaseOptionEffectUnitDisplay(); // Update unit based on selected effect type
 
                 charBaseEffectEditMode = true;
                 charBaseEffectEditingIndex = editIndex;
@@ -364,33 +391,46 @@ function renderCurrentCharBaseOptionEffectsListModal() {
             const deleteIndex = parseInt(e.currentTarget.dataset.index, 10);
             currentCharBaseOptionEffects.splice(deleteIndex, 1);
             renderCurrentCharBaseOptionEffectsListModal();
-            if (charBaseEffectEditMode && charBaseEffectEditingIndex === deleteIndex) {
-                switchToAddCharBaseEffectMode();
+            if (charBaseEffectEditMode && charBaseEffectEditingIndex === deleteIndex) { // If deleted item was being edited
+                switchToAddCharBaseEffectMode(); // Reset form
             }
         });
         DOMCB.currentCharBaseOptionEffectsList.appendChild(div);
     });
 }
 
+
 async function saveCharBaseOption() {
     const baseType = DOMCB.editingCharBaseTypeInput.value;
-    const optionId = DOMCB.editingCharBaseOptionDocIdInput.value;
+    const optionId = DOMCB.editingCharBaseOptionDocIdInput.value; // Empty if new
     const name = DOMCB.editingCharBaseOptionNameInput.value.trim();
+
     if (!baseType || !name) { alert("種類と名前は必須です。"); return; }
 
-    const characterBasesCache = getCharacterBasesFuncCache();
-    if ((characterBasesCache[baseType] || []).some(opt => opt.name.toLowerCase() === name.toLowerCase() && opt.id !== optionId)) {
+    const characterBasesCache = getCharacterBasesFuncCache(); // Assumes non-deleted options
+    const optionsForBaseType = characterBasesCache[baseType] || [];
+    // Check for duplicates among non-deleted options of the same baseType
+    if (optionsForBaseType.some(opt => opt.name.toLowerCase() === name.toLowerCase() && opt.id !== optionId)) {
         alert(`「${baseTypeMappings[baseType]}」に同じ名前の選択肢「${name}」が既に存在します。`); return;
     }
 
-    const optionData = { name, effects: currentCharBaseOptionEffects, updatedAt: serverTimestamp() };
+    const optionData = { 
+        name, 
+        effects: currentCharBaseOptionEffects, 
+        updatedAt: serverTimestamp() // Add/Update timestamp
+    };
+    // For new options, also set isDeleted and createdAt
+    if (!optionId) {
+        optionData.isDeleted = false;
+        optionData.createdAt = serverTimestamp();
+    }
+
     const optionsCollectionRef = collection(dbInstance, `character_bases/${baseType}/options`);
 
     try {
-        if (optionId) {
+        if (optionId) { // Editing existing
             await updateDoc(doc(optionsCollectionRef, optionId), optionData);
-        } else {
-            optionData.createdAt = serverTimestamp();
+        } else { // Adding new
             await addDoc(optionsCollectionRef, optionData);
         }
         closeModal('editCharBaseOptionModal');
@@ -401,17 +441,25 @@ async function saveCharBaseOption() {
     }
 }
 
-async function deleteCharBaseOption(optionId, baseType, optionName) {
-    if (confirm(`基礎情報「${baseTypeMappings[baseType]}」のオプション「${optionName}」を削除しますか？\nこの操作は元に戻せません。`)) {
+async function logicalDeleteCharBaseOption(optionId, baseType, optionName) {
+    // Character base options are not typically referenced by other collections directly
+    // in a way that would block deletion (unlike tags or categories).
+    // If they were, add checks here.
+
+    if (confirm(`基礎情報「${baseTypeMappings[baseType]}」のオプション「${optionName}」を論理削除しますか？\nこのオプションは一覧などには表示されなくなりますが、データは残ります。`)) {
         try {
-            await deleteDoc(doc(dbInstance, `character_bases/${baseType}/options`, optionId));
+            await updateDoc(doc(dbInstance, `character_bases/${baseType}/options`, optionId), {
+                isDeleted: true,
+                updatedAt: serverTimestamp() // Update timestamp
+            });
+            
             if (DOMCB.editCharBaseOptionModal.style.display !== 'none' && DOMCB.editingCharBaseOptionDocIdInput.value === optionId) {
                 closeModal('editCharBaseOptionModal');
             }
             await refreshAllDataCallback();
         } catch (error) {
-            console.error(`[CharBase Manager] Error deleting option for ${baseType}:`, error);
-            alert("基礎情報オプションの削除に失敗しました。");
+            console.error(`[CharBase Manager] Error logically deleting option for ${baseType}:`, error);
+            alert("基礎情報オプションの論理削除に失敗しました。");
         }
     }
 }
