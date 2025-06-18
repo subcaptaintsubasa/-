@@ -10,6 +10,7 @@ let allCategories = [];
 let allTags = [];
 let effectTypesCache = [];
 let effectUnitsCache = [];
+let effectSuperCategoriesCache = [];
 let characterBasesCache = {}; // { headShape: [...], color: [...] }
 let itemSourcesCache = [];
 
