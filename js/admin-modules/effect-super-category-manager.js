@@ -1,5 +1,5 @@
 // js/admin-modules/effect-super-category-manager.js
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"; // deleteField は不要だったので削除
+import { collection, getDocs, addDoc, doc, updateDoc, query, orderBy, serverTimestamp, where, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { openModal as openAdminModal, closeModal as closeAdminModal, populateTagButtonSelector, getSelectedTagButtonValues } from './ui-helpers.js';
 
 const DOMESC = {
@@ -24,8 +24,8 @@ let openEnlargedListModalCallbackFromMain = (config) => { console.warn("openEnla
 
 export function initEffectSuperCategoryManager(dependencies) {
     dbInstance = dependencies.db;
-    getEffectSuperCategoriesFuncCache = dependencies.getEffectSuperCategories;
-    getEffectTypesFuncCache = dependencies.getEffectTypes;
+    getEffectSuperCategoriesFuncCache = dependencies.getEffectSuperCategories; // Assumes non-deleted
+    getEffectTypesFuncCache = dependencies.getEffectTypes; // Assumes non-deleted
     refreshAllDataCallback = dependencies.refreshAllData;
     if (typeof dependencies.openEnlargedListModal === 'function') {
         openEnlargedListModalCallbackFromMain = dependencies.openEnlargedListModal;
@@ -52,12 +52,11 @@ export function initEffectSuperCategoryManager(dependencies) {
     if (DOMESC.deleteFromEditModalButton) {
         DOMESC.deleteFromEditModalButton.addEventListener('click', () => {
             const docId = DOMESC.editingDocIdInput.value;
-            // ★★★ name はキャッシュから取得する方が確実 ★★★
             const superCategory = getEffectSuperCategoriesFuncCache().find(sc => sc.id === docId);
-            const name = superCategory ? superCategory.name : DOMESC.editingNameInput.value; // Fallback if not in cache (should be)
+            const name = superCategory ? superCategory.name : DOMESC.editingNameInput.value; 
 
-            if (docId && name) { // Nameも必須としてチェック
-                deleteEffectSuperCategory(docId, name);
+            if (docId && name) {
+                logicalDeleteEffectSuperCategory(docId, name); // Changed to logicalDelete
             } else if (!docId) {
                 alert("削除対象の効果大分類IDが見つかりません。");
             } else {
@@ -74,18 +73,18 @@ export function initEffectSuperCategoryManager(dependencies) {
             if (typeof openEnlargedListModalCallbackFromMain === 'function') {
                 openEnlargedListModalCallbackFromMain({
                     title: "効果大分類一覧 (拡大)",
-                    sourceFn: getEffectSuperCategoriesFuncCache, // ★★★ sourceFn を渡す ★★★
+                    sourceFn: getEffectSuperCategoriesFuncCache,
                     itemType: 'effectSuperCategory',
                     editFunction: openEditEffectSuperCategoryModalById,
                 });
             }
         });
     }
-    console.log("[Effect Super Category Manager] Initialized.");
+    console.log("[Effect Super Category Manager] Initialized for logical delete.");
 }
 
 function buildEffectSuperCategoryListDOM(isEnlargedView = false) {
-    const superCategoriesCache = getEffectSuperCategoriesFuncCache();
+    const superCategoriesCache = getEffectSuperCategoriesFuncCache(); // Assumes non-deleted
     if (!superCategoriesCache || superCategoriesCache.length === 0) {
         const p = document.createElement('p');
         p.textContent = '効果大分類が登録されていません。';
@@ -102,7 +101,7 @@ function buildEffectSuperCategoryListDOM(isEnlargedView = false) {
         nameSpan.textContent = sc.name;
         nameSpan.dataset.id = sc.id;
         if (!isEnlargedView) {
-            nameSpan.dataset.action = "edit";
+            nameSpan.dataset.action = "edit"; // For non-enlarged view, click on name edits
         }
         itemDiv.appendChild(nameSpan);
         listRoot.appendChild(itemDiv);
@@ -113,16 +112,17 @@ function buildEffectSuperCategoryListDOM(isEnlargedView = false) {
 export function _renderEffectSuperCategoriesForManagementInternal() {
     if (!DOMESC.effectSuperCategoryListContainer) return;
     DOMESC.effectSuperCategoryListContainer.innerHTML = '';
-    const listContent = buildEffectSuperCategoryListDOM(false);
-    if (listContent.childNodes.length > 0 || listContent.nodeName === 'P') { // Check if it's a P or has children
+    const listContent = buildEffectSuperCategoryListDOM(false); // false for normal management view
+    if (listContent && (listContent.childNodes.length > 0 || listContent.nodeName === 'P')) {
         DOMESC.effectSuperCategoryListContainer.appendChild(listContent);
     } else {
-        DOMESC.effectSuperCategoryListContainer.innerHTML = '<p>効果大分類が登録されていません。</p>'; // Fallback
+        DOMESC.effectSuperCategoryListContainer.innerHTML = '<p>効果大分類が登録されていません。</p>';
     }
 }
 
 function handleListClick(event) {
     const target = event.target;
+    // Ensure click is on the name part and has action=edit for non-enlarged view
     const clickableName = target.closest('.list-item-name-clickable[data-id][data-action="edit"]');
     if (clickableName) {
         openEditEffectSuperCategoryModalById(clickableName.dataset.id);
@@ -133,12 +133,19 @@ async function addEffectSuperCategory() {
     if (!DOMESC.newEffectSuperCategoryNameInput) return;
     const name = DOMESC.newEffectSuperCategoryNameInput.value.trim();
     if (!name) { alert("効果大分類名を入力してください。"); return; }
-    const currentSuperCategories = getEffectSuperCategoriesFuncCache();
+
+    const currentSuperCategories = getEffectSuperCategoriesFuncCache(); // Assumes non-deleted
+    // Check for duplicates among non-deleted super categories
     if (currentSuperCategories.some(sc => sc.name.toLowerCase() === name.toLowerCase())) {
         alert("同じ名前の効果大分類が既に存在します。"); return;
     }
     try {
-        await addDoc(collection(dbInstance, 'effect_super_categories'), { name: name, createdAt: serverTimestamp() });
+        await addDoc(collection(dbInstance, 'effect_super_categories'), { 
+            name: name, 
+            isDeleted: false, // New ones are not deleted
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp() // Add updatedAt
+        });
         DOMESC.newEffectSuperCategoryNameInput.value = '';
         await refreshAllDataCallback();
     } catch (error) {
@@ -148,7 +155,7 @@ async function addEffectSuperCategory() {
 }
 
 export function openEditEffectSuperCategoryModalById(docId) {
-    const superCategory = getEffectSuperCategoriesFuncCache().find(sc => sc.id === docId);
+    const superCategory = getEffectSuperCategoriesFuncCache().find(sc => sc.id === docId); // Assumes non-deleted
     if (!superCategory) {
         alert("編集する効果大分類が見つかりません。");
         return;
@@ -156,11 +163,17 @@ export function openEditEffectSuperCategoryModalById(docId) {
     if (DOMESC.editModal && DOMESC.editingDocIdInput && DOMESC.editingNameInput && DOMESC.editingEffectTypesSelector) {
         DOMESC.editingDocIdInput.value = superCategory.id;
         DOMESC.editingNameInput.value = superCategory.name;
-        const allEffectTypes = getEffectTypesFuncCache() || [];
+
+        const allEffectTypes = getEffectTypesFuncCache() || []; // Assumes non-deleted
+        // Find effect types that currently belong to this super category
         const effectTypesInThisSuperCat = allEffectTypes.filter(et => et.superCategoryId === docId).map(et => et.id);
+        
+        // Prepare options for the button selector: all non-deleted effect types
         const effectTypeOptionsForButtons = allEffectTypes.map(et => ({ id: et.id, name: et.name }))
                                                     .sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+                                                    
         populateTagButtonSelector(DOMESC.editingEffectTypesSelector, effectTypeOptionsForButtons, effectTypesInThisSuperCat);
+        
         openAdminModal('editEffectSuperCategoryModal');
         if (DOMESC.editingNameInput) DOMESC.editingNameInput.focus();
     } else {
@@ -176,30 +189,37 @@ async function saveEffectSuperCategoryEdit() {
         alert("効果大分類名は空にできません。");
         return;
     }
-    const currentSuperCategories = getEffectSuperCategoriesFuncCache();
+    const currentSuperCategories = getEffectSuperCategoriesFuncCache(); // Assumes non-deleted
     if (currentSuperCategories.some(sc => sc.id !== docId && sc.name.toLowerCase() === newName.toLowerCase())) {
         alert("編集後の名前が他の効果大分類と重複します。");
         return;
     }
+
     const selectedEffectTypeIds = getSelectedTagButtonValues(DOMESC.editingEffectTypesSelector);
+
     try {
         const batch = writeBatch(dbInstance);
+        // Update the super category itself
         batch.update(doc(dbInstance, 'effect_super_categories', docId), {
             name: newName,
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp() // Update timestamp
         });
-        const allEffectTypes = getEffectTypesFuncCache() || [];
+
+        const allEffectTypes = getEffectTypesFuncCache() || []; // Assumes non-deleted
         allEffectTypes.forEach(et => {
             const effectTypeRef = doc(dbInstance, 'effect_types', et.id);
             const isCurrentlySelected = selectedEffectTypeIds.includes(et.id);
             const wasPreviouslyAssigned = et.superCategoryId === docId;
 
             if (isCurrentlySelected && !wasPreviouslyAssigned) {
-                batch.update(effectTypeRef, { superCategoryId: docId });
+                // Assign this superCategory to the effect type
+                batch.update(effectTypeRef, { superCategoryId: docId, updatedAt: serverTimestamp() });
             } else if (!isCurrentlySelected && wasPreviouslyAssigned) {
-                batch.update(effectTypeRef, { superCategoryId: null });
+                // Unassign this superCategory from the effect type
+                batch.update(effectTypeRef, { superCategoryId: deleteField(), updatedAt: serverTimestamp() });
             }
         });
+
         await batch.commit();
         closeAdminModal('editEffectSuperCategoryModal');
         document.dispatchEvent(new CustomEvent('adminEditModalClosed', { detail: { modalId: 'editEffectSuperCategoryModal' } }));
@@ -210,32 +230,32 @@ async function saveEffectSuperCategoryEdit() {
     }
 }
 
-async function deleteEffectSuperCategory(docId, name) {
-    const effectTypes = getEffectTypesFuncCache() || [];
-    const usedByEffectTypes = effectTypes.filter(et => et.superCategoryId === docId); // ★★★ filter を使用 ★★★
+async function logicalDeleteEffectSuperCategory(docId, name) {
+    const effectTypes = getEffectTypesFuncCache() || []; // Assumes non-deleted
+    // Check if any *non-deleted* effect types are using this super category
+    const usedByEffectTypes = effectTypes.filter(et => et.superCategoryId === docId);
 
-    if (usedByEffectTypes.length > 0) { // ★★★ length でチェック ★★★
+    if (usedByEffectTypes.length > 0) {
         const usedByTypeNames = usedByEffectTypes.map(et => et.name).join(', ');
-        alert(`効果大分類「${name}」は効果種類「${usedByTypeNames}」で使用されているため削除できません。\n先にこれらの効果種類からこの大分類の割り当てを解除してください。`);
+        alert(`効果大分類「${name}」は効果種類「${usedByTypeNames}」で使用されているため、論理削除できません。\n先にこれらの効果種類からこの大分類の割り当てを解除してください。`);
         return;
     }
 
-    if (confirm(`効果大分類「${name}」を削除しますか？\nこの操作は元に戻せません。`)) {
+    if (confirm(`効果大分類「${name}」を論理削除しますか？\nこの大分類は一覧などには表示されなくなりますが、データは残ります。`)) {
         try {
-            // No need to batch update effect_types here if the check above is sufficient
-            // However, if there's a chance of orphaned superCategoryIds, this batch would be a safeguard
-            // For now, relying on the check.
-            await deleteDoc(doc(dbInstance, 'effect_super_categories', docId));
+            await updateDoc(doc(dbInstance, 'effect_super_categories', docId), {
+                isDeleted: true,
+                updatedAt: serverTimestamp() // Update timestamp
+            });
             
-            // Only close modal if the currently edited item is the one being deleted
             if (DOMESC.editModal.style.display !== 'none' && DOMESC.editingDocIdInput.value === docId) {
                 closeAdminModal('editEffectSuperCategoryModal');
             }
             document.dispatchEvent(new CustomEvent('adminEditModalClosed', { detail: { modalId: 'editEffectSuperCategoryModal' } }));
             await refreshAllDataCallback();
         } catch (error) {
-            console.error("[Effect Super Category Manager] Error deleting:", error);
-            alert("効果大分類の削除に失敗しました。");
+            console.error("[Effect Super Category Manager] Error logically deleting:", error);
+            alert("効果大分類の論理削除に失敗しました。");
         }
     }
 }
