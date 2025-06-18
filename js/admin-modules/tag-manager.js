@@ -19,15 +19,15 @@ const DOMT = {
 let dbInstance = null;
 let getAllCategoriesFuncCache = () => [];
 let getAllTagsFuncCache = () => [];
+let getItemsFuncCache = () => []; // Items for checking usage on delete
 let refreshAllDataCallback = async () => {};
-// let openEnlargedListModalCallback = (config) => {}; // Not directly used by tag-manager to call, but admin-main calls it for tags
 
 export function initTagManager(dependencies) {
     dbInstance = dependencies.db;
     getAllCategoriesFuncCache = dependencies.getAllCategories;
     getAllTagsFuncCache = dependencies.getAllTags;
+    getItemsFuncCache = dependencies.getItems; // Get items cache
     refreshAllDataCallback = dependencies.refreshAllData;
-    // openEnlargedListModalCallback = dependencies.openEnlargedListModal; // Not needed here
 
     DOMT.newTagNameInput = document.getElementById('newTagName');
     DOMT.newTagCategoriesCheckboxes = document.getElementById('newTagCategoriesCheckboxes');
@@ -54,7 +54,7 @@ export function initTagManager(dependencies) {
             const tagId = DOMT.editingTagDocIdInput.value;
             const tag = getAllTagsFuncCache().find(t => t.id === tagId);
             if (tagId && tag) {
-                deleteTag(tagId, tag.name);
+                logicalDeleteTag(tagId, tag.name); // Changed to logicalDeleteTag
             } else {
                 alert("削除対象のタグIDが見つかりません。");
             }
@@ -72,19 +72,19 @@ export function initTagManager(dependencies) {
         });
     }
 
-    console.log("[Tag Manager] Initialized.");
+    console.log("[Tag Manager] Initialized for logical delete.");
 }
 
 function getAssignableCategoriesForTag() {
-    const allCategories = getAllCategoriesFuncCache();
+    const allCategories = getAllCategoriesFuncCache(); // Assumes this returns non-deleted
     return allCategories
-        .filter(cat => cat.parentId && cat.parentId !== "")
+        .filter(cat => cat.parentId && cat.parentId !== "" && !cat.isDeleted) // Ensure category itself is not deleted
         .map(cat => {
-            const parentCat = allCategories.find(p => p.id === cat.parentId);
+            const parentCat = allCategories.find(p => p.id === cat.parentId && !p.isDeleted); // Ensure parent is not deleted
             return {
                 id: cat.id,
                 name: cat.name,
-                parentName: parentCat ? parentCat.name : '不明'
+                parentName: parentCat ? parentCat.name : '不明(親削除済?)'
             };
         })
         .sort((a,b) => {
@@ -112,8 +112,8 @@ export function _populateCategoryCheckboxesForTagFormInternal(containerElement, 
 
 export function _renderTagsForManagementInternal() {
     if (!DOMT.tagListContainer) return;
-    const allTags = getAllTagsFuncCache();
-    const allCategories = getAllCategoriesFuncCache();
+    const allTags = getAllTagsFuncCache(); // Assumes this returns non-deleted tags
+    const allCategories = getAllCategoriesFuncCache(); // Assumes this returns non-deleted categories
     DOMT.tagListContainer.innerHTML = '';
 
     const searchTerm = DOMT.tagSearchInput ? DOMT.tagSearchInput.value.toLowerCase() : "";
@@ -133,10 +133,10 @@ export function _renderTagsForManagementInternal() {
     sortedTags.forEach(tag => {
         const belongingCategoriesNames = (tag.categoryIds || [])
             .map(catId => {
-                const cat = allCategories.find(c => c.id === catId);
-                if (cat && cat.parentId) {
+                const cat = allCategories.find(c => c.id === catId); // Already filtered by isDeleted=false
+                if (cat && cat.parentId) { // Ensure it's a child category
                     let name = cat.name;
-                    const parentCat = allCategories.find(p => p.id === cat.parentId);
+                    const parentCat = allCategories.find(p => p.id === cat.parentId); // Already filtered
                     name += parentCat ? ` (親:${parentCat.name})` : ` (親:不明)`;
                     return name;
                 }
@@ -152,7 +152,7 @@ export function _renderTagsForManagementInternal() {
         
         const nameSpan = document.createElement('span');
         nameSpan.classList.add('list-item-name-clickable');
-        nameSpan.dataset.tagId = tag.id; // For click handler
+        nameSpan.dataset.tagId = tag.id;
         nameSpan.innerHTML = `${tag.name} <small>(所属: ${displayCategories})</small>`;
         
         div.appendChild(nameSpan);
@@ -169,7 +169,10 @@ async function addTag() {
 
     if (!name) { alert("タグ名を入力してください。"); return; }
 
-    const q = query(collection(dbInstance, 'tags'), where('name', '==', name));
+    const q = query(collection(dbInstance, 'tags'), 
+                    where('name', '==', name),
+                    where('isDeleted', '==', false) // Check against non-deleted tags
+                  );
     const existingQuery = await getDocs(q);
     if (!existingQuery.empty) { alert("同じ名前のタグが既に存在します。"); return; }
 
@@ -177,7 +180,9 @@ async function addTag() {
         await addDoc(collection(dbInstance, 'tags'), {
             name: name,
             categoryIds: selectedCategoryIdsForTag,
-            createdAt: serverTimestamp()
+            isDeleted: false, // New tags are not deleted
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp() // Add updatedAt
         });
 
         DOMT.newTagNameInput.value = '';
@@ -190,18 +195,18 @@ async function addTag() {
     }
 }
 
-// ★★★ EXPORT this function ★★★
 export function openEditTagModalById(tagId) {
-    const allTags = getAllTagsFuncCache();
+    const allTags = getAllTagsFuncCache(); // Assumes non-deleted
     const tagToEdit = allTags.find(t => t.id === tagId);
     if (!tagToEdit) { alert("編集するタグのデータが見つかりません。"); return; }
 
     DOMT.editingTagDocIdInput.value = tagToEdit.id;
     DOMT.editingTagNameInput.value = tagToEdit.name;
 
+    const allCategories = getAllCategoriesFuncCache(); // Assumes non-deleted
     const validCurrentCategoryIds = (tagToEdit.categoryIds || []).filter(catId => {
-        const cat = getAllCategoriesFuncCache().find(c => c.id === catId);
-        return cat && cat.parentId;
+        const cat = allCategories.find(c => c.id === catId);
+        return cat && cat.parentId; // Ensure category exists and is a child
     });
     _populateCategoryCheckboxesForTagFormInternal(DOMT.editingTagCategoriesCheckboxes, validCurrentCategoryIds);
 
@@ -216,7 +221,7 @@ async function saveTagEdit() {
 
     if (!newName) { alert("タグ名は空にできません。"); return; }
 
-    const allTags = getAllTagsFuncCache();
+    const allTags = getAllTagsFuncCache(); // Assumes non-deleted
     if (allTags.some(t => t.id !== docId && t.name.toLowerCase() === newName.toLowerCase())) {
         alert("編集後の名前が、他の既存タグと重複します。"); return;
     }
@@ -225,7 +230,7 @@ async function saveTagEdit() {
         await updateDoc(doc(dbInstance, 'tags', docId), {
             name: newName,
             categoryIds: newSelectedCategoryIdsForTag,
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp() // Update timestamp
         });
         closeModal('editTagModal');
         await refreshAllDataCallback();
@@ -235,25 +240,32 @@ async function saveTagEdit() {
     }
 }
 
-async function deleteTag(docId, tagName) {
-    if (confirm(`タグ「${tagName}」を削除しますか？\nこのタグを使用している全てのアイテムからも自動的に解除されます。\nこの操作は元に戻せません。`)) {
+async function logicalDeleteTag(docId, tagName) {
+    // Check if tag is used by any non-deleted items
+    const itemsCache = getItemsFuncCache(); // Assumes non-deleted items
+    const itemsUsingTag = itemsCache.filter(item => item.tags && item.tags.includes(docId));
+
+    if (itemsUsingTag.length > 0) {
+        alert(`タグ「${tagName}」は ${itemsUsingTag.length} 個のアイテムで使用されているため、論理削除できません。先にアイテムからこのタグを解除してください。`);
+        return;
+    }
+
+    if (confirm(`タグ「${tagName}」を論理削除しますか？\nこのタグは一覧などには表示されなくなりますが、データは残ります。`)) {
         try {
-            const batch = writeBatch(dbInstance);
-            const itemsToUpdateQuery = query(collection(dbInstance, 'items'), where('tags', 'array-contains', docId));
-            const itemsSnapshot = await getDocs(itemsToUpdateQuery);
-            itemsSnapshot.forEach(itemDoc => {
-                batch.update(itemDoc.ref, { tags: arrayRemove(docId) });
+            // No need to batch update items if we prevent deletion when in use.
+            // If we allowed deletion while in use, we would need to remove the tagId from items.
+            await updateDoc(doc(dbInstance, 'tags', docId), {
+                isDeleted: true,
+                updatedAt: serverTimestamp() // Update timestamp
             });
-            batch.delete(doc(dbInstance, 'tags', docId));
-            await batch.commit();
             
             if (DOMT.editTagModal.style.display !== 'none' && DOMT.editingTagDocIdInput.value === docId) {
                 closeModal('editTagModal');
             }
             await refreshAllDataCallback();
         } catch (error) {
-            console.error("[Tag Manager] Error deleting tag:", error);
-            alert("タグの削除または関連エンティティの更新に失敗しました。");
+            console.error("[Tag Manager] Error logically deleting tag:", error);
+            alert("タグの論理削除に失敗しました。");
         }
     }
 }
