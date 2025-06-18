@@ -1190,19 +1190,15 @@ async function loadItemForEdit(docId) {
 
 
 async function logicalDeleteItem(docId, itemName) {
-    if (confirm(`アイテム「${itemName}」を論理削除しますか？\nこのアイテムは一覧などには表示されなくなりますが、データは残ります。`)) {
+    if (confirm(`アイテム「${itemName}」を論理削除しますか？データは残りますが一覧には表示されなくなります。`)) {
         try {
             await updateDoc(doc(dbInstance, 'items', docId), {
                 isDeleted: true,
-                updatedAt: serverTimestamp() // Update timestamp
+                updatedAt: serverTimestamp()
             });
-            // Note: Image on R2 is NOT deleted by this operation.
-            console.warn(`Image associated with logically deleted item ${docId} (name: ${itemName}) is NOT deleted from Cloudflare R2.`);
-            
-            if (DOMI.itemIdToEditInput.value === docId) { // If currently editing this item
-                clearItemFormInternal();
-            }
-            await refreshAllDataCallback(); // Refresh list, which should now exclude this item
+            console.warn(`Item ${docId} (${itemName}) logically deleted. Image on R2 is NOT deleted.`);
+            if (DOMI.itemIdToEditInput.value === docId) clearItemFormInternal();
+            await refreshAllDataCallback();
         } catch (error) {
             console.error(`[Item Manager] Error logically deleting item ${docId}:`, error);
             alert("アイテムの論理削除に失敗しました。");
