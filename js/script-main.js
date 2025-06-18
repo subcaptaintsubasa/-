@@ -2,13 +2,13 @@
 import { db } from '../firebase-config.js';
 import {
     loadData,
-    isInitialDataLoaded, // Check if data is ready in memory
+    isInitialDataLoaded, 
     getAllItems, 
     getAllCategories, 
     getAllTags, 
     getEffectTypesCache, 
     getCharacterBasesCache,
-    getItemSourcesCache, // Make sure this is exported and used if needed by ui-main for item detail
+    getItemSourcesCache, 
     EQUIPMENT_SLOT_TAG_IDS, 
     SIMULATOR_PARENT_CATEGORY_NAME, 
     SIMULATOR_EFFECT_CHILD_CATEGORY_NAME
@@ -17,8 +17,8 @@ import {
     initUIMain,
     displaySearchToolMessage, 
     showConfirmSelectionButton,
-    openItemDetailModal, // Ensure openItemDetailModal is imported if ui-main manages it directly
-    closeAllModals // For potential full app reset/error scenarios
+    openItemDetailModal, 
+    closeAllModals 
 } from './modules/ui-main.js';
 import {
     initSearchFilters, 
@@ -27,12 +27,11 @@ import {
     deactivateSimulatorSelectionMode, 
     cancelItemSelection,
     setTemporarilySelectedItemExport,
-    isSelectingForSimulatorState as getIsSelectingForSimulator, // Renamed for clarity
-    getCurrentSelectingSlotState as getCurrentSelectingSlot // Renamed for clarity
+    isSelectingForSimulatorState as getIsSelectingForSimulator,
+    getCurrentSelectingSlotState as getCurrentSelectingSlot
 } from './modules/search-filters.js';
 import {
     initSearchRender 
-    // renderItems is called via applyFiltersAndRender, so not directly needed here
 } from './modules/search-render.js';
 import {
     initSimulatorUI, 
@@ -48,48 +47,57 @@ import {
 import { initSimulatorLogic } from './modules/simulator-logic.js';
 import { initSimulatorImage } from './modules/simulator-image.js';
 
+// ===== Service Worker 登録処理 スタート =====
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { 
+        // URL: https://subcaptaintsubasa.github.io/-/
+        // sw.js はリポジトリルート (この場合は '-') に配置される想定
+        // register() に渡すパスは、HTMLファイル (index.html) から見た sw.js の相対パス、
+        // またはサイトルートからの絶対パス。
+        // index.html が /-/index.html で、sw.js が /-/sw.js の場合、
+        // 相対パスなら 'sw.js'、ドメインルートからの絶対パスなら '/-/sw.js'
+        // scope は '/-/' と明示的に指定するのが最も確実。
+        navigator.serviceWorker.register('/-/sw.js', { scope: '/-/' }) 
+            .then(registration => {
+                console.log('[Main] Service Worker registered successfully with scope:', registration.scope);
+            })
+            .catch(error => {
+                console.error('[Main] Service Worker registration failed:', error);
+            });
+    });
+}
+// ===== Service Worker 登録処理 エンド =====
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("[script-main] DOMContentLoaded, starting app init...");
 
-    const simulatorModal = document.getElementById('simulatorModal'); // Still useful for direct manipulation
+    const simulatorModal = document.getElementById('simulatorModal'); 
 
-    // Initialize basic UI handlers (modals, nav) first
-    // These don't strictly depend on data being loaded, but some callbacks might
     initUIMain(
-        getIsSelectingForSimulator, // Pass the state getter from search-filters
-        cancelItemSelection,        // Pass the cancel action from search-filters
-        initializeSimulatorDisplay  // Pass the UI initializer from simulator-ui
+        getIsSelectingForSimulator, 
+        cancelItemSelection,        
+        initializeSimulatorDisplay  
     );
 
     try {
         console.log("[script-main] Calling loadData to populate/sync IndexedDB and load to memory...");
-        // loadData will:
-        // 1. Attempt to load from IndexedDB to memory cache immediately.
-        // 2. Check if full sync or diff sync is needed with Firestore.
-        // 3. Perform Firestore sync (full or diff) potentially in the background after initial IDB load.
         await loadData(db); 
         console.log("[script-main] loadData call completed. Initial data (from IDB) should be in memory if available.");
 
-        // Now, check if the initial data load into memory was successful
         if (isInitialDataLoaded()) {
             console.log("[script-main] Initial data loaded into memory. Initializing data-dependent modules.");
 
-            // Initialize modules that depend on the data being available in memory caches
             initSearchRender({
                 getAllItems: getAllItems,
                 getEffectTypesCache: getEffectTypesCache,
                 getAllTags: getAllTags,
-                // getEffectUnitsCache is now handled internally by search-render via data-loader import
-                onItemTempSelect: (itemId) => { // Callback when an item is clicked in simulator selection mode
+                onItemTempSelect: (itemId) => { 
                     setTemporarilySelectedItemExport(itemId);
-                    // Potentially re-render only the item list if just highlight changes,
-                    // or rely on applyFiltersAndRender to be called by other logic.
-                    // For now, this just updates the state.
                 }
             });
 
-            initSearchFilters(db, { // db might not be strictly needed if all data comes from cache getters
+            initSearchFilters(db, { 
                 getAllItems: getAllItems,
                 getAllCategories: getAllCategories,
                 getAllTags: getAllTags,
@@ -97,34 +105,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 getSlotTagId: (slotName) => EQUIPMENT_SLOT_TAG_IDS[slotName],
                 simulatorParentCategoryName: SIMULATOR_PARENT_CATEGORY_NAME,
                 simulatorEffectChildCategoryName: SIMULATOR_EFFECT_CHILD_CATEGORY_NAME,
-                onFilterChange: applyFiltersAndRender, // Callback to re-render items when filters change
+                onFilterChange: applyFiltersAndRender, 
                 onSelectionConfirmed: (slotName, selectedItemId) => {
                     console.log(`[script-main] Simulator selection confirmed for slot '${slotName}', item ID: '${selectedItemId}'`);
-                    updateSelectedEquipment(slotName, selectedItemId); // Update simulator's state
-                    deactivateSimulatorSelectionMode(); // Turn off selection mode in search-filters
-                    if (simulatorModal) simulatorModal.style.display = 'flex'; // Show simulator modal
-                    updateSimulatorSlotDisplay(slotName); // Update the specific slot in simulator UI
-                    calculateAndDisplayTotalEffects(); // Recalculate effects
+                    updateSelectedEquipment(slotName, selectedItemId); 
+                    deactivateSimulatorSelectionMode(); 
+                    if (simulatorModal) simulatorModal.style.display = 'flex'; 
+                    updateSimulatorSlotDisplay(slotName); 
+                    calculateAndDisplayTotalEffects(); 
                 },
-                displaySearchToolMessage: displaySearchToolMessage, // UI function
-                showConfirmSelectionButton: showConfirmSelectionButton, // UI function
+                displaySearchToolMessage: displaySearchToolMessage, 
+                showConfirmSelectionButton: showConfirmSelectionButton, 
             });
 
-            initSimulatorUI(db, { // db might not be strictly needed
+            initSimulatorUI(db, { 
                 getAllItems: getAllItems,
                 getEffectTypesCache: getEffectTypesCache,
                 getCharacterBasesCache: getCharacterBasesCache,
-                // getEffectUnitsCache is handled by simulator-ui via data-loader import
                 onSlotSelectStart: (slotName) => {
                     console.log(`[script-main] Starting item selection for slot: ${slotName}`);
-                    if (simulatorModal) simulatorModal.style.display = 'none'; // Hide simulator
+                    if (simulatorModal) simulatorModal.style.display = 'none'; 
                     const slotTagId = EQUIPMENT_SLOT_TAG_IDS[slotName];
                     if (slotTagId === undefined || slotTagId === null) {
                         alert(`部位「${slotName}」に対応するタグIDが設定されていません。管理画面で設定を確認してください。`);
-                        if (simulatorModal) simulatorModal.style.display = 'flex'; // Re-show simulator
+                        if (simulatorModal) simulatorModal.style.display = 'flex'; 
                         return;
                     }
-                    // Activate selection mode in search-filters, passing current equipped item for pre-selection
                     activateSimulatorSelectionMode(slotName, slotTagId, getSelectedEquipment()[slotName] || null);
                 },
                 onSlotClear: (slotName) => {
@@ -133,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     updateSimulatorSlotDisplay(slotName);
                     calculateAndDisplayTotalEffects();
                 },
-                getCharacterBaseOptionData: (baseType, optionId) => { // Used by simulator logic/UI
+                getCharacterBaseOptionData: (baseType, optionId) => { 
                     const bases = getCharacterBasesCache();
                     return bases[baseType] ? (bases[baseType].find(opt => opt.id === optionId) || null) : null;
                 }
@@ -148,39 +154,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             initSimulatorImage({
                 getSelectedCharacterBase: getSelectedCharacterBase,
-                getCharacterBasesCache: getCharacterBasesCache, // For resolving names if needed
+                getCharacterBasesCache: getCharacterBasesCache, 
                 getSelectedEquipment: getSelectedEquipment,
-                getAllItems: getAllItems, // For item names/images in export
+                getAllItems: getAllItems, 
                 getTotalEffectsDisplayHTML: () => {
                     const displayElement = document.getElementById('totalEffectsDisplay');
                     return displayElement ? displayElement.innerHTML : "<p>効果なし</p>";
                 },
-                getSimulatorDOMS: getSimulatorDOMS // To access export area DOM elements
+                getSimulatorDOMS: getSimulatorDOMS 
             });
 
             console.log("[script-main] Performing initial item list render based on default filters...");
-            applyFiltersAndRender(); // This will render items based on current (likely empty) filters
+            applyFiltersAndRender(); 
             
             console.log("[script-main] Performing initial simulator display setup...");
-            initializeSimulatorDisplay(); // Set up the simulator UI with default/empty state
+            initializeSimulatorDisplay(); 
 
         } else {
-            // This block executes if `isInitialDataLoaded()` returns false after `loadData` finishes.
-            // This implies that `loadAllDataToCache` within `loadData` failed or IDB was empty and
-            // the subsequent full sync (if triggered) also had issues before populating memory.
             console.error("[script-main] Critical: Initial data could not be loaded into memory cache even after loadData call. App cannot function correctly.");
             const itemListEl = document.getElementById('itemList');
             if (itemListEl) {
                 itemListEl.innerHTML = `<p style="color: red; text-align: center; padding: 20px;">データ準備エラー: アプリケーションのデータが読み込めませんでした。時間をおいてページを再読み込みするか、管理者にお問い合わせください。</p>`;
             }
-            // Optionally, disable filter controls or other UI elements that depend on data.
-            // You might also want to hide the main content and show a more prominent error message.
         }
         console.log("[script-main] Application initialization sequence complete.");
 
     } catch (error) {
         console.error("[script-main] CRITICAL ERROR during app initialization:", error);
-        // Display a user-friendly error message covering the whole content area.
         const containerEl = document.querySelector('.container');
         if(containerEl) {
             containerEl.innerHTML = `<div style="padding: 20px; text-align: center;">
@@ -190,6 +190,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         <p><small>詳細: ${error.message}</small></p>
                                      </div>`;
         }
-        closeAllModals(); // Close any modals that might have been opened
+        closeAllModals(); 
     }
 });
