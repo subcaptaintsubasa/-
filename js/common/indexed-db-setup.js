@@ -3,7 +3,7 @@
 // It will be used by both the admin panel and the user-facing application.
 
 const DB_NAME = 'DenpaItemDB';
-const DB_VERSION = 1; // Increment version to trigger an upgrade
+const DB_VERSION = 2; // ★★★ バージョンをインクリメント ★★★
 
 // Define object stores and their indexes
 // This schema should mirror your Firestore collections and needed query patterns
@@ -12,13 +12,11 @@ const OBJECT_STORES_SCHEMA = [
         name: 'items',
         keyPath: 'docId',
         indexes: [
-            { name: 'name_lc', keyPath: 'name_lc', options: { unique: false } }, // For case-insensitive search
+            { name: 'name_lc', keyPath: 'name_lc', options: { unique: false } }, 
             { name: 'tags', keyPath: 'tags', options: { unique: false, multiEntry: true } },
             { name: 'price', keyPath: 'price', options: { unique: false } },
             { name: 'rarity', keyPath: 'rarity', options: { unique: false } },
             { name: 'updatedAt', keyPath: 'updatedAt', options: { unique: false } },
-            // Add isDeleted if you plan to sync logically deleted items to IDB first before removing
-            // { name: 'isDeleted', keyPath: 'isDeleted', options: { unique: false } }
         ]
     },
     {
@@ -52,7 +50,7 @@ const OBJECT_STORES_SCHEMA = [
         name: 'effect_units',
         keyPath: 'id',
         indexes: [
-            { name: 'name', keyPath: 'name', options: { unique: true } }, // Unit names should be unique
+            { name: 'name', keyPath: 'name', options: { unique: true } }, 
             { name: 'updatedAt', keyPath: 'updatedAt', options: { unique: false } },
         ]
     },
@@ -65,10 +63,10 @@ const OBJECT_STORES_SCHEMA = [
         ]
     },
     {
-        name: 'character_bases_options', // Store all character base options in one store
-        keyPath: 'id', // Firestore document ID will be unique across base types
+        name: 'character_bases_options', 
+        keyPath: 'id', 
         indexes: [
-            { name: 'baseType', keyPath: 'baseType', options: { unique: false } }, // 'headShape', 'color' etc.
+            { name: 'baseType', keyPath: 'baseType', options: { unique: false } }, 
             { name: 'name', keyPath: 'name', options: { unique: false } },
             { name: 'updatedAt', keyPath: 'updatedAt', options: { unique: false } },
         ]
@@ -84,11 +82,11 @@ const OBJECT_STORES_SCHEMA = [
         ]
     },
     {
-        name: 'metadata', // For storing last sync timestamps etc.
-        keyPath: 'collectionName', // e.g., 'items', 'categories'
-        indexes: [
-            { name: 'lastSyncTimestamp', keyPath: 'lastSyncTimestamp', options: { unique: false } }
-        ]
+        name: 'metadata', 
+        keyPath: 'collectionName', // 主キーは 'items_lastSyncTimestamp' のような文字列
+        // indexes: [ // ★★★ このインデックスは必須ではないためコメントアウト（または削除） ★★★
+        //     { name: 'lastSyncTimestamp', keyPath: 'lastSyncTimestamp', options: { unique: false } }
+        // ]
     }
 ];
 
@@ -114,19 +112,27 @@ export async function openDB() {
                 if (!db.objectStoreNames.contains(storeSchema.name)) {
                     const store = db.createObjectStore(storeSchema.name, { keyPath: storeSchema.keyPath, autoIncrement: storeSchema.autoIncrement });
                     console.log(`Created object store: ${storeSchema.name}`);
-                    storeSchema.indexes.forEach(indexSchema => {
+                    (storeSchema.indexes || []).forEach(indexSchema => { // safety check for indexes
                         store.createIndex(indexSchema.name, indexSchema.keyPath, indexSchema.options);
                         console.log(`Created index '${indexSchema.name}' on store '${storeSchema.name}'`);
                     });
                 } else {
-                    // Handle upgrades for existing stores if needed (e.g., adding new indexes)
                     const store = transaction.objectStore(storeSchema.name);
-                    storeSchema.indexes.forEach(indexSchema => {
+                    (storeSchema.indexes || []).forEach(indexSchema => { // safety check for indexes
                         if (!store.indexNames.contains(indexSchema.name)) {
                             store.createIndex(indexSchema.name, indexSchema.keyPath, indexSchema.options);
                             console.log(`Upgraded store '${storeSchema.name}', added index '${indexSchema.name}'`);
                         }
                     });
+                    // ここで古いバージョンのインデックスを削除する処理も追加できる
+                    // 例: if (oldVersion < 2 && store.indexNames.contains('oldIndexToRemove')) { store.deleteIndex('oldIndexToRemove'); }
+                    if (storeSchema.name === 'metadata' && oldVersion < 2) {
+                        // バージョン2へのアップグレードで、もし 'lastSyncTimestamp' インデックスが存在すれば削除
+                        if (store.indexNames.contains('lastSyncTimestamp')) {
+                            store.deleteIndex('lastSyncTimestamp');
+                            console.log("Deleted old 'lastSyncTimestamp' index from 'metadata' store.");
+                        }
+                    }
                 }
             });
             console.log("IndexedDB upgrade complete.");
@@ -135,38 +141,13 @@ export async function openDB() {
             console.warn("IndexedDB open operation blocked. Please close other tabs using this database.");
             alert("データベースの準備ができませんでした。このサイトを開いている他のタブを閉じてから、ページを再読み込みしてください。");
         },
-        blocking() {
-            // If other tabs are blocking the upgrade, you might want to notify the user
-            // or close the DB in other tabs.
-            console.warn("IndexedDB upgrade blocked by other connection. Attempting to close...");
-            // db.close(); // This might be called in the other tab
+        blocking(currentVersion, blockedVersion, event) {
+            console.warn(`IndexedDB upgrade from version ${currentVersion} to ${blockedVersion} blocked. Attempting to close...`);
+            // event.target.result.close(); // IDBPDatabase インスタンスから close() を呼ぶ
         },
         terminated() {
-            // Handle unexpected termination
             console.error("IndexedDB connection terminated unexpectedly. Please reload the page.");
             alert("データベース接続が予期せず終了しました。ページを再読み込みしてください。");
         }
     });
 }
-
-// Example of how to use it (this would typically be in your main data loading logic)
-/*
-let dbPromise = null;
-export function getDB() {
-    if (!dbPromise) {
-        dbPromise = openDB();
-    }
-    return dbPromise;
-}
-
-// Example usage in another module:
-// import { getDB } from './indexed-db-setup.js';
-// async function someOperation() {
-//   const db = await getDB();
-//   const tx = db.transaction('items', 'readonly');
-//   const store = tx.objectStore('items');
-//   const allItems = await store.getAll();
-//   await tx.done;
-//   console.log(allItems);
-// }
-*/
