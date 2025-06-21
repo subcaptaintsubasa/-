@@ -50,7 +50,7 @@ if (workboxLoaded) {
         { url: 'js/restore.js', revision: 'js-restore-20231031-1' },
         
         // JavaScript (common)
-        { url: 'js/common/indexed-db-setup.js', revision: 'js-idbsetup-20231031-1' },
+        { url: 'js/common/indexed-db-setup.js', revision: 'js-idbsetup-20231031-2' },
         { url: 'js/common/utils.js', revision: 'js-utils-20231031-1' },
 
         // JavaScript (modules - ユーザー画面用)
