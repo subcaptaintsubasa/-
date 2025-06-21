@@ -23,42 +23,28 @@ const COLLECTIONS_CONFIG = {
     effect_units: { storeName: 'effect_units', firestoreKey: 'id', localKey: 'id' },
     effect_super_categories: { storeName: 'effect_super_categories', firestoreKey: 'id', localKey: 'id' },
     item_sources: { storeName: 'item_sources', firestoreKey: 'id', localKey: 'id' },
-    // character_bases は特殊なので別途処理
 };
 const CHARACTER_BASE_TYPES_FOR_LOADER = ["headShape", "correction", "color", "pattern"];
 
 
-// 公開定数 (search-filters.js などで使われる)
+// 公開定数
 export let EQUIPMENT_SLOT_TAG_IDS = {};
 export const SIMULATOR_PARENT_CATEGORY_NAME = "装備";
-export const SIMULATOR_EFFECT_CHILD_CATEGORY_NAME = "効果"; // これは現状の設計では直接使わないかも
+export const SIMULATOR_EFFECT_CHILD_CATEGORY_NAME = "効果";
 
 let isDataLoading = false;
-let isInitialLoadComplete = false; // 初回フルロードが完了したか
+let isInitialLoadComplete = false;
 
-/**
- * Firestoreから指定されたコレクションの全ドキュメント（未削除）を取得します。
- * @param {FirebaseFirestore.Firestore} db - Firestoreインスタンス
- * @param {string} collectionName - コレクション名
- * @returns {Promise<Array<Object>>} ドキュメントデータの配列
- */
 async function fetchAllFromFirestore(db, collectionName) {
     const q = query(collection(db, collectionName), where('isDeleted', '==', false));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ [COLLECTIONS_CONFIG[collectionName]?.firestoreKey || 'id']: doc.id, ...doc.data() }));
+    const keyField = COLLECTIONS_CONFIG[collectionName]?.firestoreKey || 'id';
+    return snapshot.docs.map(doc => ({ [keyField]: doc.id, ...doc.data() }));
 }
 
-/**
- * Firestoreから指定されたコレクションの差分ドキュメント（未削除・論理削除済み）を取得します。
- * @param {FirebaseFirestore.Firestore} db - Firestoreインスタンス
- * @param {string} collectionName - コレクション名
- * @param {Timestamp} lastSyncTimestamp - 最終同期時刻
- * @returns {Promise<{updatedData: Array<Object>, deletedIds: Array<string>}>} 更新データと削除IDリスト
- */
 async function fetchDiffFromFirestore(db, collectionName, lastSyncTimestamp) {
     const firestoreKey = COLLECTIONS_CONFIG[collectionName]?.firestoreKey || 'id';
     
-    // 更新・追加されたデータ (isDeleted == false)
     const updatedQuery = query(
         collection(db, collectionName),
         where('updatedAt', '>', lastSyncTimestamp),
@@ -67,7 +53,6 @@ async function fetchDiffFromFirestore(db, collectionName, lastSyncTimestamp) {
     const updatedSnapshot = await getDocs(updatedQuery);
     const updatedData = updatedSnapshot.docs.map(doc => ({ [firestoreKey]: doc.id, ...doc.data() }));
 
-    // 論理削除されたデータ (isDeleted == true)
     const deletedQuery = query(
         collection(db, collectionName),
         where('updatedAt', '>', lastSyncTimestamp),
@@ -90,10 +75,12 @@ async function fetchAllCharacterBasesFromFirestore(db) {
     return fetchedBases;
 }
 
-async function fetchDiffCharacterBasesFromFirestore(db, lastSyncTimestamps) {
-    const diffBases = { updatedData: {}, deletedIds: {} }; // { headShape: [...], color: [...] }
+async function fetchDiffCharacterBasesFromFirestore(db, lastSyncTimestampsByType) {
+    const diffBases = { updatedData: {}, deletedIds: {} };
     for (const baseType of CHARACTER_BASE_TYPES_FOR_LOADER) {
-        const lastSync = lastSyncTimestamps[`character_bases_${baseType}`] || new Timestamp(0,0); // Default to epoch if no sync time
+        const metaKey = `character_bases_${baseType}_lastSyncTimestamp`;
+        const lastSync = lastSyncTimestampsByType[metaKey] || new Timestamp(0,0);
+        
         const optionsCollectionRef = collection(db, `character_bases/${baseType}/options`);
         
         const updatedQuery = query(optionsCollectionRef, where('updatedAt', '>', lastSync), where('isDeleted', '==', false));
@@ -111,15 +98,15 @@ async function fetchDiffCharacterBasesFromFirestore(db, lastSyncTimestamps) {
 async function loadAllDataToCache() {
     console.log("[data-loader] Loading all data from IndexedDB to memory cache...");
     try {
-        const results = await Promise.all([
-            getAllFromDB('items'),
-            getAllFromDB('categories'),
-            getAllFromDB('tags'),
-            getAllFromDB('effect_types'),
-            getAllFromDB('effect_units'),
-            getAllFromDB('effect_super_categories'),
-            getAllFromDB('item_sources'),
-        ]);
+        const storesToFetch = [
+            'items', 'categories', 'tags', 'effect_types', 
+            'effect_units', 'effect_super_categories', 'item_sources',
+            'character_bases_options'
+        ];
+        const results = await Promise.all(
+            storesToFetch.map(storeName => getAllFromDB(storeName))
+        );
+        
         allItems = results[0] || [];
         allCategories = results[1] || [];
         allTags = results[2] || [];
@@ -129,22 +116,23 @@ async function loadAllDataToCache() {
         itemSourcesCache = results[6] || [];
 
         characterBasesCache = {};
-        const charBaseOptions = await getAllFromDB('character_bases_options');
-        if (charBaseOptions) {
+        const charBaseOptionsFromDB = results[7] || [];
+        if (charBaseOptionsFromDB) {
             CHARACTER_BASE_TYPES_FOR_LOADER.forEach(type => characterBasesCache[type] = []);
-            charBaseOptions.forEach(option => {
+            charBaseOptionsFromDB.forEach(option => {
                 if (characterBasesCache[option.baseType]) {
                     characterBasesCache[option.baseType].push(option);
+                } else {
+                    console.warn(`[data-loader] Option with unknown baseType found in character_bases_options:`, option);
                 }
             });
         }
         
         console.log("[data-loader] Memory cache populated from IndexedDB.");
-        buildEquipmentSlotTagMapInternal(); // Rebuild map after loading tags
-        isInitialLoadComplete = true; // Mark initial load from IDB as complete
+        buildEquipmentSlotTagMapInternal();
+        isInitialLoadComplete = true; 
     } catch (error) {
         console.error("[data-loader] Error loading data from IndexedDB to memory cache:", error);
-        // Set to empty arrays to prevent errors in other modules
         allItems = []; allCategories = []; allTags = []; effectTypesCache = [];
         effectUnitsCache = []; effectSuperCategoriesCache = []; itemSourcesCache = [];
         characterBasesCache = {};
@@ -154,25 +142,13 @@ async function loadAllDataToCache() {
 
 async function performFullSync(db) {
     console.log("[data-loader] Performing full sync from Firestore to IndexedDB...");
-    let currentServerTime = serverTimestamp(); // Get a server timestamp for the new sync time
-                                            // This needs to be resolved to an actual Timestamp object.
-                                            // For simplicity now, we'll use client time after operations.
-
     try {
-        // Clear existing stores before full sync (optional, but good for clean slate)
-        // await Promise.all(Object.values(COLLECTIONS_CONFIG).map(config => clearStoreInDB(config.storeName)));
-        // await clearStoreInDB('character_bases_options');
-        // console.log("[data-loader] Cleared existing IndexedDB stores for full sync.");
-
-        // Fetch all data from Firestore
         const firestoreFetchPromises = Object.keys(COLLECTIONS_CONFIG).map(collName => 
             fetchAllFromFirestore(db, collName)
         );
         firestoreFetchPromises.push(fetchAllCharacterBasesFromFirestore(db));
-
         const results = await Promise.all(firestoreFetchPromises);
         
-        // Put fetched data into IndexedDB
         const idbPutPromises = [];
         let resultIndex = 0;
         for (const collName of Object.keys(COLLECTIONS_CONFIG)) {
@@ -181,11 +157,11 @@ async function performFullSync(db) {
             resultIndex++;
         }
         
-        const charBasesData = results[resultIndex]; // Last result is character_bases
+        const charBasesData = results[resultIndex];
         const allCharBaseOptionsToPut = [];
         for (const baseType in charBasesData) {
-            charBasesData[baseType].forEach(option => {
-                allCharBaseOptionsToPut.push({ ...option, baseType: baseType }); // Add baseType for querying
+            (charBasesData[baseType] || []).forEach(option => {
+                allCharBaseOptionsToPut.push({ ...option, baseType: baseType });
             });
         }
         if (allCharBaseOptionsToPut.length > 0) {
@@ -195,11 +171,7 @@ async function performFullSync(db) {
         await Promise.all(idbPutPromises);
         console.log("[data-loader] Full sync: Data written to IndexedDB.");
 
-        // Update last sync timestamps for all collections to now
-        // A more accurate way is to get a server timestamp *before* starting the fetches,
-        // or use the latest `updatedAt` from the fetched data.
-        // For simplicity, using client time after sync. This is okay for pull model.
-        const newSyncTimestamp = Timestamp.now(); // Firestore Timestamp
+        const newSyncTimestamp = Timestamp.now();
         const metadataPutPromises = [];
         for (const collName of Object.keys(COLLECTIONS_CONFIG)) {
             metadataPutPromises.push(setMetadata(`${collName}_lastSyncTimestamp`, newSyncTimestamp));
@@ -210,38 +182,61 @@ async function performFullSync(db) {
         await Promise.all(metadataPutPromises);
         console.log("[data-loader] Full sync: Metadata (lastSyncTimestamps) updated.");
         
-        await loadAllDataToCache(); // Populate memory cache from newly synced IDB
+        await loadAllDataToCache(); 
     } catch (error) {
         console.error("[data-loader] Error during full sync:", error);
-        isInitialLoadComplete = false; // Mark as incomplete on error
-        throw error; // Re-throw to be caught by calling function
+        isInitialLoadComplete = false; 
+        throw error; 
     }
 }
 
 async function performDiffSync(db) {
     console.log("[data-loader] Performing differential sync from Firestore to IndexedDB...");
-    const lastSyncTimestamps = {};
+    const lastSyncTimestamps = {}; // For regular collections
+    const charBaseLastSyncTimestamps = {}; // For character_bases subcollections, keyed by metaKey
     const metadataGetPromises = [];
 
     for (const collName of Object.keys(COLLECTIONS_CONFIG)) {
-        metadataGetPromises.push(getMetadata(`${collName}_lastSyncTimestamp`).then(ts => lastSyncTimestamps[collName] = ts));
+        const metaKey = `${collName}_lastSyncTimestamp`;
+        metadataGetPromises.push(
+            getMetadata(metaKey).then(tsData => {
+                if (tsData && typeof tsData.seconds === 'number' && typeof tsData.nanoseconds === 'number') {
+                    lastSyncTimestamps[collName] = new Timestamp(tsData.seconds, tsData.nanoseconds);
+                } else {
+                    lastSyncTimestamps[collName] = new Timestamp(0,0); 
+                }
+                console.log(`[data-loader] DiffSync: ${collName} lastSync:`, lastSyncTimestamps[collName].toDate());
+            })
+        );
     }
     for (const baseType of CHARACTER_BASE_TYPES_FOR_LOADER) {
-        metadataGetPromises.push(getMetadata(`character_bases_${baseType}_lastSyncTimestamp`).then(ts => lastSyncTimestamps[`character_bases_${baseType}`] = ts));
+        const metaKey = `character_bases_${baseType}_lastSyncTimestamp`;
+        metadataGetPromises.push(
+            getMetadata(metaKey).then(tsData => {
+                if (tsData && typeof tsData.seconds === 'number' && typeof tsData.nanoseconds === 'number') {
+                    charBaseLastSyncTimestamps[metaKey] = new Timestamp(tsData.seconds, tsData.nanoseconds);
+                } else {
+                    charBaseLastSyncTimestamps[metaKey] = new Timestamp(0,0);
+                }
+                 console.log(`[data-loader] DiffSync: ${metaKey} lastSync:`, charBaseLastSyncTimestamps[metaKey].toDate());
+            })
+        );
     }
+
     await Promise.all(metadataGetPromises);
-    console.log("[data-loader] Diff sync: Retrieved last sync timestamps:", lastSyncTimestamps);
+    console.log("[data-loader] Diff sync: Retrieved and processed all last sync timestamps.");
 
     try {
         const firestoreFetchPromises = [];
         for (const collName of Object.keys(COLLECTIONS_CONFIG)) {
-            const lastSync = lastSyncTimestamps[collName] || new Timestamp(0,0); // Default to epoch if never synced
+            const lastSync = lastSyncTimestamps[collName]; // Already a Timestamp instance or epoch
             firestoreFetchPromises.push(fetchDiffFromFirestore(db, collName, lastSync));
         }
-        firestoreFetchPromises.push(fetchDiffCharacterBasesFromFirestore(db, lastSyncTimestamps));
+        // Pass the object pajak charBaseLastSyncTimestamps (keyed by metaKey)
+        firestoreFetchPromises.push(fetchDiffCharacterBasesFromFirestore(db, charBaseLastSyncTimestamps));
 
         const diffResults = await Promise.all(firestoreFetchPromises);
-
+        
         const idbWritePromises = [];
         let resultIndex = 0;
         for (const collName of Object.keys(COLLECTIONS_CONFIG)) {
@@ -251,7 +246,7 @@ async function performDiffSync(db) {
                 idbWritePromises.push(bulkPutToDB(config.storeName, updatedData));
             }
             if (deletedIds.length > 0) {
-                idbWritePromises.push(bulkDeleteFromDB(config.storeName, deletedIds.map(id => id))); // Ensure keys match keyPath
+                idbWritePromises.push(bulkDeleteFromDB(config.storeName, deletedIds)); 
             }
             resultIndex++;
         }
@@ -260,13 +255,13 @@ async function performDiffSync(db) {
         const allCharBaseOptionsToPut = [];
         const allCharBaseOptionsToDelete = [];
         for (const baseType in charBasesDiff.updatedData) {
-            charBasesDiff.updatedData[baseType].forEach(option => {
+            (charBasesDiff.updatedData[baseType] || []).forEach(option => {
                 allCharBaseOptionsToPut.push({ ...option, baseType: baseType });
             });
         }
         for (const baseType in charBasesDiff.deletedIds) {
-            charBasesDiff.deletedIds[baseType].forEach(optionId => {
-                allCharBaseOptionsToDelete.push(optionId); // Assuming ID is the keyPath
+            (charBasesDiff.deletedIds[baseType] || []).forEach(optionId => {
+                allCharBaseOptionsToDelete.push(optionId);
             });
         }
         if (allCharBaseOptionsToPut.length > 0) {
@@ -279,7 +274,6 @@ async function performDiffSync(db) {
         await Promise.all(idbWritePromises);
         console.log("[data-loader] Diff sync: Data changes applied to IndexedDB.");
         
-        // Update last sync timestamps
         const newSyncTimestamp = Timestamp.now();
         const metadataPutPromises = [];
         for (const collName of Object.keys(COLLECTIONS_CONFIG)) {
@@ -289,12 +283,11 @@ async function performDiffSync(db) {
             metadataPutPromises.push(setMetadata(`character_bases_${baseType}_lastSyncTimestamp`, newSyncTimestamp));
         }
         await Promise.all(metadataPutPromises);
-        console.log("[data-loader] Diff sync: Metadata (lastSyncTimestamps) updated.");
+        console.log("[data-loader] Diff sync: Metadata (lastSyncTimestamps) updated to new time.");
 
-        await loadAllDataToCache(); // Refresh memory cache
+        await loadAllDataToCache(); 
     } catch (error) {
-        console.error("[data-loader] Error during differential sync:", error);
-        // Don't throw here, allow app to run with existing cache if diff sync fails
+        console.error("[data-loader] Error during differential sync processing:", error);
     }
 }
 
@@ -305,37 +298,45 @@ export async function loadData(db) {
         return;
     }
     isDataLoading = true;
+    isInitialLoadComplete = false; 
     console.log("[data-loader] Initiating data load sequence (with IndexedDB)...");
 
     try {
-        // Try to load from IndexedDB first to make the app responsive quickly
+        console.log("[data-loader] Attempting to load initial data from IndexedDB to memory cache...");
         await loadAllDataToCache();
 
-        // Check if a sync has ever happened for 'items' (as a proxy for all data)
         const itemsLastSync = await getMetadata('items_lastSyncTimestamp');
+        // ★★★ デバッグログ追加 ★★★
+        console.log('[data-loader] Retrieved items_lastSyncTimestamp from getMetadata:', itemsLastSync);
+        if (itemsLastSync && typeof itemsLastSync.toDate === 'function') { 
+            console.log('[data-loader] itemsLastSync is a valid Timestamp:', itemsLastSync.toDate());
+        } else if (itemsLastSync) {
+            console.warn('[data-loader] itemsLastSync is NOT a Timestamp object, but has a value:', itemsLastSync);
+        } else {
+            console.log('[data-loader] itemsLastSync is undefined or null.');
+        }
+        // ★★★ デバッグログ追加ここまで ★★★
+
         if (!itemsLastSync) {
-            console.log("[data-loader] No previous sync found. Performing initial full sync.");
+            console.log("[data-loader] No previous sync found (itemsLastSync is falsy). Performing initial full sync.");
             await performFullSync(db);
         } else {
-            console.log("[data-loader] Previous sync found. Performing differential sync.");
-            // Perform diff sync in the background (don't await here if UI is already populated)
+            console.log("[data-loader] Previous sync found (itemsLastSync is truthy). Performing differential sync.");
             performDiffSync(db).catch(err => {
                 console.error("[data-loader] Background diff sync failed:", err);
-                // Optionally notify user that data might not be the absolute latest
             });
         }
     } catch (error) {
         console.error("[data-loader] Critical error during data loading sequence:", error);
-        // Reset all caches to prevent inconsistent state
         allItems = []; allCategories = []; allTags = []; effectTypesCache = [];
         effectUnitsCache = []; effectSuperCategoriesCache = []; itemSourcesCache = [];
         characterBasesCache = {}; EQUIPMENT_SLOT_TAG_IDS = {};
         isInitialLoadComplete = false;
-        throw error; // Re-throw for main script to catch and display global error
+        throw error; 
     } finally {
         isDataLoading = false;
     }
-    console.log("[data-loader] Data loading sequence complete.");
+    console.log("[data-loader] Data loading sequence complete. isInitialLoadComplete:", isInitialLoadComplete);
 }
 
 function buildEquipmentSlotTagMapInternal() {
@@ -347,7 +348,7 @@ function buildEquipmentSlotTagMapInternal() {
         equipmentSlots.forEach(slotName => EQUIPMENT_SLOT_TAG_IDS[slotName] = null);
         return;
     }
-    allTags.forEach(slotNameTag => { // allTags are already filtered for non-deleted
+    allTags.forEach(slotNameTag => {
         equipmentSlots.forEach(slotName => {
             if (slotNameTag.name === slotName) {
                 EQUIPMENT_SLOT_TAG_IDS[slotName] = slotNameTag.id;
@@ -363,7 +364,6 @@ function buildEquipmentSlotTagMapInternal() {
     console.log("[data-loader] Dynamically built EQUIPMENT_SLOT_TAG_IDS from cache:", EQUIPMENT_SLOT_TAG_IDS);
 }
 
-// Getter functions now return data from memory cache, which is populated from IndexedDB
 export const getAllItems = () => allItems;
 export const getAllCategories = () => allCategories;
 export const getAllTags = () => allTags;
@@ -372,6 +372,4 @@ export const getEffectUnitsCache = () => effectUnitsCache;
 export const getEffectSuperCategoriesCache = () => effectSuperCategoriesCache;
 export const getCharacterBasesCache = () => characterBasesCache;
 export const getItemSourcesCache = () => itemSourcesCache;
-
-// Helper to check if initial data (from IDB or Firestore full sync) has been loaded into memory
 export const isInitialDataLoaded = () => isInitialLoadComplete;
