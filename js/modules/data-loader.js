@@ -96,56 +96,78 @@ async function fetchDiffCharacterBasesFromFirestore(db, lastSyncTimestampsByType
 
 
 async function loadAllDataToCache() {
-    console.log("[data-loader] Loading all data from IndexedDB to memory cache...");
+    console.log("[data-loader:loadAllDataToCache] START - Loading all data from IndexedDB to memory cache...");
     try {
         const storesToFetch = [
             'items', 'categories', 'tags', 'effect_types', 
             'effect_units', 'effect_super_categories', 'item_sources',
             'character_bases_options'
         ];
+        console.log("[data-loader:loadAllDataToCache] Fetching from stores:", storesToFetch.join(', '));
+
         const results = await Promise.all(
-            storesToFetch.map(storeName => getAllFromDB(storeName))
+            storesToFetch.map(storeName => {
+                console.log(`[data-loader:loadAllDataToCache] Calling getAllFromDB for store: ${storeName}`);
+                return getAllFromDB(storeName).then(data => {
+                    console.log(`[data-loader:loadAllDataToCache] Successfully fetched from ${storeName}, length: ${data ? data.length : 'undefined'}`);
+                    return data;
+                }).catch(err => {
+                    console.error(`[data-loader:loadAllDataToCache] Error fetching from ${storeName}:`, err);
+                    return []; // Return empty array on error to allow Promise.all to resolve
+                });
+            })
         );
         
+        console.log("[data-loader:loadAllDataToCache] Data fetched from IDB, results length:", results.length);
+
         allItems = results[0] || [];
+        console.log(`[data-loader:loadAllDataToCache] items cache length: ${allItems.length}`);
         allCategories = results[1] || [];
+        console.log(`[data-loader:loadAllDataToCache] categories cache length: ${allCategories.length}`);
         allTags = results[2] || [];
+        console.log(`[data-loader:loadAllDataToCache] tags cache length: ${allTags.length}`);
         effectTypesCache = results[3] || [];
+        console.log(`[data-loader:loadAllDataToCache] effectTypesCache length: ${effectTypesCache.length}`);
         effectUnitsCache = results[4] || [];
+        console.log(`[data-loader:loadAllDataToCache] effectUnitsCache length: ${effectUnitsCache.length}`);
         effectSuperCategoriesCache = results[5] || [];
+        console.log(`[data-loader:loadAllDataToCache] effectSuperCategoriesCache length: ${effectSuperCategoriesCache.length}`);
         itemSourcesCache = results[6] || [];
+        console.log(`[data-loader:loadAllDataToCache] itemSourcesCache length: ${itemSourcesCache.length}`);
 
         characterBasesCache = {};
         const charBaseOptionsFromDB = results[7] || [];
+        console.log(`[data-loader:loadAllDataToCache] charBaseOptionsFromDB length: ${charBaseOptionsFromDB.length}`);
         if (charBaseOptionsFromDB) {
             CHARACTER_BASE_TYPES_FOR_LOADER.forEach(type => characterBasesCache[type] = []);
             charBaseOptionsFromDB.forEach(option => {
                 if (characterBasesCache[option.baseType]) {
                     characterBasesCache[option.baseType].push(option);
                 } else {
-                    console.warn(`[data-loader] Option with unknown baseType found in character_bases_options:`, option);
+                    console.warn(`[data-loader:loadAllDataToCache] Option with unknown baseType found:`, option);
                 }
             });
         }
         
-        console.log("[data-loader] Memory cache populated from IndexedDB.");
+        console.log("[data-loader:loadAllDataToCache] Memory cache populated from IndexedDB.");
         buildEquipmentSlotTagMapInternal();
         isInitialLoadComplete = true; 
+        console.log("[data-loader:loadAllDataToCache] END - Successfully updated memory cache.");
     } catch (error) {
-        console.error("[data-loader] Error loading data from IndexedDB to memory cache:", error);
+        console.error("[data-loader:loadAllDataToCache] CRITICAL ERROR loading data from IndexedDB to memory cache:", error);
         allItems = []; allCategories = []; allTags = []; effectTypesCache = [];
         effectUnitsCache = []; effectSuperCategoriesCache = []; itemSourcesCache = [];
         characterBasesCache = {};
         isInitialLoadComplete = false;
+        // Re-throw or handle appropriately
+        // throw error; // Re-throwing might stop further execution in loadData
     }
 }
 
 async function performFullSync(db) {
-    console.log("[data-loader] Performing full sync from Firestore to IndexedDB...");
+    console.log("[data-loader:performFullSync] START - Performing full sync from Firestore to IndexedDB...");
     try {
-        const firestoreFetchPromises = Object.keys(COLLECTIONS_CONFIG).map(collName => 
-            fetchAllFromFirestore(db, collName)
-        );
+        const firestoreFetchPromises = Object.keys(COLLECTIONS_CONFIG).map(collName => fetchAllFromFirestore(db, collName));
         firestoreFetchPromises.push(fetchAllCharacterBasesFromFirestore(db));
         const results = await Promise.all(firestoreFetchPromises);
         
@@ -160,16 +182,14 @@ async function performFullSync(db) {
         const charBasesData = results[resultIndex];
         const allCharBaseOptionsToPut = [];
         for (const baseType in charBasesData) {
-            (charBasesData[baseType] || []).forEach(option => {
-                allCharBaseOptionsToPut.push({ ...option, baseType: baseType });
-            });
+            (charBasesData[baseType] || []).forEach(option => { allCharBaseOptionsToPut.push({ ...option, baseType: baseType }); });
         }
         if (allCharBaseOptionsToPut.length > 0) {
             idbPutPromises.push(bulkPutToDB('character_bases_options', allCharBaseOptionsToPut));
         }
         
         await Promise.all(idbPutPromises);
-        console.log("[data-loader] Full sync: Data written to IndexedDB.");
+        console.log("[data-loader:performFullSync] Data written to IndexedDB.");
 
         const newSyncTimestamp = Timestamp.now();
         const metadataPutPromises = [];
@@ -180,20 +200,21 @@ async function performFullSync(db) {
             metadataPutPromises.push(setMetadata(`character_bases_${baseType}_lastSyncTimestamp`, newSyncTimestamp));
         }
         await Promise.all(metadataPutPromises);
-        console.log("[data-loader] Full sync: Metadata (lastSyncTimestamps) updated.");
+        console.log("[data-loader:performFullSync] Metadata (lastSyncTimestamps) updated.");
         
         await loadAllDataToCache(); 
+        console.log("[data-loader:performFullSync] END - Full sync complete.");
     } catch (error) {
-        console.error("[data-loader] Error during full sync:", error);
+        console.error("[data-loader:performFullSync] Error during full sync:", error);
         isInitialLoadComplete = false; 
         throw error; 
     }
 }
 
 async function performDiffSync(db) {
-    console.log("[data-loader] Performing differential sync from Firestore to IndexedDB...");
-    const lastSyncTimestamps = {}; // For regular collections
-    const charBaseLastSyncTimestamps = {}; // For character_bases subcollections, keyed by metaKey
+    console.log("[data-loader:performDiffSync] START - Performing differential sync from Firestore to IndexedDB...");
+    const lastSyncTimestamps = {}; 
+    const charBaseLastSyncTimestamps = {};
     const metadataGetPromises = [];
 
     for (const collName of Object.keys(COLLECTIONS_CONFIG)) {
@@ -205,7 +226,7 @@ async function performDiffSync(db) {
                 } else {
                     lastSyncTimestamps[collName] = new Timestamp(0,0); 
                 }
-                console.log(`[data-loader] DiffSync: ${collName} lastSync:`, lastSyncTimestamps[collName].toDate());
+                console.log(`[data-loader:performDiffSync] ${collName} lastSync:`, lastSyncTimestamps[collName].toDate());
             })
         );
     }
@@ -218,13 +239,13 @@ async function performDiffSync(db) {
                 } else {
                     charBaseLastSyncTimestamps[metaKey] = new Timestamp(0,0);
                 }
-                 console.log(`[data-loader] DiffSync: ${metaKey} lastSync:`, charBaseLastSyncTimestamps[metaKey].toDate());
+                 console.log(`[data-loader:performDiffSync] ${metaKey} lastSync:`, charBaseLastSyncTimestamps[metaKey].toDate());
             })
         );
     }
 
     await Promise.all(metadataGetPromises);
-    console.log("[data-loader] Diff sync: Retrieved and processed all last sync timestamps.");
+    console.log("[data-loader:performDiffSync] Retrieved and processed all last sync timestamps.");
 
     try {
         const firestoreFetchPromises = [];
@@ -232,7 +253,6 @@ async function performDiffSync(db) {
             const lastSync = lastSyncTimestamps[collName]; // Already a Timestamp instance or epoch
             firestoreFetchPromises.push(fetchDiffFromFirestore(db, collName, lastSync));
         }
-        // Pass the object pajak charBaseLastSyncTimestamps (keyed by metaKey)
         firestoreFetchPromises.push(fetchDiffCharacterBasesFromFirestore(db, charBaseLastSyncTimestamps));
 
         const diffResults = await Promise.all(firestoreFetchPromises);
@@ -272,7 +292,7 @@ async function performDiffSync(db) {
         }
 
         await Promise.all(idbWritePromises);
-        console.log("[data-loader] Diff sync: Data changes applied to IndexedDB.");
+        console.log("[data-loader:performDiffSync] Data changes applied to IndexedDB.");
         
         const newSyncTimestamp = Timestamp.now();
         const metadataPutPromises = [];
@@ -283,51 +303,53 @@ async function performDiffSync(db) {
             metadataPutPromises.push(setMetadata(`character_bases_${baseType}_lastSyncTimestamp`, newSyncTimestamp));
         }
         await Promise.all(metadataPutPromises);
-        console.log("[data-loader] Diff sync: Metadata (lastSyncTimestamps) updated to new time.");
+        console.log("[data-loader:performDiffSync] Metadata (lastSyncTimestamps) updated to new time.");
 
         await loadAllDataToCache(); 
+        console.log("[data-loader:performDiffSync] END - Diff sync processing complete.");
     } catch (error) {
-        console.error("[data-loader] Error during differential sync processing:", error);
+        console.error("[data-loader:performDiffSync] Error during differential sync processing:", error);
     }
 }
 
 
 export async function loadData(db) {
     if (isDataLoading) {
-        console.warn("[data-loader] Data loading already in progress.");
+        console.warn("[data-loader:loadData] Data loading already in progress.");
         return;
     }
     isDataLoading = true;
     isInitialLoadComplete = false; 
-    console.log("[data-loader] Initiating data load sequence (with IndexedDB)...");
+    console.log("[data-loader:loadData] START - Initiating data load sequence (with IndexedDB)...");
 
     try {
-        console.log("[data-loader] Attempting to load initial data from IndexedDB to memory cache...");
+        console.log("[data-loader:loadData] Attempting to load initial data from IndexedDB to memory cache...");
         await loadAllDataToCache();
+        console.log(`[data-loader:loadData] loadAllDataToCache completed. isInitialLoadComplete: ${isInitialLoadComplete}`);
 
+        console.log("[data-loader:loadData] Attempting to get 'items_lastSyncTimestamp' from metadata...");
         const itemsLastSync = await getMetadata('items_lastSyncTimestamp');
-        // ★★★ デバッグログ追加 ★★★
-        console.log('[data-loader] Retrieved items_lastSyncTimestamp from getMetadata:', itemsLastSync);
+        
+        console.log('[data-loader:loadData] Retrieved items_lastSyncTimestamp from getMetadata:', itemsLastSync);
         if (itemsLastSync && typeof itemsLastSync.toDate === 'function') { 
-            console.log('[data-loader] itemsLastSync is a valid Timestamp:', itemsLastSync.toDate());
+            console.log('[data-loader:loadData] itemsLastSync is a valid Timestamp:', itemsLastSync.toDate());
         } else if (itemsLastSync) {
-            console.warn('[data-loader] itemsLastSync is NOT a Timestamp object, but has a value:', itemsLastSync);
+            console.warn('[data-loader:loadData] itemsLastSync is NOT a Timestamp object, but has a value:', itemsLastSync);
         } else {
-            console.log('[data-loader] itemsLastSync is undefined or null.');
+            console.log('[data-loader:loadData] itemsLastSync is undefined or null.');
         }
-        // ★★★ デバッグログ追加ここまで ★★★
 
         if (!itemsLastSync) {
-            console.log("[data-loader] No previous sync found (itemsLastSync is falsy). Performing initial full sync.");
+            console.log("[data-loader:loadData] No previous sync found (itemsLastSync is falsy). Performing initial full sync.");
             await performFullSync(db);
         } else {
-            console.log("[data-loader] Previous sync found (itemsLastSync is truthy). Performing differential sync.");
+            console.log("[data-loader:loadData] Previous sync found (itemsLastSync is truthy). Performing differential sync in background.");
             performDiffSync(db).catch(err => {
-                console.error("[data-loader] Background diff sync failed:", err);
+                console.error("[data-loader:loadData] Background diff sync failed:", err);
             });
         }
     } catch (error) {
-        console.error("[data-loader] Critical error during data loading sequence:", error);
+        console.error("[data-loader:loadData] CRITICAL ERROR during data loading sequence:", error);
         allItems = []; allCategories = []; allTags = []; effectTypesCache = [];
         effectUnitsCache = []; effectSuperCategoriesCache = []; itemSourcesCache = [];
         characterBasesCache = {}; EQUIPMENT_SLOT_TAG_IDS = {};
@@ -336,7 +358,7 @@ export async function loadData(db) {
     } finally {
         isDataLoading = false;
     }
-    console.log("[data-loader] Data loading sequence complete. isInitialLoadComplete:", isInitialLoadComplete);
+    console.log("[data-loader:loadData] END - Data loading sequence complete. isInitialLoadComplete:", isInitialLoadComplete);
 }
 
 function buildEquipmentSlotTagMapInternal() {
