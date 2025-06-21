@@ -44,7 +44,8 @@ export async function bulkPutToDB(storeName, dataArray) {
     const db = await getDB();
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
-    await Promise.all(dataArray.map(item => store.put(item)));
+    // No need to await Promise.all here, tx.done handles it
+    dataArray.forEach(item => store.put(item));
     await tx.done;
     console.log(`[IDB Ops] Bulk put ${dataArray.length} items to ${storeName}`);
 }
@@ -60,7 +61,7 @@ export async function bulkDeleteFromDB(storeName, keysArray) {
     const db = await getDB();
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
-    await Promise.all(keysArray.map(key => store.delete(key)));
+    keysArray.forEach(key => store.delete(key));
     await tx.done;
     console.log(`[IDB Ops] Bulk deleted ${keysArray.length} items from ${storeName}`);
 }
@@ -78,51 +79,34 @@ export async function clearStoreInDB(storeName) {
     console.log(`[IDB Ops] Cleared store: ${storeName}`);
 }
 
+// ★★★ metadataストア用の関数を修正 ★★★
 /**
- * メタデータを取得または設定します。
- * @param {string} key - メタデータのキー (例: 'items_lastSync')
- * @param {any} [value] - 設定する値。省略した場合は現在の値を取得。
- * @returns {Promise<any>} 取得した値、または設定完了のPromise
+ * メタデータを取得します。
+ * @param {string} key - メタデータのキー (例: 'items_lastSyncTimestamp')
+ * @returns {Promise<any | undefined>} 取得した値 (存在しない場合は undefined)
  */
-export async function getOrSetMetadata(key, value) {
-    const db = await getDB();
-    const storeName = 'metadata';
-    if (value !== undefined) { // Set value
-        // The keyPath for 'metadata' store is 'collectionName'
-        // We are storing general metadata using a simple key string
-        // So, we use an object structure like { collectionName: key, value: value }
-        return db.put(storeName, { collectionName: key, value: value });
-    } else { // Get value
-        const record = await db.get(storeName, key);
-        return record ? record.value : undefined;
-    }
-}
-
-// メタデータ用に特化した関数 (より明確)
 export async function getMetadata(key) {
     const db = await getDB();
-    const record = await db.get('metadata', key);
-    return record ? record.value : undefined;
+    // 'metadata' ストアの keyPath は 'collectionName'
+    // 保存されるオブジェクトは { collectionName: "the_key", actualValue: <the_timestamp> }
+    const record = await db.get('metadata', key); 
+    return record ? record.actualValue : undefined;
 }
 
+/**
+ * メタデータを設定します。
+ * @param {string} key - メタデータのキー (例: 'items_lastSyncTimestamp')
+ * @param {any} value - 設定する値 (例: Firestore Timestampオブジェクト)
+ * @returns {Promise<IDBValidKey>} put操作のキー
+ */
 export async function setMetadata(key, value) {
     const db = await getDB();
-    // 'metadata' ストアの keyPath は 'collectionName' なので、
-    // 'collectionName' プロパティにキーを、'value' プロパティに実際の値を格納する。
-    // または、'lastSyncTimestamp' のような専用フィールドを metadata ストアのスキーマに定義しても良い。
-    // ここでは { collectionName: 'items_lastSync', lastSyncTimestamp: timestamp } のような形を想定。
-    // もし、キーが 'items_lastSync' で、値がタイムスタンプそのものなら、以下のように調整。
-    const dataToPut = { collectionName: key };
-    if (key.endsWith('_lastSyncTimestamp')) { //
-        dataToPut.lastSyncTimestamp = value;
-    } else {
-        dataToPut.value = value; // General purpose metadata
-    }
-    return db.put('metadata', dataToPut);
+    // 'metadata' ストアの keyPath は 'collectionName'
+    // 保存するオブジェクト: { collectionName: "キー名", actualValue: 実際の値 }
+    return db.put('metadata', { collectionName: key, actualValue: value });
 }
+// ★★★ 修正ここまで ★★★
 
-
-// 特定のストアのアイテム数をカウントする (デバッグや情報表示用)
 export async function countStoreItems(storeName) {
     const db = await getDB();
     return db.count(storeName);
