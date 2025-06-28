@@ -180,3 +180,41 @@ export const getEffectUnitsCache = () => effectUnitsCache;
 export const getEffectSuperCategoriesCache = () => effectSuperCategoriesCache;
 export const getCharacterBasesCache = () => characterBasesCache;
 export const getItemSourcesCache = () => itemSourcesCache;
+
+export function addItemToCache(item) {
+    if (item && item.docId) {
+        // 重複を避ける
+        const index = itemsCache.findIndex(i => i.docId === item.docId);
+        if (index === -1) {
+            itemsCache.push(item);
+            console.log(`[Cache] Added item: ${item.docId}`);
+        } else {
+            // 既にあれば更新として扱う
+            itemsCache[index] = item;
+            console.warn(`[Cache] addItemToCache: Item with docId ${item.docId} already exists. Updated instead.`);
+        }
+    }
+}
+
+export function updateItemInCache(updatedItem) {
+    if (updatedItem && updatedItem.docId) {
+        const index = itemsCache.findIndex(item => item.docId === updatedItem.docId);
+        if (index > -1) {
+            // 元のオブジェクトとマージして、createdAtなどを保持する
+            itemsCache[index] = { ...itemsCache[index], ...updatedItem };
+            console.log(`[Cache] Updated item: ${updatedItem.docId}`);
+        } else {
+            // 見つからなければ追加として扱う
+            itemsCache.push(updatedItem);
+            console.warn(`[Cache] updateItemInCache: Item with docId ${updatedItem.docId} not found. Added instead.`);
+        }
+    }
+}
+
+export function removeItemFromCache(itemId) {
+    const index = itemsCache.findIndex(item => item.docId === itemId);
+    if (index > -1) {
+        itemsCache.splice(index, 1);
+        console.log(`[Cache] Removed item: ${itemId}`);
+    }
+}
