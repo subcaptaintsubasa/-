@@ -1,6 +1,6 @@
 // js/admin-modules/item-manager.js
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, serverTimestamp, deleteField, getDoc, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-// No changes needed to imports for logical delete and updatedAt
+import { collection, getDocs, addDoc, doc, updateDoc, query, serverTimestamp, deleteField, getDoc, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { addItemToCache, updateItemInCache, removeItemFromCache } from './data-loader-admin.js';
 
 const DOMI = {
     itemForm: null,
@@ -178,10 +178,8 @@ export function initItemManager(dependencies) {
         DOMI.deleteItemFromFormButton.addEventListener('click', () => {
             const itemId = DOMI.itemIdToEditInput.value;
             const itemName = DOMI.itemNameInput.value || '(名称未設定)';
-            // No need for imageUrl for logical delete, but kept if other logic depends on it
-            // const itemImageUrl = DOMI.itemImageUrlInput.value; 
             if (itemId) {
-                logicalDeleteItem(itemId, itemName); // Changed to logicalDeleteItem
+                logicalDeleteItem(itemId, itemName);
             } else {
                 alert("削除対象のアイテムが選択されていません。");
             }
@@ -204,12 +202,6 @@ export function initItemManager(dependencies) {
     }
     console.log("[Item Manager] Initialized for logical delete.");
 }
-
-// Functions setEffectsInputMode, setSourceInputMode, initializeRaritySelector, 
-// handleRarityStarClick, setRarityUI, switchToAddEffectMode, switchToAddSourceMode,
-// clearItemFormInternal (minor changes in populateTagButtons call might be needed if tags become logically deletable)
-// remain largely the same. We'll focus on data interaction parts.
-// ... (previous helper functions - no direct changes for logical delete, but they operate on filtered data now)
 
 function setEffectsInputMode(mode) {
     currentEffectsInputMode = mode;
@@ -488,7 +480,6 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
 }
 
 
-// Function processImageFile remains unchanged
 function processImageFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -839,8 +830,6 @@ async function uploadImageToWorkerAndGetURL(file) {
         const response = await fetch(IMAGE_UPLOAD_WORKER_URL_CONST, {
             method: 'POST',
             body: formData,
-            // Note: Do not set Content-Type header when using FormData with files,
-            // the browser will set it correctly with the boundary.
         });
 
         if (intervalId) clearInterval(intervalId); // Clear simulation interval
@@ -854,7 +843,7 @@ async function uploadImageToWorkerAndGetURL(file) {
                 const errorData = JSON.parse(errorText);
                 if (errorData && errorData.message) errorMessage = `画像エラー: ${errorData.message}`;
                 else if (errorData && errorData.error) errorMessage = `画像エラー: ${errorData.error}`;
-            } catch (e) { /* ignore json parse error if text is not json */ 
+            } catch (e) {
                 if(errorText) errorMessage += `: ${errorText.substring(0,100)}`;
             }
             alert(errorMessage);
@@ -884,8 +873,6 @@ async function uploadImageToWorkerAndGetURL(file) {
     }
 }
 
-
-// ★★★ この saveItem 関数で置き換えてください ★★★
 async function saveItem(event) {
     event.preventDefault();
     if (DOMI.saveItemButton) {
@@ -931,23 +918,22 @@ async function saveItem(event) {
             if (uploadedUrl) {
                 imageUrlToSave = uploadedUrl;
             } else if (editingDocId) {
-                // 画像アップロード失敗時、編集中なら既存の画像URLを維持する試み
                 try {
                     const oldItemSnap = await getDoc(doc(dbInstance, "items", editingDocId));
                     imageUrlToSave = (oldItemSnap.exists() && oldItemSnap.data().image) ? oldItemSnap.data().image : "";
                     alert("画像アップロードに失敗しました。既存の画像情報を保持します（もしあれば）。");
                 } catch (e) {
                     console.error("Error fetching old item data for image fallback:", e);
-                    imageUrlToSave = ""; // フォールバックも失敗
+                    imageUrlToSave = "";
                     alert("画像アップロードに失敗し、既存の画像情報の取得もできませんでした。");
                 }
             } else {
-                 imageUrlToSave = ""; // 新規でアップロード失敗
+                 imageUrlToSave = "";
                  alert("画像アップロードに失敗したため、画像なしでアイテムが保存されます。");
             }
         }
 
-        const itemDataPayloadBase = {
+        const itemDataForFirestore = {
             name: name,
             image: imageUrlToSave,
             rarity: rarity,
@@ -957,41 +943,38 @@ async function saveItem(event) {
             isDeleted: false,
             updatedAt: serverTimestamp(),
         };
-        
-        let finalItemDataPayload;
 
-        if (editingDocId) { // 更新の場合
-            finalItemDataPayload = { ...itemDataPayloadBase };
-            if (priceToSave !== null) {
-                finalItemDataPayload.price = priceToSave;
-            } else {
-                finalItemDataPayload.price = deleteField(); // 更新時、価格が空ならフィールドごと削除
-            }
+        const dataForCache = { ...itemDataForFirestore };
+        dataForCache.updatedAt = new Date(); // キャッシュ用は即時反映できるDateオブジェクト
 
-            // 古い形式のフィールドを削除 (更新時のみでOK)
-            const fieldsToDeleteOnUpdate = [
-                'effectsInputMode', 'manualEffectsString', 'structured_effects',
-                'sourceInputMode', 'manualSourceString', 'sourceNodeId', '入手手段'
-            ];
-            fieldsToDeleteOnUpdate.forEach(field => finalItemDataPayload[field] = deleteField());
-            
-            await updateDoc(doc(dbInstance, 'items', editingDocId), finalItemDataPayload);
-            console.log("Item updated:", editingDocId);
+        if (priceToSave !== null) {
+            itemDataForFirestore.price = priceToSave;
+            dataForCache.price = priceToSave;
+        } else {
+            itemDataForFirestore.price = deleteField();
+            delete dataForCache.price;
+        }
 
-        } else { // 新規追加の場合
-            finalItemDataPayload = { ...itemDataPayloadBase, createdAt: serverTimestamp() };
-            if (priceToSave !== null) { // 価格が設定されていれば含める
-                finalItemDataPayload.price = priceToSave;
-            }
-            // 新規追加時には古い形式のフィールドは最初から含めない
-            // deleteField() も使用しない
+        if (editingDocId) {
+            // 更新
+            await updateDoc(doc(dbInstance, 'items', editingDocId), itemDataForFirestore);
+            dataForCache.docId = editingDocId;
+            updateItemInCache(dataForCache); // ローカルキャッシュを更新
+            console.log("Item updated locally and in Firestore:", editingDocId);
 
-            await addDoc(collection(dbInstance, 'items'), finalItemDataPayload);
-            console.log("Item added.");
+        } else {
+            // 新規追加
+            itemDataForFirestore.createdAt = serverTimestamp();
+            const docRef = await addDoc(collection(dbInstance, 'items'), itemDataForFirestore);
+            dataForCache.createdAt = new Date();
+            dataForCache.docId = docRef.id;
+            addItemToCache(dataForCache); // ローカルキャッシュに追加
+            console.log("Item added locally and in Firestore:", docRef.id);
         }
 
         clearItemFormInternal();
-        await refreshAllDataCallback();
+        _renderItemsAdminTableInternal(); // UIのみを再描画
+
     } catch (error) {
         console.error("[Item Manager] Error saving item:", error);
         alert(`アイテム保存エラー: ${error.message}`);
@@ -1130,19 +1113,15 @@ async function loadItemForEdit(docId) {
                 currentItemEffects = JSON.parse(JSON.stringify(itemData.effects));
             } else { // Fallback for older data structures (if any)
                 currentItemEffects = [];
-                // Add fallback logic here if you expect items with old effect structures
-                // For now, assuming new structure or empty.
             }
             renderCurrentItemEffectsListUI();
-            setEffectsInputMode('structured'); // Default or read from itemData if you stored the mode
+            setEffectsInputMode('structured');
 
             // Load sources from new unified 'sources' array
             if (itemData.sources && Array.isArray(itemData.sources)) {
                 currentItemSources = JSON.parse(JSON.stringify(itemData.sources));
-                // Pre-fill tree selection UI if the first source is a tree type
-                 for (const src of currentItemSources) {
+                for (const src of currentItemSources) {
                     if(src.type === 'tree' && src.nodeId && !src.resolvedDisplay) {
-                        // If resolvedDisplay is missing (e.g. from old data or direct DB edit), try to build it
                         if (window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildDisplayPathForSourceNode === 'function') {
                              src.resolvedDisplay = window.adminModules.itemSourceManager.buildDisplayPathForSourceNode(src.nodeId, getItemSourcesFuncCache());
                         } else {
@@ -1150,15 +1129,13 @@ async function loadItemForEdit(docId) {
                         }
                     }
                 }
-            } else { // Fallback for older data structures
+            } else {
                 currentItemSources = [];
-                // Add fallback logic for old source structures
             }
             renderCurrentItemSourcesListUI();
-            setSourceInputMode('tree'); // Default or read
-            if (DOMI.finalSourceDisplayPreviewInput) DOMI.finalSourceDisplayPreviewInput.value = ''; // Clear old preview
-            
-            // If editing an item with a tree source, try to set up the source selection UI
+            setSourceInputMode('tree');
+            if (DOMI.finalSourceDisplayPreviewInput) DOMI.finalSourceDisplayPreviewInput.value = '';
+
             const firstTreeSource = currentItemSources.find(s => s.type === 'tree' && s.nodeId);
             if (firstTreeSource && window.adminModules && window.adminModules.itemSourceManager &&
                 typeof window.adminModules.itemSourceManager.populateItemSourceLevelButtons === 'function') {
@@ -1170,11 +1147,10 @@ async function loadItemForEdit(docId) {
             }
 
 
-            _populateTagButtonsForItemFormInternal(itemData.tags || []); // Assumes tags are non-deleted
+            _populateTagButtonsForItemFormInternal(itemData.tags || []);
             if (DOMI.saveItemButton) DOMI.saveItemButton.textContent = "アイテム更新";
             if (DOMI.deleteItemFromFormButton) DOMI.deleteItemFromFormButton.style.display = 'inline-block';
 
-            // Scroll to form and focus
             const itemFormSection = document.getElementById('item-management');
             if (itemFormSection) itemFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             if (DOMI.itemNameInput) DOMI.itemNameInput.focus();
@@ -1188,7 +1164,6 @@ async function loadItemForEdit(docId) {
     }
 }
 
-
 async function logicalDeleteItem(docId, itemName) {
     if (confirm(`アイテム「${itemName}」を論理削除しますか？データは残りますが一覧には表示されなくなります。`)) {
         try {
@@ -1196,9 +1171,19 @@ async function logicalDeleteItem(docId, itemName) {
                 isDeleted: true,
                 updatedAt: serverTimestamp()
             });
+
             console.warn(`Item ${docId} (${itemName}) logically deleted. Image on R2 is NOT deleted.`);
-            if (DOMI.itemIdToEditInput.value === docId) clearItemFormInternal();
-            await refreshAllDataCallback();
+
+            // キャッシュからアイテムを削除
+            removeItemFromCache(docId);
+
+            if (DOMI.itemIdToEditInput.value === docId) {
+                clearItemFormInternal();
+            }
+
+            // UIのみを再描画
+            _renderItemsAdminTableInternal();
+            
         } catch (error) {
             console.error(`[Item Manager] Error logically deleting item ${docId}:`, error);
             alert("アイテムの論理削除に失敗しました。");
