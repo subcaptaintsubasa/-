@@ -259,8 +259,12 @@ async function performDiffSync(db) {
         
         const idbWritePromises = [];
         let resultIndex = 0;
+        let dataHasChanged = false; // ★★★ 変更があったかどうかのフラグ ★★★
         for (const collName of Object.keys(COLLECTIONS_CONFIG)) {
             const { updatedData, deletedIds } = diffResults[resultIndex];
+            if (updatedData.length > 0 || deletedIds.length > 0) { // ★★★ 変更を検知 ★★★
+                dataHasChanged = true;
+            }
             const config = COLLECTIONS_CONFIG[collName];
             if (updatedData.length > 0) {
                 idbWritePromises.push(bulkPutToDB(config.storeName, updatedData));
@@ -275,12 +279,16 @@ async function performDiffSync(db) {
         const allCharBaseOptionsToPut = [];
         const allCharBaseOptionsToDelete = [];
         for (const baseType in charBasesDiff.updatedData) {
-            (charBasesDiff.updatedData[baseType] || []).forEach(option => {
+            const options = charBasesDiff.updatedData[baseType] || [];
+            if (options.length > 0) dataHasChanged = true; // ★★★ 変更を検知 ★★★
+            options.forEach(option => {
                 allCharBaseOptionsToPut.push({ ...option, baseType: baseType });
             });
         }
         for (const baseType in charBasesDiff.deletedIds) {
-            (charBasesDiff.deletedIds[baseType] || []).forEach(optionId => {
+            const ids = charBasesDiff.deletedIds[baseType] || [];
+            if (ids.length > 0) dataHasChanged = true; // ★★★ 変更を検知 ★★★
+            ids.forEach(optionId => {
                 allCharBaseOptionsToDelete.push(optionId);
             });
         }
@@ -289,6 +297,11 @@ async function performDiffSync(db) {
         }
         if (allCharBaseOptionsToDelete.length > 0) {
             idbWritePromises.push(bulkDeleteFromDB('character_bases_options', allCharBaseOptionsToDelete));
+        }
+
+        if (!dataHasChanged) { // ★★★ 変更がなければここで終了 ★★★
+            console.log("[data-loader:performDiffSync] No data changes detected. Sync complete.");
+            return;
         }
 
         await Promise.all(idbWritePromises);
@@ -305,7 +318,15 @@ async function performDiffSync(db) {
         await Promise.all(metadataPutPromises);
         console.log("[data-loader:performDiffSync] Metadata (lastSyncTimestamps) updated to new time.");
 
-        await loadAllDataToCache(); 
+        // ★★★ 変更があった場合のみ、キャッシュを更新し、更新フラグを立てる ★★★
+        await loadAllDataToCache();
+        if (window.appState) {
+            window.appState.isDataStale = true;
+            console.log("[data-loader:performDiffSync] Data updated. Set isDataStale flag to true.");
+        } else {
+            console.warn("[data-loader:performDiffSync] window.appState is not defined. Cannot set isDataStale flag.");
+        }
+
         console.log("[data-loader:performDiffSync] END - Diff sync processing complete.");
     } catch (error) {
         console.error("[data-loader:performDiffSync] Error during differential sync processing:", error);
