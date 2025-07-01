@@ -28,7 +28,9 @@ import {
     cancelItemSelection,
     setTemporarilySelectedItemExport,
     isSelectingForSimulatorState as getIsSelectingForSimulator,
-    getCurrentSelectingSlotState as getCurrentSelectingSlot
+    getCurrentSelectingSlotState as getCurrentSelectingSlot,
+    renderParentCategoryFilters, // ★★★ インポート ★★★
+    renderChildCategoriesAndTags // ★★★ インポート ★★★
 } from './modules/search-filters.js';
 import {
     initSearchRender 
@@ -71,6 +73,11 @@ if ('serviceWorker' in navigator) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("[script-main] DOMContentLoaded, starting app init...");
+
+    // ★★★ グローバルな状態管理オブジェクトを初期化 ★★★
+    window.appState = {
+        isDataStale: false
+    };
 
     const simulatorModal = document.getElementById('simulatorModal'); 
 
@@ -164,6 +171,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 getSimulatorDOMS: getSimulatorDOMS 
             });
 
+            // ★★★ データ更新イベントリスナーを追加 ★★★
+            document.addEventListener('dataRefreshed', () => {
+                showUpdateNotification('データが更新されました。');
+            });
+
+
             console.log("[script-main] Performing initial item list render based on default filters...");
             applyFiltersAndRender(); 
             
@@ -193,3 +206,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeAllModals(); 
     }
 });
+
+
+// ★★★ ユーザーへの更新通知用の関数（新規追加） ★★★
+function showUpdateNotification(message) {
+    const existingNotification = document.querySelector('.update-notification');
+    if (existingNotification) return; // 既に表示中の場合は何もしない
+
+    const notification = document.createElement('div');
+    notification.className = 'update-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        z-index: 10002;
+        opacity: 0;
+        transition: opacity 0.5s, transform 0.5s;
+        transform: translate(-50%, 10px);
+    `;
+    document.body.appendChild(notification);
+    
+    // フェードイン・アニメーション
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(-50%)';
+    }, 10);
+    
+    // フェードアウト・アニメーション
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translate(-50%, 10px)';
+        setTimeout(() => document.body.removeChild(notification), 500);
+    }, 3000);
+}
