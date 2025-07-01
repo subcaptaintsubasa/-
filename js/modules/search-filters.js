@@ -124,6 +124,22 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
 }
 
 function triggerFilterChange() {
+    // ★★★ スマート更新ロジック ★★★
+    if (window.appState && window.appState.isDataStale) {
+        console.log('[Filters] Data is stale. Forcing a re-render of filter UI before applying filters.');
+        
+        // フィルターUI自体を再描画して、新しいカテゴリやタグが選択肢に現れるようにする
+        renderParentCategoryFilters();
+        renderChildCategoriesAndTags();
+        
+        // 状態フラグをリセット
+        window.appState.isDataStale = false;
+        
+        // ユーザーに更新を通知する (script-main.jsから呼び出される)
+        const event = new CustomEvent('dataRefreshed');
+        document.dispatchEvent(event);
+    }
+    
     // Update render config before calling the callback that uses it
     updateRenderConfig({
         isSelectingForSimulator,
@@ -265,7 +281,7 @@ export function applyFiltersAndRender() {
 }
 
 
-function renderParentCategoryFilters() {
+export function renderParentCategoryFilters() {
     if (!DOMF.parentCategoryFiltersContainer) return;
     DOMF.parentCategoryFiltersContainer.innerHTML = '';
     const parentCategories = getAllCategoriesFunc().filter(cat => !cat.parentId || cat.parentId === "");
@@ -318,7 +334,7 @@ function renderParentCategoryFilters() {
     });
 }
 
-function renderChildCategoriesAndTags() {
+export function renderChildCategoriesAndTags() {
     if (!DOMF.childCategoriesAndTagsContainer) return;
     DOMF.childCategoriesAndTagsContainer.innerHTML = '';
     const allCategories = getAllCategoriesFunc();
