@@ -1,3 +1,5 @@
+// main/js/modules/search-filters.js.txt
+
 // js/modules/search-filters.js
 // Handles search input, category/tag filtering logic, and pagination state.
 
@@ -72,24 +74,33 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
 
     if (DOMF.resetFiltersButton) {
         DOMF.resetFiltersButton.addEventListener('click', () => {
-            currentSearchTerm = "";
-            if (DOMF.searchInput) DOMF.searchInput.value = "";
-            selectedParentCategoryIds = [];
-            selectedTagIds = []; // Clear all tags
+            if (isSelectingForSimulator) {
+                // アイテム選択モード中は、このボタンを「選択のキャンセル」として機能させる
+                console.log("Cancelling simulator selection via reset button.");
+                
+                // 選択モードを解除
+                deactivateSimulatorSelectionMode();
+                
+                // フィルターを完全にリセットして再描画
+                triggerFilterChange();
+                
+                // UX向上のため、キャンセル後はシミュレーターモーダルに自動で戻す
+                const simulatorModal = document.getElementById('simulatorModal');
+                if (simulatorModal) {
+                    simulatorModal.style.display = 'flex';
+                }
 
-            if (isSelectingForSimulator && currentSelectingSlot) {
-                // Re-apply simulator-specific pre-filters
-                const slotTagId = getSlotTagIdFunc(currentSelectingSlot);
-                if (slotTagId) selectedTagIds.push(slotTagId);
-
-                const equipmentParent = getAllCategoriesFunc().find(c => c.name === simulatorParentCategoryNameConst && (!c.parentId || c.parentId === ""));
-                if (equipmentParent) selectedParentCategoryIds = [equipmentParent.id];
+            } else {
+                // 通常時は、フィルターリセットとして機能する
+                currentSearchTerm = "";
+                if (DOMF.searchInput) DOMF.searchInput.value = "";
+                selectedParentCategoryIds = [];
+                selectedTagIds = []; 
+                currentPage = 1;
+                renderParentCategoryFilters();
+                renderChildCategoriesAndTags();
+                triggerFilterChange();
             }
-
-            currentPage = 1;
-            renderParentCategoryFilters(); // Re-render filters UI
-            renderChildCategoriesAndTags();
-            triggerFilterChange();
         });
     }
     
@@ -523,9 +534,9 @@ export const setTemporarilySelectedItemExport = (itemId) => {
     // For now, relying on renderItems to highlight.
     updateRenderConfig({ temporarilySelectedItem }); // Inform search-render
     // Potentially, re-call a lighter version of renderItems if only selection highlight changes
-    const currentFilteredItems = getAllItemsFunc(); // This is not ideal to re-filter here
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
+    // const currentFilteredItems = getAllItemsFunc(); // This is not ideal to re-filter here
+    // const startIndex = (currentPage - 1) * itemsPerPage;
+    // const endIndex = startIndex + itemsPerPage;
     // Apply current filters to get the items on the *current* page again to re-render with new highlight
     // This is a bit inefficient. A better way would be for renderItems to just update highlights.
     // applyFiltersAndRender(); // This might be too heavy, consider a lighter update.
