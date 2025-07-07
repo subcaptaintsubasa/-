@@ -58,15 +58,7 @@ export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, init
     if (DOM.openSimulatorButtonNav && DOM.simulatorModal) {
         DOM.openSimulatorButtonNav.addEventListener('click', () => {
             if (getIsSelectingForSimulatorCb()) {
-                // アイテム選択モード中に再度シミュレーターを開こうとした場合、
-                // それは「キャンセル」の意思表示と見なすのが自然。
-                // よって、キャンセル処理を呼び出す。
-                if (cancelItemSelectionCb) {
-                    cancelItemSelectionCb(); // フィルターをリセット
-                }
-                // モーダルは開かずに処理を終了
-                if (DOM.sideNav) DOM.sideNav.classList.remove('open');
-                return; 
+                return;
             }
             if (DOM.simulatorModal) {
                 DOM.simulatorModal.style.display = 'flex';
@@ -123,13 +115,13 @@ function buildFullPathForItemSourceInternal(nodeId, allItemSources) {
     const pathParts = [];
     let currentId = nodeId;
     let sanityCheck = 0;
-    while(currentId && sanityCheck < 10) { 
+    while(currentId && sanityCheck < 10) {
         const node = allItemSources.find(s => s.id === currentId);
         if (node) {
             pathParts.unshift(node.name);
             currentId = node.parentId;
         } else {
-            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); 
+            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`);
             break;
         }
         sanityCheck++;
@@ -213,7 +205,7 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
             } else if (src.type === 'tree' && src.nodeId) {
                 if (src.resolvedDisplay) {
                     text = src.resolvedDisplay;
-                } else { 
+                } else {
                     text = buildFullPathForItemSourceInternal(src.nodeId, itemSourcesCacheForUI);
                 }
             }
@@ -281,23 +273,20 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     }
 }
 
-// ★★★ 修正箇所 ★★★
 export function handleCloseButtonClick(modalElement) {
     if (!modalElement) return;
     console.log(`[ui-main] Closing modal: ${modalElement.id}`);
-    
-    // アイテム選択モード中にシミュレーターモーダルが閉じられた場合、
-    // それは「キャンセル」と見なす
+    modalElement.style.display = "none";
+
+    // 閉じられたモーダルがシミュレーターモーダルであり、かつアイテム選択中だった場合
     if (modalElement.id === 'simulatorModal' && getIsSelectingForSimulatorCb()) {
-        if (cancelItemSelectionCb) {
-            console.log("[ui-main] Simulator modal closed during selection. Triggering cancelItemSelection.");
+        // search-filters.js に定義されたキャンセル処理を呼び出す
+        if(cancelItemSelectionCb) {
+            console.log("[ui-main] Implicit cancellation of simulator selection detected. Resetting filters.");
             cancelItemSelectionCb();
         }
     }
     
-    modalElement.style.display = "none";
-
-    // モーダルが閉じた後のクリーンアップ処理
     if (modalElement.id === 'imagePreviewModal') {
         const imgPreview = document.getElementById('generatedImagePreview');
         if (imgPreview) imgPreview.src = "#";
@@ -307,7 +296,6 @@ export function handleCloseButtonClick(modalElement) {
         if (content) content.innerHTML = '';
     }
 }
-// ★★★ 修正ここまで ★★★
 
 export function displaySearchToolMessage(message, show = true) {
     if (DOM.searchToolMessageElement) {
