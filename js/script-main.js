@@ -1,247 +1,341 @@
-// js/script-main.js
-import { db } from '../firebase-config.js';
-import {
-    loadData,
-    isInitialDataLoaded, 
-    getAllItems, 
-    getAllCategories, 
-    getAllTags, 
-    getEffectTypesCache, 
-    getCharacterBasesCache,
-    getItemSourcesCache, 
-    EQUIPMENT_SLOT_TAG_IDS, 
-    SIMULATOR_PARENT_CATEGORY_NAME, 
-    SIMULATOR_EFFECT_CHILD_CATEGORY_NAME
-} from './modules/data-loader.js';
-import {
-    initUIMain,
-    displaySearchToolMessage, 
-    showConfirmSelectionButton,
-    openItemDetailModal, 
-    closeAllModals 
-} from './modules/ui-main.js';
-import {
-    initSearchFilters, 
-    applyFiltersAndRender,
-    activateSimulatorSelectionMode, 
-    deactivateSimulatorSelectionMode, 
-    cancelItemSelection,
-    setTemporarilySelectedItemExport,
-    isSelectingForSimulatorState as getIsSelectingForSimulator,
-    getCurrentSelectingSlotState as getCurrentSelectingSlot,
-    renderParentCategoryFilters, // ★★★ インポート ★★★
-    renderChildCategoriesAndTags // ★★★ インポート ★★★
-} from './modules/search-filters.js';
-import {
-    initSearchRender 
-} from './modules/search-render.js';
-import {
-    initSimulatorUI, 
-    updateSimulatorSlotDisplay, 
-    calculateAndDisplayTotalEffects, 
-    initializeSimulatorDisplay,
-    getSelectedEquipment, 
-    getSelectedCharacterBase, 
-    setSelectedCharacterBaseValue, 
-    updateSelectedEquipment,
-    getSimulatorDOMS 
-} from './modules/simulator-ui.js';
-import { initSimulatorLogic } from './modules/simulator-logic.js';
-import { initSimulatorImage } from './modules/simulator-image.js';
+// main/js/modules/ui-main.js.txt
 
-// ===== Service Worker 登録処理 スタート =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { 
-        // URL: https://subcaptaintsubasa.github.io/-/
-        // sw.js はリポジトリルート (この場合は '-') に配置される想定
-        // register() に渡すパスは、HTMLファイル (index.html) から見た sw.js の相対パス、
-        // またはサイトルートからの絶対パス。
-        // index.html が /-/index.html で、sw.js が /-/sw.js の場合、
-        // 相対パスなら 'sw.js'、ドメインルートからの絶対パスなら '/-/sw.js'
-        // scope は '/-/' と明示的に指定するのが最も確実。
-        navigator.serviceWorker.register('/-/sw.js', { scope: '/-/' }) 
-            .then(registration => {
-                console.log('[Main] Service Worker registered successfully with scope:', registration.scope);
-            })
-            .catch(error => {
-                console.error('[Main] Service Worker registration failed:', error);
-            });
-    });
-}
-// ===== Service Worker 登録処理 エンド =====
+// js/modules/ui-main.js
+import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js';
 
+let getIsSelectingForSimulatorCb = () => false;
+let cancelItemSelectionCb = () => {};
+let initializeSimulatorDisplayCb = () => {};
+let itemSourcesCacheForUI = [];
 
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log("[script-main] DOMContentLoaded, starting app init...");
+const DOM = {
+    sideNav: null,
+    hamburgerButton: null,
+    closeNavButton: null,
+    openSimulatorButtonNav: null,
+    itemDetailModal: null,
+    itemDetailContent: null,
+    simulatorModal: null,
+    imagePreviewModal: null,
+    generatedImagePreview: null,
+    searchToolMessageElement: null,
+    confirmSelectionButtonElement: null,
+};
 
-    // ★★★ グローバルな状態管理オブジェクトを初期化 ★★★
-    window.appState = {
-        isDataStale: false
-    };
+export function initUIMain(getIsSelectingForSimulator, cancelItemSelection, initializeSimulatorDisplay) {
+    console.log("[ui-main] initUIMain called");
+    getIsSelectingForSimulatorCb = getIsSelectingForSimulator;
+    cancelItemSelectionCb = cancelItemSelection;
+    initializeSimulatorDisplayCb = initializeSimulatorDisplay;
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader();
 
-    const simulatorModal = document.getElementById('simulatorModal'); 
+    DOM.sideNav = document.getElementById('sideNav');
+    DOM.hamburgerButton = document.getElementById('hamburgerButton');
+    DOM.closeNavButton = document.getElementById('closeNavButton');
+    DOM.openSimulatorButtonNav = document.getElementById('openSimulatorButtonNav');
 
-    initUIMain(
-        getIsSelectingForSimulator, 
-        cancelItemSelection,        
-        initializeSimulatorDisplay  
-    );
+    DOM.itemDetailModal = document.getElementById('itemDetailModal');
+    DOM.itemDetailContent = document.getElementById('itemDetailContent');
+    DOM.simulatorModal = document.getElementById('simulatorModal');
+    DOM.imagePreviewModal = document.getElementById('imagePreviewModal');
+    DOM.generatedImagePreview = document.getElementById('generatedImagePreview');
 
-    try {
-        console.log("[script-main] Calling loadData to populate/sync IndexedDB and load to memory...");
-        await loadData(db); 
-        console.log("[script-main] loadData call completed. Initial data (from IDB) should be in memory if available.");
+    DOM.searchToolMessageElement = document.getElementById('searchToolMessage');
+    DOM.confirmSelectionButtonElement = document.getElementById('confirmSelectionButton');
 
-        if (isInitialDataLoaded()) {
-            console.log("[script-main] Initial data loaded into memory. Initializing data-dependent modules.");
-
-            initSearchRender({
-                getAllItems: getAllItems,
-                getEffectTypesCache: getEffectTypesCache,
-                getAllTags: getAllTags,
-                onItemTempSelect: (itemId) => { 
-                    setTemporarilySelectedItemExport(itemId);
-                }
-            });
-
-            initSearchFilters(db, { 
-                getAllItems: getAllItems,
-                getAllCategories: getAllCategories,
-                getAllTags: getAllTags,
-                getEffectTypesCache: getEffectTypesCache,
-                getSlotTagId: (slotName) => EQUIPMENT_SLOT_TAG_IDS[slotName],
-                simulatorParentCategoryName: SIMULATOR_PARENT_CATEGORY_NAME,
-                simulatorEffectChildCategoryName: SIMULATOR_EFFECT_CHILD_CATEGORY_NAME,
-                onFilterChange: applyFiltersAndRender, 
-                onSelectionConfirmed: (slotName, selectedItemId) => {
-                    console.log(`[script-main] Simulator selection confirmed for slot '${slotName}', item ID: '${selectedItemId}'`);
-                    updateSelectedEquipment(slotName, selectedItemId); 
-                    deactivateSimulatorSelectionMode(); 
-                    if (simulatorModal) simulatorModal.style.display = 'flex'; 
-                    updateSimulatorSlotDisplay(slotName); 
-                    calculateAndDisplayTotalEffects(); 
-                },
-                displaySearchToolMessage: displaySearchToolMessage, 
-                showConfirmSelectionButton: showConfirmSelectionButton, 
-            });
-
-            initSimulatorUI(db, { 
-                getAllItems: getAllItems,
-                getEffectTypesCache: getEffectTypesCache,
-                getCharacterBasesCache: getCharacterBasesCache,
-                onSlotSelectStart: (slotName) => {
-                    console.log(`[script-main] Starting item selection for slot: ${slotName}`);
-                    if (simulatorModal) simulatorModal.style.display = 'none'; 
-                    const slotTagId = EQUIPMENT_SLOT_TAG_IDS[slotName];
-                    if (slotTagId === undefined || slotTagId === null) {
-                        alert(`部位「${slotName}」に対応するタグIDが設定されていません。管理画面で設定を確認してください。`);
-                        if (simulatorModal) simulatorModal.style.display = 'flex'; 
-                        return;
-                    }
-                    activateSimulatorSelectionMode(slotName, slotTagId, getSelectedEquipment()[slotName] || null);
-                },
-                onSlotClear: (slotName) => {
-                    console.log(`[script-main] Clearing slot: ${slotName}`);
-                    updateSelectedEquipment(slotName, null);
-                    updateSimulatorSlotDisplay(slotName);
-                    calculateAndDisplayTotalEffects();
-                },
-                getCharacterBaseOptionData: (baseType, optionId) => { 
-                    const bases = getCharacterBasesCache();
-                    return bases[baseType] ? (bases[baseType].find(opt => opt.id === optionId) || null) : null;
-                }
-            });
-
-            initSimulatorLogic({
-                getSelectedCharacterBase: getSelectedCharacterBase,
-                setSelectedCharacterBaseValue: setSelectedCharacterBaseValue,
-                calculateAndDisplayTotalEffects: calculateAndDisplayTotalEffects,
-                getCharacterBasesCache: getCharacterBasesCache,
-            });
-
-            initSimulatorImage({
-                getSelectedCharacterBase: getSelectedCharacterBase,
-                getCharacterBasesCache: getCharacterBasesCache, 
-                getSelectedEquipment: getSelectedEquipment,
-                getAllItems: getAllItems, 
-                getTotalEffectsDisplayHTML: () => {
-                    const displayElement = document.getElementById('totalEffectsDisplay');
-                    return displayElement ? displayElement.innerHTML : "<p>効果なし</p>";
-                },
-                getSimulatorDOMS: getSimulatorDOMS 
-            });
-
-            // ★★★ データ更新イベントリスナーを追加 ★★★
-            document.addEventListener('dataRefreshed', () => {
-                showUpdateNotification('データが更新されました。');
-            });
-
-
-            console.log("[script-main] Performing initial item list render based on default filters...");
-            applyFiltersAndRender(); 
-            
-            console.log("[script-main] Performing initial simulator display setup...");
-            initializeSimulatorDisplay(); 
-
-        } else {
-            console.error("[script-main] Critical: Initial data could not be loaded into memory cache even after loadData call. App cannot function correctly.");
-            const itemListEl = document.getElementById('itemList');
-            if (itemListEl) {
-                itemListEl.innerHTML = `<p style="color: red; text-align: center; padding: 20px;">データ準備エラー: アプリケーションのデータが読み込めませんでした。時間をおいてページを再読み込みするか、管理者にお問い合わせください。</p>`;
-            }
-        }
-        console.log("[script-main] Application initialization sequence complete.");
-
-    } catch (error) {
-        console.error("[script-main] CRITICAL ERROR during app initialization:", error);
-        const containerEl = document.querySelector('.container');
-        if(containerEl) {
-            containerEl.innerHTML = `<div style="padding: 20px; text-align: center;">
-                                        <h2 style="color: red;">アプリケーションエラー</h2>
-                                        <p>申し訳ありませんが、アプリケーションの起動中に問題が発生しました。</p>
-                                        <p>時間をおいてページを再読み込みしてみてください。</p>
-                                        <p><small>詳細: ${error.message}</small></p>
-                                     </div>`;
-        }
-        closeAllModals(); 
+    if (DOM.hamburgerButton && DOM.sideNav) {
+        DOM.hamburgerButton.addEventListener('click', () => {
+            if (DOM.sideNav) DOM.sideNav.classList.add('open');
+        });
     }
-});
+
+    if (DOM.closeNavButton && DOM.sideNav) {
+        DOM.closeNavButton.addEventListener('click', () => {
+            if (DOM.sideNav) DOM.sideNav.classList.remove('open');
+        });
+    }
+
+    if (DOM.openSimulatorButtonNav && DOM.simulatorModal) {
+        DOM.openSimulatorButtonNav.addEventListener('click', () => {
+            if (getIsSelectingForSimulatorCb()) {
+                // アイテム選択モード中に再度シミュレーターを開こうとした場合、
+                // それは「キャンセル」の意思表示と見なすのが自然。
+                // よって、キャンセル処理を呼び出す。
+                if (cancelItemSelectionCb) {
+                    cancelItemSelectionCb(); // フィルターをリセット
+                }
+                // モーダルは開かずに処理を終了
+                if (DOM.sideNav) DOM.sideNav.classList.remove('open');
+                return; 
+            }
+            if (DOM.simulatorModal) {
+                DOM.simulatorModal.style.display = 'flex';
+                if(initializeSimulatorDisplayCb) initializeSimulatorDisplayCb();
+            }
+            if (DOM.sideNav) DOM.sideNav.classList.remove('open');
+        });
+    }
+
+    const allModals = document.querySelectorAll('.modal');
+    allModals.forEach(modal => {
+        const closeButton = modal.querySelector('.close-button');
+        if (closeButton) {
+            const newCloseButton = closeButton.cloneNode(true);
+            closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+            newCloseButton.addEventListener('click', () => handleCloseButtonClick(modal));
+        }
+        if (!modal.dataset.overlayListenerAttached) {
+            modal.addEventListener('click', function(event) {
+                if (event.target === this) {
+                    handleCloseButtonClick(this);
+                }
+            });
+            modal.dataset.overlayListenerAttached = 'true';
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (DOM.sideNav && DOM.sideNav.classList.contains('open') &&
+            !DOM.sideNav.contains(event.target) &&
+            event.target !== DOM.hamburgerButton &&
+            !event.target.closest('.side-navigation')) {
+            DOM.sideNav.classList.remove('open');
+        }
+    });
+
+    console.log("[ui-main] UI Main Initialized.");
+}
+
+function getRarityStarsHTML(rarityValue, maxStars = 5) {
+    let starsHtml = '<div class="rarity-display-stars" style="margin-bottom: 10px;"><strong>レア度:</strong> ';
+    for (let i = 1; i <= maxStars; i++) {
+        starsHtml += `<span class="star-icon ${i <= rarityValue ? 'selected' : ''}" style="font-size: 1.2em; color: ${i <= rarityValue ? '#ffc107' : '#ccc'}; margin-right: 2px;">★</span>`;
+    }
+    starsHtml += '</div>';
+    return starsHtml;
+}
+
+function buildFullPathForItemSourceInternal(nodeId, allItemSources) {
+    if (!nodeId || !allItemSources || allItemSources.length === 0) {
+        return "経路情報なし";
+    }
+
+    const pathParts = [];
+    let currentId = nodeId;
+    let sanityCheck = 0;
+    while(currentId && sanityCheck < 10) { 
+        const node = allItemSources.find(s => s.id === currentId);
+        if (node) {
+            pathParts.unshift(node.name);
+            currentId = node.parentId;
+        } else {
+            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); 
+            break;
+        }
+        sanityCheck++;
+    }
+    return pathParts.join(' > ');
+}
 
 
-// ★★★ ユーザーへの更新通知用の関数（新規追加） ★★★
-function showUpdateNotification(message) {
-    const existingNotification = document.querySelector('.update-notification');
-    if (existingNotification) return; // 既に表示中の場合は何もしない
+export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
+    const currentItemDetailModal = document.getElementById('itemDetailModal');
+    const currentItemDetailContent = document.getElementById('itemDetailContent');
 
-    const notification = document.createElement('div');
-    notification.className = 'update-notification';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #28a745;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 5px;
-        z-index: 10002;
-        opacity: 0;
-        transition: opacity 0.5s, transform 0.5s;
-        transform: translate(-50%, 10px);
+    if (!item || !currentItemDetailContent || !currentItemDetailModal) {
+        console.error("[ui-main] Item data, detail content, or modal element missing for detail view. Item:", item, "Modal:", currentItemDetailModal, "Content:", currentItemDetailContent);
+        return;
+    }
+    console.log("[ui-main] Opening item detail modal for:", item.name, JSON.parse(JSON.stringify(item)));
+    itemSourcesCacheForUI = getItemSourcesCacheFromLoader();
+
+    currentItemDetailContent.innerHTML = '';
+
+    const cardFull = document.createElement('div');
+    cardFull.classList.add('item-card-full');
+
+    let imageElementHTML;
+    if (item.image && item.image.trim() !== "") {
+        imageElementHTML = `<img src="${item.image}" alt="${item.name || 'アイテム画像'}" onerror="this.onerror=null; this.src='./images/placeholder_item.png'; this.alt='画像読み込みエラー';">`;
+    } else {
+        imageElementHTML = `<div class="item-image-text-placeholder">NoImage</div>`;
+    }
+
+    const rarityHtml = getRarityStarsHTML(item.rarity || 0);
+
+    let effectsDisplayHtml = '<p><strong>効果:</strong> なし</p>';
+    if (item.effects && Array.isArray(item.effects) && item.effects.length > 0) {
+        effectsDisplayHtml = '<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
+        item.effects.forEach(eff => {
+            if (eff.type === "manual") {
+                effectsDisplayHtml += `<li>${eff.manualString ? eff.manualString.replace(/\n/g, '<br>') : '(記載なし)'}</li>`;
+            } else if (eff.type === "structured") {
+                const effectType = effectTypesCache.find(et => et.id === eff.effectTypeId);
+                const typeName = effectType ? effectType.name : `不明`;
+                let effectTextPart = eff.value !== undefined ? eff.value.toString() : '';
+                if (eff.unit && eff.unit !== 'none') {
+                    const unitData = effectUnitsCache.find(u => u.name === eff.unit);
+                    const position = unitData ? unitData.position : 'suffix';
+                    if (position === 'prefix') effectTextPart = `${eff.unit}${eff.value}`;
+                    else effectTextPart = `${eff.value}${eff.unit}`;
+                }
+                effectsDisplayHtml += `<li>${typeName} ${effectTextPart}</li>`;
+            }
+        });
+        effectsDisplayHtml += '</ul></div>';
+    } else if (item.effectsInputMode === 'manual' && typeof item.manualEffectsString === 'string' && item.manualEffectsString.trim() !== "") {
+        effectsDisplayHtml = `<div class="structured-effects"><strong>効果:</strong><p style="margin-top: 5px;">${item.manualEffectsString.replace(/\n/g, '<br>')}</p></div>`;
+    } else if (item.structured_effects && item.structured_effects.length > 0 ) {
+        effectsDisplayHtml = '<div class="structured-effects"><strong>効果:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
+        item.structured_effects.forEach(eff => {
+            const effectType = effectTypesCache.find(et => et.id === eff.type);
+            const typeName = effectType ? effectType.name : `不明`;
+            let effectTextPart = eff.value !== undefined ? eff.value.toString() : '';
+            if (eff.unit && eff.unit !== 'none') {
+                const unitData = effectUnitsCache.find(u => u.name === eff.unit);
+                const position = unitData ? unitData.position : 'suffix';
+                if (position === 'prefix') effectTextPart = `${eff.unit}${eff.value}`;
+                else effectTextPart = `${eff.value}${eff.unit}`;
+            }
+            effectsDisplayHtml += `<li>${typeName} ${effectTextPart} (旧形式)</li>`;
+        });
+        effectsDisplayHtml += '</ul></div>';
+    }
+
+
+    let sourcesDisplayHtml = '<p><strong>入手手段:</strong> 不明</p>';
+    if (item.sources && Array.isArray(item.sources) && item.sources.length > 0) {
+        if (item.sources.length === 1) {
+            const src = item.sources[0];
+            let text = '不明';
+            if (src.type === 'manual') {
+                text = src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(記載なし)';
+            } else if (src.type === 'tree' && src.nodeId) {
+                if (src.resolvedDisplay) {
+                    text = src.resolvedDisplay;
+                } else { 
+                    text = buildFullPathForItemSourceInternal(src.nodeId, itemSourcesCacheForUI);
+                }
+            }
+            sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${text}</p>`;
+        } else {
+            sourcesDisplayHtml = '<div style="margin-top: 10px;"><strong>入手手段:</strong><ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">';
+            item.sources.forEach(src => {
+                if (src.type === 'manual') {
+                    sourcesDisplayHtml += `<li>${src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(記載なし)'}</li>`;
+                } else if (src.type === 'tree' && src.nodeId) {
+                    let pathText;
+                    if (src.resolvedDisplay) {
+                        pathText = src.resolvedDisplay;
+                    } else {
+                        pathText = buildFullPathForItemSourceInternal(src.nodeId, itemSourcesCacheForUI);
+                    }
+                    sourcesDisplayHtml += `<li>${pathText}</li>`;
+                }
+            });
+            sourcesDisplayHtml += '</ul></div>';
+        }
+    } else if (item.sourceInputMode === 'manual' && typeof item.manualSourceString === 'string' && item.manualSourceString.trim() !== "") {
+        sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${item.manualSourceString.replace(/\n/g, '<br>')}</p>`;
+    } else if (item.sourceNodeId && itemSourcesCacheForUI && itemSourcesCacheForUI.length > 0) {
+        const text = buildFullPathForItemSourceInternal(item.sourceNodeId, itemSourcesCacheForUI);
+        sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${text} (旧形式)</p>`;
+    } else if (typeof item.入手手段 === 'string' && item.入手手段.trim() !== "") {
+         sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${item.入手手段} (最旧形式)</p>`;
+    }
+
+
+    let tagsHtml = '';
+    if (item.tags && item.tags.length > 0 && allTags) {
+        const displayableTags = item.tags.map(tagId => {
+            const tagObj = allTags.find(t => t.id === tagId);
+            if (tagObj) return `<span style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 10px; margin-right: 5px; font-size: 0.9em;">${tagObj.name}</span>`;
+            return null;
+        }).filter(Boolean);
+
+        if (displayableTags.length > 0) {
+            tagsHtml = `<div class="tags" style="margin-top:10px;"><strong>タグ:</strong> ${displayableTags.join(' ')}</div>`;
+        }
+    }
+
+    const priceText = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
+
+    cardFull.innerHTML = `
+        ${imageElementHTML}
+        <h3 style="margin-top: 10px; margin-bottom: 5px; font-size: 1.3em;">${item.name || '名称未設定'}</h3>
+        ${rarityHtml}
+        <div style="text-align: left; width: 100%; margin-top: 10px; font-size: 0.95em; line-height: 1.7;">
+            ${effectsDisplayHtml}
+            ${sourcesDisplayHtml}
+            <p style="margin-top: 5px;"><strong>売値:</strong> ${priceText}</p>
+            ${tagsHtml}
+        </div>
     `;
-    document.body.appendChild(notification);
+    currentItemDetailContent.appendChild(cardFull);
+
+    currentItemDetailModal.style.display = 'flex';
+
+    console.log("[ui-main] Item detail modal content set. Current display style:", currentItemDetailModal.style.display);
+    if (getComputedStyle(currentItemDetailModal).display !== 'flex') {
+        console.warn("[ui-main] Modal display style was not set to flex! Computed style:", getComputedStyle(currentItemDetailModal).display);
+    }
+}
+
+// ★★★ 修正箇所 ★★★
+export function handleCloseButtonClick(modalElement) {
+    if (!modalElement) return;
+    console.log(`[ui-main] Closing modal: ${modalElement.id}`);
     
-    // フェードイン・アニメーション
-    setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateX(-50%)';
-    }, 10);
+    // アイテム選択モード中にシミュレーターモーダルが閉じられた場合、
+    // それは「キャンセル」と見なす
+    if (modalElement.id === 'simulatorModal' && getIsSelectingForSimulatorCb()) {
+        if (cancelItemSelectionCb) {
+            console.log("[ui-main] Simulator modal closed during selection. Triggering cancelItemSelection.");
+            cancelItemSelectionCb();
+        }
+    }
     
-    // フェードアウト・アニメーション
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translate(-50%, 10px)';
-        setTimeout(() => document.body.removeChild(notification), 500);
-    }, 3000);
+    modalElement.style.display = "none";
+
+    // モーダルが閉じた後のクリーンアップ処理
+    if (modalElement.id === 'imagePreviewModal') {
+        const imgPreview = document.getElementById('generatedImagePreview');
+        if (imgPreview) imgPreview.src = "#";
+    }
+    if (modalElement.id === 'itemDetailModal') {
+        const content = document.getElementById('itemDetailContent');
+        if (content) content.innerHTML = '';
+    }
+}
+// ★★★ 修正ここまで ★★★
+
+export function displaySearchToolMessage(message, show = true) {
+    if (DOM.searchToolMessageElement) {
+        if (show && message) {
+            DOM.searchToolMessageElement.textContent = message;
+            DOM.searchToolMessageElement.style.display = 'block';
+        } else {
+            DOM.searchToolMessageElement.style.display = 'none';
+        }
+    }
+}
+
+export function showConfirmSelectionButton(show = true) {
+    if (DOM.confirmSelectionButtonElement) {
+        DOM.confirmSelectionButtonElement.style.display = show ? 'block' : 'none';
+    }
+}
+
+export function closeAllModals() {
+    console.log("[ui-main] closeAllModals called");
+    const allModalsCurrentlyInDOM = document.querySelectorAll('.modal');
+    if (allModalsCurrentlyInDOM) {
+        allModalsCurrentlyInDOM.forEach(modal => {
+            if(modal) modal.style.display = 'none';
+        });
+    }
+    const genImgPreview = document.getElementById('generatedImagePreview');
+    if (genImgPreview) genImgPreview.src = "#";
+    const detailContent = document.getElementById('itemDetailContent');
+    if (detailContent) detailContent.innerHTML = '';
 }
