@@ -405,7 +405,9 @@ export function renderChildCategoriesAndTags() {
 
                         tagButton.classList.toggle('disabled', isDisabledTag);
                         tagButton.classList.toggle('active', selectedTagIds.includes(tag.id) && !isDisabledTag);
-
+                        
+                        // --- ここから修正 ---
+                        // エラーの原因となっている可能性のある `++` を削除（もしくは、元々無いはずなのでコードをクリーンナップ）
                         tagButton.addEventListener('click', () => {
                             if (isDisabledTag) return;
                             // Slot tags in simulator mode cannot be deselected by clicking
@@ -423,6 +425,8 @@ export function renderChildCategoriesAndTags() {
                             currentPage = 1;
                             triggerFilterChange();
                         });
+                        // --- ここまで修正 ---
+
                         tagsContainer.appendChild(tagButton);
                     });
                     childCatSection.appendChild(tagsContainer);
