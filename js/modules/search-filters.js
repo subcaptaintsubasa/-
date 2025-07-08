@@ -9,6 +9,7 @@ let getAllItemsFunc = () => [];
 let getAllCategoriesFunc = () => [];
 let getAllTagsFunc = () => [];
 let getEffectTypesCacheFunc = () => []; // For searching by effect name
+let getItemSourcesCacheFunc = () => [];
 let getSlotTagIdFunc = (slotName) => null;
 let simulatorParentCategoryNameConst = "装備";
 let simulatorEffectChildCategoryNameConst = "効果";
@@ -18,6 +19,7 @@ const DOMF = { // DOM elements relevant to filtering
     searchInput: null,
     parentCategoryFiltersContainer: null,
     childCategoriesAndTagsContainer: null,
+    itemSourceFiltersContainer: null,
     resetFiltersButton: null,
     itemListContainer: null, // For scrolling into view
     searchControlsElement: null,
@@ -28,6 +30,7 @@ const DOMF = { // DOM elements relevant to filtering
 let currentSearchTerm = "";
 let selectedParentCategoryIds = [];
 let selectedTagIds = []; // Includes slot tag when in simulator mode
+let selectedItemSourceId = null;
 
 // Pagination state
 let currentPage = 1;
@@ -46,6 +49,7 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
     getAllCategoriesFunc = dependencies.getAllCategories;
     getAllTagsFunc = dependencies.getAllTags;
     getEffectTypesCacheFunc = dependencies.getEffectTypesCache;
+    getItemSourcesCacheFunc = dependencies.getItemSourcesCache;
     getSlotTagIdFunc = dependencies.getSlotTagId;
     simulatorParentCategoryNameConst = dependencies.simulatorParentCategoryName;
     simulatorEffectChildCategoryNameConst = dependencies.simulatorEffectChildCategoryName;
@@ -56,6 +60,7 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
     DOMF.searchInput = document.getElementById('searchInput');
     DOMF.parentCategoryFiltersContainer = document.getElementById('parentCategoryFiltersContainer');
     DOMF.childCategoriesAndTagsContainer = document.getElementById('childCategoriesAndTagsContainer');
+    DOMF.itemSourceFiltersContainer = document.getElementById('itemSourceFiltersContainer');
     DOMF.resetFiltersButton = document.getElementById('resetFiltersButton');
     DOMF.itemListContainer = document.getElementById('itemList'); // Used for scrollIntoView
     DOMF.searchControlsElement = document.querySelector('.search-controls');
@@ -81,9 +86,11 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
                 if (DOMF.searchInput) DOMF.searchInput.value = "";
                 selectedParentCategoryIds = [];
                 selectedTagIds = [];
+                selectedItemSourceId = null;
                 currentPage = 1;
                 renderParentCategoryFilters();
                 renderChildCategoriesAndTags();
+                renderItemSourceFilters();
                 triggerFilterChange();
             }
         });
@@ -116,6 +123,7 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
     // Initial render of filter UI
     renderParentCategoryFilters();
     renderChildCategoriesAndTags(); // Will likely be empty initially
+    renderItemSourceFilters();
 }
 
 function triggerFilterChange() {
@@ -126,6 +134,7 @@ function triggerFilterChange() {
         // フィルターUI自体を再描画して、新しいカテゴリやタグが選択肢に現れるようにする
         renderParentCategoryFilters();
         renderChildCategoriesAndTags();
+        renderItemSourceFilters();
         
         // 状態フラグをリセット
         window.appState.isDataStale = false;
@@ -262,6 +271,26 @@ export function applyFiltersAndRender() {
                 }
             }
             return true;
+        });
+    }
+
+    // 4. Item Source Filter
+    if (selectedItemSourceId) {
+        const allSources = getItemSourcesCacheFunc();
+        const getDescendantIds = (sourceId) => {
+            let ids = [sourceId];
+            const children = allSources.filter(s => s.parentId === sourceId);
+            children.forEach(child => {
+                ids = ids.concat(getDescendantIds(child.id));
+            });
+            return ids;
+        };
+        const targetSourceIds = getDescendantIds(selectedItemSourceId);
+        const targetSourceIdsSet = new Set(targetSourceIds);
+
+        filtered = filtered.filter(item => {
+            if (!item.sources || item.sources.length === 0) return false;
+            return item.sources.some(s => s.type === 'tree' && targetSourceIdsSet.has(s.nodeId));
         });
     }
 
@@ -437,6 +466,66 @@ export function renderChildCategoriesAndTags() {
     }
 }
 
+function renderItemSourceFilters() {
+    if (!DOMF.itemSourceFiltersContainer) return;
+    DOMF.itemSourceFiltersContainer.innerHTML = '';
+    const allSources = getItemSourcesCacheFunc();
+
+    if (!allSources || allSources.length === 0) {
+        DOMF.itemSourceFiltersContainer.innerHTML = '<p>利用可能な入手経路はありません。</p>';
+        return;
+    }
+
+    const buildTree = (parentId = "") => {
+        const children = allSources
+            .filter(source => (source.parentId || "") === parentId)
+            .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+        
+        if (children.length === 0) return null;
+
+        const ul = document.createElement('ul');
+        children.forEach(source => {
+            const li = document.createElement('li');
+            li.classList.add('source-tree-item');
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.classList.add('node-name');
+            nameSpan.textContent = source.name;
+            nameSpan.dataset.sourceId = source.id;
+
+            if (source.id === selectedItemSourceId) {
+                nameSpan.classList.add('selected');
+            }
+
+            nameSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const clickedId = e.target.dataset.sourceId;
+                if (selectedItemSourceId === clickedId) {
+                    selectedItemSourceId = null; // Toggle off
+                } else {
+                    selectedItemSourceId = clickedId;
+                }
+                renderItemSourceFilters(); // Re-render to show selection
+                currentPage = 1;
+                triggerFilterChange();
+            });
+
+            li.appendChild(nameSpan);
+            const childrenUl = buildTree(source.id);
+            if (childrenUl) {
+                li.appendChild(childrenUl);
+            }
+            ul.appendChild(li);
+        });
+        return ul;
+    };
+
+    const tree = buildTree();
+    if (tree) {
+        DOMF.itemSourceFiltersContainer.appendChild(tree);
+    }
+}
+
 // --- Functions to manage simulator selection mode ---
 export function activateSimulatorSelectionMode(slotName, slotTagId, currentEquippedItemId) {
     isSelectingForSimulator = true;
@@ -454,6 +543,7 @@ export function activateSimulatorSelectionMode(slotName, slotTagId, currentEquip
     }
     selectedTagIds = slotTagId ? [slotTagId] : [];
 
+    selectedItemSourceId = null; // Clear source filter for simulator selection
     if (DOMF.searchInput) DOMF.searchInput.value = ''; // Clear search for slot selection
     currentSearchTerm = '';
 
@@ -464,6 +554,7 @@ export function activateSimulatorSelectionMode(slotName, slotTagId, currentEquip
 
     renderParentCategoryFilters();
     renderChildCategoriesAndTags();
+    renderItemSourceFilters();
     triggerFilterChange(); // This will update renderConfig and call applyFiltersAndRender
 
     // Scroll to search area
@@ -485,6 +576,7 @@ export function deactivateSimulatorSelectionMode() {
     // Reset filters to default (or last non-simulator state if you want to preserve it)
     selectedParentCategoryIds = [];
     selectedTagIds = [];
+    selectedItemSourceId = null;
     if (DOMF.searchInput) DOMF.searchInput.value = '';
     currentSearchTerm = '';
 
@@ -495,6 +587,7 @@ export function deactivateSimulatorSelectionMode() {
 
     renderParentCategoryFilters();
     renderChildCategoriesAndTags();
+    renderItemSourceFilters();
     // モード解除時に必ずフィルターを再適用して画面を更新する
     triggerFilterChange();
 }
@@ -506,10 +599,11 @@ export function cancelItemSelection() { // Called when closing modal during sele
 // --- Getters for state (if needed by other modules directly) ---
 export const getSelectedParentCategoryIds = () => selectedParentCategoryIds;
 export const getSelectedTagIds = () => selectedTagIds;
+export const getSelectedItemSourceId = () => selectedItemSourceId;
 export const getCurrentPage = () => currentPage;
 export const setCurrentPageExport = (page) => { currentPage = page; }; // Avoid direct mutation
 export const getItemsPerPage = () => itemsPerPage;
-export const setItemsPerPageExport = (num) => { itemsPerPage = num; };
+export const setİtemsPerPageExport = (num) => { itemsPerPage = num; };
 export const getTemporarilySelectedItem = () => temporarilySelectedItem;
 export const setTemporarilySelectedItemExport = (itemId) => {
     temporarilySelectedItem = itemId;
