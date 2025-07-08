@@ -1,3 +1,5 @@
+--- START OF FILE --main/js/modules/search-filters.js.txt ---
+
 // js/modules/search-filters.js
 // Handles search input, category/tag filtering logic, and pagination state.
 
@@ -72,24 +74,20 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
 
     if (DOMF.resetFiltersButton) {
         DOMF.resetFiltersButton.addEventListener('click', () => {
-            currentSearchTerm = "";
-            if (DOMF.searchInput) DOMF.searchInput.value = "";
-            selectedParentCategoryIds = [];
-            selectedTagIds = []; // Clear all tags
-
-            if (isSelectingForSimulator && currentSelectingSlot) {
-                // Re-apply simulator-specific pre-filters
-                const slotTagId = getSlotTagIdFunc(currentSelectingSlot);
-                if (slotTagId) selectedTagIds.push(slotTagId);
-
-                const equipmentParent = getAllCategoriesFunc().find(c => c.name === simulatorParentCategoryNameConst && (!c.parentId || c.parentId === ""));
-                if (equipmentParent) selectedParentCategoryIds = [equipmentParent.id];
+            // シミュレーター選択モード中であれば、まずモードを解除する
+            if (isSelectingForSimulator) {
+                deactivateSimulatorSelectionMode();
+            } else {
+                // 通常のフィルターリセット
+                currentSearchTerm = "";
+                if (DOMF.searchInput) DOMF.searchInput.value = "";
+                selectedParentCategoryIds = [];
+                selectedTagIds = [];
+                currentPage = 1;
+                renderParentCategoryFilters();
+                renderChildCategoriesAndTags();
+                triggerFilterChange();
             }
-
-            currentPage = 1;
-            renderParentCategoryFilters(); // Re-render filters UI
-            renderChildCategoriesAndTags();
-            triggerFilterChange();
         });
     }
     
@@ -101,7 +99,6 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
                  console.warn("Confirm selection clicked but no slot or item selected, or no callback.");
                  // Fallback: just cancel selection mode
                  deactivateSimulatorSelectionMode();
-                 triggerFilterChange();
             }
         });
     }
@@ -500,12 +497,12 @@ export function deactivateSimulatorSelectionMode() {
 
     renderParentCategoryFilters();
     renderChildCategoriesAndTags();
-    // triggerFilterChange(); // Will be called by confirm action or modal close
+    // モード解除時に必ずフィルターを再適用して画面を更新する
+    triggerFilterChange();
 }
 
 export function cancelItemSelection() { // Called when closing modal during selection
     deactivateSimulatorSelectionMode();
-    triggerFilterChange();
 }
 
 // --- Getters for state (if needed by other modules directly) ---
@@ -534,3 +531,5 @@ export const setTemporarilySelectedItemExport = (itemId) => {
 
 export const isSelectingForSimulatorState = () => isSelectingForSimulator;
 export const getCurrentSelectingSlotState = () => currentSelectingSlot;
+
+--- END OF FILE --
