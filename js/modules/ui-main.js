@@ -1,3 +1,5 @@
+// main/js/modules/ui-main.js.txt
+
 // js/modules/ui-main.js
 import { getEffectUnitsCache as getEffectUnitsCacheFromLoader, getItemSourcesCache as getItemSourcesCacheFromLoader } from './data-loader.js';
 
@@ -105,14 +107,6 @@ function getRarityStarsHTML(rarityValue, maxStars = 5) {
     return starsHtml;
 }
 
-// ===== 変更箇所: item-source-manager.js の buildFullPathForSourceNode と同様のロジックをここに実装 =====
-/**
- * 指定された入手経路ノードIDに基づいて、完全な階層パス文字列を構築します。
- * 例: "ダンジョンA > フロア1 > ボス部屋"
- * @param {string} nodeId - 表示パスを構築する対象のノードID。
- * @param {Array<Object>} allItemSources - 全ての入手経路データの配列（キャッシュ）。
- * @returns {string} - 完全な階層パス文字列。
- */
 function buildFullPathForItemSourceInternal(nodeId, allItemSources) {
     if (!nodeId || !allItemSources || allItemSources.length === 0) {
         return "経路情報なし";
@@ -121,20 +115,19 @@ function buildFullPathForItemSourceInternal(nodeId, allItemSources) {
     const pathParts = [];
     let currentId = nodeId;
     let sanityCheck = 0;
-    while(currentId && sanityCheck < 10) { // MAX_SOURCE_DEPTH より少し大きめに設定
+    while(currentId && sanityCheck < 10) {
         const node = allItemSources.find(s => s.id === currentId);
         if (node) {
             pathParts.unshift(node.name);
             currentId = node.parentId;
         } else {
-            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`); // 親が見つからない場合
+            pathParts.unshift(`[ID:${currentId.substring(0,5)}...]`);
             break;
         }
         sanityCheck++;
     }
     return pathParts.join(' > ');
 }
-// ===== ここまで =====
 
 
 export function openItemDetailModal(item, effectTypesCache, allTags, effectUnitsCache) {
@@ -210,13 +203,11 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
             if (src.type === 'manual') {
                 text = src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(記載なし)';
             } else if (src.type === 'tree' && src.nodeId) {
-                // ===== 変更箇所: resolvedDisplay を優先し、なければ完全パスを構築 =====
-                if (src.resolvedDisplay) { // resolvedDisplay は「末端名 or displayString」のはず
+                if (src.resolvedDisplay) {
                     text = src.resolvedDisplay;
-                } else { // resolvedDisplay がない場合 (古いデータなど)、完全パスを構築
+                } else {
                     text = buildFullPathForItemSourceInternal(src.nodeId, itemSourcesCacheForUI);
                 }
-                // ===== ここまで =====
             }
             sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${text}</p>`;
         } else {
@@ -225,14 +216,12 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
                 if (src.type === 'manual') {
                     sourcesDisplayHtml += `<li>${src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(記載なし)'}</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
-                    // ===== 変更箇所: resolvedDisplay を優先し、なければ完全パスを構築 =====
                     let pathText;
                     if (src.resolvedDisplay) {
                         pathText = src.resolvedDisplay;
                     } else {
                         pathText = buildFullPathForItemSourceInternal(src.nodeId, itemSourcesCacheForUI);
                     }
-                    // ===== ここまで =====
                     sourcesDisplayHtml += `<li>${pathText}</li>`;
                 }
             });
@@ -241,9 +230,7 @@ export function openItemDetailModal(item, effectTypesCache, allTags, effectUnits
     } else if (item.sourceInputMode === 'manual' && typeof item.manualSourceString === 'string' && item.manualSourceString.trim() !== "") {
         sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${item.manualSourceString.replace(/\n/g, '<br>')}</p>`;
     } else if (item.sourceNodeId && itemSourcesCacheForUI && itemSourcesCacheForUI.length > 0) {
-        // ===== 変更箇所: 古い形式でも完全パスを構築 =====
         const text = buildFullPathForItemSourceInternal(item.sourceNodeId, itemSourcesCacheForUI);
-        // ===== ここまで =====
         sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${text} (旧形式)</p>`;
     } else if (typeof item.入手手段 === 'string' && item.入手手段.trim() !== "") {
          sourcesDisplayHtml = `<p style="margin-top: 10px;"><strong>入手手段:</strong> ${item.入手手段} (最旧形式)</p>`;
@@ -291,9 +278,15 @@ export function handleCloseButtonClick(modalElement) {
     console.log(`[ui-main] Closing modal: ${modalElement.id}`);
     modalElement.style.display = "none";
 
+    // 閉じられたモーダルがシミュレーターモーダルであり、かつアイテム選択中だった場合
     if (modalElement.id === 'simulatorModal' && getIsSelectingForSimulatorCb()) {
-        if(cancelItemSelectionCb) cancelItemSelectionCb();
+        // search-filters.js に定義されたキャンセル処理を呼び出す
+        if(cancelItemSelectionCb) {
+            console.log("[ui-main] Implicit cancellation of simulator selection detected. Resetting filters.");
+            cancelItemSelectionCb();
+        }
     }
+    
     if (modalElement.id === 'imagePreviewModal') {
         const imgPreview = document.getElementById('generatedImagePreview');
         if (imgPreview) imgPreview.src = "#";
