@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 getAllCategories: getAllCategories,
                 getAllTags: getAllTags,
                 getEffectTypesCache: getEffectTypesCache,
+                getItemSourcesCache: getItemSourcesCache,
                 getSlotTagId: (slotName) => EQUIPMENT_SLOT_TAG_IDS[slotName],
                 simulatorParentCategoryName: SIMULATOR_PARENT_CATEGORY_NAME,
                 simulatorEffectChildCategoryName: SIMULATOR_EFFECT_CHILD_CATEGORY_NAME,
