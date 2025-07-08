@@ -1,4 +1,3 @@
---- START OF FILE --main/js/modules/search-filters.js.txt ---
 // js/modules/search-filters.js
 // Handles search input, category/tag filtering logic, and pagination state.
 
@@ -530,4 +529,3 @@ export const setTemporarilySelectedItemExport = (itemId) => {
 
 export const isSelectingForSimulatorState = () => isSelectingForSimulator;
 export const getCurrentSelectingSlotState = () => currentSelectingSlot;
---- END OF FILE --
