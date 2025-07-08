@@ -1,5 +1,4 @@
 --- START OF FILE --main/js/modules/search-filters.js.txt ---
-
 // js/modules/search-filters.js
 // Handles search input, category/tag filtering logic, and pagination state.
 
@@ -406,8 +405,6 @@ export function renderChildCategoriesAndTags() {
                         tagButton.classList.toggle('disabled', isDisabledTag);
                         tagButton.classList.toggle('active', selectedTagIds.includes(tag.id) && !isDisabledTag);
                         
-                        // --- ここから修正 ---
-                        // エラーの原因となっている可能性のある `++` を削除（もしくは、元々無いはずなのでコードをクリーンナップ）
                         tagButton.addEventListener('click', () => {
                             if (isDisabledTag) return;
                             // Slot tags in simulator mode cannot be deselected by clicking
@@ -425,8 +422,6 @@ export function renderChildCategoriesAndTags() {
                             currentPage = 1;
                             triggerFilterChange();
                         });
-                        // --- ここまで修正 ---
-
                         tagsContainer.appendChild(tagButton);
                     });
                     childCatSection.appendChild(tagsContainer);
@@ -535,5 +530,4 @@ export const setTemporarilySelectedItemExport = (itemId) => {
 
 export const isSelectingForSimulatorState = () => isSelectingForSimulator;
 export const getCurrentSelectingSlotState = () => currentSelectingSlot;
-
 --- END OF FILE --
