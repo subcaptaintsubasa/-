@@ -953,12 +953,9 @@ async function saveItem(event) {
             itemDataForFirestore.price = priceToSave;
             dataForCache.price = priceToSave;
         } else {
-            // priceToSaveがnullの場合
             if (editingDocId) {
-                // 更新時はフィールドを削除
                 itemDataForFirestore.price = deleteField();
             }
-            // 新規作成時は何もしない（priceフィールドがオブジェクトに含まれない）
             delete dataForCache.price;
         }
 
@@ -1087,8 +1084,12 @@ export function _renderItemsAdminTableInternal() {
             <td>${effectsDisplayHtml}</td>
             <td>${tagsHtml}</td>
             <td>${sourceDisplayHtml}</td>`;
-
+        
+        // --- ここから修正 ---
+        // エラーの原因となった `++` を削除
         tr.addEventListener('click', () => loadItemForEdit(item.docId));
+        // --- ここまで修正 ---
+
         DOMI.itemsTableBody.appendChild(tr);
     });
 }
