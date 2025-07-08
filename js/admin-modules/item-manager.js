@@ -1,3 +1,5 @@
+--- START OF FILE --main/js/admin-modules/item-manager.js.txt ---
+
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, query, serverTimestamp, deleteField, getDoc, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { addItemToCache, updateItemInCache, removeItemFromCache } from './data-loader-admin.js';
@@ -951,7 +953,12 @@ async function saveItem(event) {
             itemDataForFirestore.price = priceToSave;
             dataForCache.price = priceToSave;
         } else {
-            itemDataForFirestore.price = deleteField();
+            // priceToSaveがnullの場合
+            if (editingDocId) {
+                // 更新時はフィールドを削除
+                itemDataForFirestore.price = deleteField();
+            }
+            // 新規作成時は何もしない（priceフィールドがオブジェクトに含まれない）
             delete dataForCache.price;
         }
 
@@ -1190,3 +1197,5 @@ async function logicalDeleteItem(docId, itemName) {
         }
     }
 }
+
+--- END OF FILE --
