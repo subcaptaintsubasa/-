@@ -1,5 +1,3 @@
-// main/js/admin-modules/item-manager.js.txt
-
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, query, serverTimestamp, deleteField, getDoc, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { addItemToCache, updateItemInCache, removeItemFromCache } from './data-loader-admin.js';
@@ -425,16 +423,23 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
         tagButtonsDiv.classList.add('tag-buttons-wrapper');
 
         tagsInThisCategory.forEach(tag => {
-            const button = document.createElement('button'); // Changed to button for semantics
-            button.type = 'button';
+            const button = document.createElement('div'); // Changed from button to div for styling flexibility
             button.className = 'tag-filter admin-tag-select';
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
             if (selectedTagIds.includes(tag.id)) {
                 button.classList.add('active');
             }
+            button.setAttribute('role', 'button'); // For accessibility
+            button.setAttribute('tabindex', '0');   // For keyboard navigation
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
+            });
+            button.addEventListener('keydown', (e) => { // Allow selection with Space/Enter
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    button.classList.toggle('active');
+                }
             });
             tagButtonsDiv.appendChild(button);
         });
@@ -451,14 +456,21 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
         const tagButtonsDiv = document.createElement('div');
         tagButtonsDiv.classList.add('tag-buttons-wrapper');
         unclassifiedTags.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(tag => {
-            const button = document.createElement('button');
-            button.type = 'button';
+            const button = document.createElement('div');
             button.className = 'tag-filter admin-tag-select';
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
             if (selectedTagIds.includes(tag.id)) button.classList.add('active');
+            button.setAttribute('role', 'button');
+            button.setAttribute('tabindex', '0');
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
+            });
+            button.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    button.classList.toggle('active');
+                }
             });
             tagButtonsDiv.appendChild(button);
         });
@@ -935,34 +947,28 @@ async function saveItem(event) {
         const dataForCache = { ...itemDataForFirestore };
         dataForCache.updatedAt = new Date(); // キャッシュ用は即時反映できるDateオブジェクト
 
+        if (priceToSave !== null) {
+            itemDataForFirestore.price = priceToSave;
+            dataForCache.price = priceToSave;
+        } else {
+            itemDataForFirestore.price = deleteField();
+            delete dataForCache.price;
+        }
+
         if (editingDocId) {
-            // 更新の場合
-            if (priceToSave !== null) {
-                itemDataForFirestore.price = priceToSave;
-                dataForCache.price = priceToSave;
-            } else {
-                // 更新時のみdeleteField()を使い、既存のpriceフィールドを削除
-                itemDataForFirestore.price = deleteField();
-                delete dataForCache.price;
-            }
+            // 更新
             await updateDoc(doc(dbInstance, 'items', editingDocId), itemDataForFirestore);
             dataForCache.docId = editingDocId;
-            updateItemInCache(dataForCache);
+            updateItemInCache(dataForCache); // ローカルキャッシュを更新
             console.log("Item updated locally and in Firestore:", editingDocId);
 
         } else {
-            // 新規追加の場合
-            if (priceToSave !== null) {
-                itemDataForFirestore.price = priceToSave; // priceがあれば追加
-                dataForCache.price = priceToSave;
-            }
-            // priceがなければ、itemDataForFirestoreにpriceプロパティを追加しない (deleteField()を使わない)
-
+            // 新規追加
             itemDataForFirestore.createdAt = serverTimestamp();
             const docRef = await addDoc(collection(dbInstance, 'items'), itemDataForFirestore);
             dataForCache.createdAt = new Date();
             dataForCache.docId = docRef.id;
-            addItemToCache(dataForCache);
+            addItemToCache(dataForCache); // ローカルキャッシュに追加
             console.log("Item added locally and in Firestore:", docRef.id);
         }
 
@@ -975,7 +981,7 @@ async function saveItem(event) {
     } finally {
         if (DOMI.saveItemButton) {
             DOMI.saveItemButton.disabled = false;
-            DOMI.saveItemButton.textContent = DOMI.itemIdToEditInput.value ? "アイテム更新" : "アイテム保存";
+            DOMI.saveItemButton.textContent = document.getElementById('itemIdToEdit').value ? "アイテム更新" : "アイテム保存";
         }
     }
 }
