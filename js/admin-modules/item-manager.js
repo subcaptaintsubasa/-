@@ -1,4 +1,3 @@
---- START OF FILE --main/js/admin-modules/item-manager.js.txt ---
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, query, serverTimestamp, deleteField, getDoc, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { addItemToCache, updateItemInCache, removeItemFromCache } from './data-loader-admin.js';
@@ -1193,4 +1192,3 @@ async function logicalDeleteItem(docId, itemName) {
         }
     }
 }
---- END OF FILE --
