@@ -36,18 +36,29 @@
         <section class="search-tool-section">
             <h2>アイテム検索</h2>
             <div class="search-controls">
-                <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段、売値で検索..." aria-label="検索キーワード">
-                <div class="parent-category-filters">
-                    <h2>親カテゴリ選択:</h2>
-                    <div id="parentCategoryFiltersContainer" class="category-button-group" role="group" aria-labelledby="parentCategoryLabel">
-                        <p>親カテゴリをロード中...</p>
-                    </div>
-                </div>
-                <div id="childCategoriesAndTagsContainer">
-                    <p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p>
-                </div>
-                <button id="resetFiltersButton" type="button">フィルターリセット</button>
+    <div class="filter-section" id="classification-filters">
+        <h3 class="filter-section-title">分類で絞り込む</h3>
+        <input type="text" id="searchInput" placeholder="アイテム名、効果、入手手段、売値で検索..." aria-label="検索キーワード">
+        <div class="parent-category-filters">
+            <h2>親カテゴリ選択:</h2>
+            <div id="parentCategoryFiltersContainer" class="category-button-group" role="group" aria-labelledby="parentCategoryLabel">
+                <p>親カテゴリをロード中...</p>
             </div>
+        </div>
+        <div id="childCategoriesAndTagsContainer">
+            <p style="color: #777; margin-top: 10px;">親カテゴリを選択すると、関連する子カテゴリとタグが表示されます。</p>
+        </div>
+    </div>
+
+    <div class="filter-section" id="source-filters">
+        <h3 class="filter-section-title">入手経路で絞り込む</h3>
+        <div id="itemSourceFiltersContainer" class="source-tree-container">
+            <p>入手経路をロード中...</p>
+        </div>
+    </div>
+
+    <button id="resetFiltersButton" type="button">フィルターリセット</button>
+</div>
             <div id="searchToolMessage" class="search-tool-message" style="display: none;" role="alert">
             </div>
             <div id="itemCount" aria-live="polite">
