@@ -1,5 +1,4 @@
 --- START OF FILE --main/js/admin-modules/item-manager.js.txt ---
-
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, query, serverTimestamp, deleteField, getDoc, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 import { addItemToCache, updateItemInCache, removeItemFromCache } from './data-loader-admin.js';
@@ -1084,12 +1083,8 @@ export function _renderItemsAdminTableInternal() {
             <td>${effectsDisplayHtml}</td>
             <td>${tagsHtml}</td>
             <td>${sourceDisplayHtml}</td>`;
-        
-        // --- ここから修正 ---
-        // エラーの原因となった `++` を削除
-        tr.addEventListener('click', () => loadItemForEdit(item.docId));
-        // --- ここまで修正 ---
 
+        tr.addEventListener('click', () => loadItemForEdit(item.docId));
         DOMI.itemsTableBody.appendChild(tr);
     });
 }
@@ -1198,5 +1193,4 @@ async function logicalDeleteItem(docId, itemName) {
         }
     }
 }
-
 --- END OF FILE --
