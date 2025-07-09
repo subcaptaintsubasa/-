@@ -374,28 +374,56 @@
 .filter-section-title {
     font-size: 1.2em; color: #444; margin-top: 0; margin-bottom: 15px;
 }
+
+/* ===== 入手経路フィルターUI改善 ===== */
 .source-tree-container {
     padding: 10px;
     border: 1px solid #eee;
     background-color: #fff;
     border-radius: 4px;
-    max-height: 300px;
-    overflow-y: auto;
+    min-height: 50px;
 }
-.source-tree-container ul {
-    list-style: none;
-    padding-left: 20px;
+.source-level-container {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #e0e0e0;
 }
-.source-tree-item {
-    padding: 4px 0;
+.source-level-container:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+.item-source-select-button {
+    padding: 6px 12px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
     cursor: pointer;
+    font-size: 0.9em;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    color: #495057;
 }
-.source-tree-item .node-name:hover {
-    text-decoration: underline;
+.item-source-select-button:hover {
+    background-color: #e0e0e0;
+    border-color: #ccc;
+}
+.item-source-select-button.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+    font-weight: 500;
+}
+.source-path-display {
+    margin-top: 15px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #333;
+}
+.source-path-display strong {
     color: #0056b3;
-}
-.source-tree-item .node-name.selected {
-    background-color: #d4edda;
-    font-weight: bold;
-    border-radius: 3px;
 }
