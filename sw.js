@@ -1,74 +1,85 @@
-// /-/sw.js - v1.8 (Final Attempt with Async Initialization)
+// /-/sw.js - v1.9 (Final)
 
-const WORKBOX_VERSION = '6.5.4';
+// Workboxライブラリをインポートします
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js');
 
-// ライブラリの読み込み
-importScripts(`https://storage.googleapis.com/workbox-cdn/releases/${WORKBOX_VERSION}/workbox-sw.js`);
-
-// Service Workerのライフサイクルを制御
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', () => self.clients.claim());
-self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
+// Service Workerのライフサイクルイベントを登録します
+// これらはWorkboxの初期化とは独立して設定します
+self.addEventListener('install', () => {
+  console.log('[SW] Install event');
+  self.skipWaiting();
 });
 
-// Workboxが正常に読み込まれた場合のみ、ルーティングを設定
-if (self.workbox) {
-  console.log(`[SW] Workbox ${self.workbox.VERSION} is available.`);
-  
-  // Workboxの各種モジュールを分割代入で取得
-  const { precacheAndRoute } = self.workbox.precaching;
-  const { registerRoute } = self.workbox.routing;
-  const { NetworkFirst, StaleWhileRevalidate, CacheFirst } = self.workbox.strategies;
-  const { CacheableResponsePlugin } = self.workbox.cacheable_response;
-  const { ExpirationPlugin } = self.workbox.expiration;
+self.addEventListener('activate', () => {
+  console.log('[SW] Activate event');
+  self.clients.claim();
+});
 
-  // デバッグモードを無効化
-  self.workbox.setConfig({ debug: false });
+// workboxオブジェクトが正常にロードされたことを確認してから、すべての設定を行います
+if (workbox) {
+  console.log(`[SW] Workbox ${workbox.version} is loaded and available.`);
 
-  // プリキャッシュ: Service Workerインストール時に必須のファイルをキャッシュ
+  // デバッグモードを無効にします（本番環境推奨）
+  workbox.setConfig({ debug: false });
+
+  // 必要なモジュールを分割代入で取得します
+  const { precacheAndRoute } = workbox.precaching;
+  const { registerRoute } = workbox.routing;
+  const { NetworkFirst, StaleWhileRevalidate, CacheFirst } = workbox.strategies;
+  const { CacheableResponsePlugin } = workbox.cacheable_response;
+  const { ExpirationPlugin } = workbox.expiration;
+
+  // プリキャッシュ: Service Workerのインストール時に必須ファイルをキャッシュします
+  // revisionはファイルを更新するたびに変更すると、キャッシュが更新されます
   precacheAndRoute([
-    { url: 'index.html', revision: 'shell-v1.8' },
-    { url: 'css/base.css', revision: 'style-v1.8' },
-    { url: 'css/modal.css', revision: 'style-v1.8' },
-    { url: 'css/responsive.css', revision: 'style-v1.8' },
-    { url: 'css/search-tool.css', revision: 'style-v1.8' },
-    { url: 'css/simulator.css', revision: 'style-v1.8' },
-    { url: 'firebase-config.js', revision: 'fb-v1.8' },
-    { url: 'js/script-main.js', revision: 'main-v1.8' },
+    { url: 'index.html', revision: 'shell-v1.9' },
+    { url: 'css/base.css', revision: 'style-v1.9' },
+    { url: 'css/modal.css', revision: 'style-v1.9' },
+    { url: 'css/responsive.css', revision: 'style-v1.9' },
+    { url: 'css/search-tool.css', revision: 'style-v1.9' },
+    { url: 'css/simulator.css', revision: 'style-v1.9' },
+    { url: 'firebase-config.js', revision: 'fb-v1.9' },
+    { url: 'js/script-main.js', revision: 'main-v1.9' },
+    // 必要に応じて他の重要なJSファイルも追加できます
   ]);
 
-  // ナビゲーションリクエスト（ページ読み込み）の戦略
+  // ルーティング設定
+  // 1. ページ本体 (HTML) のキャッシュ戦略
   registerRoute(
     ({ request }) => request.mode === 'navigate',
-    new NetworkFirst({ cacheName: 'pages-cache-v1.8' })
+    new NetworkFirst({
+      cacheName: 'pages-cache-v1.9',
+    })
   );
 
-  // CSSとJSファイルのキャッシュ戦略
+  // 2. CSSとJSファイルのキャッシュ戦略
   registerRoute(
     ({ request }) => request.destination === 'style' || request.destination === 'script',
-    new StaleWhileRevalidate({ cacheName: 'static-assets-cache-v1.8' })
+    new StaleWhileRevalidate({
+      cacheName: 'static-assets-cache-v1.9',
+    })
   );
 
-  // 画像ファイルのキャッシュ戦略
+  // 3. 画像ファイルのキャッシュ戦略
   registerRoute(
     ({ request }) => request.destination === 'image',
     new CacheFirst({
-      cacheName: 'images-cache-v1.8',
+      cacheName: 'images-cache-v1.9',
       plugins: [
         new CacheableResponsePlugin({ statuses: [0, 200] }),
-        new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 }),
+        new ExpirationPlugin({
+          maxEntries: 100, // キャッシュする画像の最大数
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30日間
+        }),
       ],
     })
   );
   
-  // CDNライブラリのキャッシュ戦略
+  // 4. CDNから読み込む外部ライブラリのキャッシュ戦略
   registerRoute(
-    ({url}) => url.origin === 'https://cdnjs.cloudflare.com' || url.origin === 'https://cdn.jsdelivr.net',
-    new CacheFirst({
-      cacheName: 'third-party-libs-cache-v1.8',
+    ({ url }) => url.origin === 'https://cdnjs.cloudflare.com' || url.origin === 'https://cdn.jsdelivr.net',
+    new CacheFirst({ // ライブラリは頻繁に変わらないのでCacheFirstが適しています
+      cacheName: 'third-party-libs-cache-v1.9',
       plugins: [
         new CacheableResponsePlugin({ statuses: [0, 200] }),
         new ExpirationPlugin({ maxAgeSeconds: 365 * 24 * 60 * 60 }), // 1年間キャッシュ
@@ -76,7 +87,7 @@ if (self.workbox) {
     })
   );
 
-  console.log('[SW] Routing and precaching have been configured.');
+  console.log('[SW] All routing rules have been set up.');
 
 } else {
   console.error('[SW] Workbox could not be loaded. Offline functionality will not work.');
