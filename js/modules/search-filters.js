@@ -31,6 +31,7 @@ let currentSearchTerm = "";
 let selectedParentCategoryIds = [];
 let selectedTagIds = []; // Includes slot tag when in simulator mode
 let selectedItemSourceId = null;
+let selectedSourcePath = []; // For button UI
 
 // Pagination state
 let currentPage = 1;
@@ -87,6 +88,7 @@ export function initSearchFilters(db, dependencies) { // db might not be needed 
                 selectedParentCategoryIds = [];
                 selectedTagIds = [];
                 selectedItemSourceId = null;
+                selectedSourcePath = [];
                 currentPage = 1;
                 renderParentCategoryFilters();
                 renderChildCategoriesAndTags();
@@ -476,53 +478,66 @@ function renderItemSourceFilters() {
         return;
     }
 
-    const buildTree = (parentId = "") => {
+    // Display selected path
+    if (selectedSourcePath.length > 0) {
+        const pathDisplay = document.createElement('div');
+        pathDisplay.className = 'source-path-display';
+        pathDisplay.innerHTML = `<strong>選択中の経路:</strong> ${selectedSourcePath.map(p => p.name).join(' > ')}`;
+        DOMF.itemSourceFiltersContainer.appendChild(pathDisplay);
+    }
+
+    const buildLevel = (parentId = "", level = 0) => {
         const children = allSources
             .filter(source => (source.parentId || "") === parentId)
             .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-        
+
         if (children.length === 0) return null;
 
-        const ul = document.createElement('ul');
+        const levelContainer = document.createElement('div');
+        levelContainer.className = 'source-level-container';
         children.forEach(source => {
-            const li = document.createElement('li');
-            li.classList.add('source-tree-item');
-            
-            const nameSpan = document.createElement('span');
-            nameSpan.classList.add('node-name');
-            nameSpan.textContent = source.name;
-            nameSpan.dataset.sourceId = source.id;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'item-source-select-button';
+            button.textContent = source.name;
+            button.dataset.sourceId = source.id;
 
-            if (source.id === selectedItemSourceId) {
-                nameSpan.classList.add('selected');
+            if (selectedSourcePath[level] && selectedSourcePath[level].id === source.id) {
+                button.classList.add('active');
             }
 
-            nameSpan.addEventListener('click', (e) => {
-                e.stopPropagation();
+            button.addEventListener('click', (e) => {
                 const clickedId = e.target.dataset.sourceId;
-                if (selectedItemSourceId === clickedId) {
-                    selectedItemSourceId = null; // Toggle off
+                const clickedName = e.target.textContent;
+
+                // If the clicked button is already active, deselect it and its children
+                if (selectedSourcePath[level] && selectedSourcePath[level].id === clickedId) {
+                    selectedSourcePath = selectedSourcePath.slice(0, level);
+                    selectedItemSourceId = (level > 0) ? selectedSourcePath[level - 1].id : null;
                 } else {
+                    selectedSourcePath = selectedSourcePath.slice(0, level);
+                    selectedSourcePath.push({ id: clickedId, name: clickedName });
                     selectedItemSourceId = clickedId;
                 }
-                renderItemSourceFilters(); // Re-render to show selection
+                
+                renderItemSourceFilters();
                 currentPage = 1;
                 triggerFilterChange();
             });
-
-            li.appendChild(nameSpan);
-            const childrenUl = buildTree(source.id);
-            if (childrenUl) {
-                li.appendChild(childrenUl);
-            }
-            ul.appendChild(li);
+            levelContainer.appendChild(button);
         });
-        return ul;
+        return levelContainer;
     };
 
-    const tree = buildTree();
-    if (tree) {
-        DOMF.itemSourceFiltersContainer.appendChild(tree);
+    const parentIdToShow = selectedSourcePath.length > 0 ? selectedSourcePath[selectedSourcePath.length - 1].id : "";
+    const nextLevelContainer = buildLevel(parentIdToShow, selectedSourcePath.length);
+    if (nextLevelContainer) {
+        DOMF.itemSourceFiltersContainer.appendChild(nextLevelContainer);
+    } else if (selectedItemSourceId) {
+        // Reached a terminal node, no more children to show.
+    } else {
+         const rootLevelContainer = buildLevel("", 0);
+         if(rootLevelContainer) DOMF.itemSourceFiltersContainer.appendChild(rootLevelContainer);
     }
 }
 
@@ -544,6 +559,7 @@ export function activateSimulatorSelectionMode(slotName, slotTagId, currentEquip
     selectedTagIds = slotTagId ? [slotTagId] : [];
 
     selectedItemSourceId = null; // Clear source filter for simulator selection
+    selectedSourcePath = [];
     if (DOMF.searchInput) DOMF.searchInput.value = ''; // Clear search for slot selection
     currentSearchTerm = '';
 
@@ -577,6 +593,7 @@ export function deactivateSimulatorSelectionMode() {
     selectedParentCategoryIds = [];
     selectedTagIds = [];
     selectedItemSourceId = null;
+    selectedSourcePath = [];
     if (DOMF.searchInput) DOMF.searchInput.value = '';
     currentSearchTerm = '';
 
@@ -603,7 +620,7 @@ export const getSelectedItemSourceId = () => selectedItemSourceId;
 export const getCurrentPage = () => currentPage;
 export const setCurrentPageExport = (page) => { currentPage = page; }; // Avoid direct mutation
 export const getItemsPerPage = () => itemsPerPage;
-export const setİtemsPerPageExport = (num) => { itemsPerPage = num; };
+export const setItemsPerPageExport = (num) => { itemsPerPage = num; };
 export const getTemporarilySelectedItem = () => temporarilySelectedItem;
 export const setTemporarilySelectedItemExport = (itemId) => {
     temporarilySelectedItem = itemId;
