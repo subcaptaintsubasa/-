@@ -86,7 +86,7 @@ DOMR.backupZipFileInput.addEventListener('change', async (event) => {
         try {
             const jszip = new JSZip();
             const zipContents = await jszip.loadAsync(file);
-            const jsonFileInZip = zipContents.file("denpa_item_backup_data.json");
+            const jsonFileInZip = zipContents.file(/denpa_item_backup_data.*\.json/)[0];
 
             if (jsonFileInZip) {
                 const jsonString = await jsonFileInZip.async("string");
