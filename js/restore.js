@@ -86,8 +86,11 @@ DOMR.backupZipFileInput.addEventListener('change', async (event) => {
         try {
             const jszip = new JSZip();
             const zipContents = await jszip.loadAsync(file);
-            const jsonFileInZip = zipContents.file(/denpa_item_backup_data.*\.json/)[0];
-
+// ZIPファイル内から'.json'で終わるファイルを検索する
+            const jsonFileName = Object.keys(zipContents.files).find(
+                name => name.toLowerCase().endsWith('.json')
+            );
+            const jsonFileInZip = jsonFileName ? zipContents.file(jsonFileName) : null;
             if (jsonFileInZip) {
                 const jsonString = await jsonFileInZip.async("string");
                 parsedBackupJsonData = JSON.parse(jsonString);
