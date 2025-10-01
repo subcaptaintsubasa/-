@@ -244,15 +244,25 @@ DOMR.executeRestoreButton.addEventListener('click', async () => {
                     let subCollBatch = writeBatch(db);
                     let subCollWriteCount = 0;
                     for (const docData of optionsData) {
-                        const docId = docData.docId;
-                        if (!docId) {
-                            logToUI(DOMR.restoreExecutionLog, `      ドキュメントIDがありません。スキップ: ${JSON.stringify(docData).substring(0,50)}...`, 'warning');
-                            continue;
-                        }
+                        const docId = docData.docId; // 既存のIDを取得しようとする
                         const dataToWrite = { ...docData };
-                        delete dataToWrite.docId; 
-                        // dataToWrite.updatedAt = serverTimestamp(); // Or use timestamp from backup
-                        subCollBatch.set(doc(db, subCollPath, docId), dataToWrite);
+                        if (docId) {
+                            delete dataToWrite.docId; // docIdがあればデータからは削除
+                        }
+
+                        let docRef;
+                        if (docId) {
+                            // 新形式: docIdが存在する場合、そのIDでドキュメント参照を作成
+                            docRef = doc(db, subCollPath, docId);
+                        } else {
+                            // 旧形式: docIdが存在しない場合、ID自動生成で新しいドキュメント参照を作成
+                            docRef = doc(collection(db, subCollPath));
+                        }
+                        
+                        // 復元時にタイムスタンプを更新したい場合は以下のコメントを外す
+                        // dataToWrite.updatedAt = serverTimestamp();
+
+                        subCollBatch.set(docRef, dataToWrite);
                         subCollWriteCount++;
                         if (subCollWriteCount % 490 === 0) { // Commit batch periodically
                             await subCollBatch.commit();
@@ -287,16 +297,25 @@ DOMR.executeRestoreButton.addEventListener('click', async () => {
                 let collBatch = writeBatch(db);
                 let collWriteCount = 0;
                 for (const docData of collectionDataFromBackup) {
-                    const docId = docData.docId; 
-                    if (!docId) {
-                        logToUI(DOMR.restoreExecutionLog, `    ドキュメントIDがありません。スキップ: ${JSON.stringify(docData).substring(0,50)}...`, 'warning');
-                        continue;
-                    }
+                    const docId = docData.docId; // 既存のIDを取得しようとする
                     const dataToWrite = { ...docData };
-                    delete dataToWrite.docId;
+                    if (docId) {
+                        delete dataToWrite.docId; // docIdがあればデータからは削除
+                    }
+
+                    let docRef;
+                    if (docId) {
+                        // 新形式: docIdが存在する場合、そのIDでドキュメント参照を作成
+                        docRef = doc(db, collName, docId);
+                    } else {
+                        // 旧形式: docIdが存在しない場合、ID自動生成で新しいドキュメント参照を作成
+                        docRef = doc(collection(db, collName)); 
+                    }
+
+                    // 復元時にタイムスタンプを更新したい場合は以下のコメントを外す
                     // dataToWrite.updatedAt = serverTimestamp();
 
-                    collBatch.set(doc(db, collName, docId), dataToWrite);
+                    collBatch.set(docRef, dataToWrite);
                     collWriteCount++;
                     if (collWriteCount % 490 === 0) { // Commit batch periodically
                         await collBatch.commit();
