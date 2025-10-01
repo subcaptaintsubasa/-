@@ -143,8 +143,9 @@ function displayCollectionSummaries(collections) {
                 if (Array.isArray(dataArray[baseType])) {
                     totalCharBaseOptions += dataArray[baseType].length;
                     if(dataArray[baseType].length > 0 && charBaseSamples.length < 3){
-                        charBaseSamples.push(`<strong>${baseType}</strong>: ${dataArray[baseType][0].name || '(名称なし)'} (ID: ${dataArray[baseType][0].docId.substring(0,5)}...)`);
-                    }
+ const sampleDoc = dataArray[baseType][0];
+                        const idDisplay = sampleDoc.docId ? sampleDoc.docId.substring(0, 5) : '不明';
+                        charBaseSamples.push(`<strong>${baseType}</strong>: ${sampleDoc.name || '(名称なし)'} (ID: ${idDisplay}...)`);                    }
                 }
             }
             count = totalCharBaseOptions; // Or count distinct baseTypes if preferred
