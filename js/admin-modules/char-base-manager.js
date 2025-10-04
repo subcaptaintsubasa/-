@@ -434,7 +434,6 @@ async function saveCharBaseOption() {
             await addDoc(optionsCollectionRef, optionData);
         }
         closeModal('editCharBaseOptionModal');
-        await refreshAllDataCallback();
     } catch (error) {
         console.error(`[CharBase Manager] Error saving option for ${baseType}:`, error);
         alert("基礎情報オプションの保存に失敗しました。");
@@ -456,7 +455,6 @@ async function logicalDeleteCharBaseOption(optionId, baseType, optionName) {
             if (DOMCB.editCharBaseOptionModal.style.display !== 'none' && DOMCB.editingCharBaseOptionDocIdInput.value === optionId) {
                 closeModal('editCharBaseOptionModal');
             }
-            await refreshAllDataCallback();
         } catch (error) {
             console.error(`[CharBase Manager] Error logically deleting option for ${baseType}:`, error);
             alert("基礎情報オプションの論理削除に失敗しました。");
