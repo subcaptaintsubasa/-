@@ -346,7 +346,6 @@ async function addCategory() {
         await addDoc(collection(dbInstance, 'categories'), categoryData);
         DOMC.newCategoryNameInput.value = '';
         populateParentCategoryButtonsUI(DOMC.newCategoryParentButtons, DOMC.selectedNewParentCategoryIdInput, { selectedParentId: "" });
-        await refreshAllDataCallback(); 
     } catch (error) {
         console.error("[Category Manager] Error adding category:", error);
         alert("カテゴリの追加に失敗しました。");
