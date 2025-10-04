@@ -460,7 +460,6 @@ async function addItemSourceNode() {
         // Reset parent selector and toggle display string input
         populateParentSourceSelectorUI(DOMISM.newItemSourceParentSelector, DOMISM.selectedNewParentSourceIdInput, { selectedParentId: "" });
         toggleDisplayStringInputForNode(DOMISM.newItemSourceDisplayStringGroup, null, null, true);
-        await refreshAllDataCallback();
     } catch (error) { console.error("[ItemSource Manager] Error adding node:", error); alert("入手経路の追加に失敗しました。"); }
 }
 
@@ -562,7 +561,6 @@ async function saveItemSourceNodeEdit() {
         await updateDescendantDepthsRecursive(docId, newDepth, allSources, batch); // Pass non-deleted sources
         await batch.commit();
         closeModal('editItemSourceModal');
-        await refreshAllDataCallback();
     } catch (error) { console.error("[ItemSource Manager] Error saving edit:", error); alert(`入手経路の更新に失敗しました: ${error.message}`); }
 }
 
@@ -642,7 +640,6 @@ async function logicalDeleteItemSourceNode(docId, nodeName) {
             if (DOMISM.editItemSourceModal.style.display !== 'none' && DOMISM.editingItemSourceDocIdInput.value === docId) {
                 closeModal('editItemSourceModal');
             }
-            await refreshAllDataCallback();
         } catch (error) { console.error("[ItemSource Manager] Error logically deleting node:", error); alert("入手経路の論理削除に失敗しました。"); }
     }
 }
