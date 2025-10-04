@@ -462,7 +462,6 @@ async function saveCategoryEdit() {
         });
         await batch.commit();
         closeModal('editCategoryModal');
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Category Manager] Error saving category edit:", error);
         alert("カテゴリの更新または関連タグの更新に失敗しました。");
