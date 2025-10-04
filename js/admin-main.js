@@ -450,6 +450,7 @@ async function executeIsDeletedMigration() {
 
 function clearAdminUIAndData() {
     console.log("[admin-main] Clearing admin UI and data cache...");
+    cleanupListeners(); // ログアウト時にリスナーを確実に解除
     const listContainersIds = ['categoryListContainer', 'tagListContainer', 'effectUnitListContainer', 'effectSuperCategoryListContainer', 'effectTypeListContainer', 'charBaseOptionListContainer', 'itemSourceListContainer'];
     listContainersIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p>ログアウトしました。</p>'; });
     const itemsTableBody = document.querySelector('#itemsTable tbody');
@@ -460,14 +461,16 @@ function clearAdminUIAndData() {
         const el = document.getElementById(id); if (el) el.innerHTML = '<p>追加されていません。</p>'; 
     });
     ['itemImagePreview'].forEach(id => { const el = document.getElementById(id); if (el) { el.src = '#'; el.style.display = 'none'; } });
-    clearAdminDataCache(); // From data-loader-admin.js
+    clearAdminDataCache(); // From data-loader-admin.js (内部で再度cleanupListenersを呼ぶが問題ない)
     console.log("[admin-main] Admin UI cleared.");
 }
 
 async function loadAndInitializeAdminModules() {
     console.log("[admin-main] Starting to load data and initialize modules...");
     try {
-        await loadInitialData(db); // From data-loader-admin.js, db is in scope
+        // データ同期を開始し、初回ロードが完了するのを待つ。データ更新時は renderAllAdminUISections が呼ばれる。
+        await initializeDataSync(db, renderAllAdminUISections);
+
         const commonDependencies = {
             db,
             getAllCategories: getAllCategoriesCache,
@@ -478,11 +481,9 @@ async function loadAndInitializeAdminModules() {
             getEffectSuperCategories: getEffectSuperCategoriesCache,
             getCharacterBases: getCharacterBasesCache,
             getItemSources: getItemSourcesCache,
+            // refreshAllDataはonSnapshotに任せるため、ここでは何もしない関数を渡す
             refreshAllData: async () => {
-                console.log("[admin-main] Refreshing all data and UI...");
-                await loadInitialData(db); // db is in scope
-                renderAllAdminUISections();
-                console.log("[admin-main] All data and UI refreshed.");
+                console.log("[admin-main] refreshAllData called, but now handled by onSnapshot. No manual action taken.");
             },
             openEnlargedListModal: (config) => {
                 openEnlargedListModal(
@@ -503,9 +504,10 @@ async function loadAndInitializeAdminModules() {
         initEffectSuperCategoryManager(commonDependencies);
         initEffectTypeManager(commonDependencies);
         initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
-        initItemSourceManager(commonDependencies); 
+        initItemSourceManager(commonDependencies);
         initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
+        // 初回描画（initializeDataSync内の初回onSnapshotでも呼ばれるが、念のため実行）
         renderAllAdminUISections();
         console.log("[admin-main] Admin modules initialized and initial UI rendered successfully.");
     } catch (error) {
