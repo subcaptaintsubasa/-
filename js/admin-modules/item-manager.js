@@ -73,6 +73,8 @@ let itemSourceEditingIndex = -1;
 
 let currentEffectsInputMode = 'structured';
 let currentSourceInputMode = 'tree';
+let adminCurrentPage = 1;
+const ADMIN_ITEMS_PER_PAGE = 50; // 1ページあたりの表示件数
 
 const MAX_RARITY = 5;
 
@@ -997,7 +999,12 @@ export function _renderItemsAdminTableInternal() {
         (item.name && item.name.toLowerCase().includes(searchTerm)) ||
         (!searchTerm && (item.name === "" || !item.name)) // Show items with no name if search is empty
     ).sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja'));
+    const totalFilteredCount = filteredItems.length;
+    const startIndex = (adminCurrentPage - 1) * ADMIN_ITEMS_PER_PAGE;
+    const endIndex = startIndex + ADMIN_ITEMS_PER_PAGE;
+    const itemsToRender = filteredItems.slice(startIndex, endIndex);
 
+    renderAdminPaginationControls(totalFilteredCount, adminCurrentPage, ADMIN_ITEMS_PER_PAGE);
     if (filteredItems.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
@@ -1181,4 +1188,61 @@ async function logicalDeleteItem(docId, itemName) {
             alert("アイテムの論理削除に失敗しました。");
         }
     }
+}
+
+/**
+ * 管理画面用のページネーションコントロールを生成・描画する
+ * @param {number} totalItems - フィルタリング後のアイテム総数
+ * @param {number} currentPage - 現在のページ番号
+ * @param {number} itemsPerPage - 1ページあたりのアイテム数
+ */
+function renderAdminPaginationControls(totalItems, currentPage, itemsPerPage) {
+    const paginationControls = document.getElementById('adminPaginationControls');
+    if (!paginationControls) return;
+
+    paginationControls.innerHTML = '';
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    if (totalPages <= 1) {
+        return; // 1ページ以下の場合は何も表示しない
+    }
+
+    const createButton = (text, page, isDisabled = false, isCurrent = false) => {
+        const button = document.createElement('button');
+        button.textContent = text;
+        button.disabled = isDisabled;
+        if (isCurrent) {
+            button.classList.add('active'); // CSSでスタイルを当てるためのクラス
+            button.style.fontWeight = 'bold';
+            button.style.backgroundColor = '#007bff';
+            button.style.color = 'white';
+        } else {
+            button.classList.add('pagination-button'); // 既存のスタイルを流用
+            button.style.backgroundColor = '#f0f0f0';
+            button.style.color = '#333';
+        }
+
+        button.addEventListener('click', () => {
+            adminCurrentPage = page;
+            _renderItemsAdminTableInternal(); // テーブルを再描画
+            // テーブルの上部にスクロール
+            const tableElement = document.getElementById('itemsTable');
+            if (tableElement) {
+                tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+        return button;
+    };
+
+    // 「前へ」ボタン
+    paginationControls.appendChild(createButton('前へ', currentPage - 1, currentPage === 1));
+
+    // ページ情報
+    const pageInfo = document.createElement('span');
+    pageInfo.textContent = `${currentPage} / ${totalPages} ページ (${totalItems}件)`;
+    pageInfo.style.margin = '0 10px';
+    paginationControls.appendChild(pageInfo);
+
+    // 「次へ」ボタン
+    paginationControls.appendChild(createButton('次へ', currentPage + 1, currentPage === totalPages));
 }
