@@ -2,7 +2,7 @@
 import { auth, db } from '../firebase-config.js'; // db をインポート
 import { initAuth } from './admin-modules/auth.js';
 import {
-    initializeDataSync, 
+    initializeDataSync,
     clearAdminDataCache,
     cleanupListeners,
     IMAGE_UPLOAD_WORKER_URL,
