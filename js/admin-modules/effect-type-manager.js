@@ -369,7 +369,6 @@ async function addEffectType() {
              DOMET.newEffectTypeSumCapGroup.style.display = (sumRadioEl && sumRadioEl.checked) ? 'block' : 'none';
         }
         
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Effect Type Manager] Error adding effect type:", error);
         alert("効果種類の追加に失敗しました。");
@@ -445,7 +444,6 @@ async function saveEffectTypeEdit() {
         await updateDoc(doc(dbInstance, 'effect_types', id), updateData);
         closeModal('editEffectTypeModal');
         document.dispatchEvent(new CustomEvent('adminEditModalClosed', { detail: { modalId: 'editEffectTypeModal' } }));
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Effect Type Manager] Error updating effect type:", error);
         alert("効果種類の更新に失敗しました。");
@@ -487,7 +485,6 @@ async function logicalDeleteEffectType(id, name) {
                 closeModal('editEffectTypeModal'); 
             }
             document.dispatchEvent(new CustomEvent('adminEditModalClosed', { detail: { modalId: 'editEffectTypeModal_directDelete' } }));
-            await refreshAllDataCallback();
         } catch (error) {
             console.error("[Effect Type Manager] Error logically deleting effect type:", error);
             alert("効果種類の論理削除に失敗しました。");
