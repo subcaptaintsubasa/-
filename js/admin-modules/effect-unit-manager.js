@@ -156,7 +156,6 @@ async function addEffectUnit() {
         });
         DOMEU.newEffectUnitNameInput.value = '';
         if (DOMEU.newEffectUnitPositionRadios.length > 0) DOMEU.newEffectUnitPositionRadios[0].checked = true; // Default selection
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Effect Unit Manager] Error adding effect unit:", error);
         alert("効果単位の追加に失敗しました。");
@@ -222,7 +221,6 @@ async function saveEffectUnitEdit() {
         }
 
         closeModal('editEffectUnitModal');
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Effect Unit Manager] Error updating effect unit:", error);
         alert("効果単位の更新に失敗しました。");
@@ -270,7 +268,6 @@ async function logicalDeleteEffectUnit(id, name) {
             if (DOMEU.editEffectUnitModal.style.display !== 'none' && DOMEU.editingEffectUnitDocIdInput.value === id) {
                 closeModal('editEffectUnitModal');
             }
-            await refreshAllDataCallback();
         } catch (error) {
             console.error("[Effect Unit Manager] Error logically deleting effect unit:", error);
             alert("効果単位の論理削除に失敗しました。");
