@@ -147,7 +147,6 @@ async function addEffectSuperCategory() {
             updatedAt: serverTimestamp() // Add updatedAt
         });
         DOMESC.newEffectSuperCategoryNameInput.value = '';
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Effect Super Category Manager] Error adding:", error);
         alert("効果大分類の追加に失敗しました。");
@@ -223,7 +222,6 @@ async function saveEffectSuperCategoryEdit() {
         await batch.commit();
         closeAdminModal('editEffectSuperCategoryModal');
         document.dispatchEvent(new CustomEvent('adminEditModalClosed', { detail: { modalId: 'editEffectSuperCategoryModal' } }));
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Effect Super Category Manager] Error updating:", error);
         alert("効果大分類の更新または関連する効果種類の更新に失敗しました。");
@@ -252,7 +250,6 @@ async function logicalDeleteEffectSuperCategory(docId, name) {
                 closeAdminModal('editEffectSuperCategoryModal');
             }
             document.dispatchEvent(new CustomEvent('adminEditModalClosed', { detail: { modalId: 'editEffectSuperCategoryModal' } }));
-            await refreshAllDataCallback();
         } catch (error) {
             console.error("[Effect Super Category Manager] Error logically deleting:", error);
             alert("効果大分類の論理削除に失敗しました。");
