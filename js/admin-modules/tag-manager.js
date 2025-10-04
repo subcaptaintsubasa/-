@@ -188,7 +188,6 @@ async function addTag() {
         DOMT.newTagNameInput.value = '';
         _populateCategoryCheckboxesForTagFormInternal(DOMT.newTagCategoriesCheckboxes);
 
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Tag Manager] Error adding tag:", error);
         alert("タグの追加に失敗しました。");
@@ -233,7 +232,6 @@ async function saveTagEdit() {
             updatedAt: serverTimestamp() // Update timestamp
         });
         closeModal('editTagModal');
-        await refreshAllDataCallback();
     } catch (error) {
         console.error("[Tag Manager] Error saving tag edit:", error);
         alert("タグの更新に失敗しました。");
@@ -262,7 +260,6 @@ async function logicalDeleteTag(docId, tagName) {
             if (DOMT.editTagModal.style.display !== 'none' && DOMT.editingTagDocIdInput.value === docId) {
                 closeModal('editTagModal');
             }
-            await refreshAllDataCallback();
         } catch (error) {
             console.error("[Tag Manager] Error logically deleting tag:", error);
             alert("タグの論理削除に失敗しました。");
