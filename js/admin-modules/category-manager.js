@@ -509,7 +509,7 @@ async function logicalDeleteCategory(docId, categoryName) {
             if (DOMC.editCategoryModal.style.display !== 'none' && DOMC.editingCategoryDocIdInput.value === docId) {
                 closeModal('editCategoryModal');
             }
-            await refreshAllDataCallback();
+
         } catch (error) {
             console.error("[Category Manager] Error logically deleting category:", error);
             alert("カテゴリの論理削除または関連タグの更新に失敗しました。");
