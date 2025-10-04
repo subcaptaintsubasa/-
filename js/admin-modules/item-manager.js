@@ -1,6 +1,5 @@
 // js/admin-modules/item-manager.js
 import { collection, getDocs, addDoc, doc, updateDoc, query, serverTimestamp, deleteField, getDoc, where } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-import { addItemToCache, updateItemInCache, removeItemFromCache } from './data-loader-admin.js';
 
 const DOMI = {
     itemForm: null,
@@ -960,22 +959,16 @@ async function saveItem(event) {
         if (editingDocId) {
             // 更新
             await updateDoc(doc(dbInstance, 'items', editingDocId), itemDataForFirestore);
-            dataForCache.docId = editingDocId;
-            updateItemInCache(dataForCache); // ローカルキャッシュを更新
-            console.log("Item updated locally and in Firestore:", editingDocId);
+            console.log("Item updated in Firestore:", editingDocId);
 
         } else {
             // 新規追加
             itemDataForFirestore.createdAt = serverTimestamp();
             const docRef = await addDoc(collection(dbInstance, 'items'), itemDataForFirestore);
-            dataForCache.createdAt = new Date();
-            dataForCache.docId = docRef.id;
-            addItemToCache(dataForCache); // ローカルキャッシュに追加
-            console.log("Item added locally and in Firestore:", docRef.id);
+            console.log("Item added in Firestore:", docRef.id);
         }
 
         clearItemFormInternal();
-        _renderItemsAdminTableInternal(); // UIのみを再描画
 
     } catch (error) {
         console.error("[Item Manager] Error saving item:", error);
@@ -1176,15 +1169,12 @@ async function logicalDeleteItem(docId, itemName) {
 
             console.warn(`Item ${docId} (${itemName}) logically deleted. Image on R2 is NOT deleted.`);
 
-            // キャッシュからアイテムを削除
-            removeItemFromCache(docId);
+
 
             if (DOMI.itemIdToEditInput.value === docId) {
                 clearItemFormInternal();
             }
 
-            // UIのみを再描画
-            _renderItemsAdminTableInternal();
             
         } catch (error) {
             console.error(`[Item Manager] Error logically deleting item ${docId}:`, error);
