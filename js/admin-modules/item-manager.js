@@ -985,36 +985,54 @@ async function saveItem(event) {
 
 
 export function _renderItemsAdminTableInternal() {
-    if (!DOMI.itemsTableBody) return;
-    const itemsCache = getAllItemsFuncCache(); // Assumes non-deleted items
-    const allTags = getAllTagsFuncCache(); // Assumes non-deleted
-    const effectTypesCache = getEffectTypesFuncCache(); // Assumes non-deleted
-    const effectUnitsCache = getEffectUnitsFuncCache(); // Assumes non-deleted
-    const itemSourcesCacheData = getItemSourcesFuncCache(); // Assumes non-deleted
+    // 1. DOM要素の存在チェック
+    if (!DOMI.itemsTableBody) {
+        console.warn("_renderItemsAdminTableInternal called before DOMI.itemsTableBody is ready.");
+        return;
+    }
+    
+    // 2. 必要なキャッシュデータを取得
+    const itemsCache = getAllItemsFuncCache();
+    const allTags = getAllTagsFuncCache();
+    const effectTypesCache = getEffectTypesCache();
+    const effectUnitsCache = getEffectUnitsCache();
+    const itemSourcesCacheData = getItemSourcesFuncCache();
 
     DOMI.itemsTableBody.innerHTML = '';
 
+    // 3. 検索とフィルタリング
     const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
+    
+    // 検索入力中はページを1に戻す
+    if (document.activeElement === DOMI.itemSearchAdminInput && adminCurrentPage !== 1) {
+        adminCurrentPage = 1;
+    }
+
     const filteredItems = itemsCache.filter(item =>
         (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-        (!searchTerm && (item.name === "" || !item.name)) // Show items with no name if search is empty
+        (!searchTerm && (item.name === "" || !item.name))
     ).sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja'));
+    
+    // 4. ページネーション処理
     const totalFilteredCount = filteredItems.length;
     const startIndex = (adminCurrentPage - 1) * ADMIN_ITEMS_PER_PAGE;
     const endIndex = startIndex + ADMIN_ITEMS_PER_PAGE;
-    const itemsToRender = filteredItems.slice(startIndex, endIndex);
+    const itemsToRender = filteredItems.slice(startIndex, endIndex); // 表示するアイテムを切り出す
 
+    // 5. ページネーションコントロールの描画
     renderAdminPaginationControls(totalFilteredCount, adminCurrentPage, ADMIN_ITEMS_PER_PAGE);
-    if (filteredItems.length === 0) {
+
+    // 6. テーブルの描画
+    if (itemsToRender.length === 0) {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
-        td.colSpan = 7; // Adjusted for new table structure if any
-        td.textContent = searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。';
+        td.colSpan = 7;
+        td.textContent = totalFilteredCount > 0 ? 'このページに表示するアイテムはありません。' : (searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。');
         td.style.textAlign = 'center';
         return;
     }
 
-    filteredItems.forEach(item => {
+    itemsToRender.forEach(item => { // ★★★ ループ対象が `itemsToRender` になっていることを確認 ★★★
         const tr = document.createElement('tr');
         tr.classList.add('table-row-clickable');
         tr.dataset.itemDocId = item.docId;
@@ -1024,7 +1042,7 @@ export function _renderItemsAdminTableInternal() {
         const priceDisplay = (typeof item.price === 'number' && !isNaN(item.price)) ? `${item.price}G` : '未設定';
         const rarityDisplay = `星${item.rarity || 0}`;
 
-        // Effects display (using new unified 'effects' array)
+        // Effects display
         let effectsDisplayHtml = '<ul class="effect-list-in-table">';
         if (item.effects && item.effects.length > 0) {
             item.effects.forEach(eff => {
@@ -1032,7 +1050,7 @@ export function _renderItemsAdminTableInternal() {
                     effectsDisplayHtml += `<li>・${eff.manualString ? eff.manualString.replace(/\n/g, '<br>') : '(手動効果)'}</li>`;
                 } else if (eff.type === "structured") {
                     const typeInfo = effectTypesCache.find(et => et.id === eff.effectTypeId);
-                    const typeName = typeInfo ? typeInfo.name : `不明(${eff.effectTypeId ? eff.effectTypeId.substring(0, 6) : 'IDなし'}...)`;
+                    const typeName = typeInfo ? typeInfo.name : `不明`;
                     let effectTextPart;
                     const unitName = eff.unit;
                     if (unitName && unitName !== 'none') {
@@ -1046,26 +1064,24 @@ export function _renderItemsAdminTableInternal() {
         } else { effectsDisplayHtml += '<li>効果なし</li>'; }
         effectsDisplayHtml += '</ul>';
 
-        // Sources display (using new unified 'sources' array)
+        // Sources display
         let sourceDisplayHtml = '<ul class="effect-list-in-table">';
         if (item.sources && item.sources.length > 0) {
             item.sources.forEach(src => {
                 if (src.type === 'manual') {
                     sourceDisplayHtml += `<li>・${src.manualString ? src.manualString.replace(/\n/g, '<br>') : '(手動入力)'}</li>`;
                 } else if (src.type === 'tree' && src.nodeId) {
-                    let pathText = src.resolvedDisplay; // Should be pre-resolved on save
+                    let pathText = src.resolvedDisplay;
                     if (!pathText && window.adminModules && window.adminModules.itemSourceManager && typeof window.adminModules.itemSourceManager.buildFullPathForSourceNode === 'function') {
-                        // Fallback to build full path if resolvedDisplay is missing (e.g. older data)
                         pathText = window.adminModules.itemSourceManager.buildFullPathForSourceNode(src.nodeId, itemSourcesCacheData);
                     } else if (!pathText) {
-                        pathText = `経路ID: ${src.nodeId.substring(0,8)}... (表示不可)`;
+                        pathText = `経路ID: ... (表示不可)`;
                     }
                     sourceDisplayHtml += `<li>・${pathText}</li>`;
                 }
             });
         } else { sourceDisplayHtml += '<li>不明</li>'; }
         sourceDisplayHtml += '</ul>';
-
 
         let tagsHtml = '';
         if (item.tags && item.tags.length > 0) {
