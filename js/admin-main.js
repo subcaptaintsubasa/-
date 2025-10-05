@@ -59,7 +59,6 @@ const DOM = {
     enlargeItemSourceListButton: null,
     charBaseTypeButtons: null,
     selectedCharBaseTypeInput: null,
-    migrateIsDeletedButton: null, // マイグレーションボタン用DOM要素
 };
 
 function queryDOMElements() {
@@ -83,14 +82,13 @@ function queryDOMElements() {
     
     DOM.charBaseTypeButtons = document.getElementById('charBaseTypeButtons');
     DOM.selectedCharBaseTypeInput = document.getElementById('selectedCharBaseType');
-    DOM.migrateIsDeletedButton = document.getElementById('migrateIsDeletedButton'); // マイグレーションボタン取得
 }
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    queryDOMElements(); 
 
     initUIHelpers(); 
+// ... (DOMContentLoaded内)
     initAuth(auth, 
         (user) => { 
             document.getElementById('password-prompt').style.display = 'none';
@@ -99,8 +97,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentUserEmailSpan = document.getElementById('currentUserEmail');
             if (user && currentUserEmailSpan) currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
             
+            // ▼▼▼ ここでDOM要素を取得する ▼▼▼
             queryDOMElements(); 
-            setupAdminNav(); // マイグレーションボタンのリスナーもここで設定
+            
+            setupAdminNav();
             loadAndInitializeAdminModules();
         }, 
         () => { 
@@ -256,17 +256,6 @@ function setupAdminNav() {
         console.error("manualBackupButton not found during setupAdminNav");
     }
 
-    // ===== マイグレーションボタンのリスナー設定 =====
-    if (DOM.migrateIsDeletedButton) {
-        const newMigrateButton = DOM.migrateIsDeletedButton.cloneNode(true);
-        DOM.migrateIsDeletedButton.parentNode.replaceChild(newMigrateButton, DOM.migrateIsDeletedButton);
-        DOM.migrateIsDeletedButton = newMigrateButton;
-        DOM.migrateIsDeletedButton.addEventListener('click', executeIsDeletedMigration);
-        console.log("Event listener attached to migrateIsDeletedButton");
-    } else {
-        console.error("migrateIsDeletedButton not found during setupAdminNav");
-    }
-    // ===== 追加ここまで =====
 
 
     DOM.adminNavButtons = document.querySelectorAll('#adminSideNav .admin-nav-button, #adminSideNav a.admin-nav-button');
