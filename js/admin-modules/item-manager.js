@@ -994,8 +994,8 @@ export function _renderItemsAdminTableInternal() {
     // 2. 必要なキャッシュデータを取得
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
-    const effectTypesCache = getEffectTypesCache();
-    const effectUnitsCache = getEffectUnitsCache();
+    const effectTypesCache = getEffectTypesFuncCache();     // 末尾に Func を追加
+    const effectUnitsCache = getEffectUnitsFuncCache();     // 末尾に Func を追加
     const itemSourcesCacheData = getItemSourcesFuncCache();
 
     DOMI.itemsTableBody.innerHTML = '';
