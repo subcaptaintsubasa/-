@@ -1353,7 +1353,7 @@ function renderAdminPaginationControls(totalItems, currentPage, itemsPerPage) {
 /**
  * 管理画面のカテゴリフィルター（チェックボックス）を描画する
  */
-function renderAdminCategoryFilter() {
+export function renderAdminCategoryFilter() { 
     if (!DOMI.adminCategoryFilterContainer) return;
     DOMI.adminCategoryFilterContainer.innerHTML = '';
     const allCategories = getAllCategoriesFuncCache();
@@ -1399,7 +1399,7 @@ function renderAdminCategoryFilter() {
  * 管理画面のタグフィルター（ボタン）を描画する
  * 選択中のカテゴリに属するタグのみを表示する
  */
-function renderAdminTagFilter() {
+export function renderAdminTagFilter() { 
     if (!DOMI.adminTagFilterContainer) return;
     DOMI.adminTagFilterContainer.innerHTML = '';
     const allTags = getAllTagsFuncCache();
