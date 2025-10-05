@@ -541,6 +541,9 @@ function renderAllAdminUISections() {
     if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
     if (typeof populateCharBaseEffectTypeSelectInModal === 'function') populateCharBaseEffectTypeSelectInModal();
     if (typeof populateItemFormTags === 'function') populateItemFormTags();
+        if (document.getElementById('adminCategoryFilterContainer') && typeof window.renderAdminCategoryFilter === 'function') window.renderAdminCategoryFilter();
+    if (document.getElementById('adminTagFilterContainer') && typeof window.renderAdminTagFilter === 'function') window.renderAdminTagFilter();
+    
     console.log("[admin-main] All admin UI sections rendering process complete.");
 }
 
