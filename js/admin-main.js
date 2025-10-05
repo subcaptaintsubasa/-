@@ -23,8 +23,7 @@ import { initEffectUnitManager, _renderEffectUnitsForManagementInternal as rende
 import { initEffectSuperCategoryManager, _renderEffectSuperCategoriesForManagementInternal as renderEffectSuperCategoriesUI, openEditEffectSuperCategoryModalById as openEditEscModal } from './admin-modules/effect-super-category-manager.js';
 import { initEffectTypeManager, _renderEffectTypesForManagementInternal as renderEffectTypesUI, _populateEffectTypeSelectsInternal as populateEffectTypeSelectsInForms, openEditEffectTypeModalById as openEditEtModal } from './admin-modules/effect-type-manager.js';
 import { initCharBaseManager, _renderCharacterBaseOptionsInternal as renderCharBaseOptionsUI, _populateCharBaseEffectTypeSelectInternal as populateCharBaseEffectTypeSelectInModal, baseTypeMappings, openEditCharBaseOptionModalById as openEditCboModal } from './admin-modules/char-base-manager.js';
-import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagButtonsForItemFormInternal as populateItemFormTags } from './admin-modules/item-manager.js'; 
-import { 
+import { initItemManager, _renderItemsAdminTableInternal as renderItemsTableUI, _populateTagButtonsForItemFormInternal as populateItemFormTags, renderAdminCategoryFilter, renderAdminTagFilter } from './admin-modules/item-manager.js'; import { 
     initItemSourceManager, 
     _renderItemSourcesForManagementInternal as renderItemSourcesUI, 
     buildItemSourceTreeDOM,
@@ -541,8 +540,8 @@ function renderAllAdminUISections() {
     if (typeof populateEffectTypeSelectsInForms === 'function') populateEffectTypeSelectsInForms();
     if (typeof populateCharBaseEffectTypeSelectInModal === 'function') populateCharBaseEffectTypeSelectInModal();
     if (typeof populateItemFormTags === 'function') populateItemFormTags();
-        if (document.getElementById('adminCategoryFilterContainer') && typeof window.renderAdminCategoryFilter === 'function') window.renderAdminCategoryFilter();
-    if (document.getElementById('adminTagFilterContainer') && typeof window.renderAdminTagFilter === 'function') window.renderAdminTagFilter();
+    if (typeof renderAdminCategoryFilter === 'function') renderAdminCategoryFilter();
+    if (typeof renderAdminTagFilter === 'function') renderAdminTagFilter();
     
     console.log("[admin-main] All admin UI sections rendering process complete.");
 }
