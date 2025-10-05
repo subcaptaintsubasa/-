@@ -187,9 +187,27 @@
 
                 <h3 style="margin-top:30px;"><span class="icon" aria-hidden="true"></span> アイテム一覧</h3>
                 <p class="info-message-small">一覧の行をクリックすると、そのアイテムの情報が上の編集フォームに読み込まれます。</p>
-                <div class="form-group">
-                    <label for="itemSearchAdmin" class="sr-only">アイテム検索</label>
-                    <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." aria-label="登録済みアイテムを検索">
+                 <div class="admin-filter-controls" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0; font-size: 1.1em; border-bottom: none;">絞り込みフィルター</h4>
+                        <button id="resetAdminFiltersButton" type="button" class="button-like secondary" style="padding: 4px 8px; font-size: 0.8em;">フィルターリセット</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemSearchAdmin">アイテム名で検索:</label>
+                        <input type="text" id="itemSearchAdmin" placeholder="アイテム名で検索..." aria-label="登録済みアイテムを検索">
+                    </div>
+                    <div class="form-group">
+                        <label>カテゴリで絞り込み (子カテゴリのみ):</label>
+                        <div id="adminCategoryFilterContainer" class="checkbox-group-container" style="max-height: 150px;">
+                            <!-- カテゴリフィルターがここにJSで生成されます -->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>タグで絞り込み:</label>
+                        <div id="adminTagFilterContainer" class="tag-button-selection-container" style="max-height: 150px; padding: 10px;">
+                            <!-- タグフィルターがここにJSで生成されます -->
+                        </div>
+                    </div>
                 </div>
                 <div style="overflow-x: auto;">
                     <table id="itemsTable">
