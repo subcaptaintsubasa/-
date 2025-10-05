@@ -86,33 +86,42 @@ function queryDOMElements() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-
+    // 最初にUIヘルパーを初期化
     initUIHelpers(); 
-// ... (DOMContentLoaded内)
+    
+    // 認証状態の監視を開始
     initAuth(auth, 
         (user) => { 
+            // ログイン成功時の処理
             document.getElementById('password-prompt').style.display = 'none';
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'block';
+            
             const currentUserEmailSpan = document.getElementById('currentUserEmail');
-            if (user && currentUserEmailSpan) currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
+            if (user && currentUserEmailSpan) {
+                currentUserEmailSpan.textContent = `ログイン中: ${user.email}`;
+            }
             
-            // ▼▼▼ ここでDOM要素を取得する ▼▼▼
+            // ★★★ UIが表示された後にDOM要素を取得し、アプリケーションを開始する ★★★
             queryDOMElements(); 
-            
-            setupAdminNav();
             loadAndInitializeAdminModules();
         }, 
         () => { 
+            // ログアウト時の処理
             document.getElementById('password-prompt').style.display = 'flex';
             const adminContentEl = document.getElementById('admin-content');
             if (adminContentEl) adminContentEl.style.display = 'none';
+            
             if (DOM.adminSideNav) {
                  DOM.adminSideNav.classList.remove('open');
                  DOM.adminSideNav.setAttribute('aria-hidden', 'true');
             }
+            
             const currentUserEmailSpan = document.getElementById('currentUserEmail');
-            if (currentUserEmailSpan) currentUserEmailSpan.textContent = '';
+            if (currentUserEmailSpan) {
+                currentUserEmailSpan.textContent = '';
+            }
+            
             clearAdminUIAndData();
         }
     );
@@ -455,11 +464,9 @@ function clearAdminUIAndData() {
 }
 
 async function loadAndInitializeAdminModules() {
-    console.log("[admin-main] Starting to load data and initialize modules...");
+    console.log("[admin-main] Starting to initialize modules and sync data...");
     try {
-        // データ同期を開始し、初回ロードが完了するのを待つ。データ更新時は renderAllAdminUISections が呼ばれる。
-        await initializeDataSync(db, renderAllAdminUISections);
-
+        // 1. 共通の依存関係オブジェクトを作成
         const commonDependencies = {
             db,
             getAllCategories: getAllCategoriesCache,
@@ -470,9 +477,8 @@ async function loadAndInitializeAdminModules() {
             getEffectSuperCategories: getEffectSuperCategoriesCache,
             getCharacterBases: getCharacterBasesCache,
             getItemSources: getItemSourcesCache,
-            // refreshAllDataはonSnapshotに任せるため、ここでは何もしない関数を渡す
             refreshAllData: async () => {
-                console.log("[admin-main] refreshAllData called, but now handled by onSnapshot. No manual action taken.");
+                console.log("[admin-main] refreshAllData called, but now handled by onSnapshot.");
             },
             openEnlargedListModal: (config) => {
                 openEnlargedListModal(
@@ -487,23 +493,32 @@ async function loadAndInitializeAdminModules() {
             }
         };
 
+        // 2. 各マネージャーを初期化
         initCategoryManager(commonDependencies);
         initTagManager(commonDependencies);
         initEffectUnitManager(commonDependencies);
         initEffectSuperCategoryManager(commonDependencies);
         initEffectTypeManager(commonDependencies);
         initCharBaseManager({ ...commonDependencies, baseTypeMappingsFromMain: baseTypeMappings });
-        initItemSourceManager(commonDependencies);
+        initItemSourceManager(commonDependencies); 
         initItemManager({ ...commonDependencies, uploadWorkerUrl: IMAGE_UPLOAD_WORKER_URL });
 
-        // 初回描画（initializeDataSync内の初回onSnapshotでも呼ばれるが、念のため実行）
-        renderAllAdminUISections();
-        console.log("[admin-main] Admin modules initialized and initial UI rendered successfully.");
+        // 3. UIのセットアップ
+        setupAdminNav(); 
+        
+        // 4. データ同期を開始し、初回ロードが完了するのを待つ
+        // データが更新されるたびに renderAllAdminUISections が自動的に呼ばれる
+        await initializeDataSync(db, renderAllAdminUISections);
+
+        console.log("[admin-main] Admin modules initialized and initial data sync complete.");
+
     } catch (error) {
         console.error("[admin-main] CRITICAL ERROR during admin panel initialization:", error);
         alert("管理パネルの初期化中に重大なエラーが発生しました。コンソールを確認してください。");
         const adminContainer = document.getElementById('admin-content')?.querySelector('.container');
-        if (adminContainer) adminContainer.innerHTML = `<p class="error-message" style="text-align:center;padding:20px;color:red;">管理データの読み込みまたは表示に失敗しました。</p>`;
+        if (adminContainer) {
+            adminContainer.innerHTML = `<p class="error-message" style="text-align:center;padding:20px;color:red;">管理データの読み込みまたは表示に失敗しました。</p>`;
+        }
     }
 }
 
