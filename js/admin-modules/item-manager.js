@@ -50,6 +50,9 @@ const DOMI = {
     itemSearchAdminInput: null,
     enlargedImagePreviewModal: null,
     enlargedImagePreview: null,
+        adminCategoryFilterContainer: null,
+    adminTagFilterContainer: null,
+    resetAdminFiltersButton: null,
 };
 
 let dbInstance = null;
@@ -73,6 +76,12 @@ let itemSourceEditingIndex = -1;
 
 let currentEffectsInputMode = 'structured';
 let currentSourceInputMode = 'tree';
+// フィルターの状態を管理するオブジェクト
+const adminFilterState = {
+    searchTerm: "",
+    categoryIds: [],
+    tagIds: [],
+};
 let adminCurrentPage = 1;
 const ADMIN_ITEMS_PER_PAGE = 50; // 1ページあたりの表示件数
 
@@ -135,6 +144,9 @@ export function initItemManager(dependencies) {
     DOMI.clearFormButton = document.getElementById('clearFormButton');
     DOMI.itemsTableBody = document.querySelector('#itemsTable tbody');
     DOMI.itemSearchAdminInput = document.getElementById('itemSearchAdmin');
+        DOMI.adminCategoryFilterContainer = document.getElementById('adminCategoryFilterContainer');
+    DOMI.adminTagFilterContainer = document.getElementById('adminTagFilterContainer');
+    DOMI.resetAdminFiltersButton = document.getElementById('resetAdminFiltersButton');
 
     DOMI.enlargedImagePreviewModal = document.getElementById('imagePreviewModal');
     DOMI.enlargedImagePreview = document.getElementById('enlargedImagePreview');
@@ -174,8 +186,46 @@ export function initItemManager(dependencies) {
         });
     }
 
-    if (DOMI.itemSearchAdminInput) DOMI.itemSearchAdminInput.addEventListener('input', _renderItemsAdminTableInternal);
-    if (DOMI.deleteItemFromFormButton) {
+    if (DOMI.itemSearchAdminInput) {
+        DOMI.itemSearchAdminInput.addEventListener('input', (e) => {
+            adminFilterState.searchTerm = e.target.value.toLowerCase().trim();
+            adminCurrentPage = 1;
+            _renderItemsAdminTableInternal();
+        });
+    }
+
+    if (DOMI.adminCategoryFilterContainer) {
+        DOMI.adminCategoryFilterContainer.addEventListener('change', () => {
+            adminFilterState.categoryIds = Array.from(DOMI.adminCategoryFilterContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+            adminCurrentPage = 1;
+            renderAdminTagFilter(); // 選択可能なタグを更新
+            _renderItemsAdminTableInternal();
+        });
+    }
+
+    if (DOMI.adminTagFilterContainer) {
+        DOMI.adminTagFilterContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tag-filter')) {
+                e.target.classList.toggle('active');
+                adminFilterState.tagIds = Array.from(DOMI.adminTagFilterContainer.querySelectorAll('.tag-filter.active')).map(btn => btn.dataset.tagId);
+                adminCurrentPage = 1;
+                _renderItemsAdminTableInternal();
+            }
+        });
+    }
+
+    if (DOMI.resetAdminFiltersButton) {
+        DOMI.resetAdminFiltersButton.addEventListener('click', () => {
+            adminFilterState.searchTerm = "";
+            adminFilterState.categoryIds = [];
+            adminFilterState.tagIds = [];
+            if (DOMI.itemSearchAdminInput) DOMI.itemSearchAdminInput.value = "";
+            adminCurrentPage = 1;
+            renderAdminCategoryFilter();
+            renderAdminTagFilter();
+            _renderItemsAdminTableInternal();
+        });
+    }    if (DOMI.deleteItemFromFormButton) {
         DOMI.deleteItemFromFormButton.addEventListener('click', () => {
             const itemId = DOMI.itemIdToEditInput.value;
             const itemName = DOMI.itemNameInput.value || '(名称未設定)';
@@ -984,6 +1034,8 @@ async function saveItem(event) {
 }
 
 
+// main/js/admin-modules/item-manager.js に貼り付け
+
 export function _renderItemsAdminTableInternal() {
     // 1. DOM要素の存在チェック
     if (!DOMI.itemsTableBody) {
@@ -994,30 +1046,65 @@ export function _renderItemsAdminTableInternal() {
     // 2. 必要なキャッシュデータを取得
     const itemsCache = getAllItemsFuncCache();
     const allTags = getAllTagsFuncCache();
-    const effectTypesCache = getEffectTypesFuncCache();     // 末尾に Func を追加
-    const effectUnitsCache = getEffectUnitsFuncCache();     // 末尾に Func を追加
+    const effectTypesCache = getEffectTypesFuncCache();
+    const effectUnitsCache = getEffectUnitsFuncCache();
     const itemSourcesCacheData = getItemSourcesFuncCache();
 
     DOMI.itemsTableBody.innerHTML = '';
 
-    // 3. 検索とフィルタリング
-    const searchTerm = DOMI.itemSearchAdminInput ? DOMI.itemSearchAdminInput.value.toLowerCase() : "";
-    
-    // 検索入力中はページを1に戻す
-    if (document.activeElement === DOMI.itemSearchAdminInput && adminCurrentPage !== 1) {
-        adminCurrentPage = 1;
+    // 3. フィルター状態に基づいてデータをフィルタリング
+    const searchTerm = adminFilterState.searchTerm;
+    let filteredItems = [...itemsCache];
+
+    // 名前フィルター
+    if (searchTerm) {
+        filteredItems = filteredItems.filter(item =>
+            item.name && item.name.toLowerCase().includes(searchTerm)
+        );
     }
 
-    const filteredItems = itemsCache.filter(item =>
-        (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-        (!searchTerm && (item.name === "" || !item.name))
-    ).sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja'));
+    // カテゴリフィルター
+    if (adminFilterState.categoryIds.length > 0) {
+        const selectedCategorySet = new Set(adminFilterState.categoryIds);
+        
+        // アイテムが持つタグIDをキー、そのタグが属する子カテゴリIDのSetを値とするMapを作成（事前計算）
+        const tagToChildCategoriesMap = new Map();
+        allTags.forEach(tag => {
+            if (tag.categoryIds) {
+                tagToChildCategoriesMap.set(tag.id, new Set(tag.categoryIds));
+            }
+        });
+
+        filteredItems = filteredItems.filter(item => {
+            if (!item.tags || item.tags.length === 0) return false;
+            
+            // アイテムが持ついずれかのタグが、選択されたカテゴリのいずれかに属しているかチェック
+            return item.tags.some(tagId => {
+                const childCategoryIds = tagToChildCategoriesMap.get(tagId);
+                if (!childCategoryIds) return false;
+                // Setのhasを使った高速なチェック
+                return [...childCategoryIds].some(catId => selectedCategorySet.has(catId));
+            });
+        });
+    }
+
+    // タグフィルター (AND検索)
+    if (adminFilterState.tagIds.length > 0) {
+        filteredItems = filteredItems.filter(item => {
+            if (!item.tags || item.tags.length === 0) return false;
+            const itemTagSet = new Set(item.tags);
+            return adminFilterState.tagIds.every(tagId => itemTagSet.has(tagId));
+        });
+    }
+
+    // ソート
+    filteredItems.sort((a,b) => (a.name || "").localeCompare(b.name || "", 'ja'));
     
     // 4. ページネーション処理
     const totalFilteredCount = filteredItems.length;
     const startIndex = (adminCurrentPage - 1) * ADMIN_ITEMS_PER_PAGE;
     const endIndex = startIndex + ADMIN_ITEMS_PER_PAGE;
-    const itemsToRender = filteredItems.slice(startIndex, endIndex); // 表示するアイテムを切り出す
+    const itemsToRender = filteredItems.slice(startIndex, endIndex);
 
     // 5. ページネーションコントロールの描画
     renderAdminPaginationControls(totalFilteredCount, adminCurrentPage, ADMIN_ITEMS_PER_PAGE);
@@ -1027,12 +1114,12 @@ export function _renderItemsAdminTableInternal() {
         const tr = DOMI.itemsTableBody.insertRow();
         const td = tr.insertCell();
         td.colSpan = 7;
-        td.textContent = totalFilteredCount > 0 ? 'このページに表示するアイテムはありません。' : (searchTerm ? '検索条件に一致するアイテムはありません。' : 'アイテムが登録されていません。');
+        td.textContent = totalFilteredCount > 0 ? 'このページに表示するアイテムはありません。' : (searchTerm || adminFilterState.categoryIds.length > 0 || adminFilterState.tagIds.length > 0 ? 'フィルター条件に一致するアイテムはありません。' : 'アイテムが登録されていません。');
         td.style.textAlign = 'center';
         return;
     }
 
-    itemsToRender.forEach(item => { // ★★★ ループ対象が `itemsToRender` になっていることを確認 ★★★
+    itemsToRender.forEach(item => {
         const tr = document.createElement('tr');
         tr.classList.add('table-row-clickable');
         tr.dataset.itemDocId = item.docId;
@@ -1261,4 +1348,92 @@ function renderAdminPaginationControls(totalItems, currentPage, itemsPerPage) {
 
     // 「次へ」ボタン
     paginationControls.appendChild(createButton('次へ', currentPage + 1, currentPage === totalPages));
+}
+
+/**
+ * 管理画面のカテゴリフィルター（チェックボックス）を描画する
+ */
+function renderAdminCategoryFilter() {
+    if (!DOMI.adminCategoryFilterContainer) return;
+    DOMI.adminCategoryFilterContainer.innerHTML = '';
+    const allCategories = getAllCategoriesFuncCache();
+    
+    const childCategories = allCategories
+        .filter(cat => cat.parentId) // 子カテゴリのみ
+        .map(cat => {
+            const parent = allCategories.find(p => p.id === cat.parentId);
+            return {
+                id: cat.id,
+                name: `${parent ? parent.name + ' > ' : ''}${cat.name}`
+            };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+    if (childCategories.length === 0) {
+        DOMI.adminCategoryFilterContainer.innerHTML = '<p>利用可能な子カテゴリがありません。</p>';
+        return;
+    }
+
+    childCategories.forEach(cat => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'checkbox-item';
+        const checkboxId = `admin-cat-filter-${cat.id}`;
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = checkboxId;
+        checkbox.value = cat.id;
+        checkbox.checked = adminFilterState.categoryIds.includes(cat.id);
+
+        const label = document.createElement('label');
+        label.htmlFor = checkboxId;
+        label.textContent = cat.name;
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(label);
+        DOMI.adminCategoryFilterContainer.appendChild(wrapper);
+    });
+}
+
+/**
+ * 管理画面のタグフィルター（ボタン）を描画する
+ * 選択中のカテゴリに属するタグのみを表示する
+ */
+function renderAdminTagFilter() {
+    if (!DOMI.adminTagFilterContainer) return;
+    DOMI.adminTagFilterContainer.innerHTML = '';
+    const allTags = getAllTagsFuncCache();
+
+    let tagsToShow = [];
+    if (adminFilterState.categoryIds.length > 0) {
+        // カテゴリが選択されている場合は、それらのカテゴリに属するタグのみ表示
+        const selectedCategorySet = new Set(adminFilterState.categoryIds);
+        tagsToShow = allTags.filter(tag => 
+            tag.categoryIds && tag.categoryIds.some(catId => selectedCategorySet.has(catId))
+        );
+    } else {
+        // カテゴリが選択されていない場合は、全てのタグを表示
+        tagsToShow = allTags;
+    }
+
+    // 選択中のタグがフィルター後のリストに含まれない場合、選択状態を解除
+    adminFilterState.tagIds = adminFilterState.tagIds.filter(tagId => tagsToShow.some(t => t.id === tagId));
+
+    if (tagsToShow.length === 0) {
+        DOMI.adminTagFilterContainer.innerHTML = adminFilterState.categoryIds.length > 0 ?
+            '<p>選択されたカテゴリに属するタグはありません。</p>' :
+            '<p>利用可能なタグがありません。</p>';
+        return;
+    }
+    
+    tagsToShow.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(tag => {
+        const button = document.createElement('div');
+        button.className = 'tag-filter admin-tag-select';
+        button.textContent = tag.name;
+        button.dataset.tagId = tag.id;
+        if (adminFilterState.tagIds.includes(tag.id)) {
+            button.classList.add('active');
+        }
+        DOMI.adminTagFilterContainer.appendChild(button);
+    });
 }
