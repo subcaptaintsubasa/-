@@ -167,7 +167,8 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
 
     tagsData.forEach(tag => {
         const button = document.createElement('div'); 
-        button.className = 'tag-filter admin-tag-select'; 
+        // ★★★ 重要な変更: 複数のクラス名の中から、識別に必要な最小限のクラス名に絞る ★★★
+        button.className = 'admin-tag-select-button'; 
         button.textContent = tag.name;
         button.dataset[datasetKey] = tag.id; 
         if (activeTagIds.includes(tag.id)) {
@@ -177,13 +178,11 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
         button.setAttribute('tabindex', '0');   
         button.addEventListener('click', () => {
             button.classList.toggle('active');
-            containerElement.dispatchEvent(new CustomEvent('tagSelectionChanged', { bubbles: true }));
         });
         button.addEventListener('keydown', (e) => { 
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 button.classList.toggle('active');
-                containerElement.dispatchEvent(new CustomEvent('tagSelectionChanged', { bubbles: true }));
             }
         });
         containerElement.appendChild(button);
@@ -198,17 +197,11 @@ export function getSelectedCheckboxValues(containerElement, checkboxName) {
 
 export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId') {
     if (!containerElement) {
-        console.warn("[ui-helpers] getSelectedTagButtonValues: containerElement is null");
         return [];
     }
-
-    // クラス名に依存しすぎず、dataset と active クラスを持つ要素を確実に取得する
-    const selector = `[data-${datasetKey}].active`;
+    // ★★★ 重要な変更: 上の関数で指定したクラス名と完全に一致させる ★★★
+    const selector = `.admin-tag-select-button.active[data-${datasetKey}]`;
     const activeButtons = containerElement.querySelectorAll(selector);
-
-    if (activeButtons.length === 0) {
-        console.log(`[ui-helpers] No active tags found with selector "${selector}".`);
-    }
     
     const values = Array.from(activeButtons).map(btn => btn.dataset[datasetKey]);
     
