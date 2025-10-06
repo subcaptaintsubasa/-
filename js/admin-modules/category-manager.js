@@ -404,9 +404,43 @@ function populateTagsForCategoryEditModal(containerElement, categoryId, allTags)
         console.warn("populateTagsForCategoryEditModal: containerElement is null");
         return;
     }
-    // allTags も isDeleted: false のものだけが渡される想定 (data-loader-admin.jsで修正)
-    const activeTagIds = allTags.filter(tag => !tag.isDeleted && tag.categoryIds && tag.categoryIds.includes(categoryId)).map(t => t.id);
-    populateTagButtonSelector(containerElement, allTags.filter(tag => !tag.isDeleted).sort((a,b) => a.name.localeCompare(b.name, 'ja')), activeTagIds);
+    containerElement.innerHTML = ''; // Clear previous buttons
+
+    const activeTagIds = allTags
+        .filter(tag => !tag.isDeleted && tag.categoryIds && tag.categoryIds.includes(categoryId))
+        .map(t => t.id);
+
+    const sortedTags = allTags
+        .filter(tag => !tag.isDeleted)
+        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+    if (sortedTags.length === 0) {
+        containerElement.innerHTML = '<p>利用可能なタグがありません。</p>';
+        return;
+    }
+
+    // item-manager.js と同じクラス名のボタンを生成するロジック
+    sortedTags.forEach(tag => {
+        const button = document.createElement('div');
+        button.className = 'tag-filter admin-tag-select'; // ★★★ 正しいクラス名に変更 ★★★
+        button.textContent = tag.name;
+        button.dataset.tagId = tag.id;
+        if (activeTagIds.includes(tag.id)) {
+            button.classList.add('active');
+        }
+        button.setAttribute('role', 'button');
+        button.setAttribute('tabindex', '0');
+        button.addEventListener('click', () => {
+            button.classList.toggle('active');
+        });
+        button.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                button.classList.toggle('active');
+            }
+        });
+        containerElement.appendChild(button);
+    });
 }
 
 async function saveCategoryEdit() {
