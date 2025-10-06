@@ -201,31 +201,20 @@ export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId
         console.warn("[ui-helpers] getSelectedTagButtonValues: containerElement is null");
         return [];
     }
-    console.log(`[ui-helpers] getSelectedTagButtonValues called. Container:`, containerElement, `datasetKey: ${datasetKey}`);
 
-    // まず、activeクラスを持つ要素だけを取得してみる
-    const allActiveElementsInContainer = containerElement.querySelectorAll('.active');
-    console.log(`[ui-helpers] Elements with ONLY .active class in container:`, allActiveElementsInContainer);
-
-    // 次に、期待するクラスを全て持つ要素を取得（activeなしで）
-    const elementsWithBaseClasses = containerElement.querySelectorAll(`.tag-filter.admin-tag-select[data-${datasetKey}]`);
-    console.log(`[ui-helpers] Elements with .tag-filter.admin-tag-select[data-${datasetKey}]:`, elementsWithBaseClasses);
-    
-    elementsWithBaseClasses.forEach(btn => {
-        console.log(`[ui-helpers] Checking button: ${btn.textContent}, Classes: ${btn.className}, Has 'active': ${btn.classList.contains('active')}, dataset[${datasetKey}]: ${btn.dataset[datasetKey]}`);
-    });
-
-
-    const selector = `.tag-filter.admin-tag-select.active[data-${datasetKey}]`;
-    console.log(`[ui-helpers] Querying with full selector: ${selector}`);
+    // セレクタをシンプルにし、.active クラスを持つ要素を確実に取得する
+    const selector = `.admin-tag-select.active[data-${datasetKey}]`;
     const activeButtons = containerElement.querySelectorAll(selector);
-    console.log(`[ui-helpers] Found active buttons with full selector (NodeList):`, activeButtons); 
 
-    const values = Array.from(activeButtons).map(btn => {
-        console.log(`[ui-helpers] Processing button from full selector:`, btn, `Value for data-${datasetKey}:`, btn.dataset[datasetKey]); 
-        return btn.dataset[datasetKey];
-    });
-    console.log(`[ui-helpers] Extracted values with full selector:`, values); 
+    if (activeButtons.length === 0) {
+        // デバッグ用: もし取得できない場合、何がコンテナ内にあるか確認する
+        console.log(`[ui-helpers] No active tags found with selector "${selector}". Container contains:`, containerElement.innerHTML);
+    }
+    
+    // 取得したNodeListからdatasetの値を抽出して配列にする
+    const values = Array.from(activeButtons).map(btn => btn.dataset[datasetKey]);
+    
+    console.log(`[ui-helpers] Found ${values.length} active tags:`, values);
     return values;
 }
 
