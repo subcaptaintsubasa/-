@@ -202,19 +202,17 @@ export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId
         return [];
     }
 
-    // セレクタをシンプルにし、.active クラスを持つ要素を確実に取得する
-    const selector = `.admin-tag-select.active[data-${datasetKey}]`;
+    // クラス名に依存しすぎず、dataset と active クラスを持つ要素を確実に取得する
+    const selector = `[data-${datasetKey}].active`;
     const activeButtons = containerElement.querySelectorAll(selector);
 
     if (activeButtons.length === 0) {
-        // デバッグ用: もし取得できない場合、何がコンテナ内にあるか確認する
-        console.log(`[ui-helpers] No active tags found with selector "${selector}". Container contains:`, containerElement.innerHTML);
+        console.log(`[ui-helpers] No active tags found with selector "${selector}".`);
     }
     
-    // 取得したNodeListからdatasetの値を抽出して配列にする
     const values = Array.from(activeButtons).map(btn => btn.dataset[datasetKey]);
     
-    console.log(`[ui-helpers] Found ${values.length} active tags:`, values);
+    console.log(`[ui-helpers] Found ${values.length} active tags with selector "${selector}":`, values);
     return values;
 }
 
