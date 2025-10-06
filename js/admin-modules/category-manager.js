@@ -61,18 +61,36 @@ export function initCategoryManager(dependencies) {
 
     if (DOMC.addCategoryButton) DOMC.addCategoryButton.addEventListener('click', addCategory);
     if (DOMC.saveCategoryEditButton) DOMC.saveCategoryEditButton.addEventListener('click', saveCategoryEdit);
-    if (DOMC.deleteCategoryFromEditModalButton) {
+if (DOMC.deleteCategoryFromEditModalButton) {
         DOMC.deleteCategoryFromEditModalButton.addEventListener('click', () => {
             const categoryId = DOMC.editingCategoryDocIdInput.value;
             const category = getAllCategoriesFuncCache().find(c => c.id === categoryId);
             if (categoryId && category) {
-                // 論理削除に変更
-                logicalDeleteCategory(categoryId, category.name);
+                // 新しい確認モーダルを開く関数を呼び出す
+                openDeleteCategoryConfirmModal(categoryId, category.name, !!category.parentId);
             } else {
                  alert("削除対象のカテゴリIDが見つかりません。");
             }
         });
     }
+
+    // 新しい確認モーダルのイベントリスナーをセットアップ（ここから追記）
+    const cancelDeleteBtn = document.getElementById('cancelDeleteCategoryButton');
+    if(cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => closeModal('deleteCategoryConfirmModal'));
+
+    const confirmDeleteBtn = document.getElementById('confirmDeleteCategoryButton');
+    if(confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', executeCategoryDeletion);
+
+    const deleteOptionRadios = document.querySelectorAll('input[name="deleteTagsOption"]');
+    deleteOptionRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const previewEl = document.getElementById('tagsToDeletePreview');
+            if (previewEl) {
+                previewEl.style.display = e.target.value === 'delete' ? 'block' : 'none';
+            }
+        });
+    });
+    // ここまで追記
     if (DOMC.categoryListContainer) DOMC.categoryListContainer.addEventListener('click', handleCategoryTreeClick);
     if (DOMC.categorySearchInput) {
         DOMC.categorySearchInput.addEventListener('input', (e) => {
@@ -468,50 +486,153 @@ async function saveCategoryEdit() {
     }
 }
 
-// 物理削除ではなく論理削除を行う
-async function logicalDeleteCategory(docId, categoryName) {
-    const allCategories = getAllCategoriesFuncCache(); // isDeleted: false
-    // 子カテゴリが存在するかチェック (未削除のもののみ)
-    const childCheckQuery = query(collection(dbInstance, 'categories'), 
-                                  where('parentId', '==', docId),
-                                  where('isDeleted', '==', false)
-                                );
-    const childSnapshot = await getDocs(childCheckQuery);
-    if (!childSnapshot.empty) {
-        alert(`カテゴリ「${categoryName}」は、アクティブな子カテゴリの親として使用されているため削除できません。先に子カテゴリを削除するか、別の親カテゴリに移動してください。`);
+// ===== ここから貼り付け =====
+
+let deleteCategoryIdHolder = null; // 削除対象のIDを一時的に保持
+
+/**
+ * カテゴリ削除の確認モーダルを開き、内容をセットアップする関数
+ */
+function openDeleteCategoryConfirmModal(categoryId, categoryName, isChildCategory) {
+    deleteCategoryIdHolder = categoryId; // IDを保持
+
+    // モーダル内の要素を取得
+    const nameDisplay = document.getElementById('deleteCategoryNameDisplay');
+    const tagsInfo = document.getElementById('deleteCategoryTagsInfo');
+    const tagCountDisplay = document.getElementById('deleteCategoryTagCount');
+    const tagsToDeleteList = document.getElementById('tagsToDeleteList');
+    const uncategorizeRadio = document.getElementById('deleteTagsOptionUncategorize');
+    const tagsToDeletePreview = document.getElementById('tagsToDeletePreview');
+
+    if (nameDisplay) nameDisplay.textContent = categoryName;
+
+    // 子カテゴリの場合のみ、タグの扱いに関する選択肢を表示
+    if (isChildCategory && tagsInfo && tagCountDisplay && tagsToDeleteList && uncategorizeRadio && tagsToDeletePreview) {
+        const allTags = getAllTagsFuncCache();
+        const tagsInCategory = allTags.filter(tag => tag.categoryIds && tag.categoryIds.includes(categoryId));
+
+        if (tagsInCategory.length > 0) {
+            tagsInfo.style.display = 'block';
+            tagCountDisplay.textContent = tagsInCategory.length;
+            tagsToDeleteList.innerHTML = ''; // リストを初期化
+            tagsInCategory.forEach(tag => {
+                const li = document.createElement('li');
+                li.textContent = tag.name;
+                tagsToDeleteList.appendChild(li);
+            });
+        } else {
+            tagsInfo.style.display = 'none'; // タグがなければ非表示
+        }
+        
+        // デフォルト状態にリセット
+        uncategorizeRadio.checked = true;
+        tagsToDeletePreview.style.display = 'none';
+
+    } else if (tagsInfo) {
+        tagsInfo.style.display = 'none'; // 親カテゴリの場合はタグ情報を非表示
+    }
+    
+    closeModal('editCategoryModal'); // 元の編集モーダルを閉じる
+    openModal('deleteCategoryConfirmModal');
+}
+
+/**
+ * 確認モーダルの「実行」ボタンが押されたときに呼ばれる関数
+ */
+async function executeCategoryDeletion() {
+    if (!deleteCategoryIdHolder) {
+        alert("削除対象のカテゴリIDが見つかりません。");
+        return;
+    }
+    const categoryToDelete = getAllCategoriesFuncCache().find(c => c.id === deleteCategoryIdHolder);
+    if (!categoryToDelete) {
+        alert("削除対象のカテゴリデータが見つかりません。");
         return;
     }
 
-    if (confirm(`カテゴリ「${categoryName}」を論理削除しますか？\nこのカテゴリは一覧などには表示されなくなりますが、データは残ります。\nこのカテゴリに紐づいているタグの関連付けも解除されます。`)) {
-        try {
-            const batch = writeBatch(dbInstance);
-            // カテゴリを論理削除
-            batch.update(doc(dbInstance, 'categories', docId), {
-                isDeleted: true,
-                updatedAt: serverTimestamp() // updatedAt を更新
-            });
+    const deleteOptionRadio = document.querySelector('input[name="deleteTagsOption"]:checked');
+    const deleteOption = deleteOptionRadio ? deleteOptionRadio.value : 'uncategorize';
+    const isChildCategory = !!categoryToDelete.parentId;
 
-            // このカテゴリに紐づくタグの関連を解除 (タグ自体は削除しない)
-            const tagsToUpdateQuery = query(collection(dbInstance, 'tags'), 
-                                          where('categoryIds', 'array-contains', docId),
-                                          where('isDeleted', '==', false) // isDeleted でフィルタされたタグのみ対象
-                                        );
-            const tagsSnapshot = await getDocs(tagsToUpdateQuery);
-            tagsSnapshot.forEach(tagDoc => {
-                batch.update(tagDoc.ref, { 
-                    categoryIds: arrayRemove(docId),
-                    updatedAt: serverTimestamp() // タグも更新
-                });
-            });
-            
-            await batch.commit();
-            if (DOMC.editCategoryModal.style.display !== 'none' && DOMC.editingCategoryDocIdInput.value === docId) {
-                closeModal('editCategoryModal');
-            }
-
-        } catch (error) {
-            console.error("[Category Manager] Error logically deleting category:", error);
-            alert("カテゴリの論理削除または関連タグの更新に失敗しました。");
+    try {
+        // 親カテゴリ or タグを持たない子カテゴリの場合
+        if (!isChildCategory || deleteOption === 'uncategorize') {
+            await logicalDeleteCategory(deleteCategoryIdHolder, categoryToDelete.name, false);
+        } 
+        // タグも一緒に削除する場合
+        else if (deleteOption === 'delete') {
+            await logicalDeleteCategory(deleteCategoryIdHolder, categoryToDelete.name, true);
         }
+        
+        closeModal('deleteCategoryConfirmModal');
+
+    } catch (error) {
+        console.error("[Category Manager] Error during category deletion execution:", error);
+        alert(`カテゴリの削除に失敗しました: ${error.message}`);
+    } finally {
+        deleteCategoryIdHolder = null; // 処理後にIDをクリア
     }
 }
+
+/**
+ * カテゴリの論理削除を実行するコア関数
+ * @param {string} docId - 削除するカテゴリのID
+ * @param {string} categoryName - 削除するカテゴリの名前（確認メッセージ用）
+ * @param {boolean} deleteAssociatedTags - 関連するタグも一緒に削除するかどうか
+ */
+async function logicalDeleteCategory(docId, categoryName, deleteAssociatedTags) {
+    const allCategories = getAllCategoriesFuncCache();
+    
+    // 子カテゴリ（未削除）が存在するかチェック
+    const hasActiveChildren = allCategories.some(cat => cat.parentId === docId);
+    if (hasActiveChildren) {
+        throw new Error(`カテゴリ「${categoryName}」は、アクティブな子カテゴリの親として使用されているため削除できません。`);
+    }
+
+    const batch = writeBatch(dbInstance);
+
+    // Step 1: 関連するタグの処理
+    const allTags = getAllTagsFuncCache();
+    const tagsInCategory = allTags.filter(tag => tag.categoryIds && tag.categoryIds.includes(docId));
+
+    if (tagsInCategory.length > 0) {
+        if (deleteAssociatedTags) {
+            // タグも一緒に削除する場合
+            const tagIdsToDelete = tagsInCategory.map(t => t.id);
+            const tagIdsSet = new Set(tagIdsToDelete);
+
+            // 全アイテムをスキャンして、削除対象のタグIDをアイテムのtags配列から除去
+            const allItems = getItemsFuncCache(); // 依存関係からgetItemsを取得
+            allItems.forEach(item => {
+                if (item.tags && item.tags.some(tagId => tagIdsSet.has(tagId))) {
+                    const newTags = item.tags.filter(tagId => !tagIdsSet.has(tagId));
+                    batch.update(doc(dbInstance, 'items', item.docId), { tags: newTags, updatedAt: serverTimestamp() });
+                }
+            });
+
+            // タグ自体を論理削除
+            tagIdsToDelete.forEach(tagId => {
+                batch.update(doc(dbInstance, 'tags', tagId), { isDeleted: true, updatedAt: serverTimestamp() });
+            });
+
+        } else {
+            // タグを「未分類」にする場合
+            tagsInCategory.forEach(tag => {
+                batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId), updatedAt: serverTimestamp() });
+            });
+        }
+    }
+
+    // Step 2: カテゴリ自体の論理削除
+    batch.update(doc(dbInstance, 'categories', docId), {
+        isDeleted: true,
+        updatedAt: serverTimestamp()
+    });
+
+    await batch.commit();
+
+    // どのモーダルが開いていても閉じる
+    closeModal('editCategoryModal');
+    closeModal('deleteCategoryConfirmModal');
+}
+// ===== ここまで貼り付け =====
