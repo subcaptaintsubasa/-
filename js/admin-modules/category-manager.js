@@ -26,6 +26,7 @@ const DOMC = {
 let dbInstance = null;
 let getAllCategoriesFuncCache = () => [];
 let getAllTagsFuncCache = () => [];
+let getItemsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 let openEnlargedListModalCallback = (config) => {};
 
@@ -36,6 +37,7 @@ export function initCategoryManager(dependencies) {
     dbInstance = dependencies.db;
     getAllCategoriesFuncCache = dependencies.getAllCategories; // This should now return only non-deleted items
     getAllTagsFuncCache = dependencies.getAllTags;
+    getItemsFuncCache = dependencies.getItems;
     refreshAllDataCallback = dependencies.refreshAllData;
     openEnlargedListModalCallback = dependencies.openEnlargedListModal;
 
