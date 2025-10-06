@@ -385,7 +385,8 @@
 
 /* タグボタンのスタイル (.tag-filter.admin-tag-select は ui-helpers.js で使用される想定) */
 /* アイテムフォーム専用にクラスを分けるか、共通クラスのスタイルを調整 */
-.tag-filter.admin-tag-select { 
+.tag-filter.admin-tag-select,
+.admin-tag-select-button {
     padding: 0.35rem 0.8rem; 
     background-color: #e9ecef; /* 少し明るく */
     border: 1px solid #ced4da; 
