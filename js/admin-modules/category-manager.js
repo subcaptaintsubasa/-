@@ -421,21 +421,22 @@ function populateTagsForCategoryEditModal(containerElement, categoryId, allTags)
 async function saveCategoryEdit() {
     const docId = DOMC.editingCategoryDocIdInput.value;
     const newName = DOMC.editingCategoryNameInput.value.trim();
-    const newParentId = DOMC.selectedEditingParentCategoryIdInput.value; 
+    const newParentId = DOMC.selectedEditingParentCategoryIdInput.value;
     const newTagSearchMode = DOMC.editingTagSearchModeSelect.value;
     const selectedTagIdsForThisCategory = getSelectedTagButtonValues(DOMC.editingCategoryTagsSelector);
 
     if (!newName) { alert("カテゴリ名は空にできません。"); return; }
     if (docId === newParentId) { alert("自身を親カテゴリに設定することはできません。"); return; }
 
-    const allCategories = getAllCategoriesFuncCache(); // isDeleted: false
+    const allCategories = getAllCategoriesFuncCache();
     const originalCategory = allCategories.find(c => c.id === docId);
 
+    // 重複チェック（名前と親の組み合わせ）
     if (originalCategory && (originalCategory.name !== newName || (originalCategory.parentId || "") !== (newParentId || ""))) {
-        const q = query(collection(dbInstance, 'categories'), 
-                        where('name', '==', newName), 
+        const q = query(collection(dbInstance, 'categories'),
+                        where('name', '==', newName),
                         where('parentId', '==', newParentId || ""),
-                        where('isDeleted', '==', false) // 重複チェック
+                        where('isDeleted', '==', false)
                       );
         const existingQuery = await getDocs(q);
         if (existingQuery.docs.some(docSnap => docSnap.id !== docId)) {
@@ -444,9 +445,10 @@ async function saveCategoryEdit() {
         }
     }
 
-    if (newParentId) { 
+    // 循環参照チェック
+    if (newParentId) {
         let currentAncestorId = newParentId;
-        const visited = new Set([docId]); 
+        const visited = new Set([docId]);
         while (currentAncestorId) {
             if (visited.has(currentAncestorId)) {
                 alert("循環参照です。この親カテゴリ設定はできません。"); return;
@@ -459,38 +461,44 @@ async function saveCategoryEdit() {
 
     try {
         const batch = writeBatch(dbInstance);
-        const categoryUpdateData = { 
-            name: newName, 
-            parentId: newParentId || "", 
-            updatedAt: serverTimestamp() // updatedAt を更新
+        const categoryUpdateData = {
+            name: newName,
+            parentId: newParentId || "",
+            updatedAt: serverTimestamp()
         };
+
         const isBecomingChild = !!newParentId;
-        if (isBecomingChild) { 
-            categoryUpdateData.tagSearchMode = newTagSearchMode; 
-        } else { 
-            categoryUpdateData.tagSearchMode = deleteField(); 
+        if (isBecomingChild) {
+            categoryUpdateData.tagSearchMode = newTagSearchMode;
+        } else {
+            categoryUpdateData.tagSearchMode = deleteField();
         }
         batch.update(doc(dbInstance, 'categories', docId), categoryUpdateData);
-        
-        const allTags = getAllTagsFuncCache(); // isDeleted: false
-        allTags.forEach(tag => {
-            const isCurrentlySelectedForCat = selectedTagIdsForThisCategory.includes(tag.id);
-            const isAlreadyAssociatedWithCat = tag.categoryIds && tag.categoryIds.includes(docId);
 
-            if (isBecomingChild) { 
-                if (isCurrentlySelectedForCat && !isAlreadyAssociatedWithCat) {
-                    batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayUnion(docId), updatedAt: serverTimestamp() });
-                } else if (!isCurrentlySelectedForCat && isAlreadyAssociatedWithCat) {
-                    batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId), updatedAt: serverTimestamp() });
-                }
-            } else { 
-                if (isAlreadyAssociatedWithCat) { 
-                     batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId), updatedAt: serverTimestamp() });
-                }
+        // --- ★★★ タグ所属更新ロジックを全面的に書き換え ★★★ ---
+        const allTags = getAllTagsFuncCache();
+        const selectedTagIdsSet = new Set(selectedTagIdsForThisCategory);
+
+        allTags.forEach(tag => {
+            const isAssociated = tag.categoryIds && tag.categoryIds.includes(docId);
+            const shouldBeAssociated = selectedTagIdsSet.has(tag.id);
+
+            // 状況1: 現在関連付けられていて、今後も関連付けるべき -> 何もしない
+            // 状況2: 現在関連付けられていて、今後は関連付けないべき -> 関連を削除
+            if (isAssociated && !shouldBeAssociated) {
+                batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId), updatedAt: serverTimestamp() });
             }
+            // 状況3: 現在関連付けられておらず、今後は関連付けるべき -> 関連を追加
+            else if (!isAssociated && shouldBeAssociated) {
+                 batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayUnion(docId), updatedAt: serverTimestamp() });
+            }
+            // 状況4: 現在関連付けられておらず、今後も関連付けない -> 何もしない
         });
+        // --- ★★★ ここまでが新しいロジック ★★★ ---
+        
         await batch.commit();
         closeModal('editCategoryModal');
+
     } catch (error) {
         console.error("[Category Manager] Error saving category edit:", error);
         alert("カテゴリの更新または関連タグの更新に失敗しました。");
