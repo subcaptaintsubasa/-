@@ -832,7 +832,7 @@ async function runEffectTagMigration() {
 
     try {
         logMigration("効果タグの自動生成・付与処理を開始します。");
-        const batch = writeBatch(db);
+        let batch = writeBatch(db);
         let batchCounter = 0;
 
         // --- Step 1: カテゴリの確認または作成 ---
