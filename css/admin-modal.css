@@ -121,3 +121,9 @@ body#admin-page div.modal div.modal-content .modal-actions {
 body#admin-page div.modal div.modal-content .modal-actions button {
     width: auto; 
 }
+
+/* main/css/admin-modal.css の末尾に追記 */
+
+body#admin-page div.modal#deleteCategoryConfirmModal {
+    z-index: 1065 !important; /* 他の編集モーダル(1060)より手前に表示 */
+}
