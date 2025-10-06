@@ -463,6 +463,42 @@
 
 
     <!-- 既存の編集モーダル群 -->
+    <!-- カテゴリ削除確認モーダル（新規追加） -->
+    <div id="deleteCategoryConfirmModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteCategoryConfirmTitle">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-button" aria-label="閉じる">×</span>
+            <h3 id="deleteCategoryConfirmTitle">カテゴリ削除の確認</h3>
+            <p id="deleteCategoryConfirmMessage">カテゴリ「<strong id="deleteCategoryNameDisplay"></strong>」を削除しますか？</p>
+            
+            <div id="deleteCategoryTagsInfo" style="display: none; margin-top: 15px;">
+                <p>このカテゴリには現在 <strong id="deleteCategoryTagCount">0</strong> 個のタグが所属しています。これらのタグの扱いを選択してください。</p>
+                
+                <div class="radio-group" style="flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 15px;">
+                    <div>
+                        <input type="radio" id="deleteTagsOptionUncategorize" name="deleteTagsOption" value="uncategorize" checked>
+                        <label for="deleteTagsOptionUncategorize">所属タグを「未分類」にする (推奨)</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="deleteTagsOptionDelete" name="deleteTagsOption" value="delete">
+                        <label for="deleteTagsOptionDelete">所属タグも一緒に完全に削除する</label>
+                    </div>
+                </div>
+
+                <div id="tagsToDeletePreview" style="display: none; margin-top: 10px; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; max-height: 150px; overflow-y: auto;">
+                    <p style="margin: 0; font-size: 0.9em; color: #dc3545;"><strong>注意:</strong> 以下のタグがデータベースから完全に削除され、全アイテムから紐付けが解除されます。</p>
+                    <ul id="tagsToDeleteList" style="padding-left: 20px; margin: 5px 0 0 0; font-size: 0.85em;">
+                        <!-- JSがここにタグ名を挿入 -->
+                    </ul>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 25px;">
+                <button id="cancelDeleteCategoryButton" type="button" class="button-like secondary">キャンセル</button>
+                <button id="confirmDeleteCategoryButton" type="button" class="button-like delete">実行</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="editCategoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCategoryModalTitle">
         <div class="modal-content">
             <span class="close-button" aria-label="閉じる">×</span>
