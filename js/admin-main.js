@@ -58,6 +58,7 @@ const DOM = {
     enlargeItemSourceListButton: null,
     charBaseTypeButtons: null,
     selectedCharBaseTypeInput: null,
+    runEffectTagMigrationButton: null,
 };
 
 function queryDOMElements() {
@@ -81,6 +82,7 @@ function queryDOMElements() {
     
     DOM.charBaseTypeButtons = document.getElementById('charBaseTypeButtons');
     DOM.selectedCharBaseTypeInput = document.getElementById('selectedCharBaseType');
+    DOM.runEffectTagMigrationButton = document.getElementById('runEffectTagMigrationButton'); 
 }
 
 
@@ -264,7 +266,12 @@ function setupAdminNav() {
         console.error("manualBackupButton not found during setupAdminNav");
     }
 
-
+    if (DOM.runEffectTagMigrationButton) {
+        const newMigrationButton = DOM.runEffectTagMigrationButton.cloneNode(true);
+        DOM.runEffectTagMigrationButton.parentNode.replaceChild(newMigrationButton, DOM.runEffectTagMigrationButton);
+        DOM.runEffectTagMigrationButton = newMigrationButton;
+        DOM.runEffectTagMigrationButton.addEventListener('click', runEffectTagMigration);
+    }
 
     DOM.adminNavButtons = document.querySelectorAll('#adminSideNav .admin-nav-button, #adminSideNav a.admin-nav-button');
     if (DOM.adminNavButtons) {
@@ -787,4 +794,182 @@ function openEnlargedListModal(items, type, title, originalSearchInputId, editFu
         renderContent(); // Render all items if no search input
     }
     openModalHelper('listEnlargementModal');
+}
+
+// main/js/admin-main.js の末尾に貼り付け
+
+/**
+ * 効果種類に基づいてタグを自動生成し、新しいカテゴリに分類し、
+ * 対象アイテムにタグを付与するマイグレーションスクリプト。
+ */
+async function runEffectTagMigration() {
+    const confirmMessage = "効果種類マスターに基づいてタグを自動生成・分類し、全アイテムに付与します。\n\n" +
+        "この処理は以下の動作を含みます:\n" +
+        "1. 「装備_new」親カテゴリと「効果_new」子カテゴリを作成します（存在しない場合）。\n" +
+        "2. 全ての「効果種類」名に対応するタグを作成します（存在しない場合）。\n" +
+        "3. 既存の効果タグの所属先を「効果_new」カテゴリに移動します。\n" +
+        "4. 全てのアイテムをスキャンし、効果に合ったタグを付与します。\n\n" +
+        "処理には数分かかる場合があります。実行しますか？";
+
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    const button = DOM.runEffectTagMigrationButton;
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = `<span class="icon">⏳</span>処理実行中...`;
+    }
+
+    const BATCH_SIZE = 400; // 一度にコミットする書き込み数
+    let totalOperations = 0;
+    
+    // ログ用のヘルパー関数
+    const logMigration = (message, type = "info") => {
+        const logMessage = `[EffectTagMigration] ${type.toUpperCase()}: ${message}`;
+        console.log(logMessage);
+        // ここでUIにログを表示することも可能
+    };
+
+    try {
+        logMigration("効果タグの自動生成・付与処理を開始します。");
+        const batch = writeBatch(db);
+        let batchCounter = 0;
+
+        // --- Step 1: カテゴリの確認または作成 ---
+        logMigration("Step 1: 「装備_new」と「効果_new」カテゴリを確認または作成します。");
+        const allCategories = getAllCategoriesCache();
+        let parentCategory = allCategories.find(c => !c.parentId && c.name === "装備_new");
+
+        if (!parentCategory) {
+            const parentCatRef = doc(collection(db, 'categories'));
+            batch.set(parentCatRef, {
+                name: "装備_new",
+                parentId: "",
+                isDeleted: false,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+            parentCategory = { id: parentCatRef.id, name: "装備_new", parentId: "" };
+            logMigration("親カテゴリ「装備_new」を新規作成します。");
+            batchCounter++;
+        } else {
+            logMigration("親カテゴリ「装備_new」は既に存在します。");
+        }
+
+        let childCategory = allCategories.find(c => c.parentId === parentCategory.id && c.name === "効果_new");
+        if (!childCategory) {
+            const childCatRef = doc(collection(db, 'categories'));
+            batch.set(childCatRef, {
+                name: "効果_new",
+                parentId: parentCategory.id,
+                tagSearchMode: "OR",
+                isDeleted: false,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+            childCategory = { id: childCatRef.id, name: "効果_new", parentId: parentCategory.id };
+            logMigration("子カテゴリ「効果_new」を新規作成します。");
+            batchCounter++;
+        } else {
+            logMigration("子カテゴリ「効果_new」は既に存在します。");
+        }
+
+        // --- Step 2 & 3: タグの確認、作成、または所属変更 ---
+        logMigration("Step 2 & 3: 効果種類に対応するタグを確認、作成、または所属変更します。");
+        const allEffectTypes = getEffectTypesCache();
+        const allTags = getAllTagsCache();
+        const effectTypeNameToTagMap = new Map(); // tagName -> tagObject
+
+        for (const effectType of allEffectTypes) {
+            let tag = allTags.find(t => t.name === effectType.name);
+            if (!tag) {
+                // タグが存在しない場合: 新規作成
+                const newTagRef = doc(collection(db, 'tags'));
+                const newTagData = {
+                    name: effectType.name,
+                    categoryIds: [childCategory.id], // 新しい「効果_new」カテゴリに所属
+                    isDeleted: false,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+                batch.set(newTagRef, newTagData);
+                tag = { id: newTagRef.id, ...newTagData };
+                logMigration(`タグ「${effectType.name}」を新規作成し、「効果_new」に分類します。`);
+                batchCounter++;
+            } else if (!tag.categoryIds || !tag.categoryIds.includes(childCategory.id)) {
+                // タグが存在するが、「効果_new」に所属していない場合: 所属を追加
+                const updatedCategoryIds = Array.from(new Set([...(tag.categoryIds || []), childCategory.id]));
+                batch.update(doc(db, 'tags', tag.id), {
+                    categoryIds: updatedCategoryIds,
+                    updatedAt: serverTimestamp()
+                });
+                logMigration(`既存タグ「${tag.name}」を「効果_new」カテゴリに所属させます。`);
+                batchCounter++;
+            }
+            effectTypeNameToTagMap.set(effectType.name, tag);
+        }
+        
+        // --- Step 4: 全アイテムにタグを付与 ---
+        logMigration("Step 4: 全アイテムをスキャンし、タグを付与します。");
+        const allItems = getItemsCache();
+        const effectTypeIdToNameMap = new Map(allEffectTypes.map(et => [et.id, et.name]));
+
+        for (const item of allItems) {
+            const currentItemTags = new Set(item.tags || []);
+            let needsUpdate = false;
+            
+            if (item.effects && item.effects.length > 0) {
+                for (const effect of item.effects) {
+                    if (effect.type === 'structured') {
+                        const effectName = effectTypeIdToNameMap.get(effect.effectTypeId);
+                        if (effectName) {
+                            const tagToApply = effectTypeNameToTagMap.get(effectName);
+                            if (tagToApply && !currentItemTags.has(tagToApply.id)) {
+                                currentItemTags.add(tagToApply.id);
+                                needsUpdate = true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (needsUpdate) {
+                batch.update(doc(db, 'items', item.docId), {
+                    tags: Array.from(currentItemTags),
+                    updatedAt: serverTimestamp()
+                });
+                logMigration(`アイテム「${item.name}」のタグを更新します。`);
+                batchCounter++;
+            }
+
+            if (batchCounter >= BATCH_SIZE) {
+                await batch.commit();
+                logMigration(`${batchCounter}件の書き込みをコミットしました。`);
+                totalOperations += batchCounter;
+                batch = writeBatch(db); // 新しいバッチを開始
+                batchCounter = 0;
+            }
+        }
+        
+        // 残りの書き込みをコミット
+        if (batchCounter > 0) {
+            await batch.commit();
+            totalOperations += batchCounter;
+            logMigration(`最後の${batchCounter}件の書き込みをコミットしました。`);
+        }
+
+        logMigration(`処理が正常に完了しました。合計 ${totalOperations} 件のデータベース書き込みを行いました。`, "success");
+        alert("効果タグの自動生成と付与が完了しました！\nページをリロードして最新の状態を反映してください。");
+
+    } catch (error) {
+        console.error("Effect Tag Migration Error:", error);
+        logMigration(`エラーが発生しました: ${error.message}`, "error");
+        alert(`処理中にエラーが発生しました: ${error.message}\n詳細はコンソールを確認してください。`);
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = `<span class="icon">✨</span>効果タグ自動生成・付与`;
+        }
+    }
 }
