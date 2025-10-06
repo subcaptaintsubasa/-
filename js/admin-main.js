@@ -276,8 +276,7 @@ function setupAdminNav() {
     DOM.adminNavButtons = document.querySelectorAll('#adminSideNav .admin-nav-button, #adminSideNav a.admin-nav-button');
     if (DOM.adminNavButtons) {
         DOM.adminNavButtons.forEach(button => {
-            if (button.id === 'manualBackupButton' || button.id === 'migrateIsDeletedButton') return; // Skip already handled
-
+if (button.id === 'manualBackupButton' || button.id === 'runEffectTagMigrationButton' || button.id === 'migrateIsDeletedButton') return; // Skip already handled
             const newButton = button.cloneNode(true);
             if (button.parentNode) {
                 button.parentNode.replaceChild(newButton, button);
