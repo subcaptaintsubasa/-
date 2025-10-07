@@ -474,19 +474,20 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
         tagButtonsDiv.classList.add('tag-buttons-wrapper');
 
         tagsInThisCategory.forEach(tag => {
-            const button = document.createElement('div'); // Changed from button to div for styling flexibility
-            button.className = 'tag-filter admin-tag-select';
+            const button = document.createElement('div');
+            // ★★★ 修正箇所 ★★★
+            button.className = 'admin-tag-select-button'; // 統一されたクラス名を使用
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
             if (selectedTagIds.includes(tag.id)) {
                 button.classList.add('active');
             }
-            button.setAttribute('role', 'button'); // For accessibility
-            button.setAttribute('tabindex', '0');   // For keyboard navigation
+            button.setAttribute('role', 'button');
+            button.setAttribute('tabindex', '0');
             button.addEventListener('click', () => {
                 button.classList.toggle('active');
             });
-            button.addEventListener('keydown', (e) => { // Allow selection with Space/Enter
+            button.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     button.classList.toggle('active');
@@ -508,7 +509,8 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
         tagButtonsDiv.classList.add('tag-buttons-wrapper');
         unclassifiedTags.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(tag => {
             const button = document.createElement('div');
-            button.className = 'tag-filter admin-tag-select';
+            // ★★★ 修正箇所 ★★★
+            button.className = 'admin-tag-select-button'; // 統一されたクラス名を使用
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
             if (selectedTagIds.includes(tag.id)) button.classList.add('active');
