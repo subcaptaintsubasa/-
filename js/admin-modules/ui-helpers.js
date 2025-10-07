@@ -153,7 +153,6 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
     });
 }
 
-// ★★★ 修正箇所 ★★★
 export function populateTagButtonSelector(containerElement, tagsData, activeTagIds = [], datasetKey = 'tagId') {
     if (!containerElement) {
         console.warn("populateTagButtonSelector: containerElement is null");
@@ -167,20 +166,20 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
     }
 
     tagsData.forEach(tag => {
-        const button = document.createElement('div'); 
-        // 統一されたクラス名を使用
-        button.className = 'admin-tag-select-button'; 
+        const button = document.createElement('div');
+        // 統一されたクラス名を使用 (tag-filter と admin-tag-select の両方)
+        button.className = 'tag-filter admin-tag-select';
         button.textContent = tag.name;
-        button.dataset[datasetKey] = tag.id; 
+        button.dataset[datasetKey] = tag.id;
         if (activeTagIds.includes(tag.id)) {
             button.classList.add('active');
         }
-        button.setAttribute('role', 'button'); 
-        button.setAttribute('tabindex', '0');   
+        button.setAttribute('role', 'button');
+        button.setAttribute('tabindex', '0');
         button.addEventListener('click', () => {
             button.classList.toggle('active');
         });
-        button.addEventListener('keydown', (e) => { 
+        button.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 button.classList.toggle('active');
@@ -196,18 +195,20 @@ export function getSelectedCheckboxValues(containerElement, checkboxName) {
         .map(cb => cb.value);
 }
 
-// ★★★ 修正箇所 ★★★
+// ★★★★★ 修正された関数 ★★★★★
 export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId') {
     if (!containerElement) {
         return [];
     }
-    // 統一されたクラス名でセレクタを構成
-    const selector = `.admin-tag-select-button.active[data-${datasetKey}]`;
+    const selector = `.tag-filter.admin-tag-select.active[data-${datasetKey}]`;
     const activeButtons = containerElement.querySelectorAll(selector);
     
+    // 変数定義を console.log の前に移動
     const values = Array.from(activeButtons).map(btn => btn.dataset[datasetKey]);
     
+    // 正しい順序でログを出力
     console.log(`[ui-helpers] Found ${values.length} active tags with selector "${selector}":`, values);
+    
     return values;
 }
 
