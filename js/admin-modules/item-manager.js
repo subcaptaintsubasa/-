@@ -475,7 +475,7 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
 
         tagsInThisCategory.forEach(tag => {
             const button = document.createElement('div');
-            // ★★★ 修正箇所 ★★★
+            // ★★★ 修正 ★★★
             button.className = 'admin-tag-select-button'; // 統一されたクラス名を使用
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
@@ -509,7 +509,7 @@ export function _populateTagButtonsForItemFormInternal(selectedTagIds = []) {
         tagButtonsDiv.classList.add('tag-buttons-wrapper');
         unclassifiedTags.sort((a,b) => a.name.localeCompare(b.name, 'ja')).forEach(tag => {
             const button = document.createElement('div');
-            // ★★★ 修正箇所 ★★★
+            // ★★★ 修正 ★★★
             button.className = 'admin-tag-select-button'; // 統一されたクラス名を使用
             button.textContent = tag.name;
             button.dataset.tagId = tag.id;
