@@ -383,31 +383,9 @@
     gap: 8px; /* ボタン間の隙間 */
 }
 
-/* ★★★ 修正箇所 ★★★ */
-/* タグボタンのスタイルを統一 */
-.admin-tag-select-button {
-    padding: 0.35rem 0.8rem; 
-    background-color: #e9ecef; /* 少し明るく */
-    border: 1px solid #ced4da; 
-    border-radius: 15px; 
-    cursor: pointer; 
-    font-size: 0.85em; 
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out; 
-    color: #343a40; /* 少し濃く */
-    user-select: none; 
-}
-.admin-tag-select-button:hover { 
-    background-color: #dee2e6; 
-    border-color: #adb5bd; 
-}
-.admin-tag-select-button.active { 
-    background-color: #007bff; 
-    color: white; 
-    border-color: #0056b3; 
-    box-shadow: 0 0 0 0.15rem rgba(0,123,255,.3); 
-    font-weight: 500; 
-}
-/* 古いセレクタの互換性のため残すが、新しいクラスに寄せる */
+/* ★★★ 修正 ★★★ */
+/* タグボタンのスタイルを統一し、古いセレクタにも対応 */
+.admin-tag-select-button,
 .tag-filter.admin-tag-select {
     padding: 0.35rem 0.8rem; 
     background-color: #e9ecef;
@@ -415,14 +393,16 @@
     border-radius: 15px; 
     cursor: pointer; 
     font-size: 0.85em; 
-    transition: all 0.2s;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out; 
     color: #343a40;
     user-select: none; 
 }
+.admin-tag-select-button:hover,
 .tag-filter.admin-tag-select:hover { 
     background-color: #dee2e6; 
     border-color: #adb5bd; 
 }
+.admin-tag-select-button.active,
 .tag-filter.admin-tag-select.active { 
     background-color: #007bff; 
     color: white; 
