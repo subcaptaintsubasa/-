@@ -168,8 +168,7 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
 
     tagsData.forEach(tag => {
         const button = document.createElement('div'); 
-        // ★★★ 修正: CSSとJSで確実に連携できるよう、単一で明確なクラス名に変更 ★★★
-        button.className = 'admin-tag-select-button'; 
+        button.className = 'tag-filter admin-tag-select'; 
         button.textContent = tag.name;
         button.dataset[datasetKey] = tag.id; 
         if (activeTagIds.includes(tag.id)) {
@@ -201,8 +200,7 @@ export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId
     if (!containerElement) {
         return [];
     }
-    // ★★★ 修正: populateTagButtonSelectorのクラス名変更に合わせる ★★★
-    const selector = `.admin-tag-select-button.active[data-${datasetKey}]`;
+    const selector = `.tag-filter.admin-tag-select.active[data-${datasetKey}]`;
     const activeButtons = containerElement.querySelectorAll(selector);
     
     const values = Array.from(activeButtons).map(btn => btn.dataset[datasetKey]);
