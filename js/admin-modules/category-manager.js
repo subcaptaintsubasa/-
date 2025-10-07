@@ -419,11 +419,22 @@ function populateTagsForCategoryEditModal(containerElement, categoryId, allTags)
 }
 
 async function saveCategoryEdit() {
+    // ★★★デバッグ用ログ1★★★
+    console.log("[DEBUG] saveCategoryEdit 開始");
+
     const docId = DOMC.editingCategoryDocIdInput.value;
     const newName = DOMC.editingCategoryNameInput.value.trim();
     const newParentId = DOMC.selectedEditingParentCategoryIdInput.value;
     const newTagSearchMode = DOMC.editingTagSearchModeSelect.value;
+    
+    // ★★★デバッグ用ログ2★★★
+    console.log("[DEBUG] タグID取得前のコンテナ要素:", DOMC.editingCategoryTagsSelector);
+    
     const selectedTagIdsForThisCategory = getSelectedTagButtonValues(DOMC.editingCategoryTagsSelector);
+
+    // ★★★デバッグ用ログ3★★★
+    console.log("[DEBUG] getSelectedTagButtonValuesから返された値:", selectedTagIdsForThisCategory);
+
 
     if (!newName) { alert("カテゴリ名は空にできません。"); return; }
     if (docId === newParentId) { alert("自身を親カテゴリに設定することはできません。"); return; }
@@ -653,4 +664,3 @@ async function logicalDeleteCategory(docId, categoryName, deleteAssociatedTags) 
     closeModal('editCategoryModal');
     closeModal('deleteCategoryConfirmModal');
 }
-// ===== ここまで貼り付け =====
