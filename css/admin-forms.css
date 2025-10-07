@@ -146,9 +146,9 @@
 
 
 /* General Button Styles in Admin Forms */
-#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button),
-#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button),
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button) {
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button),
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button),
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button) {
     background-color: #007bff;
     color: white;
     padding: 0.6rem 1.1rem;
@@ -166,20 +166,20 @@
     line-height: 1.5;
     text-align: center;
 }
-#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):hover,
-#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):hover,
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):hover {
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):hover,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):hover,
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):hover {
     background-color: #0069d9;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):active,
-#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):active,
-.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):active {
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):active,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):active,
+.admin-management-modal button:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):active {
     background-color: #005cbf;
 }
 
-#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):last-child,
-#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):last-child,
+#admin-content button:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):last-child,
+#admin-content .button-like:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):last-child,
 .admin-management-modal .modal-actions button:last-child {
     margin-right: 0;
 }
@@ -194,22 +194,22 @@
 }
 
 /* Secondary/Utility Buttons */
-#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button),
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button),
 #admin-content #clearFormButton,
-.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button),
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button) {
+.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button),
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button) {
     background-color: #6c757d;
 }
-#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):hover,
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):hover,
 #admin-content #clearFormButton:hover,
-.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):hover,
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):hover {
+.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):hover,
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):hover {
     background-color: #5a6268;
 }
-#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):active,
+#admin-content button[type="button"]:not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.admin-hamburger-button):not(.admin-close-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):active,
 #admin-content #clearFormButton:active,
-.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):active,
-.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):active {
+.button-like.secondary:not(.category-select-button):not(.tag-filter):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):active,
+.admin-management-modal button.secondary:not(.close-button):not(.category-select-button):not(.tag-filter):not(.admin-nav-button):not(.button-like-icon):not(.item-source-select-button):not(.admin-tag-select-button):active {
     background-color: #545b62;
 }
 
@@ -383,9 +383,8 @@
     gap: 8px; /* ボタン間の隙間 */
 }
 
-/* タグボタンのスタイル (.tag-filter.admin-tag-select は ui-helpers.js で使用される想定) */
-/* アイテムフォーム専用にクラスを分けるか、共通クラスのスタイルを調整 */
-.tag-filter.admin-tag-select,
+/* ★★★ 修正箇所 ★★★ */
+/* タグボタンのスタイルを統一 */
 .admin-tag-select-button {
     padding: 0.35rem 0.8rem; 
     background-color: #e9ecef; /* 少し明るく */
@@ -397,12 +396,10 @@
     color: #343a40; /* 少し濃く */
     user-select: none; 
 }
-.tag-filter.admin-tag-select:hover,
 .admin-tag-select-button:hover { 
     background-color: #dee2e6; 
     border-color: #adb5bd; 
 }
-.tag-filter.admin-tag-select.active,
 .admin-tag-select-button.active { 
     background-color: #007bff; 
     color: white; 
@@ -410,6 +407,30 @@
     box-shadow: 0 0 0 0.15rem rgba(0,123,255,.3); 
     font-weight: 500; 
 }
+/* 古いセレクタの互換性のため残すが、新しいクラスに寄せる */
+.tag-filter.admin-tag-select {
+    padding: 0.35rem 0.8rem; 
+    background-color: #e9ecef;
+    border: 1px solid #ced4da; 
+    border-radius: 15px; 
+    cursor: pointer; 
+    font-size: 0.85em; 
+    transition: all 0.2s;
+    color: #343a40;
+    user-select: none; 
+}
+.tag-filter.admin-tag-select:hover { 
+    background-color: #dee2e6; 
+    border-color: #adb5bd; 
+}
+.tag-filter.admin-tag-select.active { 
+    background-color: #007bff; 
+    color: white; 
+    border-color: #0056b3; 
+    box-shadow: 0 0 0 0.15rem rgba(0,123,255,.3); 
+    font-weight: 500; 
+}
+
 
 /* 入手経路選択モーダル（ボタン式UI用）内のスタイル */
 #selectItemSourceForButtonUIModal .item-source-button-selection-levels {
