@@ -153,6 +153,7 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
     });
 }
 
+// 修正後
 export function populateTagButtonSelector(containerElement, tagsData, activeTagIds = [], datasetKey = 'tagId') {
     if (!containerElement) {
         console.warn("populateTagButtonSelector: containerElement is null");
@@ -167,7 +168,8 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
 
     tagsData.forEach(tag => {
         const button = document.createElement('div'); 
-        button.className = 'tag-filter admin-tag-select';
+        // ★★★ 修正: CSSとJSで確実に連携できるよう、単一で明確なクラス名に変更 ★★★
+        button.className = 'admin-tag-select-button'; 
         button.textContent = tag.name;
         button.dataset[datasetKey] = tag.id; 
         if (activeTagIds.includes(tag.id)) {
@@ -194,12 +196,13 @@ export function getSelectedCheckboxValues(containerElement, checkboxName) {
         .map(cb => cb.value);
 }
 
+// 修正後
 export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId') {
     if (!containerElement) {
         return [];
     }
-    const selector = `.tag-filter.admin-tag-select.active[data-${datasetKey}]`;
-
+    // ★★★ 修正: populateTagButtonSelectorのクラス名変更に合わせる ★★★
+    const selector = `.admin-tag-select-button.active[data-${datasetKey}]`;
     const activeButtons = containerElement.querySelectorAll(selector);
     
     const values = Array.from(activeButtons).map(btn => btn.dataset[datasetKey]);
