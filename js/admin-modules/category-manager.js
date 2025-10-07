@@ -475,26 +475,25 @@ async function saveCategoryEdit() {
         }
         batch.update(doc(dbInstance, 'categories', docId), categoryUpdateData);
 
-        // --- ★★★ タグ所属更新ロジックを全面的に書き換え ★★★ ---
         const allTags = getAllTagsFuncCache();
         const selectedTagIdsSet = new Set(selectedTagIdsForThisCategory);
 
         allTags.forEach(tag => {
-            const isAssociated = tag.categoryIds && tag.categoryIds.includes(docId);
+            const currentCategoryIds = new Set(tag.categoryIds || []);
+            const isAssociated = currentCategoryIds.has(docId);
             const shouldBeAssociated = selectedTagIdsSet.has(tag.id);
 
-            // 状況1: 現在関連付けられていて、今後も関連付けるべき -> 何もしない
-            // 状況2: 現在関連付けられていて、今後は関連付けないべき -> 関連を削除
             if (isAssociated && !shouldBeAssociated) {
-                batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayRemove(docId), updatedAt: serverTimestamp() });
+                // 解除された場合: セットから現在のカテゴリIDを削除
+                currentCategoryIds.delete(docId);
+                batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: Array.from(currentCategoryIds), updatedAt: serverTimestamp() });
+            } else if (!isAssociated && shouldBeAssociated) {
+                // 新規に追加された場合: セットに現在のカテゴリIDを追加
+                currentCategoryIds.add(docId);
+                batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: Array.from(currentCategoryIds), updatedAt: serverTimestamp() });
             }
-            // 状況3: 現在関連付けられておらず、今後は関連付けるべき -> 関連を追加
-            else if (!isAssociated && shouldBeAssociated) {
-                 batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: arrayUnion(docId), updatedAt: serverTimestamp() });
-            }
-            // 状況4: 現在関連付けられておらず、今後も関連付けない -> 何もしない
+            // 状態に変化がない場合は何もしない
         });
-        // --- ★★★ ここまでが新しいロジック ★★★ ---
         
         await batch.commit();
         closeModal('editCategoryModal');
