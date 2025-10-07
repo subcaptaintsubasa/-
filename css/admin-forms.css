@@ -397,11 +397,13 @@
     color: #343a40; /* 少し濃く */
     user-select: none; 
 }
-.tag-filter.admin-tag-select:hover { 
+.tag-filter.admin-tag-select:hover,
+.admin-tag-select-button:hover { 
     background-color: #dee2e6; 
     border-color: #adb5bd; 
 }
-.tag-filter.admin-tag-select.active { 
+.tag-filter.admin-tag-select.active,
+.admin-tag-select-button.active { 
     background-color: #007bff; 
     color: white; 
     border-color: #0056b3; 
