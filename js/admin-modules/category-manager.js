@@ -30,6 +30,14 @@ let getItemsFuncCache = () => [];
 let refreshAllDataCallback = async () => {};
 let openEnlargedListModalCallback = (config) => {};
 
+// DOMの参照を更新するためのグローバル関数
+window.updateDOMReference = (key, element) => {
+    if (DOMC.hasOwnProperty(key)) {
+        DOMC[key] = element;
+        console.log(`[DOM Reference Updated] DOMC.${key} is now`, element); // デバッグ用にログを追加
+    }
+};
+
 const categoryExpansionState = new Map();
 let currentCategorySearchTerm = "";
 
