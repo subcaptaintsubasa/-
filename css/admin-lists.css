@@ -125,9 +125,9 @@
 
 /* Tag selection buttons within category edit modal */
 .tag-button-container.admin { display: flex; flex-wrap: wrap; gap: 0.5rem; max-height: 180px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.75rem; border-radius: 0.25rem; background-color: #ffffff; }
-.tag-button-container.admin .tag-filter.admin-tag-select { padding: 0.35rem 0.8rem; background-color: #f0f0f0; border: 1px solid #ddd; border-radius: 15px; cursor: pointer; font-size: 0.85em; transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out; color: #495057; }
-.tag-button-container.admin .tag-filter.admin-tag-select:hover { background-color: #e0e0e0; border-color: #ccc; }
-.tag-button-container.admin .tag-filter.admin-tag-select.active { background-color: #28a745; color: white; border-color: #1e7e34; box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3); font-weight: 500; }
+.tag-button-container.admin admin-tag-select-button { padding: 0.35rem 0.8rem; background-color: #f0f0f0; border: 1px solid #ddd; border-radius: 15px; cursor: pointer; font-size: 0.85em; transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.15s ease-in-out; color: #495057; }
+.tag-button-container.admin .admin-tag-select-button:hover { background-color: #e0e0e0; border-color: #ccc; }
+.tag-button-container.admin .admin-tag-select-button.active { background-color: #28a745; color: white; border-color: #1e7e34; box-shadow: 0 0 0 0.15rem rgba(40,167,69,.3); font-weight: 500; }
 
 /* Effect input area and list */
 .effect-input-area { border: 1px solid #dee2e6; padding: 1rem; border-radius: 0.25rem; background-color: #f8f9fa; margin-top: 0.75rem; }
