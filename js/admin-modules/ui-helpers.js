@@ -158,35 +158,60 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
         console.warn("populateTagButtonSelector: containerElement is null");
         return;
     }
-    containerElement.innerHTML = '';
+
+    // ▼▼▼【変更点①】コンテナをクローンして古いリスナーを全て破棄する▼▼▼
+    const newContainer = containerElement.cloneNode(false); // 中身はコピーせず、要素だけクローン
 
     if (!tagsData || tagsData.length === 0) {
-        containerElement.innerHTML = '<p>利用可能な選択肢がありません。</p>';
+        newContainer.innerHTML = '<p>利用可能な選択肢がありません。</p>';
+        if (containerElement.parentNode) {
+            containerElement.parentNode.replaceChild(newContainer, containerElement);
+        }
         return;
     }
 
     tagsData.forEach(tag => {
-        const button = document.createElement('div'); 
-        // ★★★ 修正 ★★★ 統一されたクラス名を使用
-        button.className = 'admin-tag-select-button'; 
+        const button = document.createElement('div');
+        button.className = 'admin-tag-select-button';
         button.textContent = tag.name;
-        button.dataset[datasetKey] = tag.id; 
+        button.dataset[datasetKey] = tag.id;
         if (activeTagIds.includes(tag.id)) {
             button.classList.add('active');
         }
-        button.setAttribute('role', 'button'); 
-        button.setAttribute('tabindex', '0');   
-        button.addEventListener('click', () => {
-            button.classList.toggle('active');
-        });
-        button.addEventListener('keydown', (e) => { 
+        button.setAttribute('role', 'button');
+        button.setAttribute('tabindex', '0');
+        // --- ここではイベントリスナーを登録しない ---
+        newContainer.appendChild(button);
+    });
+    
+    // ▼▼▼【変更点②】親コンテナにクリックイベントを1つだけ登録する▼▼▼
+    newContainer.addEventListener('click', (e) => {
+        const targetButton = e.target.closest('.admin-tag-select-button');
+        if (targetButton && newContainer.contains(targetButton)) {
+            targetButton.classList.toggle('active');
+        }
+    });
+
+    // ▼▼▼【変更点③】keydownイベントも同様に親コンテナに登録する▼▼▼
+    newContainer.addEventListener('keydown', (e) => {
+        const targetButton = e.target.closest('.admin-tag-select-button');
+        if (targetButton && newContainer.contains(targetButton)) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                button.classList.toggle('active');
+                targetButton.classList.toggle('active');
             }
-        });
-        containerElement.appendChild(button);
+        }
     });
+    
+    // ▼▼▼【変更点④】古いコンテナを新しいコンテナで置き換える▼▼▼
+    if (containerElement.parentNode) {
+        containerElement.parentNode.replaceChild(newContainer, containerElement);
+    }
+
+    // category-manager.js 側で DOM の参照を更新する
+    if (typeof window.updateDOMReference === 'function') {
+        window.updateDOMReference('editingCategoryTagsSelector', newContainer);
+    }
 }
 
 export function getSelectedCheckboxValues(containerElement, checkboxName) {
