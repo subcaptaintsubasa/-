@@ -478,25 +478,31 @@ async function saveCategoryEdit() {
         }
         batch.update(doc(dbInstance, 'categories', docId), categoryUpdateData);
 
-        const allTags = getAllTagsFuncCache();
-        const selectedTagIdsSet = new Set(selectedTagIdsForThisCategory);
+const allTags = getAllTagsFuncCache();
+    const originalAssociatedTagIds = new Set(
+        allTags.filter(t => t.categoryIds && t.categoryIds.includes(docId)).map(t => t.id)
+    );
+    const newAssociatedTagIds = new Set(selectedTagIdsForThisCategory);
 
-        allTags.forEach(tag => {
-            const currentCategoryIds = new Set(tag.categoryIds || []);
-            const isAssociated = currentCategoryIds.has(docId);
-            const shouldBeAssociated = selectedTagIdsSet.has(tag.id);
+    // 1. このカテゴリから削除されるべきタグを更新
+    originalAssociatedTagIds.forEach(tagId => {
+        if (!newAssociatedTagIds.has(tagId)) {
+            batch.update(doc(dbInstance, 'tags', tagId), {
+                categoryIds: arrayRemove(docId),
+                updatedAt: serverTimestamp()
+            });
+        }
+    });
 
-            if (isAssociated && !shouldBeAssociated) {
-                // 解除された場合: セットから現在のカテゴリIDを削除
-                currentCategoryIds.delete(docId);
-                batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: Array.from(currentCategoryIds), updatedAt: serverTimestamp() });
-            } else if (!isAssociated && shouldBeAssociated) {
-                // 新規に追加された場合: セットに現在のカテゴリIDを追加
-                currentCategoryIds.add(docId);
-                batch.update(doc(dbInstance, 'tags', tag.id), { categoryIds: Array.from(currentCategoryIds), updatedAt: serverTimestamp() });
-            }
-            // 状態に変化がない場合は何もしない
-        });
+    // 2. このカテゴリに新たに追加されるべきタグを更新
+    newAssociatedTagIds.forEach(tagId => {
+        if (!originalAssociatedTagIds.has(tagId)) {
+            batch.update(doc(dbInstance, 'tags', tagId), {
+                categoryIds: arrayUnion(docId),
+                updatedAt: serverTimestamp()
+            });
+        }
+    });
         
         await batch.commit();
         closeModal('editCategoryModal');
