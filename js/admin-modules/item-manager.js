@@ -935,15 +935,16 @@ async function saveItem(event) {
 
     const name = DOMI.itemNameInput.value.trim();
     const priceStr = DOMI.itemPriceInput.value.trim();
-    let selectedItemTagIds = [];
-    if (DOMI.itemTagsButtonContainer) {
-        const activeTagButtons = DOMI.itemTagsButtonContainer.querySelectorAll('.tag-filter.admin-tag-select.active[data-tag-id]');
-        activeTagButtons.forEach(button => {
-            if (button.dataset.tagId) {
-                selectedItemTagIds.push(button.dataset.tagId);
-            }
-        });
-    }
+let selectedItemTagIds = [];
+if (DOMI.itemTagsButtonContainer) {
+    // 正しいクラス名 '.admin-tag-select-button' でアクティブなボタンを取得する
+    const activeTagButtons = DOMI.itemTagsButtonContainer.querySelectorAll('.admin-tag-select-button.active[data-tag-id]');
+    activeTagButtons.forEach(button => {
+        if (button.dataset.tagId) {
+            selectedItemTagIds.push(button.dataset.tagId);
+        }
+    });
+}
     const editingDocId = DOMI.itemIdToEditInput.value;
     const rarity = parseInt(DOMI.itemRarityValueInput.value, 10) || 0;
     let imageUrlToSave = DOMI.itemImageUrlInput.value || "";
