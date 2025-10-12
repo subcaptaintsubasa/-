@@ -199,6 +199,9 @@ export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId
     if (!containerElement) {
         return [];
     }
+    
+    debugger; 
+
     // ▼▼▼【重要】取得するセレクタも上記と完全に一致させます ▼▼▼
     const selector = `.admin-tag-select-button.active[data-${datasetKey}]`;
     const activeButtons = containerElement.querySelectorAll(selector);
