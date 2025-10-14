@@ -153,38 +153,38 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
     });
 }
 
+// main/js/admin-modules/ui-helpers.js.txt
+
 export function populateTagButtonSelector(containerElement, tagsData, activeTagIds = [], datasetKey = 'tagId') {
     if (!containerElement) {
         console.warn("populateTagButtonSelector: containerElement is null");
-        return;
+        // 何もせずに関数を終了する代わりに、空のコンテナを返すこともできますが、
+        // 呼び出し元がnullチェックをしていることを期待します。
+        return null;
     }
 
-    // ▼▼▼【変更点①】コンテナをクローンして古いリスナーを全て破棄する▼▼▼
-    const newContainer = containerElement.cloneNode(false); // 中身はコピーせず、要素だけクローン
+    // 新しいコンテナを作成し、元の要素のクラスを引き継ぐ
+    const newContainer = document.createElement('div');
+    newContainer.className = containerElement.className;
 
     if (!tagsData || tagsData.length === 0) {
         newContainer.innerHTML = '<p>利用可能な選択肢がありません。</p>';
-        if (containerElement.parentNode) {
-            containerElement.parentNode.replaceChild(newContainer, containerElement);
-        }
-        return;
+    } else {
+        tagsData.forEach(tag => {
+            const button = document.createElement('div');
+            button.className = 'admin-tag-select-button';
+            button.textContent = tag.name;
+            button.dataset[datasetKey] = tag.id;
+            if (activeTagIds.includes(tag.id)) {
+                button.classList.add('active');
+            }
+            button.setAttribute('role', 'button');
+            button.setAttribute('tabindex', '0');
+            newContainer.appendChild(button);
+        });
     }
-
-    tagsData.forEach(tag => {
-        const button = document.createElement('div');
-        button.className = 'admin-tag-select-button';
-        button.textContent = tag.name;
-        button.dataset[datasetKey] = tag.id;
-        if (activeTagIds.includes(tag.id)) {
-            button.classList.add('active');
-        }
-        button.setAttribute('role', 'button');
-        button.setAttribute('tabindex', '0');
-        // --- ここではイベントリスナーを登録しない ---
-        newContainer.appendChild(button);
-    });
     
-    // ▼▼▼【変更点②】親コンテナにクリックイベントを1つだけ登録する▼▼▼
+    // イベントリスナーを新しいコンテナに設定（イベント委任）
     newContainer.addEventListener('click', (e) => {
         const targetButton = e.target.closest('.admin-tag-select-button');
         if (targetButton && newContainer.contains(targetButton)) {
@@ -192,7 +192,6 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
         }
     });
 
-    // ▼▼▼【変更点③】keydownイベントも同様に親コンテナに登録する▼▼▼
     newContainer.addEventListener('keydown', (e) => {
         const targetButton = e.target.closest('.admin-tag-select-button');
         if (targetButton && newContainer.contains(targetButton)) {
@@ -203,15 +202,8 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
         }
     });
     
-    // ▼▼▼【変更点④】古いコンテナを新しいコンテナで置き換える▼▼▼
-    if (containerElement.parentNode) {
-        containerElement.parentNode.replaceChild(newContainer, containerElement);
-    }
-
-    // category-manager.js 側で DOM の参照を更新する
-    if (typeof window.updateDOMReference === 'function') {
-        window.updateDOMReference('editingCategoryTagsSelector', newContainer);
-    }
+    // この関数は新しく生成したコンテナ要素を返すだけ。DOM操作は行わない。
+    return newContainer;
 }
 
 export function getSelectedCheckboxValues(containerElement, checkboxName) {
