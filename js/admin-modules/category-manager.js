@@ -407,23 +407,38 @@ export function openEditCategoryModalById(categoryId) {
     if(DOMC.editingCategoryNameInput) DOMC.editingCategoryNameInput.focus();
 }
 
+// main/js/admin-modules/category-manager.js.txt
+
 function populateTagsForCategoryEditModal(containerElement, categoryId, allTags) {
     if (!containerElement) {
         console.warn("populateTagsForCategoryEditModal: containerElement is null");
         return;
     }
-    // allTags も isDeleted: false のものだけが渡される想定
+    
     const activeTagIds = allTags
         .filter(tag => !tag.isDeleted && tag.categoryIds && tag.categoryIds.includes(categoryId))
         .map(t => t.id);
 
     const tagOptionsForButtons = allTags
         .filter(tag => !tag.isDeleted)
-        .map(tag => ({ id: tag.id, name: tag.name })) // populateTagButtonSelector が期待する形式に変換
+        .map(tag => ({ id: tag.id, name: tag.name }))
         .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
     
-    // 汎用ヘルパー関数を呼び出す
-    populateTagButtonSelector(containerElement, tagOptionsForButtons, activeTagIds);
+    // 1. ヘルパー関数から新しいコンテナ要素を受け取る
+    const newTagSelector = populateTagButtonSelector(containerElement, tagOptionsForButtons, activeTagIds);
+    
+    // 必須：元の要素のIDを新しい要素に引き継ぐ
+    if (newTagSelector) {
+        newTagSelector.id = containerElement.id;
+
+        // 2. 呼び出し元（このファイル）が責任を持ってDOMを置き換える
+        if (containerElement.parentNode) {
+            containerElement.parentNode.replaceChild(newTagSelector, containerElement);
+        }
+        
+        // 3. 内部のDOM参照を新しい要素に更新する
+        DOMC.editingCategoryTagsSelector = newTagSelector;
+    }
 }
 
 async function saveCategoryEdit() {
