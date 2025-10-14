@@ -409,6 +409,8 @@ export function openEditCategoryModalById(categoryId) {
 
 // main/js/admin-modules/category-manager.js.txt
 
+// main/js/admin-modules/category-manager.js.txt
+
 function populateTagsForCategoryEditModal(containerElement, categoryId, allTags) {
     if (!containerElement) {
         console.warn("populateTagsForCategoryEditModal: containerElement is null");
@@ -427,16 +429,16 @@ function populateTagsForCategoryEditModal(containerElement, categoryId, allTags)
     // 1. ヘルパー関数から新しいコンテナ要素を受け取る
     const newTagSelector = populateTagButtonSelector(containerElement, tagOptionsForButtons, activeTagIds);
     
-    // 必須：元の要素のIDを新しい要素に引き継ぐ
     if (newTagSelector) {
+        // 2. 必須：元の要素のIDを新しい要素に引き継ぐ
         newTagSelector.id = containerElement.id;
 
-        // 2. 呼び出し元（このファイル）が責任を持ってDOMを置き換える
+        // 3. 呼び出し元が責任を持ってDOMを置き換える
         if (containerElement.parentNode) {
             containerElement.parentNode.replaceChild(newTagSelector, containerElement);
         }
         
-        // 3. 内部のDOM参照を新しい要素に更新する
+        // 4. 内部のDOM参照を、新しくDOMに挿入した要素に更新する (これが最も重要)
         DOMC.editingCategoryTagsSelector = newTagSelector;
     }
 }
