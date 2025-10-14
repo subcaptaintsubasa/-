@@ -154,6 +154,8 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
 }
 
 
+// js/admin-modules/ui-helpers.js.txt
+
 export function populateTagButtonSelector(containerElement, tagsData, activeTagIds = [], datasetKey = 'tagId') {
     // この関数は「新しいコンテナ要素を生成して返す」ことに専念します。
     if (!containerElement) {
@@ -204,17 +206,10 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
     return newContainer;
 }
 
-export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId') {
-    if (!containerElement) {
-        return [];
-    }
-    // debugger; を削除
-    const selector = `.admin-tag-select-button.active[data-${datasetKey}]`;
-    const activeButtons = containerElement.querySelectorAll(selector);
-    
-    const values = Array.from(activeButtons).map(btn => btn.dataset[datasetKey]);
-    
-    return values;
+export function getSelectedCheckboxValues(containerElement, checkboxName) {
+    if (!containerElement) return [];
+    return Array.from(containerElement.querySelectorAll(`input[type="checkbox"][name="${checkboxName}"]:checked`))
+        .map(cb => cb.value);
 }
 
 function simpleUID(prefix = 'uid-') {
