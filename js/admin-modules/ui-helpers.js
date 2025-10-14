@@ -153,13 +153,11 @@ export function populateCheckboxGroup(containerElement, items, selectedIds = [],
     });
 }
 
-// main/js/admin-modules/ui-helpers.js.txt
 
 export function populateTagButtonSelector(containerElement, tagsData, activeTagIds = [], datasetKey = 'tagId') {
+    // この関数は「新しいコンテナ要素を生成して返す」ことに専念します。
     if (!containerElement) {
         console.warn("populateTagButtonSelector: containerElement is null");
-        // 何もせずに関数を終了する代わりに、空のコンテナを返すこともできますが、
-        // 呼び出し元がnullチェックをしていることを期待します。
         return null;
     }
 
@@ -184,7 +182,7 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
         });
     }
     
-    // イベントリスナーを新しいコンテナに設定（イベント委任）
+    // イベントリスナーを新しいコンテナに設定（イベント委任方式）
     newContainer.addEventListener('click', (e) => {
         const targetButton = e.target.closest('.admin-tag-select-button');
         if (targetButton && newContainer.contains(targetButton)) {
@@ -202,23 +200,15 @@ export function populateTagButtonSelector(containerElement, tagsData, activeTagI
         }
     });
     
-    // この関数は新しく生成したコンテナ要素を返すだけ。DOM操作は行わない。
+    // 生成した新しいコンテナ要素を返す
     return newContainer;
-}
-
-export function getSelectedCheckboxValues(containerElement, checkboxName) {
-    if (!containerElement) return [];
-    return Array.from(containerElement.querySelectorAll(`input[type="checkbox"][name="${checkboxName}"]:checked`))
-        .map(cb => cb.value);
 }
 
 export function getSelectedTagButtonValues(containerElement, datasetKey = 'tagId') {
     if (!containerElement) {
         return [];
     }
-    
-
-    // ▼▼▼【重要】取得するセレクタも上記と完全に一致させます ▼▼▼
+    // debugger; を削除
     const selector = `.admin-tag-select-button.active[data-${datasetKey}]`;
     const activeButtons = containerElement.querySelectorAll(selector);
     
