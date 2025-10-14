@@ -407,9 +407,7 @@ export function openEditCategoryModalById(categoryId) {
     if(DOMC.editingCategoryNameInput) DOMC.editingCategoryNameInput.focus();
 }
 
-// main/js/admin-modules/category-manager.js.txt
-
-// main/js/admin-modules/category-manager.js.txt
+// js/admin-modules/category-manager.js.txt
 
 function populateTagsForCategoryEditModal(containerElement, categoryId, allTags) {
     if (!containerElement) {
